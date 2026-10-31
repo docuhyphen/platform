@@ -1,26 +1,30 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestCarryForwardRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestLineageRepository
+import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestLineageSourcePackageRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestDraftFactory
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyMaterializationService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCarryForwardPlanner
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionPackageReader
@@ -36,13 +40,15 @@ class InformationRequestSuccessorService @Inject constructor(
     private val gate: InformationRequestMutationGate,
     private val draftFactory: InformationRequestDraftFactory,
     private val partyRepository: InformationRequestPartyRepository,
-    private val partyService: InformationRequestPartyService,
+    private val partyMaterialization: InformationRequestPartyMaterializationService,
     private val packageReader: InformationRequestSubmissionPackageReader,
     private val lockService: InformationRequestSubmissionLockService,
     private val requirementRepository: InformationRequestRequirementRepository,
     private val templateRequirementRepository: InformationRequestTemplateRequirementRepository,
+    private val templateVersionRepository: InformationRequestTemplateVersionRepository,
     private val lineageRepository: InformationRequestLineageRepository,
     private val carryForwardRepository: InformationRequestCarryForwardRepository,
+    private val sourcePackageRepository: InformationRequestLineageSourcePackageRepository,
     private val requestRepository: InformationRequestRepository,
     private val lifecycleService: InformationRequestLifecycleService,
     private val commandReceiptService: CommandReceiptService,
@@ -60,21 +66,21 @@ class InformationRequestSuccessorService @Inject constructor(
                 "A recurring or refreshing request is created from its recurrence or refresh rule",
             )
         }
+        InformationRequestReasonCodes.requireMachineCode(command.reasonCode)
+        gate.requireVisibleTarget(command.access, command.sourceRequestId)
         val locked = gate.lock(command.sourceRequestId)
         val receipt = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.sourceRequestId),
             operation = CREATE_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    CREATE_OPERATION,
-                    command.sourceRequestId,
-                    command.kind,
-                    command.targetTemplateVersionId?.toString().orEmpty(),
-                    command.sourcePackageId?.toString().orEmpty(),
-                    command.reasonCode?.trim().orEmpty(),
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                CREATE_OPERATION,
+                command.sourceRequestId,
+                command.kind,
+                command.targetTemplateVersionId,
+                command.sourcePackageId,
+                command.reasonCode?.trim().orEmpty(),
             ),
         )
         return run(locked, receipt, command.access) {
@@ -103,6 +109,7 @@ class InformationRequestSuccessorService @Inject constructor(
         locked: LockedInformationRequest,
         receipt: CommandReceiptRequest,
         access: RequestAccessContext,
+        addressedRequestId: UUID = locked.request.id,
         mutation: () -> InformationRequestSuccessorResult,
     ): InformationRequestSuccessorResult =
         when (
@@ -121,7 +128,7 @@ class InformationRequestSuccessorService @Inject constructor(
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed -> replay(locked, access, decision.result)
+            is CommandReceiptDecision.Replayed -> replay(addressedRequestId, access, decision.result)
         }
 
     fun follow(
@@ -133,16 +140,17 @@ class InformationRequestSuccessorService @Inject constructor(
     {
         val source = locked.request
         gate.requireMutation(locked, InformationRequestMutation.CREATE_SUCCESSOR)
-        gate.requireContinuationEntitlement(locked)
-        val sourcePackage = sourcePackageOf(source, spec.sourcePackageId)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.SUPERSEDE)
+        val preserved = preservedPackagesOf(source, spec.sourcePackageId)
+        val sourcePackage = preserved.lastOrNull()
         val successor = draftFactory.createAlongside(
             locked.exchange,
             source,
-            spec.targetTemplateVersionId ?: source.templateVersionId,
+            spec.targetTemplateVersionId?.let { followUpVersionOf(source, it) } ?: source.templateVersionId,
             access,
             idempotencyKey,
         )
-        copyParties(source, successor, access)
+        val notCopied = copyParties(source, successor, access)
         val now = Timestamp.from(clock.instant())
         val lineage = lineageRepository.save(
             InformationRequestLineage().apply {
@@ -159,20 +167,34 @@ class InformationRequestSuccessorService @Inject constructor(
                 createdAt = now
             },
         )
-        val carryForwards = sourcePackage?.let { recordCarryForward(lineage, successor, it, now) }.orEmpty()
+        preserved.forEach { view ->
+            sourcePackageRepository.save(
+                InformationRequestLineageSourcePackage().apply {
+                    lineageId = lineage.id
+                    successorRequestId = successor.id
+                    sourceRequestId = source.id
+                    packageId = view.submissionPackage.id
+                    createdAt = now
+                },
+            )
+        }
+        val carryForwards =
+            if (preserved.isEmpty()) emptyList() else recordCarryForward(lineage, successor, preserved, now)
         transitionHistory.record(
             InformationRequestTransitionHistoryCommand(
                 request = source,
                 fromState = source.state,
                 toState = source.state,
                 mutation = InformationRequestMutation.CREATE_SUCCESSOR,
-                actor = access.principal,
+                actor = InformationRequestAuditActor.of(access),
                 reasonCode = spec.reasonCode,
-                idempotencyKey = "information_request.successor|${source.id}|${successor.id}",
+                auditIdempotencyKey = "information_request.successor|${source.id}|${successor.id}",
                 details = mapOf(
                     "successorRequestId" to successor.id.toString(),
                     "lineageKind" to spec.kind.name,
                 ) + (sourcePackage?.let { mapOf("sourcePackageId" to it.submissionPackage.id.toString()) }
+                    ?: emptyMap()) + (notCopied.takeIf { it.isNotEmpty() }
+                    ?.let { mapOf("partiesNotCopied" to it.joinToString(",")) }
                     ?: emptyMap()),
             ),
         )
@@ -186,7 +208,10 @@ class InformationRequestSuccessorService @Inject constructor(
         )
     }
 
-    private fun sourcePackageOf(source: InformationRequest, packageId: UUID?): InformationRequestSubmissionPackageView?
+    private fun preservedPackagesOf(
+        source: InformationRequest,
+        packageId: UUID?
+    ): List<InformationRequestSubmissionPackageView>
     {
         if (packageId != null)
         {
@@ -198,34 +223,59 @@ class InformationRequestSuccessorService @Inject constructor(
                     "A follow-up preserves a submission that was not withdrawn",
                 )
             }
-            return view
+            return listOf(view)
         }
-        return lockService.activePackages(source.id).lastOrNull()?.let { packageReader.view(source.id, it.id) }
+        return lockService.activePackages(source.id)
+            .sortedBy { it.packageNumber }
+            .map { packageReader.view(source.id, it.id) }
     }
 
-    private fun copyParties(source: InformationRequest, successor: InformationRequest, access: RequestAccessContext)
+    private fun copyParties(
+        source: InformationRequest,
+        successor: InformationRequest,
+        access: RequestAccessContext
+    ): List<UUID>
     {
-        val defaults = partyRepository.findActiveForRequest(source.id).mapNotNull { party ->
-            val kind = party.principalKind ?: return@mapNotNull null
-            val id = party.principalId ?: return@mapNotNull null
-            BlueprintInformationRequestPartyDefault(party.roleKey, PrincipalRef(kind, id))
-        }
-        partyService.materializeBlueprintDefaultParties(successor, defaults, access)
-        partyService.materializeSubjectParties(
+        val copies = partyMaterialization.copyEligibleParties(
+            successor,
+            source,
+            partyRepository.findActiveForRequest(source.id)
+                .filter { it.principalKind != null && it.principalId != null },
+            access,
+        )
+        partyMaterialization.materializeSubjectParties(
             successor,
             partyRepository.findActiveForRequestRole(source.id, InformationRequestShareRoleKey.SUBJECT)
                 .mapNotNull { it.subjectIdentityRefId },
             access,
         )
+        return copies.notCopiedPartyIds
+    }
+
+    private fun followUpVersionOf(source: InformationRequest, targetTemplateVersionId: UUID): UUID {
+        val current = templateVersionRepository.findById(source.templateVersionId)
+        val target = templateVersionRepository.findById(targetTemplateVersionId)
+        if (current == null || target == null ||
+            target.templateDefinitionId != current.templateDefinitionId ||
+            target.status != InformationRequestTemplateStatus.PUBLISHED ||
+            target.versionNumber < current.versionNumber
+        ) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.SUCCESSOR_TARGET_INVALID,
+                "A follow-up uses its source's Template Version or a later published Version of the same Template",
+            )
+        }
+        return target.id
     }
 
     private fun recordCarryForward(
         lineage: InformationRequestLineage,
         successor: InformationRequest,
-        sourcePackage: InformationRequestSubmissionPackageView,
+        preserved: List<InformationRequestSubmissionPackageView>,
         now: Timestamp,
     ): List<InformationRequestCarryForward>
     {
+        val packageOfItem = preserved.flatMap { view -> view.items.map { it.id to view.submissionPackage.id } }.toMap()
         val occurrences = requirementRepository.findForRequest(successor.id).mapNotNull { requirement ->
             val templateRequirement = templateRequirementRepository.findById(requirement.sourceTemplateRequirementId)
                 ?: return@mapNotNull null
@@ -236,13 +286,13 @@ class InformationRequestSuccessorService @Inject constructor(
                 occurrencePath = requirement.occurrencePath,
             )
         }
-        return InformationRequestCarryForwardPlanner.plan(occurrences, sourcePackage.items).map { planned ->
+        return InformationRequestCarryForwardPlanner.plan(occurrences, preserved.flatMap { it.items }).map { planned ->
             carryForwardRepository.save(
                 InformationRequestCarryForward().apply {
                     lineageId = lineage.id
                     informationRequestId = successor.id
                     informationRequestRequirementId = planned.requirementId
-                    sourcePackageId = sourcePackage.submissionPackage.id
+                    sourcePackageId = packageOfItem.getValue(planned.sourceItemId)
                     sourceItemId = planned.sourceItemId
                     decision = planned.decision
                     reasonCode = planned.reasonCode
@@ -271,26 +321,29 @@ class InformationRequestSuccessorService @Inject constructor(
     }
 
     private fun replay(
-        locked: LockedInformationRequest,
+        addressedRequestId: UUID,
         access: RequestAccessContext,
         recorded: CommandResultReference,
     ): InformationRequestSuccessorResult
     {
         require(recorded.resourceType == ResourceType.INFORMATION_REQUEST) { "Command receipt does not reference a follow-up request" }
-        gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), locked.request.id)
-        val successor = requestRepository.findById(recorded.resourceId)
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.NOT_FOUND,
-                "Follow-up request not found"
-            )
+        gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), addressedRequestId)
+        val successor = requestRepository.findById(recorded.resourceId) ?: throw followUpNotFound()
+        val lineage = lineageRepository.findForSuccessor(successor.id) ?: throw followUpNotFound()
+        val source = requestRepository.findById(lineage.sourceRequestId) ?: throw followUpNotFound()
+        gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), source.id)
+        gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), successor.id)
         return InformationRequestSuccessorResult(
-            source = locked.request,
+            source = source,
             successor = successor,
-            lineage = requireNotNull(lineageRepository.findForSuccessor(successor.id)),
+            lineage = lineage,
             carryForwards = carryForwardRepository.findForRequest(successor.id),
-            successorETag = requireNotNull(recorded.etag) { "Follow-up receipt did not record an ETag" },
+            successorETag = InformationRequestETag.aggregateOf(successor),
         )
     }
+
+    private fun followUpNotFound() =
+        InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Follow-up request not found")
 
     private companion object
     {

@@ -11,8 +11,6 @@ class DetailedEntityToDtoTransformer
 {
     companion object
     {
-        // Relative API path the frontend uses to load the authenticated user's avatar
-        // binary. Present only when the user has a stored profile picture.
         private const val AVATAR_ENDPOINT_PATH = "/app-user/avatar"
 
         fun toDto(document: Document?): DocumentDetailedDto?
@@ -63,7 +61,7 @@ class DetailedEntityToDtoTransformer
             {
                 DocumentVersionDetailedDto(
                     id,
-                    document.id.toString(),
+                    requireNotNull(document) { "Document version has no parent document" }.id.toString(),
                     createdDate,
                     version,
                     view.creator.email,
@@ -97,12 +95,6 @@ class DetailedEntityToDtoTransformer
 
         fun toDto(appUser: AppUser?): AppUserDetailedDto? = toDto(appUser, emptySet(), emptySet())
 
-        /**
-         * [organizationRoles] contains every role within the organization in whose context this
-         * DTO is being produced (per-org now, via organization_membership), callers that have
-         * an org context (e.g. the org-members listing) resolve and pass it; context-free
-         * callers pass null.
-         */
         fun toDto(appUser: AppUser?, organizationRoles: Set<OrganizationRoleName>): AppUserDetailedDto? =
             toDto(appUser, emptySet(), organizationRoles)
 
@@ -133,10 +125,6 @@ class DetailedEntityToDtoTransformer
             }
         }
 
-        /**
-         * Builds a safe public view of another user. Excludes private settings, notification
-         * preferences, identification numbers, and contact details.
-         */
         fun toPublicDto(appUser: AppUser?): AppUserPublicDto? = toPublicDto(appUser, emptySet(), emptySet())
 
         fun toPublicDto(

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestFactRecertificationContractTest
 {
@@ -27,7 +27,11 @@ class InformationRequestFactRecertificationContractTest
                 fixture.insertRecertification(responseRevision = 9)
             }
             refusedBy(connection, "information request history is append-only") {
-                execute(connection, "DELETE FROM information_request_fact_recertification WHERE id = ?", recertificationId)
+                execute(
+                    connection,
+                    "DELETE FROM information_request_fact_recertification WHERE id = ?",
+                    recertificationId
+                )
             }
             refusedBy(connection, "information request history is append-only") {
                 execute(
@@ -54,8 +58,8 @@ class InformationRequestFactRecertificationContractTest
                 connection,
                 """
                 INSERT INTO information_request_transition
-                    (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at)
-                VALUES (?, ?, 1, 'ISSUED', 'ISSUED', 'RECERTIFY_FACT', 'USER', ?, now())
+                    (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at, idempotency_key)
+                VALUES (?, ?, 1, 'ISSUED', 'ISSUED', 'RECERTIFY_FACT', 'USER', ?, now(), 'fact-recertification')
                 """.trimIndent(),
                 UUID.randomUUID(),
                 fixture.targetRequestId,
@@ -65,7 +69,7 @@ class InformationRequestFactRecertificationContractTest
     }
 
     @Test
-    fun `disposal removes a request's own recertifications and leaves those another request made from its facts`()
+    fun `a source request is disposed only after the request that recertified its fact removes its recertifications`()
     {
         withRecertification { connection, fixture ->
             val recertificationId = fixture.insertRecertification()
@@ -74,19 +78,45 @@ class InformationRequestFactRecertificationContractTest
             val scheduleId = UUID.randomUUID()
             preservation.insertSchedule(scheduleId, 1, minimumDays = 0, disposalDays = 0)
 
-            execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", fixture.runtime.requestId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                fixture.runtime.requestId
+            )
             val sourceClaim = UUID.randomUUID()
             preservation.insertClaim(sourceClaim, scheduleId)
-            preservation.insertScope(sourceClaim, "INFORMATION_REQUEST", fixture.runtime.requestId.toString(), direct = true)
+            preservation.insertScope(
+                sourceClaim,
+                "INFORMATION_REQUEST",
+                fixture.runtime.requestId.toString(),
+                direct = true
+            )
             val objectId = preservation.insertObject(sourceClaim, retained = false)
-            execute(connection, "UPDATE record_disposal_object SET deletion_outcome = 'ABSENT', deleted_at = now() WHERE id = ?", objectId)
+            execute(
+                connection,
+                "UPDATE record_disposal_object SET deletion_outcome = 'ABSENT', deleted_at = now() WHERE id = ?",
+                objectId
+            )
             preservation.advance(sourceClaim)
-            queryString(connection, "SELECT record_dispose_information_request(?)", sourceClaim)
-            assertEquals(0, queryInt(connection, "SELECT COUNT(*) FROM information_request_accepted_fact WHERE id = ?", fixture.factId))
+            refusedBy(connection, "information_request_recertification_fact_fkey") {
+                queryString(connection, "SELECT record_dispose_information_request(?)", sourceClaim)
+            }
+            assertEquals(
+                1,
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_accepted_fact WHERE id = ?",
+                    fixture.factId
+                )
+            )
             assertEquals(1, fixture.count("information_request_fact_recertification"))
             assertEquals(1, fixture.count("information_request_fact_recertification_evidence"))
 
-            execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", fixture.targetRequestId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                fixture.targetRequestId
+            )
             val targetClaim = UUID.randomUUID()
             execute(
                 connection,
@@ -102,13 +132,33 @@ class InformationRequestFactRecertificationContractTest
                 fixture.runtime.template.organizationId,
                 scheduleId,
             )
-            preservation.insertScope(targetClaim, "INFORMATION_REQUEST", fixture.targetRequestId.toString(), direct = true)
+            preservation.insertScope(
+                targetClaim,
+                "INFORMATION_REQUEST",
+                fixture.targetRequestId.toString(),
+                direct = true
+            )
             preservation.advance(targetClaim)
-            val removed = requireNotNull(queryString(connection, "SELECT record_dispose_information_request(?)", targetClaim))
+            val removed =
+                requireNotNull(queryString(connection, "SELECT record_dispose_information_request(?)", targetClaim))
             assertTrue(removed.contains("\"information_request_fact_recertification\": 1"), removed)
             assertTrue(removed.contains("\"information_request_fact_recertification_evidence\": 1"), removed)
             assertEquals(0, fixture.count("information_request_fact_recertification"))
             assertEquals(0, fixture.count("information_request_fact_recertification_evidence"))
+
+            queryString(connection, "SELECT record_dispose_information_request(?)", sourceClaim)
+            assertEquals(
+                0,
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_accepted_fact WHERE id = ?",
+                    fixture.factId
+                )
+            )
+            assertEquals(
+                "FINALIZED",
+                queryString(connection, "SELECT state FROM record_disposal_claim WHERE id = ?", sourceClaim),
+            )
         }
     }
 

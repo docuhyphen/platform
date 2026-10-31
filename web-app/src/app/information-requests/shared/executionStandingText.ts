@@ -16,7 +16,8 @@ export const standingReasonSentence: Record<InformationRequestStandingReason, st
     [InformationRequestStandingReason.SUBSCRIPTION_PAST_DUE]: "Payment for the owner's subscription is overdue.",
     [InformationRequestStandingReason.SUBSCRIPTION_CANCELED]: "The owner's subscription has been canceled.",
     [InformationRequestStandingReason.SUBSCRIPTION_SUSPENDED]: "The owner's account is suspended.",
-    [InformationRequestStandingReason.EXECUTION_GRANT_REVOKED]: "A platform administrator stopped this request.",
+    [InformationRequestStandingReason.EXECUTION_GRANT_REVOKED]: "It accepts no further changes.",
+    [InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED]: "The owner has reached its plan's limit of open Information Requests.",
 };
 
 const badges: Record<InformationRequestExecutionStandingKind, string | null> = {
@@ -37,6 +38,16 @@ export const mayChangeUnderStanding = (standing: InformationRequestExecutionStan
     standing.kind === InformationRequestExecutionStandingKind.ACTIVE ||
     standing.kind === InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE;
 
+export const mayIssueUnderStanding = (standing: InformationRequestExecutionStandingDto): boolean =>
+    standing.kind === InformationRequestExecutionStandingKind.ACTIVE;
+
+export const mayRecoverAsOwnerUnderStanding = (standing: InformationRequestExecutionStandingDto): boolean =>
+    standing.kind !== InformationRequestExecutionStandingKind.NEW_WORK_UNAVAILABLE &&
+    standing.kind !== InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED;
+
+export const mayWithdrawAsOwnerUnderStanding = (standing: InformationRequestExecutionStandingDto): boolean =>
+    standing.kind !== InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED;
+
 export const executionStandingNotice = (standing: InformationRequestExecutionStandingDto): ExecutionStandingNoticeText | null =>
 {
     switch (standing.kind)
@@ -46,7 +57,7 @@ export const executionStandingNotice = (standing: InformationRequestExecutionSta
         case InformationRequestExecutionStandingKind.NEW_WORK_UNAVAILABLE:
             return {
                 intent: "warning",
-                text: withReason("This draft cannot be issued or changed right now. It stays readable.", standing),
+                text: withReason("This draft cannot be issued or changed right now, though it can still be cancelled or stop holding back its Exchange's end. It stays readable.", standing),
             };
         case InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE:
             return {

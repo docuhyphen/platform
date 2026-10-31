@@ -1,6 +1,7 @@
 import {
     InformationRequestLineageDto,
     InformationRequestLineageKind,
+    InformationRequestLineageViewDto,
     InformationRequestRecurrenceDto,
     InformationRequestRecurrenceUnit,
 } from "../../../models/models.tsx";
@@ -26,6 +27,11 @@ export const recurrenceSentence = (recurrence: InformationRequestRecurrenceDto):
     const every = recurrence.intervalCount === 1 ? `1 ${one}` : `${recurrence.intervalCount} ${many}`;
     const limit = recurrence.maximumOccurrences ? `, ${recurrence.maximumOccurrences} times in all` : "";
     return `Repeats every ${every} from ${formatInformationRequestTime(recurrence.firstDueAt)}${limit}.`;
+};
+
+export const nextOccurrenceSentence = (lineage: InformationRequestLineageViewDto): string | null => {
+    if (lineage.nextOccurrenceDueAt) return `Next request due ${formatInformationRequestTime(lineage.nextOccurrenceDueAt)}.`;
+    return lineage.everyOccurrenceCreated ? "Every scheduled request has been created." : null;
 };
 
 export const lineageLabel = (lineage: InformationRequestLineageDto): string =>

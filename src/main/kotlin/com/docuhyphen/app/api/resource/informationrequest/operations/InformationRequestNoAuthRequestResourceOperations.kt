@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource.informationrequest.operations
 
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.ACCESS_LINK_TOKEN_HEADER
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.SESSION_TOKEN_HEADER
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
@@ -19,7 +20,7 @@ interface InformationRequestNoAuthRequestResourceOperations
     fun get(
         @PathParam("id") id: String,
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @GET
@@ -27,7 +28,7 @@ interface InformationRequestNoAuthRequestResourceOperations
     fun parties(
         @PathParam("id") id: String,
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @GET
@@ -35,7 +36,7 @@ interface InformationRequestNoAuthRequestResourceOperations
     fun responseWorkspace(
         @PathParam("id") id: String,
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @PATCH
@@ -46,7 +47,7 @@ interface InformationRequestNoAuthRequestResourceOperations
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @POST
@@ -57,7 +58,7 @@ interface InformationRequestNoAuthRequestResourceOperations
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @DELETE
@@ -68,7 +69,7 @@ interface InformationRequestNoAuthRequestResourceOperations
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 
     @PATCH
@@ -79,6 +80,6 @@ interface InformationRequestNoAuthRequestResourceOperations
         @HeaderParam(ACCESS_LINK_TOKEN_HEADER) accessLinkToken: String?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
-        @HeaderParam("X-Request-Session-Token") sessionToken: String? = null,
+        @HeaderParam(SESSION_TOKEN_HEADER) sessionToken: String? = null,
     ): Response
 }

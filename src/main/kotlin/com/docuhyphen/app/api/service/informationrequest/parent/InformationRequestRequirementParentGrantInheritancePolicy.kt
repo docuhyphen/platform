@@ -23,6 +23,7 @@ class InformationRequestRequirementParentGrantInheritancePolicy : ParentGrantInh
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_WRITE,
             Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN,
+            Capability.INFORMATION_REQUEST_EXPORT,
         )
     }
 }

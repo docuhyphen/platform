@@ -1,8 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.noauth
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.Exchange
+import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.sql.Timestamp
 import java.util.*
 
@@ -45,4 +48,17 @@ data class RevokeInformationRequestBootstrapShareLinkCommand(
 data class InformationRequestBootstrapShareLinkIssuance(
     val shareLink: ShareLink,
     val rawToken: String,
+    val partyETag: String,
+)
+
+data class InformationRequestBootstrapShareLinkRevocation(
+    val shareLink: ShareLink,
+    val partyETag: String,
+)
+
+data class LockedInformationRequestBootstrapLink(
+    val request: InformationRequest,
+    val shareLink: ShareLink,
+    val party: InformationRequestParty,
+    val parent: Exchange,
 )

@@ -1,15 +1,13 @@
-import {useState} from "react";
-import {Badge, Button, Text} from "@fluentui/react-components";
+import {Badge, Text} from "@fluentui/react-components";
 import {InformationRequestReviewDto, InformationRequestReviewItemDto} from "../../../models/models.tsx";
 import {occurrenceLabel} from "../../structured-response-workspace/responseAnswerState.ts";
-import ReviewCommentDialog from "../review-comment-dialog/ReviewCommentDialog.tsx";
 import ReviewItemContent from "../review-item-content/ReviewItemContent.tsx";
 import ReviewItemConversation from "../review-item-conversation/ReviewItemConversation.tsx";
 import ReviewItemDecisionControls from "../review-item-decision/ReviewItemDecisionControls.tsx";
 import ReviewItemFindings from "../review-item-findings/ReviewItemFindings.tsx";
-import ReviewOverrideDialog from "../review-override-dialog/ReviewOverrideDialog.tsx";
+import ReviewItemManagement from "../review-item-management/ReviewItemManagement.tsx";
 import {reviewOutcomeLabels} from "../reviewLabels.ts";
-import {ReviewWorksheetDraft} from "../useInformationRequestReview.ts";
+import {ReviewWorksheetDraft} from "../useReviewWorksheet.ts";
 import {ReviewManagement} from "../useReviewManagement.ts";
 import {useReviewItemCardStyles} from "./ReviewItemCardStyles.tsx";
 
@@ -21,21 +19,32 @@ interface Props
     review: InformationRequestReviewDto;
     management: ReviewManagement;
     draft?: ReviewWorksheetDraft;
+    assignmentId?: string;
     decidable: boolean;
     busy: boolean;
     onChange: (change: Partial<ReviewWorksheetDraft>) => void;
     onAddFinding: () => void;
+    onAddManagerFinding: () => void;
 }
 
-const ReviewItemCard = ({requestId, item, label, review, management, draft, decidable, busy, onChange, onAddFinding}: Props) =>
+const ReviewItemCard = ({
+                            requestId,
+                            item,
+                            label,
+                            review,
+                            management,
+                            draft,
+                            assignmentId,
+                            decidable,
+                            busy,
+                            onChange,
+                            onAddFinding,
+                            onAddManagerFinding,
+                        }: Props) =>
 {
     const styles = useReviewItemCardStyles();
-    const [dialog, setDialog] = useState<"override" | "comment" | null>(null);
     const id = `information-request-review-item-${item.submissionItemId}`;
     const findings = review.findings.filter(finding => finding.submissionItemId === item.submissionItemId);
-    const overrideStage = review.canManage
-        ? review.stages.find(stage => stage.overridePermitted && stage.items.some(standing => standing.submissionItemId === item.submissionItemId))
-        : undefined;
 
     return (
         <article id={id}
@@ -66,6 +75,7 @@ const ReviewItemCard = ({requestId, item, label, review, management, draft, deci
                 )}
             </div>
             <ReviewItemContent requestId={requestId}
+                               packageId={review.review.packageId}
                                item={item}
                                label={label}/>
             <ReviewItemFindings itemId={item.submissionItemId}
@@ -76,51 +86,18 @@ const ReviewItemCard = ({requestId, item, label, review, management, draft, deci
                 <ReviewItemDecisionControls itemId={item.submissionItemId}
                                             draft={draft}
                                             busy={busy}
-                                            hasFinding={findings.some(finding => finding.recordedByCaller)}
+                                            waiverPermitted={item.waiverPermitted}
+                                            hasFinding={findings.some(finding => finding.assignmentId === assignmentId)}
                                             onChange={onChange}
                                             onAddFinding={onAddFinding}/>
             )}
-            <div id={`${id}-management`}
-                 className={styles.header}>
-                <Button id={`${id}-comment`}
-                        size={"small"}
-                        shape={"circular"}
-                        appearance={"subtle"}
-                        aria-label={`Comment on ${label}`}
-                        disabled={management.busy}
-                        onClick={() => setDialog("comment")}>
-                    Comment
-                </Button>
-                {overrideStage && (
-                    <Button id={`${id}-override`}
-                            size={"small"}
-                            shape={"circular"}
-                            aria-label={`Override ${label}`}
-                            disabled={management.busy}
-                            onClick={() => setDialog("override")}>
-                        Override
-                    </Button>
-                )}
-            </div>
-            {dialog === "comment" && (
-                <ReviewCommentDialog label={label}
-                                     busy={management.busy}
-                                     onConfirm={(body, visibility) =>
-                                     {
-                                         setDialog(null);
-                                         void management.comment({submissionItemId: item.submissionItemId, visibility, body});
-                                     }}
-                                     onDismiss={() => setDialog(null)}/>
-            )}
-            {dialog === "override" && overrideStage && (
-                <ReviewOverrideDialog busy={management.busy}
-                                      onConfirm={(outcome, narrative) =>
-                                      {
-                                          setDialog(null);
-                                          void management.override({stageKey: overrideStage.stageKey, submissionItemId: item.submissionItemId, outcome, narrative});
-                                      }}
-                                      onDismiss={() => setDialog(null)}/>
-            )}
+            <ReviewItemManagement id={id}
+                                  item={item}
+                                  label={label}
+                                  review={review}
+                                  management={management}
+                                  decidable={decidable}
+                                  onAddFinding={onAddManagerFinding}/>
         </article>
     );
 };

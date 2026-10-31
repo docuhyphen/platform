@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.oversight.operations
 
+import com.docuhyphen.app.api.resource.RequestHeaders
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.Path
@@ -12,5 +13,5 @@ import jakarta.ws.rs.core.Response
 interface PlatformInformationRequestHealthResourceOperations
 {
     @GET
-    fun get(@HeaderParam("X-Request-Id") requestId: String?): Response
+    fun get(@HeaderParam(RequestHeaders.REQUEST_ID) requestId: String?): Response
 }

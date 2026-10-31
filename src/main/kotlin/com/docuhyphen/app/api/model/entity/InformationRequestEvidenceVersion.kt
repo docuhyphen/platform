@@ -6,10 +6,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-/**
- * One recorded attempt at an evidence artifact. Rows are only ever appended: the version number
- * rises by one for each attempt and the stored source is never rewritten.
- */
 @Entity
 @Table(name = "information_request_evidence_version")
 class InformationRequestEvidenceVersion
@@ -30,14 +26,8 @@ class InformationRequestEvidenceVersion
     @Enumerated(EnumType.STRING)
     lateinit var sourceKind: InformationRequestEvidenceSourceKind
 
-    @Column(name = "document_version_id")
-    var documentVersionId: UUID? = null
-
-    @Column(name = "external_reference_type", length = 64)
-    var externalReferenceType: String? = null
-
-    @Column(name = "external_reference_value", length = 512)
-    var externalReferenceValue: String? = null
+    @Column(name = "document_version_id", nullable = false)
+    lateinit var documentVersionId: UUID
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Timestamp = Timestamp.from(Instant.now())

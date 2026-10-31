@@ -21,6 +21,13 @@ export interface TemplateDraftProblem
 
 export type TemplateProblemSink = (message: string, target: TemplateDraftTarget) => void;
 
+export interface TemplateSchemaFacts {
+    retired: boolean;
+    optionCodes: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+export const NO_SCHEMA_FACTS: TemplateSchemaFacts = {retired: false, optionCodes: new Map()};
+
 export const MACHINE_KEY_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 export const keyShapeMessage = (label: string, key: string): string =>

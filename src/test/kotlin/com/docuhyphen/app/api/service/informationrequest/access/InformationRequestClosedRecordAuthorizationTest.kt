@@ -1,12 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -14,21 +10,7 @@ import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepo
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicy
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicyRegistry
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritanceResolver
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyEvaluatorRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentGrantInheritancePolicy
 import jakarta.enterprise.inject.Instance
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -38,7 +20,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestClosedRecordAuthorizationTest
 {
@@ -54,15 +36,18 @@ class InformationRequestClosedRecordAuthorizationTest
     private val service = service()
 
     @Test
-    fun `a closed request still takes the record actions its lifecycle allows after closure`()
+    fun `a closed request still takes the record and follow-up actions its lifecycle allows after closure`()
     {
         listOf(
             Action.INFORMATION_REQUEST_VIEW,
             Action.INFORMATION_REQUEST_PROMOTE_FACT,
+            Action.INFORMATION_REQUEST_REVOKE_FACT,
             Action.INFORMATION_REQUEST_RECORD_DECISION,
             Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES,
+            Action.INFORMATION_REQUEST_SUPERSEDE,
         ).forEach { action -> assertAllowed(owner, action) }
         assertAllowed(reviewer, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES)
+        assertAllowed(reviewer, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT)
     }
 
     @Test
@@ -70,20 +55,38 @@ class InformationRequestClosedRecordAuthorizationTest
     {
         listOf(
             Action.INFORMATION_REQUEST_CANCEL,
-            Action.INFORMATION_REQUEST_SUPERSEDE,
             Action.INFORMATION_REQUEST_MANAGE_PARTIES,
             Action.INFORMATION_REQUEST_MANAGE_CLOCKS,
             Action.INFORMATION_REQUEST_MANAGE_REVIEWS,
         ).forEach { action -> assertArchived(owner, action) }
         assertArchived(reviewer, Action.INFORMATION_REQUEST_REVIEW)
-        assertArchived(reviewer, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT)
+    }
+
+    @Test
+    fun `a closed request's review records stay readable by its reviewers and administrators alone`() {
+        assertAllowed(reviewer, Action.INFORMATION_REQUEST_VIEW_REVIEWS)
+        assertAllowed(owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS)
+        assertEquals(
+            Decision.REASON_NO_GRANT,
+            (decide(owner, Action.INFORMATION_REQUEST_VIEW_REVIEWS) as Decision.Deny).reasonCode
+        )
+        assertEquals(
+            Decision.REASON_NO_GRANT,
+            (decide(reviewer, Action.INFORMATION_REQUEST_VIEW_OPERATIONS) as Decision.Deny).reasonCode
+        )
     }
 
     @Test
     fun `the record actions still need the capability behind them`()
     {
-        assertEquals(Decision.REASON_NO_GRANT, (decide(reviewer, Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES) as Decision.Deny).reasonCode)
-        assertEquals(Decision.REASON_NO_GRANT, (decide(owner, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES) as Decision.Deny).reasonCode)
+        assertEquals(
+            Decision.REASON_NO_GRANT,
+            (decide(reviewer, Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES) as Decision.Deny).reasonCode
+        )
+        assertEquals(
+            Decision.REASON_NO_GRANT,
+            (decide(owner, Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES) as Decision.Deny).reasonCode
+        )
     }
 
     private fun assertAllowed(principal: PrincipalRef, action: Action)
@@ -95,7 +98,10 @@ class InformationRequestClosedRecordAuthorizationTest
     private fun assertArchived(principal: PrincipalRef, action: Action)
     {
         val decision = decide(principal, action)
-        assertEquals(Decision.REASON_EXCHANGE_ARCHIVED, (decision as? Decision.Deny)?.reasonCode) { "$action: $decision" }
+        assertEquals(
+            Decision.REASON_EXCHANGE_ARCHIVED,
+            (decision as? Decision.Deny)?.reasonCode
+        ) { "$action: $decision" }
     }
 
     private fun decide(principal: PrincipalRef, action: Action): Decision =
@@ -117,24 +123,40 @@ class InformationRequestClosedRecordAuthorizationTest
         val contexts = contextRegistry()
         val policyRegistry = ParentGrantInheritancePolicyRegistry()
         val policies = mock<Instance<ParentGrantInheritancePolicy>>()
-        whenever(policies.iterator()).thenReturn(mutableListOf<ParentGrantInheritancePolicy>(InformationRequestParentGrantInheritancePolicy()).iterator())
-        ParentGrantInheritancePolicyRegistry::class.java.getDeclaredField("policies").apply { isAccessible = true }.set(policyRegistry, policies)
+        whenever(policies.iterator()).thenReturn(
+            mutableListOf<ParentGrantInheritancePolicy>(
+                InformationRequestParentGrantInheritancePolicy()
+            ).iterator()
+        )
+        ParentGrantInheritancePolicyRegistry::class.java.getDeclaredField("policies").apply { isAccessible = true }
+            .set(policyRegistry, policies)
         policyRegistry.init()
 
         val shareRepository = mock<ShareRepository>()
-        whenever(shareRepository.findActiveForPrincipalOnResource(any(), any(), any(), any())).thenAnswer { invocation ->
+        whenever(
+            shareRepository.findActiveForPrincipalOnResource(
+                any(),
+                any(),
+                any(),
+                any()
+            )
+        ).thenAnswer { invocation ->
             val kind = invocation.arguments[0] as PrincipalKind
             val id = invocation.arguments[1] as UUID
             val type = invocation.arguments[2] as ResourceType
             val resourceId = invocation.arguments[3] as UUID
             shares.filter { it.principalKind == kind && it.principalId == id && it.resourceType == type && it.resourceId == resourceId }
         }
-        shares.forEach { share -> whenever(shareRepository.findById(eq(share.id!!))).thenReturn(share) }
+        shares.forEach { share -> whenever(shareRepository.findById(eq(share.id))).thenReturn(share) }
 
         return DefaultAuthorizationService(
             shareRepository = shareRepository,
             shareLinkRepository = mock<ShareLinkRepository>(),
-            appRoleAssignmentRepository = mock<AppRoleAssignmentRepository>().also { whenever(it.findActiveForUser(any())).thenReturn(emptyList()) },
+            appRoleAssignmentRepository = mock<AppRoleAssignmentRepository>().also {
+                whenever(it.findActiveForUser(any())).thenReturn(
+                    emptyList()
+                )
+            },
             principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
                 whenever(it.findGroupsForPrincipal(any(), any())).thenReturn(emptyList())
             },
@@ -153,16 +175,29 @@ class InformationRequestClosedRecordAuthorizationTest
     {
         val requestProvider = mock<ResourceAuthorizationContextProvider>()
         whenever(requestProvider.supportedKind).thenReturn(ResourceKind.INFORMATION_REQUEST)
+        whenever(requestProvider.actionsWhileArchived)
+            .thenReturn(InformationRequestAuthorizationContextProvider(mock(), mock()).actionsWhileArchived)
         whenever(requestProvider.resolve(eq(requestRef.id))).thenReturn(
-            ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(orgId), isArchived = true, parentRef = exchangeRef),
+            ResourceAuthorizationContext(
+                ownerContext = OwnerContext.Organization(orgId),
+                isArchived = true,
+                parentRef = exchangeRef
+            ),
         )
         val exchangeProvider = mock<ResourceAuthorizationContextProvider>()
         whenever(exchangeProvider.supportedKind).thenReturn(ResourceKind.EXCHANGE)
-        whenever(exchangeProvider.resolve(eq(exchangeRef.id))).thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(orgId)))
+        whenever(exchangeProvider.resolve(eq(exchangeRef.id))).thenReturn(
+            ResourceAuthorizationContext(
+                ownerContext = OwnerContext.Organization(
+                    orgId
+                )
+            )
+        )
         val instance = mock<Instance<ResourceAuthorizationContextProvider>>()
         whenever(instance.iterator()).thenReturn(mutableListOf(requestProvider, exchangeProvider).iterator())
         val registry = ResourceAuthorizationContextRegistry()
-        ResourceAuthorizationContextRegistry::class.java.getDeclaredField("providers").apply { isAccessible = true }.set(registry, instance)
+        ResourceAuthorizationContextRegistry::class.java.getDeclaredField("providers").apply { isAccessible = true }
+            .set(registry, instance)
         registry.init()
         return registry
     }

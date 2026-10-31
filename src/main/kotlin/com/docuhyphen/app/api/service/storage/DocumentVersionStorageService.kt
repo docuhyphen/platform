@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.storage
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
+import com.docuhyphen.app.api.model.document.DocumentVersionReadHandle
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
 import java.io.File
 
@@ -13,6 +14,6 @@ interface DocumentVersionStorageService
         expected: DocumentVersionContentDigest
     ): ObjectStoreDocumentVersionLocator
 
-    fun openVersion(locator: ObjectStoreDocumentVersionLocator): File
+    fun openVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionReadHandle
     fun deleteVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionDeletionOutcome
 }

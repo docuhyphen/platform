@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.archive.ArchiveCoverageState
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
-import com.docuhyphen.app.api.service.audit.archive.ArchiveCoverageState
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveSigningKeyProvider
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiver

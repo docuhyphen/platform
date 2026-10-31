@@ -1,30 +1,22 @@
 package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowScope
+import com.docuhyphen.app.api.model.workflow.WorkflowSpec
 import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.workflow.model.WorkflowTenantFixture
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class WorkflowTenantBoundaryTest
 {
@@ -61,23 +53,17 @@ class WorkflowTenantBoundaryTest
             }
         }
 
-    private data class ServiceFixture(
-        val service: WorkflowDefinitionService,
-        val definitionRepository: WorkflowDefinitionRepository,
-        val instanceRepository: WorkflowInstanceRepository,
-    )
-
     private fun fixture(
         appAdmin: Boolean = true,
         orgAdmin: Boolean = false,
         allowedActions: Array<out Action> = emptyArray(),
         context: AuthorizationContext = authorizationContext(),
-    ): ServiceFixture
+    ): WorkflowTenantFixture
     {
         val definitionRepository = mock<WorkflowDefinitionRepository>()
         val instanceRepository = mock<WorkflowInstanceRepository>()
 
-        return ServiceFixture(
+        return WorkflowTenantFixture(
             service = WorkflowDefinitionService(
                 definitionRepository = definitionRepository,
                 instanceRepository = instanceRepository,

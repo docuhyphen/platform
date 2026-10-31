@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit.archive
 
+import com.docuhyphen.app.api.model.audit.archive.*
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
 import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.service.audit.LedgerProcessor
@@ -11,34 +12,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/** Outcome of verifying one segment against its independently re-downloaded content + manifest. */
-data class SegmentVerificationResult(val valid: Boolean, val note: String)
-
-/** Outcome of verifying a stream's segment-to-segment digest chain (the "boundary checkpoint" the architecture calls for). */
-data class StreamChainVerificationResult(val valid: Boolean, val note: String, val segmentsChecked: Int)
-
-/**
- * Whether every ledger event in a requested sequence range is provably covered by verified
- * archive: [COMPLETE] (safe to export), [PARTIAL] (the range legitimately has not been archived
- * yet - nothing is wrong, it is simply not closed into a segment), or [FAILED] (an archive
- * checkpoint that should cover part of the range is missing, broken, or fails verification - this
- * always blocks an export).
- */
-enum class ArchiveCoverageState
-{ COMPLETE, PARTIAL, FAILED }
-
-/** Result of [AuditArchiveVerifier.checkRangeCoverage] for one stream. */
-data class StreamCoverageReport(val streamId: String, val state: ArchiveCoverageState, val note: String)
-
-/**
- * Verifies archived segments by, for every archived record, recomputing its event hash from the
- * archived fields using the same canonical serializer [LedgerProcessor] uses at append time
- * ([LedgerProcessor.canonicalEnvelopeJson] / [LedgerProcessor.computeHash]) - so an archived
- * `eventHash` is never trusted at face value - then recomputing the Merkle root and segment digest
- * from those independently-verified hashes, checking the detached manifest signature, and walking
- * each stream's `prevSegmentDigest` chain so a deleted, inserted, reordered, or truncated segment
- * range is detected even if an individual segment's own hash still checks out in isolation.
- */
 @ApplicationScoped
 class AuditArchiveVerifier @Inject constructor(
     private val auditArchiveSegmentRepository: AuditArchiveSegmentRepository,
@@ -46,15 +19,6 @@ class AuditArchiveVerifier @Inject constructor(
     private val signingKeyProvider: AuditArchiveSigningKeyProvider,
 )
 {
-    /**
-     * Re-downloads [segment]'s content + manifest objects and independently recomputes/verifies
-     * everything a tamper could break: each record's event hash (rebound to every hash-participating
-     * field, not merely the record's own claimed hash), record-to-record sequence contiguity and
-     * `prevHash` chaining within the segment, the Merkle root, the segment digest, the manifest
-     * signature, and that the manifest's own claimed fields match the DB row. Malformed or
-     * incomplete archived content is reported as a structured failure rather than thrown, so one
-     * bad segment cannot abort an entire verification pass.
-     */
     fun verifySegment(segment: AuditArchiveSegment): SegmentVerificationResult
     {
         val segmentBytes = try
@@ -101,6 +65,15 @@ class AuditArchiveVerifier @Inject constructor(
 
         for ((index, record) in records.withIndex())
         {
+            val ownerId = record.ownerId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            if (record.streamId != segment.streamId ||
+                (record.ownerId != null && ownerId == null) ||
+                !com.docuhyphen.app.api.service.audit.AuditStreamOwnership.matches(
+                    record.streamId, record.ownerType, ownerId,
+                )
+            ) {
+                return SegmentVerificationResult(false, "record owner does not match its protected stream")
+            }
             val expectedSequence = segment.firstSequence + index
             if (record.streamSequence != expectedSequence)
             {
@@ -251,14 +224,6 @@ class AuditArchiveVerifier @Inject constructor(
         )
     }
 
-    /**
-     * Walks [streamId]'s segments in sequence order and checks that each segment's
-     * [AuditArchiveSegment.prevSegmentDigest] equals the previous segment's
-     * [AuditArchiveSegment.segmentDigest] and that sequence ranges are contiguous
-     * (`firstSequence == previousLastSequence + 1`). This is the boundary-checkpoint check: an
-     * inner range can be individually well-hashed yet still be a deleted/reordered/truncated
-     * range if the chain to its neighbors is broken.
-     */
     fun verifyStreamChain(streamId: String): StreamChainVerificationResult
     {
         val segments = auditArchiveSegmentRepository.findByStreamOrderBySequence(streamId)
@@ -320,14 +285,6 @@ class AuditArchiveVerifier @Inject constructor(
         )
     }
 
-    /**
-     * Determines whether every ledger event in [streamId] between [fromSequence] and
-     * [toSequence] (both inclusive) sits inside a contiguous run of archive segments that
-     * independently verify. Distinguishes a range that simply has not been archived yet
-     * ([ArchiveCoverageState.PARTIAL]) from one where an existing or expected checkpoint is
-     * missing, broken, or tampered ([ArchiveCoverageState.FAILED]) - only the former is safe to
-     * leave unaddressed; the latter must always block export.
-     */
     fun checkRangeCoverage(streamId: String, fromSequence: Long, toSequence: Long): StreamCoverageReport
     {
         if (fromSequence > toSequence)
@@ -391,12 +348,6 @@ class AuditArchiveVerifier @Inject constructor(
         )
     }
 
-    /**
-     * Confirms every object actually stored under this stream's archive prefix is referenced by
-     * one of [segments]. An unreferenced object means a segment row was deleted (or never
-     * inserted) after its content/manifest were written - the DB row alone is not trusted to be
-     * the full picture of what has been archived. Returns null when the inventory is consistent.
-     */
     private fun reconcileStorageInventory(streamId: String, segments: List<AuditArchiveSegment>): String?
     {
         val knownKeys = segments.flatMap { listOf(it.segmentObjectKey, it.manifestObjectKey) }.toSet()
@@ -411,12 +362,6 @@ class AuditArchiveVerifier @Inject constructor(
                 "have been deleted after archiving"
     }
 
-    /**
-     * Verifies up to [batchSize] segments not (re)verified within
-     * [com.docuhyphen.app.api.service.config.AuditArchiveConfigService.getReverifyAfterHours],
-     * persisting each result onto [AuditArchiveSegment]. Returns the results so the caller (
-     * [AuditArchiveScheduler]) can emit an immutable audit event per failure.
-     */
     fun verifyDueSegments(
         reverifyAfterHours: Int,
         batchSize: Int = 100

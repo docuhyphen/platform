@@ -1,19 +1,13 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExternalParticipant
+import com.docuhyphen.app.api.model.exchange.ExternalParticipantOwner
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class ExternalParticipantServiceTest
 {

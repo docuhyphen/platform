@@ -22,4 +22,9 @@ export const useAuditEventRowStyles = makeStyles({
         color: tokens.colorNeutralForeground3,
         overflowWrap: "anywhere",
     },
+    filters: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
+    },
 });

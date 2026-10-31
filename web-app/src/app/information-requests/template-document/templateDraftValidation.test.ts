@@ -1,6 +1,10 @@
 import {describe, expect, it} from "vitest";
 import {
     FieldOperator,
+    FieldValueType,
+    InformationRequestConditionHiddenDataPolicy,
+    InformationRequestContributorRole,
+    InformationRequestEvidenceAttributeRequirement,
     InformationRequestEvidenceWaiverPolicy,
     InformationRequestRequiredness,
     InformationRequestRequirementType,
@@ -10,6 +14,7 @@ import {
     InformationRequestReviewPolicy,
     InformationRequestReviewTieResolution,
     InformationRequestSubmissionMode,
+    InformationRequestTemplateEvidencePolicyRequest,
 } from "../../models/models.tsx";
 import {emptyDraftDocument, newRequirement, TemplateDraftDocument} from "./templateDraftDocument.ts";
 import {targetForRefusal, templateDraftProblems} from "./templateDraftValidation.ts";
@@ -29,8 +34,47 @@ const documentWith = (overrides: Partial<TemplateDraftDocument>): TemplateDraftD
 const messages = (document: TemplateDraftDocument, fields?: ReadonlySet<string>) =>
     templateDraftProblems(document, fields).map(problem => problem.message);
 
+const groupedBy = (group: TemplateDraftDocument["groups"][number]) => documentWith({
+    sections: [{
+        sectionKey: "collected-data",
+        title: "Collected data",
+        requirements: [{...typed("recorded-note"), occurrenceAnchorKey: group.groupKey}],
+    }],
+    groups: [group],
+});
+
 describe("templateDraftValidation", () =>
 {
+    it("points a subject contributor refusal at the affected Requirement", () => {
+        const problems = templateDraftProblems(documentWith({
+            sections: [{
+                sectionKey: "collected-data",
+                title: "Collected data",
+                requirements: [{...typed("recorded-note"), contributorRole: InformationRequestContributorRole.SUBJECT}],
+            }],
+        }));
+
+        expect(problems).toEqual([{
+            key: "problem-0",
+            message: 'Requirement "Provide recorded-note" needs an acting role. Subject identifies who or what the request is about.',
+            target: {panel: "sections", sectionIndex: 0, requirementIndex: 0},
+        }]);
+    });
+
+    it.each([false, true])("refuses Subject in confirmation roles, mixed: %s", mixed => {
+        const roles = mixed
+            ? [InformationRequestContributorRole.ATTESTOR, InformationRequestContributorRole.SUBJECT]
+            : [InformationRequestContributorRole.SUBJECT];
+        const requirement = {
+            ...newRequirement(InformationRequestRequirementType.RESPONSE_ATTESTATION, "recorded-assertion", "Confirm the records"),
+            attestationPolicy: {requiredRoles: roles},
+        };
+
+        expect(messages(documentWith({
+            sections: [{sectionKey: "confirmations", title: "Confirmations", requirements: [requirement]}],
+        }))).toEqual(['Requirement "Confirm the records" needs acting confirmation roles. Subject cannot confirm information.']);
+    });
+
     it("accepts a complete document", () =>
     {
         expect(templateDraftProblems(documentWith({}), new Set(["field-recorded-note"]))).toEqual([]);
@@ -81,6 +125,26 @@ describe("templateDraftValidation", () =>
             .toEqual(["Requirement \"Provide recorded-note\" collects a Field the chosen Request Schema does not ask for."]);
     });
 
+    it("refuses a Field its Schema marks read-only unless the party only views it", () => {
+        const readOnly = new Set(["field-recorded-note"]);
+        const viewed = documentWith({
+            sections: [{
+                sectionKey: "collected-data",
+                title: "Collected data",
+                requirements: [{
+                    ...typed("recorded-note"),
+                    responseMode: InformationRequestResponseMode.VIEW_ONLY,
+                    requiredness: InformationRequestRequiredness.OPTIONAL,
+                    permittedDispositions: [],
+                }],
+            }],
+        });
+
+        expect(templateDraftProblems(documentWith({}), new Set(["field-recorded-note"]), readOnly).map(problem => problem.message))
+            .toEqual(["Requirement \"Provide recorded-note\" collects a Field its Request Schema marks read-only, so nobody could answer it."]);
+        expect(templateDraftProblems(viewed, new Set(["field-recorded-note"]), readOnly)).toEqual([]);
+    });
+
     it("keeps conditions, groups, and waivers consistent with the rest of the document", () =>
     {
         const file = {
@@ -105,6 +169,56 @@ describe("templateDraftValidation", () =>
             "Requirement \"Attach the file\" repeats per \"entries\", which is not a group of this Template.",
             "Requirement \"Attach the other file\" needs at least as many files allowed as it requires.",
             "Requirement \"Attach the other file\" states a waiver rule, so it permits a waived answer.",
+        ]);
+    });
+
+    it("refuses the evidence bounds the server refuses", () => {
+        const required = InformationRequestEvidenceAttributeRequirement.REQUIRED;
+        const file = (key: string, bounds: Partial<InformationRequestTemplateEvidencePolicyRequest>) => {
+            const requirement = newRequirement(InformationRequestRequirementType.DOCUMENT, key, `Attach ${key}`);
+            return {...requirement, evidencePolicy: {...requirement.evidencePolicy, ...bounds}};
+        };
+
+        expect(messages(documentWith({
+            sections: [{
+                sectionKey: "files",
+                title: "Files",
+                requirements: [
+                    file("no-files", {minimumFileCount: 0}),
+                    file("small-total", {maximumFileSizeBytes: 2048, maximumTotalSizeBytes: 1024}),
+                    file("empty-total", {maximumTotalSizeBytes: 0}),
+                    file("no-pages", {minimumPageCount: 0}),
+                    file("issue-age", {maximumIssueAgeDays: 30}),
+                    file("short-age", {maximumIssueAgeDays: 0, issueDateRequirement: required}),
+                    file("validity", {minimumRemainingValidityDays: 10}),
+                    file("negative-validity", {minimumRemainingValidityDays: -1, expiryDateRequirement: required}),
+                    file("continuity", {coverageContinuityRequired: true}),
+                    file("short-coverage", {minimumCoverageDays: 0, coveragePeriodRequirement: required}),
+                    file("bounded", {
+                        maximumFileSizeBytes: 1024,
+                        maximumTotalSizeBytes: 1024,
+                        minimumPageCount: 1,
+                        maximumIssueAgeDays: 30,
+                        issueDateRequirement: required,
+                        minimumRemainingValidityDays: 0,
+                        expiryDateRequirement: required,
+                        minimumCoverageDays: 30,
+                        coverageContinuityRequired: true,
+                        coveragePeriodRequirement: required,
+                    }),
+                ],
+            }],
+        }))).toEqual([
+            "Requirement \"Attach no-files\" needs at least one file.",
+            "Requirement \"Attach small-total\" needs a total size limit at least as large as its file size limit.",
+            "Requirement \"Attach empty-total\" needs a positive total size limit.",
+            "Requirement \"Attach no-pages\" needs a minimum of at least one page.",
+            "Requirement \"Attach issue-age\" limits the age since issue, so set its Issue date to Required.",
+            "Requirement \"Attach short-age\" needs a maximum age since issue of at least one day.",
+            "Requirement \"Attach validity\" asks for validity remaining, so set its Expiry date to Required.",
+            "Requirement \"Attach negative-validity\" needs a minimum validity remaining of zero days or more.",
+            "Requirement \"Attach continuity\" sets coverage rules, so set its Coverage period to Required.",
+            "Requirement \"Attach short-coverage\" needs a minimum coverage of at least one day.",
         ]);
     });
 
@@ -141,7 +255,12 @@ describe("templateDraftValidation", () =>
             submissionMode: InformationRequestSubmissionMode.STAGED,
             sections: [
                 {sectionKey: "collected-data", title: "Collected data", requirements: [typed("recorded-note")]},
-                {sectionKey: "follow-up", title: "Follow up", submissionStageKey: "second", requirements: [conditional]},
+                {
+                    sectionKey: "follow-up",
+                    title: "Follow up",
+                    submissionStageKey: "second",
+                    requirements: [conditional]
+                },
             ],
             groups: [{groupKey: "entries", parentGroupKey: "entries", minOccurrences: 2, maxOccurrences: 1}],
             conditionRules: [{
@@ -162,14 +281,199 @@ describe("templateDraftValidation", () =>
             "Section \"Collected data\" needs a submission stage because this Template is submitted in stages.",
             "Group \"entries\" cannot be nested in itself.",
             "Group \"entries\" allows fewer occurrences than it requires.",
+            "Group \"entries\" holds no requirement, so make a requirement repeat per it or per a group nested in it.",
             "Condition \"when-note\" reads \"missing-note\", which is not a requirement of this Template.",
             "Review stage \"First review\" decides by quorum, so state how many reviewers make one.",
             "Review stage \"First review\" resolves a tie by override, so it permits an override.",
             "Requirement \"Provide other-note\" is reviewed, but no review stage covers section \"Follow up\".",
         ]);
         expect(problems.map(problem => problem.target.panel)).toEqual([
-            "sections", "groups", "groups", "conditions", "review", "review", "review",
+            "sections", "groups", "groups", "groups", "conditions", "review", "review", "review",
         ]);
+    });
+
+    it("keeps the alternative that completes a staged document in its own stage", () => {
+        const primary = {
+            ...newRequirement(InformationRequestRequirementType.DOCUMENT, "period-records", "Attach the period records"),
+            substituteRequirementKeys: ["alternate-record"],
+        };
+        const confirmation = {
+            ...newRequirement(InformationRequestRequirementType.RESPONSE_ATTESTATION, "recorded-assertion", "Confirm the records"),
+            supportingEvidenceRequirementKeys: ["alternate-record"],
+        };
+        const alternate = {
+            ...newRequirement(InformationRequestRequirementType.DOCUMENT, "alternate-record", "Attach an alternate record"),
+            requiredness: InformationRequestRequiredness.OPTIONAL,
+        };
+        const sections = (alternateStage: string) => [
+            {
+                sectionKey: "records",
+                title: "Records",
+                submissionStageKey: "first",
+                requirements: [primary, confirmation]
+            },
+            {
+                sectionKey: "alternates",
+                title: "Alternates",
+                submissionStageKey: alternateStage,
+                requirements: [alternate]
+            },
+        ];
+
+        const across = templateDraftProblems(documentWith({
+            submissionMode: InformationRequestSubmissionMode.STAGED,
+            sections: sections("later")
+        }));
+
+        expect(across.map(problem => problem.message)).toEqual([
+            "Requirement \"Attach the period records\" is submitted in stage \"first\", so its alternative \"alternate-record\" from stage \"later\" cannot complete it.",
+        ]);
+        expect(across.map(problem => problem.target)).toEqual([{
+            panel: "sections",
+            sectionIndex: 0,
+            requirementIndex: 0
+        }]);
+        expect(messages(documentWith({
+            submissionMode: InformationRequestSubmissionMode.STAGED,
+            sections: sections(" first ")
+        }))).toEqual([]);
+        expect(messages(documentWith({
+            sections: sections("").map(section => ({
+                ...section,
+                submissionStageKey: undefined
+            }))
+        }))).toEqual([]);
+    });
+
+    it("refuses group occurrence bounds the server refuses", () => {
+        expect(messages(groupedBy({groupKey: "entries", minOccurrences: 0, maxOccurrences: 0})))
+            .toEqual(["Group \"entries\" must allow at least one occurrence."]);
+        expect(messages(groupedBy({groupKey: "entries", minOccurrences: -1})))
+            .toEqual(["Group \"entries\" cannot require a negative number of occurrences."]);
+        expect(messages(groupedBy({groupKey: "entries", minOccurrences: 3, maxOccurrences: 2})))
+            .toEqual(["Group \"entries\" allows fewer occurrences than it requires."]);
+        expect(messages(groupedBy({groupKey: "entries", minOccurrences: 2, maxOccurrences: 2}))).toEqual([]);
+        expect(messages(groupedBy({groupKey: "entries", minOccurrences: 0, maxOccurrences: 1}))).toEqual([]);
+        expect(messages(groupedBy({groupKey: "entries"}))).toEqual([]);
+    });
+
+    it("needs every group to hold a requirement somewhere beneath it", () => {
+        const groups = [{groupKey: "entries"}, {groupKey: "entry-details", parentGroupKey: "entries"}];
+
+        expect(messages(documentWith({groups}))).toEqual([
+            "Group \"entries\" holds no requirement, so make a requirement repeat per it or per a group nested in it.",
+            "Group \"entry-details\" holds no requirement, so make a requirement repeat per it or per a group nested in it.",
+        ]);
+        expect(messages(documentWith({
+            sections: [{
+                sectionKey: "collected-data",
+                title: "Collected data",
+                requirements: [{...typed("recorded-note"), occurrenceAnchorKey: "entry-details"}],
+            }],
+            groups,
+        }))).toEqual([]);
+    });
+
+    it("keeps a condition only on a requirement asked when it is true", () => {
+        expect(messages(documentWith({
+            sections: [{
+                sectionKey: "collected-data",
+                title: "Collected data",
+                requirements: [
+                    typed("recorded-note"),
+                    {
+                        ...typed("other-note"),
+                        requiredness: InformationRequestRequiredness.REQUIRED,
+                        conditionalRuleKey: "when-note",
+                    },
+                ],
+            }],
+            conditionRules: [{
+                ruleKey: "when-note",
+                predicates: [{operator: FieldOperator.IS_NOT_EMPTY, sourceRequirementKey: "recorded-note"}],
+            }],
+        }))).toEqual([
+            "Requirement \"Provide other-note\" is not asked only when a condition is true, so remove its condition \"when-note\".",
+        ]);
+    });
+
+    it.each([
+        InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION,
+        InformationRequestConditionHiddenDataPolicy.ARCHIVE_OUTSIDE_ACTIVE_RESPONSE,
+    ])("keeps another contributor role's hidden answer instead of letting %s remove it", policy => {
+        const document = (hiddenDataPolicy: InformationRequestConditionHiddenDataPolicy) => documentWith({
+            sections: [{
+                sectionKey: "collected-data",
+                title: "Collected data",
+                requirements: [
+                    typed("recorded-note"),
+                    {
+                        ...typed("other-note"),
+                        contributorRole: InformationRequestContributorRole.PREPARER,
+                        requiredness: InformationRequestRequiredness.CONDITIONAL,
+                        conditionalRuleKey: "when-note",
+                    },
+                ],
+            }],
+            conditionRules: [{
+                ruleKey: "when-note",
+                hiddenDataPolicy,
+                predicates: [{
+                    operator: FieldOperator.IS_NOT_EMPTY,
+                    fieldDefinitionId: "field-recorded-note",
+                    valueType: FieldValueType.SHORT_TEXT
+                }],
+            }],
+        });
+
+        const problems = templateDraftProblems(document(policy));
+
+        expect(problems.map(problem => problem.message)).toEqual([
+            "Condition \"when-note\" would remove the hidden answer to \"Provide other-note\", which a different role gives than its source \"Provide recorded-note\", so it has to keep hidden answers securely.",
+        ]);
+        expect(problems.map(problem => problem.target)).toEqual([{panel: "conditions", ruleIndex: 0}]);
+        expect(messages(document(InformationRequestConditionHiddenDataPolicy.RETAIN_SECURELY))).toEqual([]);
+    });
+
+    it("reads a staged condition only from the stage of the requirement it governs", () => {
+        const governed = {
+            ...newRequirement(InformationRequestRequirementType.DOCUMENT, "follow-on-record", "Attach the follow-on record"),
+            requiredness: InformationRequestRequiredness.CONDITIONAL,
+            conditionalRuleKey: "when-record-given",
+        };
+        const source = newRequirement(InformationRequestRequirementType.DOCUMENT, "first-record", "Attach the first record");
+        const document = (governedStage: string) => documentWith({
+            submissionMode: InformationRequestSubmissionMode.STAGED,
+            sections: [
+                {sectionKey: "records", title: "Records", submissionStageKey: "first", requirements: [source]},
+                {
+                    sectionKey: "follow-ons",
+                    title: "Follow-ons",
+                    submissionStageKey: governedStage,
+                    requirements: [governed]
+                },
+            ],
+            conditionRules: [{
+                ruleKey: "when-record-given",
+                predicates: [{
+                    operator: FieldOperator.EQUALS,
+                    sourceRequirementKey: "first-record",
+                    expectedDisposition: InformationRequestResponseDisposition.PROVIDED,
+                }],
+            }],
+        });
+
+        const problems = templateDraftProblems(document("later"));
+
+        expect(problems.map(problem => problem.message)).toEqual([
+            "Requirement \"Attach the follow-on record\" is submitted in stage \"later\", so its condition \"when-record-given\" cannot read \"first-record\" from stage \"first\".",
+        ]);
+        expect(problems.map(problem => problem.target)).toEqual([{
+            panel: "sections",
+            sectionIndex: 1,
+            requirementIndex: 0
+        }]);
+        expect(messages(document("first"))).toEqual([]);
     });
 
     it("reads a disposition condition only with a disposition to compare", () =>
@@ -205,10 +509,22 @@ describe("templateDraftValidation", () =>
         })).toEqual({panel: "sections", sectionIndex: 0, requirementIndex: 0});
         expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", groupKey: "entries"}))
             .toEqual({panel: "groups", groupIndex: 0});
-        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", groupKey: "when-note"}))
+        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", conditionRuleKey: "when-note"}))
             .toEqual({panel: "conditions", ruleIndex: 0});
         expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", reviewStageKey: "first-review"}))
             .toEqual({panel: "review", stageIndex: 0});
-        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x"})).toEqual({panel: "settings"});
+        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x"})).toBeUndefined();
+    });
+
+    it("keeps a condition refusal on the condition when a group shares its key", () => {
+        const document = documentWith({
+            groups: [{groupKey: "shared-key"}],
+            conditionRules: [{ruleKey: "shared-key", predicates: []}],
+        });
+
+        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", conditionRuleKey: "shared-key"}))
+            .toEqual({panel: "conditions", ruleIndex: 0});
+        expect(targetForRefusal(document, {errorMessage: "refused", reasonCode: "x", groupKey: "shared-key"}))
+            .toEqual({panel: "groups", groupIndex: 0});
     });
 });

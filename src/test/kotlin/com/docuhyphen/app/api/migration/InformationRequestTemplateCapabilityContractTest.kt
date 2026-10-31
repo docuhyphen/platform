@@ -10,20 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class CapabilityPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<CapabilityPostgreSQLContainer>(imageName)
 
-/**
- * A version states which runtime capabilities the configuration it froze needs somebody to supply.
- *
- * Which ones those are is not a free choice: they follow from what the version actually configures,
- * so the derivation is held in one place and publication refuses a recorded set that disagrees with
- * it in either direction. Which contract version of each is needed is a separate fact recorded
- * beside the key, because whether an installed runtime can serve it is answered outside the
- * database, at issuance rather than at publication.
- */
 class InformationRequestTemplateCapabilityContractTest
 {
     private val baselineVersion = "88"
@@ -59,8 +50,6 @@ class InformationRequestTemplateCapabilityContractTest
                     recordedContractVersion(connection, fixture.versionId, "RESPONSE_SUBMISSION"),
                 )
 
-                // A capability nobody declared cannot be required, because nothing could ever be
-                // installed to answer it.
                 refused(connection, "ck_request_template_capability_key") {
                     insertCapability(
                         connection,
@@ -70,8 +59,6 @@ class InformationRequestTemplateCapabilityContractTest
                         1,
                     )
                 }
-                // One capability is needed at one contract version. Two would both be required and
-                // an installed runtime could satisfy one while failing the other.
                 refused(connection, "ux_request_template_capability_version_key") {
                     insertCapability(
                         connection,
@@ -90,8 +77,6 @@ class InformationRequestTemplateCapabilityContractTest
                         0,
                     )
                 }
-                // A version that does not exist is not a draft either, so the freeze guard turns it
-                // away before the foreign key behind it is ever consulted.
                 refused(connection, "immutable") {
                     insertCapability(
                         connection,
@@ -114,22 +99,14 @@ class InformationRequestTemplateCapabilityContractTest
             postgres.createConnection("").use { connection ->
                 val fixture = Fixture(connection)
 
-                // Nothing configured needs nothing served.
                 assertEquals(emptySet<String>(), derivedCapabilities(connection, fixture.versionId))
 
-                // The smallest thing a version can ask for: one assertion, collected under no
-                // further policy. It needs the runtime that asks for one and the runtime that
-                // submits the result, and nothing else.
                 fixture.withAttestationRequirementBound(connection)
                 assertEquals(
                     setOf("RESPONSE_ATTESTATION", "RESPONSE_SUBMISSION"),
                     derivedCapabilities(connection, fixture.versionId),
                 )
 
-                // A materially different pattern: typed data and documents, asked conditionally,
-                // once per occurrence, in a named compartment, reviewed, waivable, with substitutes
-                // and supporting evidence. Every one of those is a capability somebody has to
-                // supply at runtime, and each is derived from the configured fact that needs it.
                 fixture.withFieldRequirementBound(connection)
                 assertEquals(
                     setOf(
@@ -151,8 +128,6 @@ class InformationRequestTemplateCapabilityContractTest
                 fixture.withSupportingEvidence(connection)
                 assertEquals(everyCapability, derivedCapabilities(connection, fixture.versionId))
 
-                // A second version of the same definition derives its own set, so the derivation
-                // reads one version's configuration rather than the definition's.
                 fixture.withAttestationOnlyVersion(connection)
                 assertEquals(
                     setOf("RESPONSE_ATTESTATION", "RESPONSE_SUBMISSION"),
@@ -174,20 +149,18 @@ class InformationRequestTemplateCapabilityContractTest
                 fixture.withDocumentRequirementBound(connection)
                 fixture.withEvidencePolicy(connection)
 
-                // Publication is the last point at which the answer can still be supplied, and an
-                // unrecorded capability is indistinguishable from one nobody thought about.
                 refused(connection, "must record every runtime capability its configuration requires") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "DOCUMENT_EVIDENCE", 1)
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "RESPONSE_SUBMISSION", 1)
                 refused(connection, "must record every runtime capability its configuration requires") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "RESPONSE_ATTESTATION", 1)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
                 assertEquals(3, capabilityCount(connection, fixture.versionId))
             }
@@ -206,12 +179,10 @@ class InformationRequestTemplateCapabilityContractTest
 
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "RESPONSE_ATTESTATION", 1)
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "RESPONSE_SUBMISSION", 1)
-                // A requirement nothing configured would refuse issuance for a reason no author
-                // could act on, since there is no configuration to remove.
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "DOCUMENT_EVIDENCE", 1)
 
                 refused(connection, "cannot require a runtime capability its configuration does not use") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
             }
         }
@@ -227,9 +198,6 @@ class InformationRequestTemplateCapabilityContractTest
                 val fixture = Fixture(connection)
                 fixture.withAttestationRequirementBound(connection)
 
-                // Nothing may be recorded once the version has left draft, so a service cannot
-                // publish first and complete afterwards. It has to do both in one transaction, and
-                // the completeness check has to see rows its own transaction has not committed yet.
                 connection.autoCommit = false
                 try
                 {
@@ -247,7 +215,7 @@ class InformationRequestTemplateCapabilityContractTest
                         "RESPONSE_SUBMISSION",
                         1,
                     )
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                     connection.commit()
                 }
                 finally
@@ -274,10 +242,8 @@ class InformationRequestTemplateCapabilityContractTest
                 val attestationId = UUID.randomUUID()
                 insertCapability(connection, attestationId, fixture.versionId, "RESPONSE_ATTESTATION", 1)
                 insertCapability(connection, UUID.randomUUID(), fixture.versionId, "RESPONSE_SUBMISSION", 1)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
 
-                // What a request was issued against has to keep resolving to the same answer, so
-                // the set a published version recorded stops changing with it.
                 refused(connection, "immutable") {
                     insertCapability(
                         connection,
@@ -308,24 +274,19 @@ class InformationRequestTemplateCapabilityContractTest
             postgres.createConnection("").use { connection ->
                 fixture = Fixture(connection)
                 fixture.withAttestationRequirementBound(connection)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 fixture.withAttestationOnlyVersion(connection)
             }
 
             flyway(postgres).migrate()
 
             postgres.createConnection("").use { connection ->
-                // A version published before the rule existed keeps its published state and its
-                // empty set. The rule decides publications from here on, not history it was never
-                // applied to.
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
                 assertEquals(0, capabilityCount(connection, fixture.versionId))
 
                 refused(connection, "must record every runtime capability its configuration requires") {
-                    publish(connection, fixture.otherVersionId, fixture.userId)
+                    publish(connection, fixture.otherVersionId)
                 }
-                // The frozen version stays frozen, so the set it never recorded cannot be recorded
-                // now.
                 refused(connection, "immutable") {
                     insertCapability(
                         connection,
@@ -336,8 +297,7 @@ class InformationRequestTemplateCapabilityContractTest
                     )
                 }
 
-                // Retirement is still the one fact recordable about it.
-                retire(connection, fixture.versionId, fixture.userId)
+                retire(connection, fixture.versionId)
                 assertEquals("RETIRED", versionStatus(connection, fixture.versionId))
             }
         }
@@ -381,7 +341,6 @@ class InformationRequestTemplateCapabilityContractTest
             insertSection(connection, sectionId, versionId, "collected-data", 1)
         }
 
-        /** An assertion asked for plainly: no condition, no occurrence, no compartment, no review. */
         fun withAttestationRequirementBound(connection: Connection)
         {
             insertRequirement(
@@ -402,7 +361,6 @@ class InformationRequestTemplateCapabilityContractTest
             )
         }
 
-        /** Typed data asked for under every optional policy a binding can carry. */
         fun withFieldRequirementBound(connection: Connection)
         {
             insertRequirement(connection, fieldRequirementId, definitionId, "recorded-note", "FIELD")
@@ -457,13 +415,11 @@ class InformationRequestTemplateCapabilityContractTest
             )
         }
 
-        /** A document judged by a policy that restricts nothing and permits no waiver. */
         fun withEvidencePolicy(connection: Connection)
         {
             insertPolicy(connection, policyId, documentBindingId, versionId)
         }
 
-        /** The same document, resolvable without the evidence once a reviewer approves. */
         fun withWaivableEvidencePolicy(connection: Connection)
         {
             insertPolicy(
@@ -499,7 +455,6 @@ class InformationRequestTemplateCapabilityContractTest
             )
         }
 
-        /** A second version of the same definition, asking only for the assertion. */
         fun withAttestationOnlyVersion(connection: Connection)
         {
             insertSection(connection, otherSectionId, otherVersionId, "supporting-data", 1)
@@ -641,7 +596,6 @@ class InformationRequestTemplateCapabilityContractTest
         }
     }
 
-    /** Typed data resolves against a schema version, which publication requires it to name. */
     private fun setVersionSchemaVersion(connection: Connection, versionId: UUID, schemaVersionId: UUID)
     {
         connection.prepareStatement(
@@ -758,8 +712,6 @@ class InformationRequestTemplateCapabilityContractTest
         collectedFieldDefinitionId: UUID? = null,
     )
     {
-        // The collected field arrived after this baseline, so a version of the schema that predates
-        // it inserts the same row without naming one.
         val collectable = collectedFieldColumnExists(connection)
         val column = if (collectable) ", collected_field_definition_id" else ""
         val value = if (collectable) ", ?" else ""
@@ -813,11 +765,6 @@ class InformationRequestTemplateCapabilityContractTest
             }
         }
 
-    /**
-     * One stable field, its contract, and the schema version binding that carries it. A typed
-     * requirement names a field it collects, and publication asks whether the version's own contract
-     * carries that field.
-     */
     private fun insertCollectableField(
         connection: Connection,
         fieldDefinitionId: UUID,
@@ -1012,34 +959,32 @@ class InformationRequestTemplateCapabilityContractTest
         }
     }
 
-    private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publish(connection: Connection, versionId: UUID)
     {
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }
 
-    private fun retire(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun retire(connection: Connection, versionId: UUID)
     {
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'RETIRED', retired_at = ?, retired_by_app_user_id = ?
+            SET status = 'RETIRED', retired_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }

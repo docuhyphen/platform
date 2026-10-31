@@ -1,5 +1,6 @@
 import axios from "axios";
 import apiClient from "./apiClient.ts";
+import {postInformationRequestSupplement} from "./informationRequestSuccessorTransport.ts";
 import {
     informationRequestBasePath,
     informationRequestCommandHeaders,
@@ -12,7 +13,6 @@ import {
 import {
     InformationRequestAmendmentDto,
     InformationRequestCarryForwardDto,
-    InformationRequestLineageKind,
     InformationRequestSubmissionAttestationResultDto,
     InformationRequestSubmissionPreviewDto,
     InformationRequestSubmissionResultDto,
@@ -118,8 +118,6 @@ export const createInformationRequestSupplement = (
     reasonCode: string | undefined,
     options: RuntimeCommandOptions,
 ): Promise<RuntimeCommandResult<InformationRequestSuccessorResultDto>> =>
-    execute(() => apiClient.post(
-        `/information-requests/${requestId}/successors`,
-        {kind: InformationRequestLineageKind.SUPPLEMENT, ...(reasonCode ? {reasonCode} : {})},
-        {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
+    execute(() => postInformationRequestSupplement(
+        requestId, reasonCode, informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined}),
     ));

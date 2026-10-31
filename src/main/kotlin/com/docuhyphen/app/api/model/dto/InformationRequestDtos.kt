@@ -9,16 +9,11 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-/**
- * The owner-facing read shape of one runtime Information Request. [requestETag] is carried on every
- * row so a client can act on any listed request, for example cancelling or superseding it, without a
- * separate fetch to learn its current aggregate revision.
- */
 @Serializable
 data class InformationRequestDto(
     @Serializable(with = UUIDSerializer::class) val id: UUID,
     @Serializable(with = UUIDSerializer::class) val exchangeId: UUID,
-    @Serializable(with = UUIDSerializer::class) val templateVersionId: UUID,
+    @Serializable(with = UUIDSerializer::class) val templateVersionId: UUID? = null,
     val ownerType: InformationRequestOwnerType,
     @Serializable(with = UUIDSerializer::class) val ownerOrganizationId: UUID? = null,
     @Serializable(with = UUIDSerializer::class) val ownerUserId: UUID? = null,
@@ -33,6 +28,7 @@ data class InformationRequestDto(
     @Serializable(with = TimestampSerializer::class) val createdAt: Timestamp,
     @Serializable(with = TimestampSerializer::class) val updatedAt: Timestamp,
     val requestETag: String,
+    val executionStanding: InformationRequestExecutionStandingDto,
     val conditionEvaluations: List<InformationRequestConditionEvaluationDto> = emptyList(),
 )
 

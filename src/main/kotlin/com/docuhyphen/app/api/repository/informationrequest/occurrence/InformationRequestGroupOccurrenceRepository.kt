@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
 import java.util.*
 
-/** Persistence for [InformationRequestGroupOccurrence]. Occurrences belong to one request. */
 @ApplicationScoped
 class InformationRequestGroupOccurrenceRepository :
     BaseRepository<InformationRequestGroupOccurrence>(InformationRequestGroupOccurrence::class.java)
@@ -25,28 +24,17 @@ class InformationRequestGroupOccurrenceRepository :
             .setParameter("requestId", informationRequestId)
             .resultList
 
-    fun findForGroup(informationRequestId: UUID, sourceTemplateGroupId: UUID): List<InformationRequestGroupOccurrence> =
+    fun findAllForRequest(informationRequestId: UUID): List<InformationRequestGroupOccurrence> =
         entityManager.createQuery(
             """
             SELECT occurrence
             FROM InformationRequestGroupOccurrence occurrence
             WHERE occurrence.informationRequestId = :requestId
-              AND occurrence.sourceTemplateGroupId = :groupId
-              AND occurrence.removedAt IS NULL
-            ORDER BY occurrence.occurrenceIndex
+            ORDER BY occurrence.occurrencePath
             """.trimIndent(),
             InformationRequestGroupOccurrence::class.java,
         )
             .setParameter("requestId", informationRequestId)
-            .setParameter("groupId", sourceTemplateGroupId)
-            .resultList
-
-    fun findForGroupAndParent(
-        informationRequestId: UUID,
-        sourceTemplateGroupId: UUID,
-        parentOccurrenceId: UUID?,
-    ): List<InformationRequestGroupOccurrence> =
-        groupAndParentQuery(informationRequestId, sourceTemplateGroupId, parentOccurrenceId, includeRemoved = true)
             .resultList
 
     fun findForGroupAndParentForUpdate(

@@ -5,7 +5,9 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
 import com.docuhyphen.app.api.model.informationrequest.evidence.malwareOutcome
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -14,6 +16,7 @@ import jakarta.inject.Inject
 class InformationRequestEvidenceContentRelease @Inject constructor(
     private val assessmentRepository: InformationRequestEvidenceAssessmentRepository,
     private val deploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
+    private val requirementContext: InformationRequestRequirementAuthorizationContextProvider,
 )
 {
     fun requireReleasable(version: InformationRequestEvidenceVersion, access: RequestAccessContext)
@@ -33,7 +36,8 @@ class InformationRequestEvidenceContentRelease @Inject constructor(
         }
         if (!deploymentPolicy.malwareScanRequired()) return
         if (outcome == InformationRequestEvidenceMalwareOutcome.CLEAN && scan.productionEligible) return
-        if (version.createdByPrincipalKind == access.principal.kind && version.createdByPrincipalId == access.principal.id) return
+        val uploader = PrincipalRef(version.createdByPrincipalKind, version.createdByPrincipalId)
+        if (uploader in requirementContext.linkedIdentitiesOf(access.principal)) return
 
         throw InformationRequestLifecycleException(
             InformationRequestErrorCatalog.EVIDENCE_CONTENT_NOT_RELEASED,

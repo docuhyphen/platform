@@ -5,10 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One logical evidence item collected for a single runtime Requirement occurrence. The artifact
- * holds identity and the optimistic revision; the content of each attempt lives in its versions.
- */
 @Entity
 @Table(name = "information_request_evidence_artifact")
 class InformationRequestEvidenceArtifact

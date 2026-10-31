@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.variable
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
 import com.docuhyphen.app.api.model.dto.VariableDefinitionDto

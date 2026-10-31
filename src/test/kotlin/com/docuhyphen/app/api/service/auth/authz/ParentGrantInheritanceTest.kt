@@ -1,11 +1,9 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -20,18 +18,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * A resource takes grants from another resource only when its kind has explicitly registered
- * that it does, the two resources share one owner, the reference is exactly one level deep, and
- * the parent's own facts can be produced. Every other case either inherits nothing or refuses
- * the decision.
- *
- * The child used here is a Document whose resolved context names its Exchange, because a Document
- * Share role currently maps to no capability of its own, so anything the child can do had to
- * arrive through inheritance.
- */
 class ParentGrantInheritanceTest
 {
     private val userId = UUID.randomUUID()
@@ -162,10 +150,6 @@ class ParentGrantInheritanceTest
         assertEquals(Decision.REASON_MFA_REQUIRED, (decision as Decision.Deny).reasonCode)
     }
 
-    // -------------------------------------------------------------------------
-    // fixtures
-    // -------------------------------------------------------------------------
-
     private fun ownedContext(parentRef: ResourceRef? = null) = ResourceAuthorizationContext(
         ownerContext = OwnerContext.Organization(ownerOrgId),
         parentRef = parentRef,
@@ -221,7 +205,7 @@ class ParentGrantInheritanceTest
                 val id = invocation.arguments[3] as UUID
                 if (type == sharedResource.type && id == sharedResource.id) listOf(share) else emptyList<Share>()
             }
-        whenever(shareRepository.findById(eq(share.id!!))).thenReturn(share)
+        whenever(shareRepository.findById(eq(share.id))).thenReturn(share)
 
         return DefaultAuthorizationService(
             shareRepository = shareRepository,

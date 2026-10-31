@@ -1,38 +1,13 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueSelection
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.service.fields.model.ProjectionQuestion
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Gathering the records a Fields projection is built from. The loader is the only part of the
- * projection that reaches a repository, so what it reads, what it leaves out, and what it declines
- * to read at all are pinned here.
- *
- * The schema under test asks three questions in a deliberately unsorted binding order, so an
- * assertion about order is answered by the loader rather than by the repository's own ordering.
- */
 class FieldsProjectionLoaderTest
 {
     private val schemaVersionId: UUID = UUID.randomUUID()
@@ -169,16 +144,7 @@ class FieldsProjectionLoaderTest
         verify(selectionRepository, never()).findByValue(any())
     }
 
-    // ── Fixture ──────────────────────────────────────────────────────────────
-
-    /** One question of the schema under test, as the three records that define it. */
-    private data class Question(
-        val binding: SchemaFieldBinding,
-        val contract: FieldContract,
-        val definition: FieldDefinition,
-    )
-
-    private fun question(order: Int, key: String, type: FieldValueType = FieldValueType.SHORT_TEXT): Question
+    private fun question(order: Int, key: String, type: FieldValueType = FieldValueType.SHORT_TEXT): ProjectionQuestion
     {
         val definition = FieldDefinition().apply {
             id = UUID.randomUUID()
@@ -198,11 +164,11 @@ class FieldsProjectionLoaderTest
             displayOrder = order
             visibility = FieldDataClassification.INTERNAL
         }
-        return Question(binding, contract, definition)
+        return ProjectionQuestion(binding, contract, definition)
     }
 
     private fun loaderAsking(
-        vararg questions: Question,
+        vararg questions: ProjectionQuestion,
         withoutContract: Set<UUID> = emptySet(),
         withoutDefinition: Set<UUID> = emptySet(),
     ): FieldsProjectionLoader
@@ -222,7 +188,7 @@ class FieldsProjectionLoaderTest
 
     private val storedValues: MutableList<FieldValue> = mutableListOf()
 
-    private fun storeAnswer(question: Question, text: String?): FieldValue
+    private fun storeAnswer(question: ProjectionQuestion, text: String?): FieldValue
     {
         val value = FieldValue().apply {
             id = UUID.randomUUID()

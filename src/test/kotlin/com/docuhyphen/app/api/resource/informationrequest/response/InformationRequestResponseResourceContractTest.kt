@@ -1,17 +1,13 @@
 package com.docuhyphen.app.api.resource.informationrequest.response
 
-import com.docuhyphen.app.api.model.dto.FieldValueDto
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
-import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.exception.InformationRequestVerificationRequiredException
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestItemProblem
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.response.HiddenResponseClearTarget
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.resource.informationrequest.response.operations.InformationRequestResponseResourceOperations
@@ -22,34 +18,25 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseClearRequiredException
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
-import kotlinx.serialization.json.JsonPrimitive
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * The authenticated, respondent-facing sub-resource exposing
- * [InformationRequestResponseDraftService]'s sparse patch. Only the requirements a caller's own
- * patch names are ever projected back in the response body.
- */
 class InformationRequestResponseResourceContractTest
 {
     private val responseDraftService = mock<InformationRequestResponseDraftService>()
@@ -110,6 +97,32 @@ class InformationRequestResponseResourceContractTest
     }
 
     @Test
+    fun `a wildcard If-Match is sent to the service as a missing precondition`() {
+        whenever(responseDraftService.patch(any()))
+            .thenThrow(CommandPreconditionException.required("\"responses-etag\""))
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId = requirementId,
+                        disposition = InformationRequestResponseDisposition.PROVIDED,
+                        narrative = "Done.",
+                    ),
+                ),
+            ),
+            "*",
+            "key-1",
+        )
+
+        assertEquals(428, response.status)
+        verify(responseDraftService).patch(
+            org.mockito.kotlin.argThat { precondition == com.docuhyphen.app.api.model.command.CommandPrecondition.Absent },
+        )
+    }
+
+    @Test
     fun `patch rejects an empty patch list`()
     {
         val response = resource.patch(requestId.toString(), PatchInformationRequestResponsesRequest(emptyList()), "\"etag\"", "key-1")
@@ -141,7 +154,7 @@ class InformationRequestResponseResourceContractTest
     }
 
     @Test
-    fun `patch delegates to the draft service and projects only the requirements the caller patched`()
+    fun `patch delegates to the draft service and maps every response the service discloses`()
     {
         val ownResponse = InformationRequestResponse().apply {
             informationRequestId = requestId
@@ -219,13 +232,13 @@ class InformationRequestResponseResourceContractTest
         assertEquals(Response.Status.OK.statusCode, response.status)
         assertEquals("\"responses-etag\"", response.getHeaderString("ETag"))
         val body = response.entity as Array<InformationRequestResponseDto>
-        assertEquals(1, body.size)
-        assertEquals(requirementId, body.single().informationRequestRequirementId)
-        assertEquals(sourceTemplateRequirementId, body.single().sourceTemplateRequirementId)
-        assertEquals(sourceTemplateBindingId, body.single().sourceTemplateBindingId)
-        assertEquals(ownResponse.fieldValueSetId, body.single().fieldValueSetId)
-        assertEquals("\"field-values-etag\"", body.single().fieldValueSetETag)
-        assertEquals(listOf(fieldValue), body.single().fieldValues)
+        assertEquals(listOf(requirementId, otherRequirementId), body.map { it.informationRequestRequirementId })
+        val own = body.first()
+        assertEquals(sourceTemplateRequirementId, own.sourceTemplateRequirementId)
+        assertEquals(sourceTemplateBindingId, own.sourceTemplateBindingId)
+        assertEquals(ownResponse.fieldValueSetId, own.fieldValueSetId)
+        assertEquals("\"field-values-etag\"", own.fieldValueSetETag)
+        assertEquals(listOf(fieldValue), own.fieldValues)
 
         val captor = org.mockito.kotlin.argumentCaptor<PatchInformationRequestResponsesCommand>()
         verify(responseDraftService).patch(captor.capture())
@@ -263,6 +276,31 @@ class InformationRequestResponseResourceContractTest
         }
 
     @Test
+    fun `a lapsed verification for a protected item maps to 403 with the confidentiality reason code`() {
+        whenever(responseDraftService.patch(any()))
+            .thenThrow(InformationRequestVerificationRequiredException("This protected item needs you to verify again before it can be saved"))
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        UUID.randomUUID(),
+                        narrative = "Neutral note"
+                    )
+                )
+            ),
+            "\"etag\"",
+            "key-verification",
+        )
+
+        assertEquals(403, response.status)
+        val entity = response.entity as ResponseError
+        assertEquals(InformationRequestErrorCatalog.CONFIDENTIALITY_DENIED, entity.reasonCode)
+        assertEquals("This protected item needs you to verify again before it can be saved", entity.errorMessage)
+    }
+
+    @Test
     fun `a stale precondition maps to 412 with the current etag`()
     {
         whenever(responseDraftService.patch(any()))
@@ -298,6 +336,148 @@ class InformationRequestResponseResourceContractTest
 
         assertEquals(Response.Status.CONFLICT.statusCode, response.status)
         assertEquals(InformationRequestErrorCatalog.STATE_INVALID, (response.entity as ResponseError).reasonCode)
+    }
+
+    @Test
+    fun `a stored rule refusing a save maps to 409 with the constraint code`() {
+        whenever(responseDraftService.patch(any())).thenThrow(
+            RuntimeException(
+                "transaction rolled back",
+                jakarta.persistence.PersistenceException(
+                    "could not execute statement",
+                    java.sql.SQLException("refused by a stored rule", "23514"),
+                ),
+            ),
+        )
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "\"etag\"",
+            "key-stored-rule",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        assertEquals(InformationRequestErrorCatalog.CONSTRAINT_CONFLICT, (response.entity as ResponseError).reasonCode)
+    }
+
+    @Test
+    fun `a request the service cannot find maps to 404 with its reason code`() {
+        whenever(responseDraftService.patch(any()))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.NOT_FOUND,
+                    "Information Request not found"
+                )
+            )
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
+        assertEquals(InformationRequestErrorCatalog.NOT_FOUND, (response.entity as ResponseError).reasonCode)
+    }
+
+    @Test
+    fun `a refused hidden clear maps to 409 naming the Requirements to confirm`() {
+        val target = HiddenResponseClearTarget(otherRequirementId, sourceTemplateBindingId, "entries.2")
+        whenever(responseDraftService.patch(any())).thenThrow(
+            InformationRequestHiddenResponseClearRequiredException(
+                listOf(target)
+            )
+        )
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        val body = response.entity as HiddenResponseClearRequiredErrorDto
+        assertEquals(InformationRequestErrorCatalog.HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED, body.reasonCode)
+        assertEquals(
+            listOf(HiddenResponseClearTargetDto(otherRequirementId, sourceTemplateBindingId, "entries.2")),
+            body.hiddenResponseClears
+        )
+    }
+
+    @Test
+    fun `an item refusal maps to 409 naming each refused Requirement`() {
+        whenever(responseDraftService.patch(any())).thenThrow(
+            InformationRequestItemRefusalException(
+                InformationRequestErrorCatalog.RESPONSE_DISPOSITION_NOT_PERMITTED,
+                "The response disposition is not permitted",
+                listOf(
+                    InformationRequestItemProblem(
+                        code = InformationRequestErrorCatalog.RESPONSE_DISPOSITION_NOT_PERMITTED,
+                        message = "This Requirement does not permit that disposition",
+                        requirementId = requirementId,
+                        occurrencePath = "entries[1]",
+                    ),
+                ),
+                undisclosedProblemCount = 2,
+            ),
+        )
+
+        val response = resource.patch(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        val body = org.junit.jupiter.api.Assertions.assertInstanceOf(
+            InformationRequestItemRefusalDto::class.java,
+            response.entity
+        )
+        assertEquals(InformationRequestErrorCatalog.RESPONSE_DISPOSITION_NOT_PERMITTED, body.reasonCode)
+        assertEquals(2, body.undisclosedProblemCount)
+        assertEquals(
+            listOf(
+                InformationRequestItemProblemDto(
+                    code = InformationRequestErrorCatalog.RESPONSE_DISPOSITION_NOT_PERMITTED,
+                    message = "This Requirement does not permit that disposition",
+                    requirementId = requirementId,
+                    occurrencePath = "entries[1]",
+                ),
+            ),
+            body.problems,
+        )
     }
 
     @Test

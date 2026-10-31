@@ -21,4 +21,17 @@ class ParticipantAccountLinkRepository :
             .setParameter("participantId", participantId)
             .resultList
             .firstOrNull()
+
+    fun findForAppUser(appUserId: UUID): List<ParticipantAccountLink> =
+        entityManager.createQuery(
+            """
+            SELECT link
+            FROM ParticipantAccountLink link
+            WHERE link.appUserId = :appUserId
+            ORDER BY link.linkedAt, link.id
+            """.trimIndent(),
+            ParticipantAccountLink::class.java,
+        )
+            .setParameter("appUserId", appUserId)
+            .resultList
 }

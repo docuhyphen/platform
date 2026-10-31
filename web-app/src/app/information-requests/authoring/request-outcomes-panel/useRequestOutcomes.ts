@@ -1,18 +1,22 @@
 import {useCallback, useEffect, useState} from "react";
 import {recordInformationRequestPrivacyRequest} from "../../../../services/informationRequestAdministrationService.ts";
 import * as outcomes from "../../../../services/informationRequestOutcomeService.ts";
+import {listInformationRequestReviews} from "../../../../services/informationRequestReviewService.ts";
 import {
     InformationRequestAcceptedFactDto,
     InformationRequestBusinessDecisionDto,
     InformationRequestItemCorrectionRequest,
     InformationRequestPrivacyRequestKind,
+    InformationRequestReviewDto,
     InformationRequestSubmissionPackageDto,
     PromoteInformationRequestAcceptedFactRequest,
     RecordInformationRequestBusinessDecisionRequest,
     RevokeInformationRequestAcceptedFactRequest,
 } from "../../../models/models.tsx";
-import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
+import {informationRequestRefusalMessage, unlessForbidden} from "../../shared/informationRequestRefusal.ts";
+import {Scoped, useScopeGuard, valueInScope} from "../../shared/useScopeGuard.ts";
 import {useAuthorCommandRunner} from "../author-workspace/useAuthorCommandRunner.ts";
+import {useRequestReadRefresh} from "../../shared/request-read-refresh/RequestReadRefreshContext.ts";
 
 export interface CorrectionBasis
 {
@@ -20,71 +24,98 @@ export interface CorrectionBasis
     policyBasisKey: string;
 }
 
+interface LoadedOutcomes {
+    packages: InformationRequestSubmissionPackageDto[];
+    facts: InformationRequestAcceptedFactDto[] | null;
+    decisions: InformationRequestBusinessDecisionDto[] | null;
+    reviews: InformationRequestReviewDto[] | null;
+}
+
+interface SettledOutcomes {
+    outcomes: LoadedOutcomes | null;
+    error: string | null;
+}
+
 export const useRequestOutcomes = (requestId: string) =>
 {
-    const [packages, setPackages] = useState<InformationRequestSubmissionPackageDto[]>([]);
-    const [facts, setFacts] = useState<InformationRequestAcceptedFactDto[] | null>(null);
-    const [decisions, setDecisions] = useState<InformationRequestBusinessDecisionDto[]>([]);
-    const [loaded, setLoaded] = useState(false);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const guard = useScopeGuard(requestId);
+    const refresh = useRequestReadRefresh();
+    const [settled, setSettled] = useState<Scoped<SettledOutcomes> | null>(null);
 
     const load = useCallback(async () =>
     {
+        const current = guard.beginLoad(requestId);
+        if (!current) return;
         try
         {
-            const [loadedPackages, loadedFacts, loadedDecisions] = await Promise.all([
+            const [packages, facts, decisions, reviews] = await Promise.all([
                 outcomes.getInformationRequestSubmissionPackages(requestId),
-                outcomes.getInformationRequestAcceptedFacts(requestId).catch(() => null),
-                outcomes.getInformationRequestBusinessDecisions(requestId),
+                unlessForbidden(outcomes.getInformationRequestAcceptedFacts(requestId)),
+                unlessForbidden(outcomes.getInformationRequestBusinessDecisions(requestId)),
+                unlessForbidden(listInformationRequestReviews(requestId)),
             ]);
-            setPackages(loadedPackages);
-            setFacts(loadedFacts);
-            setDecisions(loadedDecisions);
-            setLoadError(null);
+            if (current()) setSettled({
+                scope: requestId,
+                value: {outcomes: {packages, facts, decisions, reviews}, error: null}
+            });
         }
         catch (caught: unknown)
         {
-            setLoadError(informationRequestRefusalMessage(caught, "The outcomes of this request could not be loaded."));
+            if (current()) setSettled({
+                scope: requestId,
+                value: {
+                    outcomes: null,
+                    error: informationRequestRefusalMessage(caught, "The outcomes of this request could not be loaded.")
+                },
+            });
         }
-        finally
-        {
-            setLoaded(true);
-        }
-    }, [requestId]);
+    }, [guard, requestId]);
 
     useEffect(() =>
     {
         void load();
-    }, [load]);
+    }, [load, refresh]);
 
-    const runner = useAuthorCommandRunner(load);
+    const runner = useAuthorCommandRunner(requestId, load);
+    const shown = valueInScope(settled, requestId);
+    const facts = shown?.outcomes?.facts ?? null;
+    const decisions = shown?.outcomes?.decisions ?? null;
 
     return {
-        packages,
+        packages: shown?.outcomes?.packages ?? [],
         facts: facts ?? [],
-        decisions,
+        decisions: decisions ?? [],
+        reviews: shown?.outcomes?.reviews ?? null,
+        decisionsVisible: decisions !== null,
         canManage: facts !== null,
-        loaded,
+        loaded: shown !== null,
         busy: runner.busy,
-        error: runner.error ?? loadError,
+        error: runner.error,
+        loadError: shown?.error ?? null,
+        reload: load,
         notice: runner.notice,
         promote: (request: PromoteInformationRequestAcceptedFactRequest) =>
             runner.run(`promote:${JSON.stringify(request)}`, key =>
                 outcomes.promoteInformationRequestAcceptedFact(requestId, request, key), "The answer was promoted as an accepted fact."),
         revoke: (fact: InformationRequestAcceptedFactDto, request: RevokeInformationRequestAcceptedFactRequest) =>
-            runner.run(`revoke-fact:${fact.id}:${request.reasonCode}`, key =>
+            runner.run(`revoke-fact:${fact.id}:${JSON.stringify(request)}`, key =>
                 outcomes.revokeInformationRequestAcceptedFact(requestId, fact.id, request, key), "The accepted fact was revoked."),
         record: (request: RecordInformationRequestBusinessDecisionRequest) =>
             runner.run(`decision:${JSON.stringify(request)}`, key =>
                 outcomes.recordInformationRequestBusinessDecision(requestId, request, key), "The business decision was recorded."),
         correct: (subjectIdentityRefId: string, correction: InformationRequestItemCorrectionRequest, basis: CorrectionBasis) =>
-            runner.run(`correct:${JSON.stringify(correction)}`, () => recordInformationRequestPrivacyRequest({
+            runner.run(`correct:${JSON.stringify({
+                subjectIdentityRefId,
+                purposeKey: basis.purposeKey,
+                policyBasisKey: basis.policyBasisKey,
+                correction
+            })}`, key => recordInformationRequestPrivacyRequest({
                 subjectIdentityRefId,
                 requestKind: InformationRequestPrivacyRequestKind.CORRECTION,
                 purposeKey: basis.purposeKey,
                 policyBasisKey: basis.policyBasisKey,
                 correction,
-            }), "The correction was recorded."),
+            }, key), "The correction was recorded."),
     };
 };
 

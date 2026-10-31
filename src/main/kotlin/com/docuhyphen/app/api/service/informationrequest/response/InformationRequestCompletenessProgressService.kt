@@ -7,16 +7,15 @@ import com.docuhyphen.app.api.model.informationrequest.response.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessProgressContext
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestProgressProjection
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.fields.CanonicalValueCodec
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
@@ -36,9 +35,7 @@ class InformationRequestCompletenessProgressService @Inject constructor(
     private val requirementRepository: InformationRequestRequirementRepository,
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
-    private val fieldValueRepository: FieldValueRepository,
-    private val fieldValueSelectionRepository: FieldValueSelectionRepository,
-    private val fieldContractRepository: FieldContractRepository,
+    private val fieldsReader: FieldsReadFacade,
     private val responseStore: InformationRequestResponseStore,
     private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     @Any private val contributionEvaluators: Instance<InformationRequestCompletenessContributionEvaluator>,
@@ -64,7 +61,8 @@ class InformationRequestCompletenessProgressService @Inject constructor(
             activeResponses = activeResponses,
             conditionEvaluations = conditionEvaluations,
         )
-        val extensionContributions = contributionEvaluators.toList().flatMap { it.evaluate(context) }
+        val extensionContributions =
+            withRejectionPrecedence(contributionEvaluators.toList().flatMap { it.evaluate(context) })
         val extensionRequirementIds = extensionContributions.mapNotNull { it.requirementId }.toSet()
         val structuredContributions = structuredContributions(
             request = request,
@@ -82,6 +80,20 @@ class InformationRequestCompletenessProgressService @Inject constructor(
             percentComplete = percent(completed, total),
             items = items,
         )
+    }
+
+    private fun withRejectionPrecedence(
+        contributions: List<InformationRequestCompletenessContribution>,
+    ): List<InformationRequestCompletenessContribution> {
+        val rejectionByRequirement = contributions
+            .filter { it.state == InformationRequestCompletenessItemState.REJECTED && it.requirementId != null }
+            .distinctBy { it.requirementId }
+            .associateBy { it.requirementId }
+        if (rejectionByRequirement.isEmpty()) return contributions
+        return contributions.filter { contribution ->
+            val rejection = contribution.requirementId?.let(rejectionByRequirement::get) ?: return@filter true
+            contribution === rejection
+        }
     }
 
     private fun structuredContributions(
@@ -123,7 +135,7 @@ class InformationRequestCompletenessProgressService @Inject constructor(
     ): InformationRequestCompletenessContribution
     {
         val answerComplete = response.hasStructuredResponse(binding, collectedFieldAnswers)
-        val conditionState = binding.conditionalRuleKey?.let { ruleKey ->
+        val conditionState = InformationRequestGoverningCondition.ruleKeyOf(binding)?.let { ruleKey ->
             val atOccurrence = conditionByScope[ruleKey to requirement.occurrencePath]
             val atRoot = conditionByScope[ruleKey to InformationRequestOccurrencePath.ROOT]
             (atOccurrence ?: atRoot)?.state
@@ -160,14 +172,14 @@ class InformationRequestCompletenessProgressService @Inject constructor(
         val valueSetIds = activeResponses.mapNotNull { it.fieldValueSetId }.distinct()
         if (collectedFieldDefinitionIds.isEmpty() || valueSetIds.isEmpty()) return emptyMap()
 
-        val values = valueSetIds.flatMap { fieldValueRepository.findByValueSet(it) }
+        val values = valueSetIds.flatMap { fieldsReader.valuesIn(it) }
         val fieldDefinitionIdByContractId =
-            fieldContractRepository.findByIds(values.map { it.fieldContractId }.distinct())
+            fieldsReader.contracts(values.map { it.fieldContractId }.distinct())
                 .associate { it.id to it.fieldDefinitionId }
         return values.mapNotNull { value ->
             val fieldDefinitionId = fieldDefinitionIdByContractId[value.fieldContractId] ?: return@mapNotNull null
             if (fieldDefinitionId !in collectedFieldDefinitionIds) return@mapNotNull null
-            val selectionCodes = fieldValueSelectionRepository.findByValue(value.id).map { it.optionCode }
+            val selectionCodes = fieldsReader.selectionCodesOf(value.id)
             (value.fieldValueSetId to fieldDefinitionId) to !CanonicalValueCodec.isEmpty(value, selectionCodes)
         }.toMap()
     }

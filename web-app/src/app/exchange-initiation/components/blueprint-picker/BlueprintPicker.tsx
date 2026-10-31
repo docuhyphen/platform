@@ -25,8 +25,11 @@ import {BlueprintDefinitionSummaryDto} from '../../../models/models.tsx';
 import {listBlueprints} from '../../../../services/blueprintService.ts';
 import {AddIcon, CheckmarkIcon, FilterIcon, SortDownIcon, SortUpIcon} from "../../../components/IconBundles.tsx";
 import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
-import ExchangeListPagination from '../../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
+import ExchangeListPagination
+    from '../../../exchanges/components/exchange-list/exchange-list-pagination/ExchangeListPagination.tsx';
 import {useAuth} from '../../../../context/AuthContext.tsx';
+import BlueprintInformationRequestBadge
+    from '../blueprint-information-request-badge/BlueprintInformationRequestBadge.tsx';
 
 interface BlueprintPickerProps
 {
@@ -45,7 +48,7 @@ const tabLabel: Record<PickerTab, string> = {
     APP: 'Platform',
 };
 
-const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =>
+const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect}) =>
 {
     const styles = useExchangeInitiationStyles();
     const {appUserPersonOrganization} = useAuth();
@@ -136,9 +139,12 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
     };
 
     return (
-        <div className={styles.blueprintPickerContainer}>
-            <div className={styles.blueprintPickerStickyHeader}>
+        <div id={"blueprint-picker-container"}
+             className={styles.blueprintPickerContainer}>
+            <div id={"blueprint-picker-sticky-header"}
+                 className={styles.blueprintPickerStickyHeader}>
                 <TabList
+                    id={"blueprint-picker-tab-list"}
                     selectedValue={activeTab}
                     onTabSelect={(_, data) =>
                     {
@@ -146,14 +152,20 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                         resetControls();
                     }}
                 >
-                    <Tab value="PERSONAL">{tabLabel.PERSONAL}</Tab>
-                    {hasOrganization && <Tab value="ORG">{tabLabel.ORG}</Tab>}
-                    <Tab value="APP">{tabLabel.APP}</Tab>
+                    <Tab id={"blueprint-picker-personal-tab"}
+                         value="PERSONAL">{tabLabel.PERSONAL}</Tab>
+                    {hasOrganization && <Tab id={"blueprint-picker-org-tab"}
+                                             value="ORG">{tabLabel.ORG}</Tab>}
+                    <Tab id={"blueprint-picker-app-tab"}
+                         value="APP">{tabLabel.APP}</Tab>
                 </TabList>
 
-            <div className={styles.blueprintPickerControls}>
-                <div className={styles.blueprintPickerSearchRow}>
-                    <Field className={styles.blueprintPickerSearchField}>
+                <div id={"blueprint-picker-controls"}
+                     className={styles.blueprintPickerControls}>
+                    <div id={"blueprint-picker-search-row"}
+                         className={styles.blueprintPickerSearchRow}>
+                        <Field id={"blueprint-picker-search-field"}
+                               className={styles.blueprintPickerSearchField}>
                         <SearchBox
                             id="blueprint-picker-search"
                             placeholder="Search blueprints"
@@ -173,7 +185,8 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                             onOpenChange={(_, {open}) => { if (!open) setFilterSearch(''); }}
                         >
                             <PopoverTrigger disableButtonEnhancement>
-                                <Tooltip content="Filter by tag" relationship="description">
+                                <Tooltip content="Filter by tag"
+                                         relationship="description">
                                     <Button
                                         id="blueprint-picker-filter-btn"
                                         icon={<FilterIcon/>}
@@ -182,16 +195,20 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                     />
                                 </Tooltip>
                             </PopoverTrigger>
-                            <PopoverSurface className={styles.blueprintPickerFilterPopover}>
+                            <PopoverSurface id={"blueprint-picker-filter-popover"}
+                                            className={styles.blueprintPickerFilterPopover}>
                                 <SearchBox
+                                    id={"blueprint-picker-filter-popover-search-box"}
                                     placeholder="Search tags"
                                     size="small"
                                     value={filterSearch}
                                     onChange={(_, d) => setFilterSearch(d.value)}
                                 />
-                                <div className={styles.blueprintPickerFilterPopoverList}>
+                                <div id={"blueprint-picker-filter-popover-list"}
+                                     className={styles.blueprintPickerFilterPopoverList}>
                                     {filteredTagOptions.map(tag => (
                                         <Checkbox
+                                            id={`blueprint-picker-checkbox-${tag}`}
                                             key={tag}
                                             label={tag}
                                             checked={selectedTags.has(tag)}
@@ -199,7 +216,9 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                         />
                                     ))}
                                     {filteredTagOptions.length === 0 && (
-                                        <Text size={200} className={styles.blueprintPickerFilterEmptyText}>
+                                        <Text id={"blueprint-picker-filter-empty-text"}
+                                              size={200}
+                                              className={styles.blueprintPickerFilterEmptyText}>
                                             No tags found
                                         </Text>
                                     )}
@@ -222,21 +241,24 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                 />
                             </Tooltip>
                         </MenuTrigger>
-                        <MenuPopover>
-                            <MenuList>
+                        <MenuPopover id={"blueprint-picker-search-row-menu-popover"}>
+                            <MenuList id={"blueprint-picker-search-row-menu-list"}>
                                 <MenuItem
+                                    id={"blueprint-picker-recently-updated-menu-item"}
                                     icon={sortOrder === 'default' ? <CheckmarkIcon/> : undefined}
                                     onClick={() => { setSortOrder('default'); setCurrentPage(0); }}
                                 >
                                     Recently updated
                                 </MenuItem>
                                 <MenuItem
+                                    id={"blueprint-picker-name-a-z-menu-item"}
                                     icon={sortOrder === 'nameAsc' ? <CheckmarkIcon/> : undefined}
                                     onClick={() => { setSortOrder('nameAsc'); setCurrentPage(0); }}
                                 >
                                     Name (A-Z)
                                 </MenuItem>
                                 <MenuItem
+                                    id={"blueprint-picker-name-z-a-menu-item"}
                                     icon={sortOrder === 'nameDesc' ? <CheckmarkIcon/> : undefined}
                                     onClick={() => { setSortOrder('nameDesc'); setCurrentPage(0); }}
                                 >
@@ -248,8 +270,10 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                 </div>
 
                 {selectedTags.size > 0 && (
-                    <div className={styles.blueprintPickerActiveTagsRow}>
+                    <div id={"blueprint-picker-active-tags-row"}
+                         className={styles.blueprintPickerActiveTagsRow}>
                         <TagGroup
+                            id={"blueprint-picker-map-tag-group"}
                             onDismiss={(_ev, {value}) =>
                             {
                                 setSelectedTags(prev =>
@@ -262,7 +286,11 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                             }}
                         >
                             {[...selectedTags].map(tag => (
-                                <Tag key={tag} value={tag} size="small" dismissible>
+                                <Tag id={`blueprint-picker-tag-${tag}`}
+                                     key={tag}
+                                     value={tag}
+                                     size="small"
+                                     dismissible>
                                     {tag}
                                 </Tag>
                             ))}
@@ -279,39 +307,50 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                     </div>
                 )}
             </div>
-            </div>{/* blueprintPickerStickyHeader */}
+            </div>
 
             {loading && (
-                <div className={styles.blueprintPickerSpinnerWrapper}>
-                    <Spinner size="small" label="Loading blueprints..."/>
+                <div id={"blueprint-picker-spinner-wrapper"}
+                     className={styles.blueprintPickerSpinnerWrapper}>
+                    <Spinner id={"blueprint-picker-loading-blueprints-spinner"}
+                             size="small"
+                             label="Loading blueprints..."/>
                 </div>
             )}
 
             {!loading && error && (
-                <Text className={styles.blueprintPickerErrorText}>{error}</Text>
+                <Text id={"blueprint-picker-error-text"}
+                      className={styles.blueprintPickerErrorText}>{error}</Text>
             )}
 
             {!loading && !error && blueprints.length === 0 && (
-                <Text className={styles.blueprintPickerEmptyText}>
+                <Text id={"blueprint-picker-empty-text"}
+                      className={styles.blueprintPickerEmptyText}>
                     No blueprints available in this category.
                 </Text>
             )}
 
             {!loading && !error && blueprints.length > 0 && filteredBlueprints.length === 0 && (
-                <Text className={styles.blueprintPickerEmptyText}>
+                <Text id={"blueprint-picker-empty-text-2"}
+                      className={styles.blueprintPickerEmptyText}>
                     No blueprints match your search.
                 </Text>
             )}
 
             {!loading && !error && visibleBlueprints.length > 0 && (
-                <div className={styles.blueprintList}>
+                <div id={"blueprint-picker-blueprint-list"}
+                     className={styles.blueprintList}>
                     {visibleBlueprints.map(bp => (
                         <div
+                            id={`blueprint-picker-blueprint-card-${bp.id}`}
                             key={bp.id}
                             className={styles.blueprintCard}
                         >
-                            <div className={styles.blueprintCardHeader}>
-                                <Text weight="semibold" size={400}>{bp.name}</Text>
+                            <div id={`blueprint-picker-blueprint-card-header-${bp.id}`}
+                                 className={styles.blueprintCardHeader}>
+                                <Text id={`blueprint-picker-name-text-${bp.id}`}
+                                      weight="semibold"
+                                      size={400}>{bp.name}</Text>
                                 <Button
                                     id={`blueprint-use-btn-${bp.id}`}
                                     appearance="primary"
@@ -324,14 +363,21 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
                                 </Button>
                             </div>
                             {bp.summary && (
-                                <Text size={200} className={styles.blueprintCardSummary}>
+                                <Text id={`blueprint-picker-blueprint-card-summary-${bp.id}`}
+                                      size={200}
+                                      className={styles.blueprintCardSummary}>
                                     {bp.summary}
                                 </Text>
                             )}
+                            <BlueprintInformationRequestBadge blueprint={bp}/>
                             {bp.generalTags.length > 0 && (
-                                <div className={styles.blueprintTagRow}>
+                                <div id={`blueprint-picker-blueprint-tag-row-${bp.id}`}
+                                     className={styles.blueprintTagRow}>
                                     {bp.generalTags.map(tag => (
-                                        <Badge key={tag} appearance="tint" size="small">{tag}</Badge>
+                                        <Badge id={`blueprint-picker-tag-badge-${bp.id}-${tag}`}
+                                               key={tag}
+                                               appearance="tint"
+                                               size="small">{tag}</Badge>
                                     ))}
                                 </div>
                             )}
@@ -341,7 +387,8 @@ const BlueprintPicker: React.FC<BlueprintPickerProps> = ({onSelect, onCancel}) =
             )}
 
             {!loading && !error && totalPages > 1 && (
-                <div className={styles.blueprintPickerPaginationRow}>
+                <div id={"blueprint-picker-pagination-row"}
+                     className={styles.blueprintPickerPaginationRow}>
                     <ExchangeListPagination
                         currentPage={currentPage}
                         totalPages={totalPages}

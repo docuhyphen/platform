@@ -4,12 +4,18 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleD
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
+import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.informationrequest.amendment.*
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import java.util.*
 
 object InformationRequestAmendmentClassifier
 {
     private val NO_ID = UUID(0, 0)
+    private val EXPANDING_KINDS = setOf(
+        InformationRequestAmendmentChangeKind.ADDED,
+        InformationRequestAmendmentChangeKind.MEANING_CHANGED,
+    )
 
     fun classify(
         from: InformationRequestTemplateVersionDto,
@@ -47,7 +53,37 @@ object InformationRequestAmendmentClassifier
             schemaChanged = from.schemaVersionId != to.schemaVersionId,
             submissionPolicyChanged = from.submissionMode != to.submissionMode ||
                     from.submissionStageOrdering != to.submissionStageOrdering,
+            expanding = changes.any { it.kind in EXPANDING_KINDS } || occurrencesExpand(from.groups, to.groups),
+            reviewPlanChanged = reviewPlanOf(from) != reviewPlanOf(to),
+            targetCollectsFields = to.sections.any { section ->
+                section.requirements.any { it.requirementType == InformationRequestRequirementType.FIELD }
+            },
         )
+    }
+
+    private fun reviewPlanOf(version: InformationRequestTemplateVersionDto): List<Any?> =
+        listOf(
+            version.reviewStageOrdering,
+            version.factReusePurposeKey,
+            version.reviewStages.map { stage ->
+                stage.copy(
+                    id = NO_ID,
+                    title = "",
+                    sectionKeys = stage.sectionKeys.sorted()
+                )
+            },
+        )
+
+    private fun occurrencesExpand(
+        from: List<InformationRequestTemplateGroupDto>,
+        to: List<InformationRequestTemplateGroupDto>,
+    ): Boolean {
+        val later = to.associateBy { it.groupKey }
+        return from.any { group ->
+            val after = later[group.groupKey] ?: return@any false
+            after.minOccurrences > group.minOccurrences ||
+                    (after.maxOccurrences ?: Int.MAX_VALUE) > (group.maxOccurrences ?: Int.MAX_VALUE)
+        }
     }
 
     private fun change(
@@ -132,13 +168,26 @@ object InformationRequestAmendmentClassifier
                 substituteRequirementKeys = requirement.substituteRequirementKeys.sorted(),
                 supportingEvidenceRequirementKeys = requirement.supportingEvidenceRequirementKeys.sorted(),
                 attestationPolicy = requirement.attestationPolicy?.copy(id = NO_ID),
+                conditionalRuleKey = InformationRequestGoverningCondition.ruleKeyOf(requirement),
             ),
             stageKey = placed.section.submissionStageKey,
-            condition = requirement.conditionalRuleKey?.let { key -> version.conditionRules.firstOrNull { it.ruleKey == key } }
+            condition = InformationRequestGoverningCondition.ruleKeyOf(requirement)
+                ?.let { key -> version.conditionRules.firstOrNull { it.ruleKey == key } }
                 ?.let(::normalized),
-            anchor = requirement.occurrenceAnchorKey?.let { key -> version.groups.firstOrNull { it.groupKey == key } }
-                ?.copy(id = NO_ID),
+            anchors = anchorChainOf(requirement.occurrenceAnchorKey, version.groups),
         )
+    }
+
+    private fun anchorChainOf(
+        anchorKey: String?,
+        groups: List<InformationRequestTemplateGroupDto>,
+    ): List<InformationRequestTemplateGroupDto> {
+        val byKey = groups.associateBy { it.groupKey }
+        val visited = mutableSetOf<String>()
+        return generateSequence(anchorKey?.let(byKey::get)) { group -> group.parentGroupKey?.let(byKey::get) }
+            .takeWhile { visited.add(it.groupKey) }
+            .map { it.copy(id = NO_ID) }
+            .toList()
     }
 
     private fun normalized(rule: InformationRequestTemplateConditionRuleDto): InformationRequestTemplateConditionRuleDto =

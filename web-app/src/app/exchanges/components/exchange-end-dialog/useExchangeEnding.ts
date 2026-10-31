@@ -10,8 +10,9 @@ import {
 import {
     COMPLETION_GATES_UNSATISFIED,
     isCompletionRefusal,
-    REMAINING_REQUESTS_REQUIRE_CANCELLATION,
     refusalMessage,
+    REMAINING_REQUESTS_REQUIRE_CANCELLATION,
+    workflowHeldEndingMessage,
 } from "./exchangeEndRefusal.ts";
 
 export interface ExchangeEnding
@@ -19,6 +20,7 @@ export interface ExchangeEnding
     ending: boolean;
     message: string | null;
     refused: boolean;
+    held: boolean;
     cancellationOffered: boolean;
     blockedByRequests: boolean;
     end: () => Promise<void>;
@@ -33,6 +35,7 @@ export const useExchangeEnding = (
     const [ending, setEnding] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [refusal, setRefusal] = useState<InformationRequestExchangeCompletionRefusalDto | null>(null);
+    const [held, setHeld] = useState(false);
     const cancellationOffered = refusal?.reasonCode === REMAINING_REQUESTS_REQUIRE_CANCELLATION;
 
     useEffect(() =>
@@ -40,6 +43,7 @@ export const useExchangeEnding = (
         if (!isOpen) return;
         setMessage(null);
         setRefusal(null);
+        setHeld(false);
     }, [isOpen]);
 
     const end = async () =>
@@ -61,14 +65,20 @@ export const useExchangeEnding = (
         }
         catch (error: unknown)
         {
+            const heldMessage = workflowHeldEndingMessage(error);
+            if (heldMessage) {
+                setHeld(true);
+                setMessage(heldMessage);
+                return;
+            }
             if (isCompletionRefusal(error))
             {
                 setRefusal(error);
                 setMessage(refusalMessage(error));
                 return;
             }
-            setMessage("Error ending exchange");
-            console.error("Error ending exchange", error);
+            setMessage("Error ending Exchange");
+            console.error("Error ending Exchange", error);
         }
         finally
         {
@@ -80,6 +90,7 @@ export const useExchangeEnding = (
         ending,
         message,
         refused: refusal !== null,
+        held,
         cancellationOffered,
         blockedByRequests: refusal?.reasonCode === COMPLETION_GATES_UNSATISFIED,
         end,

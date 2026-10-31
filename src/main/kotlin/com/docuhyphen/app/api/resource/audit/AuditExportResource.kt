@@ -1,109 +1,127 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditExportApprovalRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.export.AuditExportAccessException
 import com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.util.*
 
-/**
- * Thin REST adapter for platform-scope verifiable evidence exports. All business logic, state-machine transitions, and
- * bundle construction live in [AuditExportService]/
- * [com.docuhyphen.app.api.service.audit.export.AuditExportBuilder]; this class only validates
- * input, authorizes, and maps results. The organization-scope routes live in
- * [AuditOrganizationExportsResource]/[AuditOrganizationIntegrityResource] instead of here, so that
- * no two resource classes share a leading path-param segment with different literal suffixes
- * (see AuditOrganizationEventsResource for why that matters).
- */
-@Path("/")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
+@jakarta.enterprise.context.RequestScoped
 class AuditExportResource @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditExportService: AuditExportService,
     private val auditIntegrityService: AuditIntegrityService,
-)
-{
-    @POST
-    @Path("/platform/audit-exports")
-    fun requestPlatformExport(body: AuditExportCreateRequestDto): Response =
-        withAuthorizedPlatform(Action.APP_REQUEST_AUDIT_EXPORT) { actor ->
-            val export = auditExportService.requestExport(toRequest(null, body), actor)
-            Response.ok(AuditExportDtoMapper.toDto(export)).build()
-        }
+) : com.docuhyphen.app.api.resource.audit.operations.AuditExportResourceOperations {
+    private val logger = org.slf4j.LoggerFactory.getLogger(AuditExportResource::class.java)
 
-    @GET
-    @Path("/platform/audit-exports")
-    fun listPlatformExports(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-        val exports = auditExportService.listForOrganization(null, platformOnly = true)
-        Response.ok(exports.map(AuditExportDtoMapper::toDto)).build()
+    override fun requestPlatformExport(body: AuditExportCreateRequestDto): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_REQUEST_AUDIT_EXPORT) { actor ->
+                val export = auditExportService.requestExport(toRequest(null, body), actor)
+                Response.ok(AuditExportDtoMapper.toDto(export)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource requestPlatformExport failed", exception)
+        }
     }
 
-    @GET
-    @Path("/platform/audit-exports/{exportId}")
-    fun getPlatformExport(@PathParam("exportId") exportId: String): Response =
-        withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-            val export = auditExportService.getExport(parseUuid(exportId))
-            requireOrgMatch(export.organizationId, null)
-            Response.ok(AuditExportDtoMapper.toDto(export)).build()
+    override fun listPlatformExports(): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                val exports = auditExportService.listForOrganization(null, platformOnly = true)
+                Response.ok(exports.map(AuditExportDtoMapper::toDto)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource listPlatformExports failed", exception)
         }
-
-    @POST
-    @Path("/platform/audit-exports/{exportId}/approvals")
-    fun approvePlatformExport(@PathParam("exportId") exportId: String, body: AuditExportApprovalRequestDto?): Response =
-        withAuthorizedPlatform(Action.AUDIT_EXPORT_APPROVE) { actor ->
-            val id = parseUuid(exportId)
-            requireOrgMatch(auditExportService.getExport(id).organizationId, null)
-            val export = auditExportService.approveExport(id, actor.principal.id, body?.note)
-            Response.ok(AuditExportDtoMapper.toDto(export)).build()
-        }
-
-    @GET
-    @Path("/platform/audit-exports/{exportId}/approvals")
-    fun listPlatformExportApprovals(@PathParam("exportId") exportId: String): Response =
-        withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-            val id = parseUuid(exportId)
-            requireOrgMatch(auditExportService.getExport(id).organizationId, null)
-            Response.ok(auditExportService.listApprovals(id).map(AuditExportDtoMapper::toApprovalDto)).build()
-        }
-
-    @GET
-    @Path("/platform/audit-exports/{exportId}/file")
-    @Produces("application/zip")
-    fun downloadPlatformExport(@PathParam("exportId") exportId: String): Response =
-        withAuthorizedPlatform(Action.APP_REQUEST_AUDIT_EXPORT) { actor ->
-            val id = parseUuid(exportId)
-            requireOrgMatch(auditExportService.getExport(id).organizationId, null)
-            val bytes = auditExportService.downloadBundle(id, actor)
-            Response.ok(bytes)
-                .header("Content-Disposition", "attachment; filename=\"audit-export-$exportId.zip\"")
-                .header("Content-Length", bytes.size)
-                .build()
-        }
-
-    @GET
-    @Path("/platform/audit-integrity")
-    fun getPlatformIntegrity(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { actor ->
-        val report =
-            auditIntegrityService.checkOrganization(null, platformOnly = true, requestedByUserId = actor.principal.id)
-        Response.ok(AuditExportDtoMapper.toIntegrityDto(report)).build()
     }
 
-    private fun toRequest(organizationId: UUID?, body: AuditExportCreateRequestDto): AuditExportService.ExportRequest =
-        AuditExportService.ExportRequest(
+    override fun getPlatformExport(exportId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                val export = auditExportService.getPlatformExport(parseUuid(exportId))
+                Response.ok(AuditExportDtoMapper.toDto(export)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource getPlatformExport failed", exception)
+        }
+    }
+
+    override fun approvePlatformExport(exportId: String, body: AuditExportApprovalRequestDto?): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_EXPORT_APPROVE) { actor ->
+                val id = parseUuid(exportId)
+                auditExportService.getPlatformExport(id)
+                val export = auditExportService.approveExport(id, actor.principal.id, body?.note)
+                Response.ok(AuditExportDtoMapper.toDto(export)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource approvePlatformExport failed", exception)
+        }
+    }
+
+    override fun listPlatformExportApprovals(exportId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                val id = parseUuid(exportId)
+                auditExportService.getPlatformExport(id)
+                Response.ok(auditExportService.listApprovals(id).map(AuditExportDtoMapper::toApprovalDto)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource listPlatformExportApprovals failed", exception)
+        }
+    }
+
+    override fun downloadPlatformExport(exportId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_REQUEST_AUDIT_EXPORT) { actor ->
+                val id = parseUuid(exportId)
+                auditExportService.getPlatformExport(id)
+                val bytes = auditExportService.downloadBundle(id, actor)
+                Response.ok(bytes)
+                    .header("Content-Disposition", "attachment; filename=\"audit-export-$exportId.zip\"")
+                    .header("Content-Length", bytes.size)
+                    .build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource downloadPlatformExport failed", exception)
+        }
+    }
+
+    override fun getPlatformIntegrity(): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { actor ->
+                val report =
+                    auditIntegrityService.checkOrganization(
+                        null,
+                        platformOnly = true,
+                        requestedByUserId = actor.principal.id
+                    )
+                Response.ok(AuditExportDtoMapper.toIntegrityDto(report)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditExportResource getPlatformIntegrity failed", exception)
+        }
+    }
+
+    private fun toRequest(organizationId: UUID?, body: AuditExportCreateRequestDto): AuditExportRequest =
+        AuditExportRequest(
             organizationId = organizationId,
             categories = body.categories.map { AuditCategory.valueOf(it.uppercase()) }.toSet(),
             occurredAfter = parseAuditInstant(body.occurredAfter, "occurredAfter"),
@@ -113,14 +131,6 @@ class AuditExportResource @Inject constructor(
             legalBasis = body.legalBasis,
             downloadLimit = body.downloadLimit,
         )
-
-    private fun requireOrgMatch(exportOrganizationId: UUID?, expectedOrganizationId: UUID?)
-    {
-        if (exportOrganizationId != expectedOrganizationId)
-        {
-            throw AuditExportNotFoundException("Audit export not found")
-        }
-    }
 
     private fun withAuthorizedPlatform(action: Action, block: (AuditAccessActor) -> Response): Response
     {
@@ -161,4 +171,11 @@ class AuditExportResource @Inject constructor(
     private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
 
     private fun platformRef(): ResourceRef = ResourceRef(ResourceType.APPLICATION, UUID(0, 0))
+    private fun failedAuditRequest(message: String, exception: Exception): Response {
+        if (exception is jakarta.ws.rs.WebApplicationException) throw exception
+        if (exception is com.docuhyphen.app.api.exception.SubscriptionDenialException) throw exception
+        logger.error(message, exception)
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
+    }
+
 }

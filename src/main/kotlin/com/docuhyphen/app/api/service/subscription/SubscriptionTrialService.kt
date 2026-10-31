@@ -98,6 +98,12 @@ class SubscriptionTrialService @Inject constructor(
         return trialGrantRepository.hasAutomaticGrant(ownerType, ownerId)
     }
 
+    fun activeTrialGrantId(ownerType: SubscriptionOwnerType, ownerId: UUID, at: Instant): UUID? =
+        trialGrantRepository.findByOwner(ownerType, ownerId)
+            .filter { !it.startedAt.toInstant().isAfter(at) && it.endedAt.toInstant().isAfter(at) }
+            .maxByOrNull { it.createdAt }
+            ?.id
+
     private fun record(
         mutation: SubscriptionTrialPolicyMutation,
         reason: String,

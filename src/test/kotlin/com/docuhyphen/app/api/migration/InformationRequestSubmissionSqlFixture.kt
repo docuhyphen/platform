@@ -8,7 +8,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 internal class SubmissionPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<SubmissionPostgreSQLContainer>(imageName)
@@ -89,10 +89,10 @@ internal fun queryStrings(connection: Connection, sql: String, vararg values: An
         }
     }
 
-internal class SubmissionTemplateSqlFixture(private val connection: Connection)
+internal class SubmissionTemplateSqlFixture(private val connection: Connection, sharedOrganizationId: UUID? = null)
 {
     val now: Timestamp = Timestamp.from(Instant.now())
-    val organizationId: UUID = UUID.randomUUID()
+    val organizationId: UUID = sharedOrganizationId ?: UUID.randomUUID()
     val userId: UUID = UUID.randomUUID()
     val definitionId: UUID = UUID.randomUUID()
     val versionId: UUID = UUID.randomUUID()
@@ -100,16 +100,18 @@ internal class SubmissionTemplateSqlFixture(private val connection: Connection)
 
     init
     {
-        execute(
-            connection,
-            """
-            INSERT INTO organization (id, name, registration_number, is_active, verification_complete, created_date)
-            VALUES (?, 'Process Owner', ?, TRUE, TRUE, ?)
-            """.trimIndent(),
-            organizationId,
-            "REG-${organizationId.toString().take(8)}",
-            now,
-        )
+        if (sharedOrganizationId == null) {
+            execute(
+                connection,
+                """
+                INSERT INTO organization (id, name, registration_number, is_active, verification_complete, created_date)
+                VALUES (?, 'Process Owner', ?, TRUE, TRUE, ?)
+                """.trimIndent(),
+                organizationId,
+                "REG-${organizationId.toString().take(8)}",
+                now,
+            )
+        }
         execute(
             connection,
             """
@@ -241,6 +243,7 @@ internal class SubmissionTemplateSqlFixture(private val connection: Connection)
         version: UUID,
         waiverPolicy: String = "NOT_PERMITTED",
         conformancePolicy: String = "CONFORMANCE_REQUIRED",
+        expiryDateRequirement: String = "NOT_CAPTURED",
     )
     {
         execute(
@@ -252,11 +255,12 @@ internal class SubmissionTemplateSqlFixture(private val connection: Connection)
                  expiry_date_requirement, coverage_period_requirement, certification_requirement,
                  signature_requirement, coverage_continuity_required, waiver_policy, conformance_policy)
             VALUES (?, ?, ?, 1, 3, 'NOT_CAPTURED', 'NOT_CAPTURED', 'NOT_CAPTURED', 'NOT_CAPTURED',
-                    'NOT_CAPTURED', 'NOT_CAPTURED', 'NOT_CAPTURED', 'NOT_CAPTURED', FALSE, ?, ?)
+                    ?, 'NOT_CAPTURED', 'NOT_CAPTURED', 'NOT_CAPTURED', FALSE, ?, ?)
             """.trimIndent(),
             id,
             bindingId,
             version,
+            expiryDateRequirement,
             waiverPolicy,
             conformancePolicy,
         )
@@ -347,11 +351,10 @@ internal class SubmissionTemplateSqlFixture(private val connection: Connection)
             connection,
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
             now,
-            userId,
             version,
         )
     }

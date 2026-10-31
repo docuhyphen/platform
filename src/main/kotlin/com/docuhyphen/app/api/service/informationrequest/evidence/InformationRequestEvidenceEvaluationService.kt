@@ -1,7 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.model.informationrequest.evidence.*
+import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
+import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
+import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionFacts
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestEvidenceSubmissionFacts
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestEvidenceSubmissionMember
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -9,12 +14,16 @@ import com.docuhyphen.app.api.repository.informationrequest.evidence.Information
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Clock
 import java.time.LocalDate
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestEvidenceEvaluationService @Inject constructor(
@@ -26,7 +35,10 @@ class InformationRequestEvidenceEvaluationService @Inject constructor(
     private val assessmentRepository: InformationRequestEvidenceAssessmentRepository,
     private val documentVersionRecordingService: DocumentVersionRecordingService,
     private val deploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
+    private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
+    private val conditionEvaluationService: InformationRequestConditionEvaluationService,
     private val clock: Clock,
+    private val factsReader: InformationRequestEvidenceFactsReader,
 )
 {
     fun evaluate(
@@ -75,7 +87,7 @@ class InformationRequestEvidenceEvaluationService @Inject constructor(
         return InformationRequestEvidenceSubmissionFacts(
             state = evaluation.state,
             members = current.map { (artifact, version) ->
-                val content = version.documentVersionId?.let(documentVersionRecordingService::findVersion)
+                val content = documentVersionRecordingService.findVersion(version.documentVersionId)
                 val governing = assessments[version.id].orEmpty()
                 InformationRequestEvidenceSubmissionMember(
                     artifactId = artifact.id,
@@ -94,50 +106,8 @@ class InformationRequestEvidenceEvaluationService @Inject constructor(
         )
     }
 
-    fun facts(requirement: InformationRequestRequirement): List<InformationRequestEvidenceVersionFacts>
-    {
-        val versionsByArtifact = artifactRepository.findForRequirement(requirement.id)
-            .associateWith { versionRepository.findForArtifact(it.id) }
-        val assessments = assessmentRepository.findForVersions(versionsByArtifact.values.flatten().map { it.id })
-            .groupBy { it.evidenceVersionId }
-
-        return versionsByArtifact.flatMap { (artifact, versions) ->
-            val latestNumber = versions.maxOfOrNull { it.versionNumber }
-            versions.map { version -> factsOf(artifact, version, latestNumber, assessments[version.id].orEmpty()) }
-        }
-    }
-
-    private fun factsOf(
-        artifact: InformationRequestEvidenceArtifact,
-        version: InformationRequestEvidenceVersion,
-        latestNumber: Int?,
-        assessments: List<InformationRequestEvidenceAssessment>,
-    ): InformationRequestEvidenceVersionFacts
-    {
-        val content =
-            (InformationRequestEvidenceVersionSourceMapper.read(version) as? InformationRequestDocumentVersionEvidenceSource)
-                ?.let { documentVersionRecordingService.findVersion(it.documentVersionId) }
-
-        return InformationRequestEvidenceVersionFacts(
-            versionId = version.id,
-            artifactId = artifact.id,
-            versionNumber = version.versionNumber,
-            standing = when
-            {
-                artifact.collectionState == InformationRequestEvidenceCollectionState.REMOVED -> InformationRequestEvidenceStanding.REMOVED
-                artifact.collectionState == InformationRequestEvidenceCollectionState.WITHDRAWN -> InformationRequestEvidenceStanding.WITHDRAWN
-                version.versionNumber == latestNumber -> InformationRequestEvidenceStanding.CURRENT
-                else -> InformationRequestEvidenceStanding.SUPERSEDED
-            },
-            fileBacked = version.documentVersionId != null,
-            contentVerification = content?.contentVerification,
-            contentLength = content?.contentLength,
-            declaredMediaType = version.declaredMediaType,
-            attributes = InformationRequestEvidenceAttributesMapper.read(version),
-            inspection = InformationRequestEvidenceAssessmentSelection.latestInspection(assessments)?.inspectionFacts(),
-            malware = InformationRequestEvidenceAssessmentSelection.governingScan(assessments)?.malwareFacts(),
-        )
-    }
+    fun facts(requirement: InformationRequestRequirement): List<InformationRequestEvidenceVersionFacts> =
+        factsReader.facts(requirement)
 
     private fun substituteOccurrences(requirement: InformationRequestRequirement): List<InformationRequestRequirement>
     {
@@ -148,7 +118,25 @@ class InformationRequestEvidenceEvaluationService @Inject constructor(
 
         val candidates = requirementRepository.findForRequest(requirement.informationRequestId)
             .filter { it.sourceTemplateBindingId in substituteBindings && it.id != requirement.id }
-        return candidates.filter { it.occurrencePath == requirement.occurrencePath }
+        val occurrences = candidates.filter { it.occurrencePath == requirement.occurrencePath }
             .ifEmpty { candidates.filter { it.occurrencePath == InformationRequestOccurrencePath.ROOT } }
+        return applicable(requirement.informationRequestId, occurrences)
+    }
+
+    private fun applicable(
+        requestId: UUID,
+        substitutes: List<InformationRequestRequirement>,
+    ): List<InformationRequestRequirement> {
+        val governed = substitutes
+            .associate { it.id to bindingRepository.findById(it.sourceTemplateBindingId) }
+            .filterValues { InformationRequestGoverningCondition.ruleKeyOf(it) != null }
+        if (governed.isEmpty()) return substitutes
+
+        val conditions = InformationRequestGoverningCondition.byScope(conditionEvaluationService.evaluate(requestId))
+        return substitutes.filterNot { substitute ->
+            governed[substitute.id]?.let {
+                InformationRequestGoverningCondition.hides(it, substitute.occurrencePath, conditions)
+            } == true
+        }
     }
 }

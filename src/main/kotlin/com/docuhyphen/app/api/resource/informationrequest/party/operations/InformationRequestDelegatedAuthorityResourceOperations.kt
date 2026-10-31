@@ -13,6 +13,9 @@ import jakarta.ws.rs.core.Response
 @Consumes(APPLICATION_JSON)
 interface InformationRequestDelegatedAuthorityResourceOperations
 {
+    @GET
+    fun list(@PathParam("id") id: String): Response
+
     @POST
     fun grant(
         @PathParam("id") id: String,

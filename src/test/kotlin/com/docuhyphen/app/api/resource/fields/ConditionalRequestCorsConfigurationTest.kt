@@ -2,17 +2,8 @@ package com.docuhyphen.app.api.resource.fields
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.Properties
+import java.util.*
 
-/**
- * A conditional save is only reachable from a browser client if the cross-origin policy lets the
- * request state the version it is changing and lets the response's validator be read back out.
- *
- * Both are per-profile allowlists rather than defaults, so a profile that omits either one turns
- * every conditional save into a refusal the client has no way to recover from: it cannot send the
- * version, and it cannot read the version it would have sent. Every profile that serves the browser
- * client is held to both.
- */
 class ConditionalRequestCorsConfigurationTest
 {
     private val profiles = listOf(
@@ -37,6 +28,16 @@ class ConditionalRequestCorsConfigurationTest
             assertTrue(
                 "if-match" in listed(profile, "quarkus.http.cors.headers"),
                 "$profile must allow the If-Match request header, or no browser client can condition a save",
+            )
+        }
+    }
+
+    @Test
+    fun `every profile lets a caller state that it expects nothing to exist yet`() {
+        profiles.forEach { profile ->
+            assertTrue(
+                "if-none-match" in listed(profile, "quarkus.http.cors.headers"),
+                "$profile must allow the If-None-Match request header, or no browser client can choose a schema",
             )
         }
     }

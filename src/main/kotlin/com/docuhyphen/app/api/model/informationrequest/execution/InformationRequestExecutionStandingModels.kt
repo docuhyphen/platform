@@ -23,6 +23,7 @@ enum class InformationRequestStandingReason
     SUBSCRIPTION_CANCELED,
     SUBSCRIPTION_SUSPENDED,
     EXECUTION_GRANT_REVOKED,
+    OPEN_REQUEST_LIMIT_REACHED,
 }
 
 data class InformationRequestExecutionStanding(
@@ -51,4 +52,22 @@ data class InformationRequestOwnerStanding(
 )
 {
     val newWorkAvailable: Boolean get() = newWorkUnavailableReason == null
+}
+
+data class InformationRequestPlanQuotas(
+    val maxOpenRequests: Long?,
+    val openRequests: Long,
+    val maxActingPartiesPerRequest: Long?,
+    val maxEvidenceFilesPerRequest: Long?,
+    val maxEvidenceBytesPerRequest: Long?,
+    val maxCommittedEvidenceBytes: Long?,
+    val committedEvidenceBytes: Long,
+)
+
+data class InformationRequestCreationStanding(
+    val owner: InformationRequestOwnerStanding,
+    val quotas: InformationRequestPlanQuotas,
+    val unavailableReason: InformationRequestStandingReason?,
+) {
+    val available: Boolean get() = unavailableReason == null
 }

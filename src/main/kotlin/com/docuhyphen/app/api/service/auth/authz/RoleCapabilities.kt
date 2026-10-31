@@ -31,9 +31,6 @@ object RoleCapabilities
         ),
     )
 
-    // The APPLICATION role maps to emptySet() by default.
-    // EXCHANGE_INITIATE and other machine capabilities are granted per-application
-    // via Application.grantedCapabilitiesJson, resolved in DefaultAuthorizationService.
     private val APPLICATION: Map<ApplicationRoleName, Set<Capability>> = mapOf(
         ApplicationRoleName.APPLICATION to emptySet(),
     )
@@ -108,8 +105,6 @@ object RoleCapabilities
         Capability.FIELD_SCHEMA_READ,
         Capability.FIELD_SCHEMA_WRITE,
         Capability.FIELD_SCHEMA_PUBLISH,
-        // Authoring reusable request configuration is a settings activity, so it stays with the
-        // roles that administer the organization rather than reaching every member.
         Capability.INFORMATION_REQUEST_TEMPLATE_READ,
         Capability.INFORMATION_REQUEST_TEMPLATE_WRITE,
         Capability.INFORMATION_REQUEST_OPERATIONS_READ,
@@ -193,11 +188,6 @@ object RoleCapabilities
             Capability.DOCUMENT_WRITE,
             Capability.DOCUMENT_DELETE,
             Capability.DOCUMENT_COMMENT,
-            // The Exchange owner is the only Share role that may author runtime Information
-            // Requests against their own Exchange, since no request-scoped Share can exist before
-            // the request itself does. Issuance, editing, export, and every respondent or reviewer
-            // capability are deliberately withheld here; those are granted only through a
-            // request-scoped Share once request parties exist.
             Capability.INFORMATION_REQUEST_CREATE,
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_CANCEL,
@@ -244,14 +234,7 @@ object RoleCapabilities
         ),
     )
 
-    // Every answering role may attest, because an assertion's attestation policy names which of
-    // them must: the Requirement policy evaluator admits an attestation only from a role the
-    // policy of that exact assertion names.
     private val INFORMATION_REQUEST_SHARE: Map<InformationRequestShareRoleKey, Set<Capability>> = mapOf(
-        InformationRequestShareRoleKey.SUBJECT to setOf(
-            Capability.INFORMATION_REQUEST_READ,
-            Capability.INFORMATION_REQUEST_ATTEST,
-        ),
         InformationRequestShareRoleKey.CONTRIBUTOR to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
@@ -288,6 +271,11 @@ object RoleCapabilities
             Capability.INFORMATION_REQUEST_EVIDENCE_READ,
             Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN,
         ),
+        InformationRequestShareRoleKey.RECORD_OWNER to setOf(
+            Capability.INFORMATION_REQUEST_READ,
+            Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+            Capability.INFORMATION_REQUEST_RETAINED_OWNER_READ,
+        ),
     )
 
     fun forAppRole(role: AppRoleName): Set<Capability> = APP.getValue(role)
@@ -303,11 +291,11 @@ object RoleCapabilities
     fun forShareRole(resourceType: ResourceType, roleName: String): Set<Capability> =
         when (resourceType)
         {
-            ResourceType.EXCHANGE ->
+            ResourceType.EXCHANGE, ResourceType.DOCUMENT, ResourceType.PRINCIPAL_GROUP ->
                 parseExchangeShareRole(roleName)?.let(EXCHANGE_SHARE::getValue) ?: emptySet()
 
             ResourceType.INFORMATION_REQUEST ->
-                parseInformationRequestShareRole(roleName)?.let(INFORMATION_REQUEST_SHARE::getValue) ?: emptySet()
+                parseInformationRequestShareRole(roleName)?.let { INFORMATION_REQUEST_SHARE[it] }.orEmpty()
 
             else -> emptySet()
         }
@@ -318,7 +306,7 @@ object RoleCapabilities
             ResourceType.EXCHANGE -> parseExchangeShareRole(roleName) != null
             ResourceType.DOCUMENT -> parseExchangeShareRole(roleName) != null
             ResourceType.PRINCIPAL_GROUP -> parseExchangeShareRole(roleName) != null
-            ResourceType.INFORMATION_REQUEST -> parseInformationRequestShareRole(roleName) != null
+            ResourceType.INFORMATION_REQUEST -> parseInformationRequestShareRole(roleName)?.let { it in INFORMATION_REQUEST_SHARE } == true
             else -> false
         }
 

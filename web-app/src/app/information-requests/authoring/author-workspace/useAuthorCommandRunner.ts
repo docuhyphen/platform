@@ -1,17 +1,34 @@
 import {useRef, useState} from "react";
 import {
+    informationRequestRefusalCode,
     informationRequestRefusalMessage,
+    isRepeatedInformationRequestAccessLinkCommand,
     isStaleInformationRequestCommand,
 } from "../../shared/informationRequestRefusal.ts";
+import {Scoped, useScopeGuard, valueInScope} from "../../shared/useScopeGuard.ts";
 
 export const STALE_AUTHOR_NOTICE = "This request changed while you were working. The latest details are shown; try again.";
 
-export const useAuthorCommandRunner = (reload: () => Promise<void>) =>
+const REPEATED_LINK_COMMAND_ERROR = "This link was already changed and cannot be shown again. Resend the link to create a new one.";
+
+interface CommandStatus
 {
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [notice, setNotice] = useState<string | null>(null);
+    busy: boolean;
+    error: string | null;
+    notice: string | null;
+}
+
+const IDLE: CommandStatus = {busy: false, error: null, notice: null};
+
+export const useAuthorCommandRunner = (scope: string, reload: () => Promise<void>) => {
+    const [status, setStatus] = useState<Scoped<CommandStatus> | null>(null);
+    const guard = useScopeGuard(scope);
     const keys = useRef(new Map<string, string>());
+
+    const update = (owner: string, change: Partial<CommandStatus>) => {
+        if (!guard.isCurrent(owner)) return;
+        setStatus(current => ({scope: owner, value: {...(valueInScope(current, owner) ?? IDLE), ...change}}));
+    };
 
     const keyFor = (signature: string): string =>
     {
@@ -22,38 +39,48 @@ export const useAuthorCommandRunner = (reload: () => Promise<void>) =>
         return created;
     };
 
+    const forgetAndReload = async (owner: string, scopedSignature: string, outcome: Partial<CommandStatus>) => {
+        keys.current.delete(scopedSignature);
+        update(owner, outcome);
+        if (guard.isCurrent(owner)) await reload();
+    };
+
     const run = async <T>(signature: string, command: (idempotencyKey: string) => Promise<T>, done?: string): Promise<T | null> =>
     {
-        setBusy(true);
-        setError(null);
-        setNotice(null);
+        const owner = scope;
+        const scopedSignature = `${owner}|${signature}`;
+        update(owner, {busy: true, error: null, notice: null});
         try
         {
-            const result = await command(keyFor(signature));
-            keys.current.delete(signature);
-            if (done) setNotice(done);
+            const result = await command(keyFor(scopedSignature));
+            keys.current.delete(scopedSignature);
+            if (!guard.isCurrent(owner)) return result;
+            if (done) update(owner, {notice: done});
             await reload();
             return result;
         }
         catch (caught: unknown)
         {
-            if (isStaleInformationRequestCommand(caught))
+            if (informationRequestRefusalCode(caught) === "COMMAND_RECEIPT_FINGERPRINT_CONFLICT") {
+                await forgetAndReload(owner, scopedSignature, {notice: "A previous attempt used different details. Review the latest record and try again."});
+            } else if (isStaleInformationRequestCommand(caught))
             {
-                keys.current.delete(signature);
-                setNotice(STALE_AUTHOR_NOTICE);
-                await reload();
+                await forgetAndReload(owner, scopedSignature, {notice: STALE_AUTHOR_NOTICE});
+            } else if (isRepeatedInformationRequestAccessLinkCommand(caught)) {
+                await forgetAndReload(owner, scopedSignature, {error: informationRequestRefusalMessage(caught, REPEATED_LINK_COMMAND_ERROR)});
             }
             else
             {
-                setError(informationRequestRefusalMessage(caught, "The change could not be made."));
+                update(owner, {error: informationRequestRefusalMessage(caught, "The change could not be made.")});
             }
             return null;
         }
         finally
         {
-            setBusy(false);
+            update(owner, {busy: false});
         }
     };
 
-    return {busy, error, notice, setError, run};
+    const shown = valueInScope(status, scope) ?? IDLE;
+    return {busy: shown.busy, error: shown.error, notice: shown.notice, run};
 };

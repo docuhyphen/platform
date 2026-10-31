@@ -5,7 +5,6 @@ import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.model.entity.ShareLinkStatus
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.persistence.LockModeType
 import java.util.*
 
 @ApplicationScoped
@@ -17,16 +16,6 @@ class ShareLinkRepository : BaseRepository<ShareLink>(ShareLink::class.java)
             ShareLink::class.java,
         )
             .setParameter("h", tokenHash)
-            .resultList
-            .firstOrNull()
-
-    fun findByTokenHashForUpdate(tokenHash: String): ShareLink? =
-        entityManager.createQuery(
-            "SELECT l FROM ShareLink l WHERE l.tokenHash = :h",
-            ShareLink::class.java,
-        )
-            .setParameter("h", tokenHash)
-            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .resultList
             .firstOrNull()
 
@@ -47,7 +36,6 @@ class ShareLinkRepository : BaseRepository<ShareLink>(ShareLink::class.java)
             .resultList
     }
 
-    /** Every bootstrap-mode ShareLink still bound to [shareId] that has not already been revoked. */
     fun findActiveBootstrapLinksForShare(shareId: UUID): List<ShareLink> =
         entityManager.createQuery(
             """

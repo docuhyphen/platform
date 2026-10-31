@@ -1,31 +1,16 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaVersion
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
 import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * Naming one exact Schema Version is a different question from choosing whichever version of a
- * Schema is newest, and it is asked by configuration that outlives the moment it was authored. A
- * named Version therefore has to be one that exists, that has frozen, that is written for the kind
- * of resource it will govern, and that its namer is allowed to see at all.
- *
- * The owner check is the one that matters most: a typed-data contract belongs to whoever published
- * it, so naming another tenant's Version would let configuration reach a vocabulary its own owner
- * was never shown.
- */
 class SchemaVersionResolverTest
 {
     private val organizationId = UUID.randomUUID()
@@ -157,7 +142,42 @@ class SchemaVersionResolverTest
         )
     }
 
-    // ── Fixture ───────────────────────────────────────────────────────────────
+    @Test
+    fun `a schema another owner holds is refused before its lifecycle, target, or authored key is described`() {
+        val foreignOrganization = UUID.randomUUID()
+        val foreignPerson = UUID.randomUUID()
+        val withheld = listOf("retired", "published", ResourceType.EXCHANGE.name, "process", "collected-data")
+        listOf(
+            organizationSchema(foreignOrganization) to ScopeReference.Organization(organizationId),
+            organizationSchema(foreignOrganization) to ScopeReference.Personal(userId),
+            organizationSchema(foreignOrganization) to ScopeReference.Platform,
+            personalSchema(foreignPerson) to ScopeReference.Personal(userId),
+            personalSchema(foreignPerson) to ScopeReference.Organization(organizationId),
+        ).forEach { (definition, owner) ->
+            listOf(
+                fixture(definition = definition.copyWith { status = FieldLifecycleStatus.RETIRED }),
+                fixture(definition = definition.copyWith { }, versionStatus = FieldLifecycleStatus.DRAFT),
+                fixture(definition = definition.copyWith { targetResourceType = ResourceType.EXCHANGE.name }),
+            ).forEach { candidate ->
+                val refusal = refusalFor(candidate, owner)
+                assertTrue(refusal.contains("owner"), "The refusal says the schema is not this owner's: $refusal")
+                withheld.forEach { detail ->
+                    assertFalse(refusal.contains(detail), "The refusal withholds $detail from $owner: $refusal")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the owner of a retired schema is still told which schema retired`() {
+        val fixture = fixture(
+            definition = personalSchema(userId).apply { status = FieldLifecycleStatus.RETIRED },
+        )
+
+        val refusal = refusalFor(fixture, ScopeReference.Personal(userId))
+
+        assertTrue(refusal.contains("process:collected-data"), "The owner sees which schema retired: $refusal")
+    }
 
     private class Fixture(val resolver: SchemaVersionResolver, val versionId: UUID)
 
@@ -213,5 +233,15 @@ class SchemaVersionResolverTest
     }
 
     private fun platformSchema() = schema().apply { scopeKind = FieldScopeKind.PLATFORM }
+
+    private fun SchemaDefinition.copyWith(adjust: SchemaDefinition.() -> Unit): SchemaDefinition {
+        val source = this
+        return schema().apply {
+            scopeKind = source.scopeKind
+            scopeOrgId = source.scopeOrgId
+            scopeUserId = source.scopeUserId
+            adjust()
+        }
+    }
 }
 

@@ -46,20 +46,6 @@ export const useOrganizationEditorStyles = makeStyles({
         minWidth: 0,
         ...shorthands.gap(tokens.spacingVerticalS),
     },
-    featureDropdown: {
-        width: "100%",
-        minWidth: 0,
-    },
-    entitlementRow: {
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) auto auto",
-        alignItems: "center",
-        ...shorthands.gap(tokens.spacingHorizontalS),
-    },
-    entitlementName: {
-        minWidth: 0,
-        overflowWrap: "anywhere",
-    },
     footer: {
         display: "flex",
         justifyContent: "flex-end",

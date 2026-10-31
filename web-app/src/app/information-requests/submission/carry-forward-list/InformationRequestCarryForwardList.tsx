@@ -1,8 +1,11 @@
-import {useEffect, useState} from "react";
 import {Badge, Text} from "@fluentui/react-components";
 import {getInformationRequestCarryForwards} from "../../../../services/informationRequestSubmissionService.ts";
-import {InformationRequestCarryForwardDecision, InformationRequestCarryForwardDto} from "../../../models/models.tsx";
+import {InformationRequestCarryForwardDecision} from "../../../models/models.tsx";
+import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
+import {useServerRead} from "../../shared/useServerRead.ts";
 import {carryForwardLabels, invalidationReasonLabels} from "../submissionLabels.ts";
+import {priorAnswerText, RequirementValueFormat} from "./carryForwardFormatting.ts";
 import {useInformationRequestCarryForwardListStyles} from "./InformationRequestCarryForwardListStyles.tsx";
 
 interface Props
@@ -10,33 +13,38 @@ interface Props
     requestId: string;
     accessLinkToken?: string;
     requirementLabels: Record<string, string>;
+    valueFormats?: Record<string, RequirementValueFormat>;
 }
 
-const priorAnswer = (carryForward: InformationRequestCarryForwardDto): string =>
-{
-    if (carryForward.priorFieldValue !== undefined && carryForward.priorFieldValue !== null)
-        return typeof carryForward.priorFieldValue === "string"
-            ? carryForward.priorFieldValue
-            : JSON.stringify(carryForward.priorFieldValue);
-    return carryForward.priorNarrative ?? (carryForward.priorDisposition ?? "").toLowerCase().replace(/_/g, " ");
-};
-
-const InformationRequestCarryForwardList = ({requestId, accessLinkToken, requirementLabels}: Props) =>
+const InformationRequestCarryForwardList = ({
+                                                requestId,
+                                                accessLinkToken,
+                                                requirementLabels,
+                                                valueFormats = {}
+                                            }: Props) =>
 {
     const styles = useInformationRequestCarryForwardListStyles();
-    const [carryForwards, setCarryForwards] = useState<InformationRequestCarryForwardDto[]>([]);
+    const read = useServerRead(
+        `${requestId}|${accessLinkToken ?? ""}`,
+        () => getInformationRequestCarryForwards(requestId, accessLinkToken),
+        refusal => informationRequestRefusalMessage(refusal, "Your previous answers could not be loaded."),
+    );
+    const carryForwards = read.value ?? [];
 
-    useEffect(() =>
+    if (read.error)
     {
-        getInformationRequestCarryForwards(requestId, accessLinkToken)
-            .then(setCarryForwards)
-            .catch(() => setCarryForwards([]));
-    }, [accessLinkToken, requestId]);
+        return (
+            <InformationRequestLoadError id={"information-request-carry-forwards-load-error"}
+                                         message={read.error}
+                                         onRetry={() => void read.reload()}/>
+        );
+    }
 
     if (carryForwards.length === 0) return null;
 
     return (
         <section id={"information-request-carry-forwards"}
+                 aria-labelledby={"information-request-carry-forwards-title"}
                  className={styles.section}>
             <Text id={"information-request-carry-forwards-title"}
                   weight={"semibold"}>
@@ -50,15 +58,19 @@ const InformationRequestCarryForwardList = ({requestId, accessLinkToken, require
                 <div id={`information-request-carry-forward-${carryForward.requirementId}`}
                      key={carryForward.requirementId}
                      className={styles.row}>
-                    <Text weight={"semibold"}>{requirementLabels[carryForward.requirementId] ?? "Requested item"}</Text>
+                    <Text id={`information-request-carry-forward-${carryForward.requirementId}-label`}
+                          weight={"semibold"}>
+                        {requirementLabels[carryForward.requirementId] ?? "Requested item"}
+                    </Text>
                     <Badge id={`information-request-carry-forward-${carryForward.requirementId}-decision`}
                            appearance={"tint"}
                            color={carryForward.decision === InformationRequestCarryForwardDecision.OFFERED ? "brand" : "subtle"}>
                         {carryForwardLabels[carryForward.decision]}
                     </Badge>
-                    <Text className={styles.detail}>
+                    <Text id={`information-request-carry-forward-${carryForward.requirementId}-detail`}
+                          className={styles.detail}>
                         {carryForward.decision === InformationRequestCarryForwardDecision.OFFERED
-                            ? priorAnswer(carryForward)
+                            ? priorAnswerText(carryForward, valueFormats[carryForward.requirementId])
                             : invalidationReasonLabels[carryForward.reasonCode ?? ""] ?? "This needs a new answer."}
                     </Text>
                 </div>

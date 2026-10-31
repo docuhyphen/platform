@@ -1,10 +1,5 @@
 package com.docuhyphen.app.api.model.entity
 
-/**
- * Resource types recognized by the authorization and resource-context registry.
- * Each type that can hold a Share must also have a provider registered in
- * ResourceAuthorizationContextRegistry.
- */
 enum class ResourceType
 {
     EXCHANGE,
@@ -20,26 +15,16 @@ enum class ResourceType
     WORKFLOW_WEBHOOK_ENDPOINT,
     ORGANIZATION,
 
-    /** A runtime Information Request aggregate. */
     INFORMATION_REQUEST,
 
-    /** One request-scoped party assignment recorded as a command result. */
     INFORMATION_REQUEST_PARTY,
 
-    /** One delegated-authority grant recorded as a command result. */
     INFORMATION_REQUEST_DELEGATED_AUTHORITY,
 
-    /**
-     * One runtime Requirement occurrence inside an Information Request. It is a resource of its
-     * own because assignment, response mode, confidentiality, and correction scope are decided
-     * per occurrence rather than for the whole request.
-     */
     INFORMATION_REQUEST_REQUIREMENT,
 
-    /** One bootstrap-mode ShareLink issuance recorded as a command result. */
     INFORMATION_REQUEST_ACCESS_LINK,
 
-    /** One Participant-to-App-User registration upgrade recorded as a command result. */
     INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_LINK,
 
     INFORMATION_REQUEST_EVIDENCE_ARTIFACT,
@@ -67,4 +52,16 @@ enum class ResourceType
     INFORMATION_REQUEST_BUSINESS_DECISION,
 
     INFORMATION_REQUEST_RECORD_EXPORT,
+
+    INFORMATION_REQUEST_PRIVACY_REQUEST,
+
+    INFORMATION_REQUEST_SUBJECT_RESTRICTION,
+
+    RECORD_PRESERVATION_HOLD,
+
+    RECORD_RETENTION_SCHEDULE,
+
+    INFORMATION_REQUEST_CLOCK_POLICY,
+
+    INFORMATION_REQUEST_TEMPLATE,
 }

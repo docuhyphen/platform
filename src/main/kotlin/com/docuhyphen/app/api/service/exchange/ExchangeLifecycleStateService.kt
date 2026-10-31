@@ -10,6 +10,6 @@ import java.util.*
 class ExchangeLifecycleStateService @Inject constructor(private val repository: ExchangeRepository)
 {
     fun snapshot(id: UUID): InformationRequestParentSnapshot? = repository.findById(id)?.let {
-        InformationRequestParentSnapshot(it.status, it.isDeleted)
+        InformationRequestParentSnapshot(it.status, it.isDeleted, requireRecipientSignIn = it.requireRecipientSignIn)
     }
 }

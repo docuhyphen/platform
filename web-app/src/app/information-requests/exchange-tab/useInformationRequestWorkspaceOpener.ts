@@ -1,6 +1,9 @@
 import {useState} from "react";
 import {useNavigate} from "react-router-dom";
-import {getInformationRequestReviewQueue} from "../../../services/informationRequestReviewService.ts";
+import {
+    getInformationRequestReviewQueue,
+    listInformationRequestReviews
+} from "../../../services/informationRequestReviewService.ts";
 import {InformationRequestNextAction, InformationRequestSummaryDto} from "../../models/models.tsx";
 import {
     INFORMATION_REQUEST_REVIEW_QUEUE_PATH,
@@ -32,6 +35,19 @@ export const useInformationRequestWorkspaceOpener = () =>
         }
     };
 
+    const openLatestReview = async (requestId: string) => {
+        setOpeningId(requestId);
+        try {
+            const latest = [...await listInformationRequestReviews(requestId)]
+                .sort((first, second) => second.review.openedAt - first.review.openedAt)[0];
+            navigate(latest ? informationRequestReviewPath(requestId, latest.review.id) : INFORMATION_REQUEST_REVIEW_QUEUE_PATH);
+        } catch {
+            navigate(INFORMATION_REQUEST_REVIEW_QUEUE_PATH);
+        } finally {
+            setOpeningId(null);
+        }
+    };
+
     const open = async (summary: InformationRequestSummaryDto) =>
     {
         switch (summary.nextAction)
@@ -47,11 +63,13 @@ export const useInformationRequestWorkspaceOpener = () =>
                 navigate(informationRequestRespondPath(summary.id));
                 return;
             case InformationRequestNextAction.VIEW:
-                navigate(summary.permissions.canManage
-                    ? informationRequestManagePath(summary.id)
-                    : informationRequestRespondPath(summary.id));
+                if (summary.permissions.canManage) navigate(informationRequestManagePath(summary.id));
+                else if (summary.permissions.canReview && !summary.permissions.canRespond) await openLatestReview(summary.id);
+                else navigate(informationRequestRespondPath(summary.id));
         }
     };
 
-    return {open, openingId};
+    const manage = (summary: InformationRequestSummaryDto) => navigate(informationRequestManagePath(summary.id));
+
+    return {open, manage, openingId};
 };

@@ -11,7 +11,7 @@ export const useReviewWorksheetActionsStyles = makeStyles({
         bottom: 0,
         padding: tokens.spacingVerticalS,
         backgroundColor: tokens.colorNeutralBackground1,
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
     },
     status: {
         marginRight: "auto",

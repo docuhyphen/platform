@@ -1,18 +1,13 @@
 package com.docuhyphen.app.api.resource.command
 
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 
 object CommandPreconditionHeader
 {
     private const val ANY_VERSION = "*"
 
-    fun required(header: String?): CommandPrecondition =
-        stated(header) ?: CommandPrecondition.Absent
-
-    fun optional(header: String?): CommandPrecondition =
-        stated(header) ?: CommandPrecondition.Unconditioned
-
-    fun isStated(header: String?): Boolean = stated(header) != null
+    fun requiredExact(header: String?): CommandPrecondition =
+        stated(header)?.takeUnless { it == CommandPrecondition.Unconditioned } ?: CommandPrecondition.Absent
 
     fun stated(header: String?): CommandPrecondition?
     {

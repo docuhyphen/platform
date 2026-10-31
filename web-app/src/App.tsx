@@ -21,17 +21,8 @@ import OAuthLinkConfirm from "./app/authorization/oauth/OAuthLinkConfirm.tsx";
 import StepUpCompletion from "./app/authorization/step-up/StepUpCompletion.tsx";
 import StepUpModal from "./app/components/step-up/StepUpModal.tsx";
 import ThemeSync from "./app/components/ThemeSync.tsx";
-import CapabilityProtectedContent from "./app/components/CapabilityProtectedContent.tsx";
-import {Capability} from "./app/models/models.tsx";
-import PlatformAdministration from "./app/platform-administration/PlatformAdministration.tsx";
-import PlatformAudit from "./app/platform-audit/PlatformAudit.tsx";
-import InformationRequestRespondentWorkspace from "./app/information-requests/respondent-workspace/InformationRequestRespondentWorkspace.tsx";
-import InformationRequestAuthorWorkspace from "./app/information-requests/authoring/author-workspace/InformationRequestAuthorWorkspace.tsx";
-import InformationRequestReviewWorkspace from "./app/information-requests/review/review-workspace/InformationRequestReviewWorkspace.tsx";
-import InformationRequestReviewQueue from "./app/information-requests/review/review-queue/InformationRequestReviewQueue.tsx";
-import InformationRequestOperations from "./app/information-requests/operations/operations-page/InformationRequestOperations.tsx";
-import InformationRequestOperationsDetail from "./app/information-requests/operations/operations-detail/InformationRequestOperationsDetail.tsx";
-import RecordPreservation from "./app/record-preservation/record-preservation-page/RecordPreservation.tsx";
+import {informationRequestRoutes} from "./app/information-requests/informationRequestRoutes.tsx";
+import {platformRoutes} from "./app/platform-administration/platformRoutes.tsx";
 
 const App: React.FC = () =>
 {
@@ -76,11 +67,6 @@ const App: React.FC = () =>
                                        }/>
                                }/>
 
-                        <Route path="/nir"
-                               element={
-                                   <InformationRequestRespondentWorkspace accessMode={"no-auth"}/>
-                               }/>
-
                         <Route path="/app-session-expired"
                                element={
                                    <RedirectIfNotAuthenticated element={<AppSessionExpired/>}/>
@@ -110,67 +96,9 @@ const App: React.FC = () =>
                                                    element={<Exchanges/>}/>
                                }/>
 
-                        <Route path="/information-requests/:requestId/respond"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>}/>
-                               }/>
+                        {informationRequestRoutes}
 
-                        <Route path="/information-requests/:requestId/manage"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestAuthorWorkspace/>}/>
-                               }/>
-
-                        <Route path="/information-requests/:requestId/reviews/:reviewId"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestReviewWorkspace/>}/>
-                               }/>
-
-                        <Route path="/information-request-reviews"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestReviewQueue/>}/>
-                               }/>
-
-                        <Route path="/information-request-operations"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestOperations/>}/>
-                               }/>
-
-                        <Route path="/information-request-operations/:requestId"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<InformationRequestOperationsDetail/>}/>
-                               }/>
-
-                        <Route path="/record-preservation"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={<RecordPreservation/>}/>
-                               }/>
-
-                        <Route path="/platform/administration"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={
-                                                       <CapabilityProtectedContent
-                                                           capability={Capability.APP_ADMIN}
-                                                           element={<PlatformAdministration/>}/>
-                                                   }/>
-                               }/>
-
-                        <Route path="/platform/audit"
-                               element={
-                                   <ProtectedRoute path='/sign-in'
-                                                   element={
-                                                       <CapabilityProtectedContent
-                                                           capability={Capability.APP_AUDIT_READ}
-                                                           element={<PlatformAudit/>}/>
-                                                   }/>
-                               }/>
+                        {platformRoutes}
 
                         <Route path="/oauth/callback"
                                element={<OAuthCallback/>}/>
@@ -182,7 +110,8 @@ const App: React.FC = () =>
                                element={<StepUpCompletion/>}/>
 
                         <Route path="*"
-                               element={<Navigate to="/" replace/>}/>
+                               element={<Navigate to="/"
+                                                  replace/>}/>
                     </Routes>
                     <StepUpModal/>
                 </NotificationProvider>

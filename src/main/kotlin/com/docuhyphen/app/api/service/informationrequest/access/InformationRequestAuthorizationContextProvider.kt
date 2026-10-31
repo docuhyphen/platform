@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestParentPolicyFacts
@@ -7,6 +8,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -18,6 +20,9 @@ class InformationRequestAuthorizationContextProvider @Inject constructor(
 ) : ResourceAuthorizationContextProvider
 {
     override val supportedKind: ResourceKind = ResourceKind.INFORMATION_REQUEST
+
+    override val actionsWhileArchived: Set<Action> =
+        InformationRequestParentPolicy.readActions + InformationRequestParentPolicy.closedRecordActions
 
     override fun resolve(resourceId: UUID): ResourceAuthorizationContext? =
         repository.findById(resourceId)?.let { request ->

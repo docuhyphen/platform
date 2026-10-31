@@ -40,8 +40,15 @@ data class InformationRequestReviewDto(
     val comments: List<InformationRequestReviewCommentDto> = emptyList(),
     val correction: InformationRequestCorrectionDto? = null,
     val remediations: List<InformationRequestRemediationDto> = emptyList(),
+    val earlierFindings: List<InformationRequestReviewFindingDto> = emptyList(),
+    val earlierRemediations: List<InformationRequestRemediationDto> = emptyList(),
     val worksheets: List<InformationRequestReviewWorksheetDto> = emptyList(),
     val canManage: Boolean,
+    val canReconsider: Boolean,
+    val canComment: Boolean = false,
+    val itemsAwaitingStepUp: Int = 0,
+    val canRequestSupplement: Boolean = false,
+    val requestETag: String? = null,
 )
 
 @Serializable
@@ -72,11 +79,13 @@ data class InformationRequestReviewItemDto(
     @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
     val requirementKey: String,
+    val prompt: String? = null,
     val requirementType: InformationRequestRequirementType,
     val occurrencePath: String,
     val reviewed: Boolean,
     val finalOutcome: InformationRequestReviewOutcome? = null,
     val contentVisible: Boolean,
+    val waiverPermitted: Boolean = false,
     val disposition: InformationRequestResponseDisposition? = null,
     val narrative: String? = null,
     val fieldValue: JsonElement? = null,
@@ -93,9 +102,17 @@ data class InformationRequestReviewAssignmentDto(
     @Serializable(with = UUIDSerializer::class) val delegatedFromAssignmentId: UUID? = null,
     @Serializable(with = TimestampSerializer::class) val assignedAt: Timestamp,
     val changeReasonCode: String? = null,
+    val changeNarrative: String? = null,
     @Serializable(with = TimestampSerializer::class) val changedAt: Timestamp? = null,
     @Serializable(with = TimestampSerializer::class) val decidedAt: Timestamp? = null,
     val callerIsReviewer: Boolean,
+    val delegationCandidates: List<InformationRequestReviewDelegationCandidateDto> = emptyList(),
+)
+
+@Serializable
+data class InformationRequestReviewDelegationCandidateDto(
+    @Serializable(with = UUIDSerializer::class) val partyId: UUID,
+    val label: String,
 )
 
 @Serializable
@@ -115,9 +132,11 @@ data class InformationRequestReviewDecisionDto(
 @Serializable
 data class InformationRequestReviewFindingDto(
     @Serializable(with = UUIDSerializer::class) val id: UUID,
+    @Serializable(with = UUIDSerializer::class) val reviewId: UUID,
     @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
     @Serializable(with = UUIDSerializer::class) val evidenceVersionId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val assignmentId: UUID? = null,
     val reasonCode: String,
     val narrative: String,
     val severity: InformationRequestFindingSeverity,
@@ -153,8 +172,16 @@ data class InformationRequestCorrectionDto(
     @Serializable(with = TimestampSerializer::class) val closedAt: Timestamp? = null,
     @Serializable(with = UUIDSerializer::class) val resubmittedPackageId: UUID? = null,
     val requirementIds: List<@Serializable(with = UUIDSerializer::class) UUID> = emptyList(),
-    val evidenceVersionIds: List<@Serializable(with = UUIDSerializer::class) UUID> = emptyList(),
+    val evidence: List<InformationRequestCorrectionEvidenceDto> = emptyList(),
     val undisclosedItemCount: Int = 0,
+)
+
+@Serializable
+data class InformationRequestCorrectionEvidenceDto(
+    @Serializable(with = UUIDSerializer::class) val artifactId: UUID,
+    @Serializable(with = UUIDSerializer::class) val evidenceVersionId: UUID,
+    val versionNumber: Int,
+    val declaredFileName: String? = null,
 )
 
 @Serializable
@@ -176,6 +203,7 @@ data class InformationRequestReviewWorksheetEntryDto(
 data class InformationRequestReviewWorksheetDto(
     @Serializable(with = UUIDSerializer::class) val assignmentId: UUID,
     val draftETag: String,
+    val draftRevision: Long,
     val entries: List<InformationRequestReviewWorksheetEntryDto> = emptyList(),
 )
 
@@ -184,10 +212,17 @@ data class InformationRequestRespondentReviewDto(
     val review: InformationRequestReviewSummaryDto,
     val findings: List<InformationRequestReviewFindingDto> = emptyList(),
     val comments: List<InformationRequestReviewCommentDto> = emptyList(),
+    val items: List<InformationRequestReviewResultItemDto> = emptyList(),
     val correction: InformationRequestCorrectionDto? = null,
     val remediations: List<InformationRequestRemediationDto> = emptyList(),
     val canAppeal: Boolean,
     val canComment: Boolean,
+)
+
+@Serializable
+data class InformationRequestReviewResultItemDto(
+    @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
 )
 
 @Serializable
@@ -197,12 +232,16 @@ data class InformationRequestReviewQueueEntryDto(
     @Serializable(with = UUIDSerializer::class) val informationRequestId: UUID,
     @Serializable(with = UUIDSerializer::class) val exchangeId: UUID,
     val reviewStageKey: String,
+    val requestTitle: String,
+    val exchangeName: String? = null,
+    val reviewStageTitle: String,
     val packageNumber: Int,
     val submissionStageKey: String? = null,
     val reviewState: InformationRequestReviewState,
     val itemCount: Int,
     @Serializable(with = TimestampSerializer::class) val dueAt: Timestamp? = null,
     @Serializable(with = TimestampSerializer::class) val assignedAt: Timestamp,
+    val executionStanding: InformationRequestExecutionStandingDto,
 )
 
 @Serializable

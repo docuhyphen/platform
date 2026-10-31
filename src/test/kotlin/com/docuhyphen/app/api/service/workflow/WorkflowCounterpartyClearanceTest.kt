@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.StepOutcomeSpec
+import com.docuhyphen.app.api.model.workflow.WorkflowSpec
+import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
@@ -15,7 +14,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class WorkflowCounterpartyClearanceTest
 {

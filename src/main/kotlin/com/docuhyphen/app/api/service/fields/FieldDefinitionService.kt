@@ -1,11 +1,19 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.FieldDefinitionDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.FieldContractDto
 import com.docuhyphen.app.api.model.dto.FieldDefinitionDto
 import com.docuhyphen.app.api.model.dto.FieldTypeInfoDto
-import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.entity.FieldContract
+import com.docuhyphen.app.api.model.entity.FieldDefinition
+import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
+import com.docuhyphen.app.api.model.entity.FieldScopeKind
+import com.docuhyphen.app.api.model.fields.FieldOption
 import com.docuhyphen.app.api.repository.fields.FieldContractRepository
 import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
+import com.docuhyphen.app.api.resource.model.CreateFieldDefinitionRequest
+import com.docuhyphen.app.api.resource.model.FieldContractRequest
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -16,16 +24,10 @@ import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Business logic for Field Definitions and their immutable Field Contract versions.
- * Org admins author org-scoped fields; app admins may author platform-scoped fields.
- * A field's value type is fixed at contract v1 and cannot change across versions.
- */
 @ApplicationScoped
 class FieldDefinitionService @Inject constructor(
     private val fieldDefinitionRepository: FieldDefinitionRepository,
@@ -42,8 +44,6 @@ class FieldDefinitionService @Inject constructor(
     private val logger = org.slf4j.LoggerFactory.getLogger(FieldDefinitionService::class.java)
     private val keyPattern = Regex("^[a-z0-9][a-z0-9-]*$")
 
-    // ── Reads ─────────────────────────────────────────────────────────────────
-
     fun listDefinitions(scopeKind: FieldScopeKind? = null): List<FieldDefinitionDto>
     {
         val principal = currentPrincipal()
@@ -51,7 +51,7 @@ class FieldDefinitionService @Inject constructor(
         {
             if (!userRoleService.isAppAdmin(principal.id))
                 throw ForbiddenException("Platform field configuration requires App Administrator access")
-            return fieldDefinitionRepository.findAllPlatform().map { it.toDto() }
+            return fieldDefinitionRepository.findAllPlatform().map(::definitionDto)
         }
         val orgId = currentContext().activeOrgId
         val definitions = if (orgId != null && hasOrganizationAccess(principal, orgId, Action.FIELD_CONFIG_VIEW))
@@ -60,7 +60,7 @@ class FieldDefinitionService @Inject constructor(
             fieldDefinitionRepository.findAllPlatform()
         else
             throw ForbiddenException("Access denied to field configuration")
-        return definitions.map { it.toDto() }
+        return definitions.map(::definitionDto)
     }
 
     fun getDefinition(id: UUID): FieldDefinitionDto
@@ -68,7 +68,7 @@ class FieldDefinitionService @Inject constructor(
         val def = fieldDefinitionRepository.findById(id)
             ?: throw IllegalArgumentException("Field definition not found: $id")
         requireScopeAccess(def, Action.FIELD_CONFIG_VIEW)
-        return def.toDto()
+        return definitionDto(def)
     }
 
     fun listContracts(definitionId: UUID): List<FieldContractDto>
@@ -76,20 +76,12 @@ class FieldDefinitionService @Inject constructor(
         val definition = fieldDefinitionRepository.findById(definitionId)
             ?: throw IllegalArgumentException("Field definition not found: $definitionId")
         requireScopeAccess(definition, Action.FIELD_CONFIG_VIEW)
-        return fieldContractRepository.findByDefinition(definitionId).map { it.toDto() }
+        return fieldContractRepository.findByDefinition(definitionId).map(FieldDefinitionDtoMapper::toContractDto)
     }
 
     fun listTypes(): List<FieldTypeInfoDto> =
-        typeRegistry.supportedTypes().map { type ->
-            val contract = typeRegistry.contractFor(type)
-            FieldTypeInfoDto(
-                type = type,
-                supportsOptions = type == FieldValueType.SINGLE_SELECT || type == FieldValueType.MULTI_SELECT,
-                supportedOperators = contract.supportedOperators.toList(),
-            )
-        }
-
-    // ── Writes ────────────────────────────────────────────────────────────────
+        typeRegistry.supportedTypes()
+            .map { type -> FieldDefinitionDtoMapper.toTypeInfoDto(type, typeRegistry.contractFor(type)) }
 
     @Transactional
     fun createDefinition(request: CreateFieldDefinitionRequest): FieldDefinitionDto
@@ -128,10 +120,9 @@ class FieldDefinitionService @Inject constructor(
             principal.id,
             scopeOrgId
         )
-        return definition.toDto()
+        return definitionDto(definition)
     }
 
-    /** Adds a new immutable contract version. The value type must match version 1. */
     @Transactional
     fun addContractVersion(definitionId: UUID, request: FieldContractRequest): FieldContractDto
     {
@@ -151,7 +142,7 @@ class FieldDefinitionService @Inject constructor(
         val contract = buildContract(definitionId, nextVersion, request)
         definition.updatedAt = Timestamp.from(Instant.now())
         fieldDefinitionRepository.update(definition)
-        return contract.toDto()
+        return FieldDefinitionDtoMapper.toContractDto(contract)
     }
 
     @Transactional
@@ -172,14 +163,12 @@ class FieldDefinitionService @Inject constructor(
             principal.id,
             updated.scopeOrgId,
         )
-        return updated.toDto()
+        return definitionDto(updated)
     }
-
-    // ── Internals ───────────────────────────────────────────────────────────────
 
     private fun buildContract(definitionId: UUID, version: Int, request: FieldContractRequest): FieldContract
     {
-        typeRegistry.contractFor(request.valueType) // fail closed on unknown type
+        typeRegistry.contractFor(request.valueType)
         val contract = FieldContract().apply {
             this.fieldDefinitionId = definitionId
             this.contractVersion = version
@@ -252,8 +241,6 @@ class FieldDefinitionService @Inject constructor(
                 )
                     return
             }
-            // A personally owned field is storable but has no resolvable owner in the configuration
-            // scope model yet, so no caller reaches it. Falling through denies rather than guessing.
             FieldScopeKind.PERSONAL -> Unit
         }
         throw ForbiddenException("Access denied to field configuration")
@@ -287,11 +274,6 @@ class FieldDefinitionService @Inject constructor(
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
 
-    /**
-     * Captures Field Definition lifecycle mutations onto the ledger.
-     * targetType uses the literal "FIELD_DEFINITION" (no dedicated ResourceType entry exists
-     * for this resource today) per the no-business-FK / denormalized-string rule.
-     */
     private fun recordFieldEvent(
         eventType: AuditEventType,
         definitionId: UUID,
@@ -325,65 +307,7 @@ class FieldDefinitionService @Inject constructor(
         }
     }
 
-    // ── Mapping ──────────────────────────────────────────────────────────────
-
-    private fun FieldDefinition.toDto(): FieldDefinitionDto
-    {
-        val contracts = fieldContractRepository.findByDefinition(id)
-        return FieldDefinitionDto(
-            id = id,
-            scopeKind = scopeKind,
-            scopeOrgId = scopeOrgId,
-            namespace = namespace,
-            fieldKey = fieldKey,
-            status = status,
-            contractCount = contracts.size,
-            latestContract = contracts.maxByOrNull { it.contractVersion }?.toDto(),
-            createdAt = createdAt,
-        )
-    }
-
-    private fun FieldContract.toDto(): FieldContractDto = FieldContractDto(
-        id = id,
-        fieldDefinitionId = fieldDefinitionId,
-        contractVersion = contractVersion,
-        valueType = valueType,
-        typeContractVersion = typeContractVersion,
-        label = label,
-        description = description,
-        helpText = helpText,
-        constraints = FieldConstraints.parse(constraintsJson),
-        options = FieldOption.parseList(optionsJson),
-        dataClassification = dataClassification,
-        isSearchable = isSearchable,
-        isFilterable = isFilterable,
-        isSortable = isSortable,
-        isReportable = isReportable,
-        createdAt = createdAt,
-    )
+    private fun definitionDto(definition: FieldDefinition): FieldDefinitionDto =
+        FieldDefinitionDtoMapper.toDto(definition, fieldContractRepository.findByDefinition(definition.id))
 }
 
-// ── Request DTOs ─────────────────────────────────────────────────────────────
-
-@Serializable
-data class FieldContractRequest(
-    val valueType: FieldValueType,
-    val label: String,
-    val description: String? = null,
-    val helpText: String? = null,
-    val constraintsJson: String? = null,
-    val options: List<FieldOption> = emptyList(),
-    val dataClassification: FieldDataClassification = FieldDataClassification.INTERNAL,
-    val isSearchable: Boolean = false,
-    val isFilterable: Boolean = false,
-    val isSortable: Boolean = false,
-    val isReportable: Boolean = false,
-)
-
-@Serializable
-data class CreateFieldDefinitionRequest(
-    val namespace: String,
-    val fieldKey: String,
-    val scopeKind: FieldScopeKind? = null,
-    val contract: FieldContractRequest,
-)

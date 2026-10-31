@@ -2,24 +2,15 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import java.sql.Timestamp
 
-/**
- * Converts between the stored typed [FieldValue] columns and the canonical JSON representation used
- * at API boundaries, and applies a validated [CanonicalFieldValue] onto a [FieldValue] entity.
- * The JSON form is the only representation crossing the API; consumers never parse display strings.
- *
- * A date-time is stored as the exact moment it names, with the submitted offset kept in its own
- * column, so the same moment written at two offsets stores identically and still reads back the way
- * it was given.
- */
 object CanonicalValueCodec
 {
-    /** Writes the canonical scalar/selection state onto [target]. Selection rows are handled separately. */
     fun applyTo(target: FieldValue, canonical: CanonicalFieldValue)
     {
         target.valueType = canonical.type
@@ -42,18 +33,10 @@ object CanonicalValueCodec
                 target.datetimeOffsetMinutes = canonical.datetimeOffsetMinutes
             }
 
-            FieldValueType.SINGLE_SELECT, FieldValueType.MULTI_SELECT -> Unit // codes stored as child rows
+            FieldValueType.SINGLE_SELECT, FieldValueType.MULTI_SELECT -> Unit
         }
     }
 
-    /**
-     * Builds the canonical JSON element for a stored value plus its selection codes.
-     *
-     * Numbers are rendered as digits rather than JSON numbers so their width survives a client that
-     * parses JSON numbers as binary floating point, and [numberScale] is the scale the value's
-     * contract configures so the column padding does not reach the response. A date-time is written
-     * at the offset it was submitted with.
-     */
     fun toJson(value: FieldValue, selectionCodes: List<String>, numberScale: Int? = null): JsonElement =
         when (value.valueType)
         {
@@ -81,6 +64,9 @@ object CanonicalValueCodec
             FieldValueType.MULTI_SELECT ->
                 JsonArray(selectionCodes.map { JsonPrimitive(it) })
         }
+
+    fun toJson(canonical: CanonicalFieldValue, numberScale: Int? = null): JsonElement =
+        toJson(FieldValue().also { applyTo(it, canonical) }, canonical.selectionCodes, numberScale)
 
     fun toCanonical(value: FieldValue, selectionCodes: List<String>): CanonicalFieldValue = CanonicalFieldValue(
         type = value.valueType,

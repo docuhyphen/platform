@@ -1,13 +1,13 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.archive.SegmentVerificationResult
+import com.docuhyphen.app.api.model.audit.archive.StreamChainVerificationResult
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
-import com.docuhyphen.app.api.service.audit.archive.SegmentVerificationResult
-import com.docuhyphen.app.api.service.audit.archive.StreamChainVerificationResult
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -17,6 +17,31 @@ import org.mockito.kotlin.whenever
 
 class AuditIntegrityServiceTest
 {
+    @Test
+    fun `integrity refuses ledger owner columns inconsistent with the protected personal stream`() {
+        val owner = java.util.UUID.randomUUID()
+        val stream = "user:$owner:2026-01"
+        val event = AuditLedgerEvent().apply {
+            streamId = stream
+            streamSequence = 1
+            ownerType = "USER"
+            ownerId = owner
+        }
+        val ledger = mock<AuditLedgerEventRepository>()
+        whenever(ledger.findLatestByStream(stream)).thenReturn(event)
+        whenever(ledger.findByStreamOrderBySequence(stream)).thenReturn(listOf(event))
+        val segment = AuditArchiveSegment().apply { streamId = stream; firstSequence = 1; lastSequence = 1 }
+        val segments = mock<AuditArchiveSegmentRepository>()
+        whenever(segments.findByStreamOrderBySequence(stream)).thenReturn(listOf(segment))
+        val verifier = mock<AuditArchiveVerifier>()
+        whenever(verifier.verifyStreamChain(stream)).thenReturn(StreamChainVerificationResult(true, "valid", 1))
+        whenever(verifier.verifySegment(any())).thenReturn(SegmentVerificationResult(true, "valid"))
+        val checker = service(ledger, segments, verifier)
+        assertTrue(checker.checkStream(stream).chainValid)
+        event.ownerId = java.util.UUID.randomUUID()
+        assertFalse(checker.checkStream(stream).chainValid)
+    }
+
     @Test
     fun `a ledger stream with no archive segments is invalid`()
     {

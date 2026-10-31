@@ -1,23 +1,14 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.FieldValueDto
+import com.docuhyphen.app.api.model.fields.FieldConstraints
+import com.docuhyphen.app.api.model.fields.ResolvedFieldValue
 import com.docuhyphen.app.api.service.fields.CanonicalValueCodec
-import com.docuhyphen.app.api.service.fields.FieldConstraints
-import com.docuhyphen.app.api.service.fields.ResolvedFieldValue
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 
-/**
- * Shapes one gathered question and its answer into the entry a consumer reads. Nothing here reaches
- * a repository: the records were gathered before the mapping began, so the shape of a response can
- * be exercised on its own.
- */
 object FieldValueDtoMapper
 {
-    /**
-     * The entry for one question. A question with no stored answer, and one whose stored answer says
-     * nothing, both read as empty, so a consumer has one condition to test rather than two.
-     */
     fun toDto(resolved: ResolvedFieldValue): FieldValueDto
     {
         val stored = resolved.stored

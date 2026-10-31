@@ -1,46 +1,82 @@
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import TextField from "../../shared/text-field/TextField.tsx";
-import {AddPartyForm, PartyHolder} from "../add-party-dialog/addPartyForm.ts";
-import {PartyGroupCandidate} from "../add-party-dialog/usePartyCandidates.ts";
+import {
+    PartyCandidate,
+    PartyHolder,
+    partyHolderLabels,
+    PartyHolderSelection,
+    TrustedPartyCandidate,
+} from "./partyHolder.ts";
 
 interface Props
 {
-    form: AddPartyForm;
-    groups: PartyGroupCandidate[];
+    idPrefix: string;
+    holders: PartyHolder[];
+    selection: PartyHolderSelection;
+    groups: PartyCandidate[];
+    people: PartyCandidate[];
+    trusted: TrustedPartyCandidate[];
     disabled: boolean;
-    onChange: (change: Partial<AddPartyForm>) => void;
+    onChange: (change: Partial<PartyHolderSelection>) => void;
 }
 
-const HOLDERS: {value: PartyHolder; label: string}[] = [
-    {value: "email", label: "A person by email"},
-    {value: "group", label: "A group"},
-];
+const optionsOf = (candidates: PartyCandidate[]) => candidates.map(candidate => ({
+    value: candidate.id,
+    label: candidate.name
+}));
 
-const PartyHolderFields = ({form, groups, disabled, onChange}: Props) => (
+const trustedHint = (trusted: TrustedPartyCandidate[]): string | undefined =>
+    trusted.some(candidate => candidate.trustSuspended)
+        ? "Recipients whose organization's trust is suspended cannot be chosen."
+        : undefined;
+
+const PartyHolderFields = ({idPrefix, holders, selection, groups, people, trusted, disabled, onChange}: Props) => (
     <>
-        <ChoiceSelect id={"information-request-add-party-holder"}
+        <ChoiceSelect id={`${idPrefix}-holder`}
                       label={"Holder"}
-                      value={form.holder}
+                      value={selection.holder}
                       disabled={disabled}
-                      options={HOLDERS}
+                      options={holders.map(holder => ({value: holder, label: partyHolderLabels[holder]}))}
                       onChange={holder => onChange({holder})}/>
-        {form.holder === "email" && (
-            <TextField id={"information-request-add-party-email"}
+        {selection.holder === "email" && (
+            <TextField id={`${idPrefix}-email`}
                        label={"Email address"}
                        hint={"Use the email address of the person who will answer this request."}
-                       value={form.email}
+                       value={selection.email}
                        disabled={disabled}
                        maxLength={320}
                        onChange={email => onChange({email})}/>
         )}
-        {form.holder === "group" && (
-            <ChoiceSelect id={"information-request-add-party-group"}
+        {selection.holder === "user" && (
+            <ChoiceSelect id={`${idPrefix}-person`}
+                          label={"Person"}
+                          value={selection.userId}
+                          placeholder={"Choose a person"}
+                          disabled={disabled}
+                          hint={people.length === 0 ? "No one with an account is available to you." : undefined}
+                          options={optionsOf(people)}
+                          onChange={userId => onChange({userId})}/>
+        )}
+        {selection.holder === "trusted" && (
+            <ChoiceSelect id={`${idPrefix}-trusted`}
+                          label={"Trusted recipient"}
+                          value={selection.trustedRecipientId}
+                          placeholder={"Choose a trusted recipient"}
+                          disabled={disabled}
+                          hint={trustedHint(trusted)}
+                          options={trusted
+                              .filter(candidate => !candidate.trustSuspended)
+                              .map(candidate => ({value: candidate.exchangeRecipientId, label: candidate.name}))}
+                          onChange={trustedRecipientId => onChange({trustedRecipientId})}/>
+        )}
+        {selection.holder === "group" && (
+            <ChoiceSelect id={`${idPrefix}-group`}
                           label={"Group"}
-                          value={form.groupId}
+                          value={selection.groupId}
                           placeholder={"Choose a group"}
                           disabled={disabled}
                           hint={groups.length === 0 ? "No group is available to you." : undefined}
-                          options={groups.map(group => ({value: group.id, label: group.name}))}
+                          options={optionsOf(groups)}
                           onChange={groupId => onChange({groupId})}/>
         )}
     </>

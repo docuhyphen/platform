@@ -1,9 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -11,7 +9,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class InformationRequestEvidencePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<InformationRequestEvidencePostgreSQLContainer>(imageName)
@@ -95,14 +93,13 @@ class InformationRequestEvidenceArtifactContractTest
                     1,
                     fixture.documentVersionId,
                 )
-                insertExternalVersion(
+                insertFileVersion(
                     connection,
                     UUID.randomUUID(),
                     secondArtifactId,
                     fixture.requestId,
                     1,
-                    "record_reference",
-                    "external:record/1",
+                    fixture.documentVersionId,
                 )
 
                 assertEquals(2, artifactCount(connection, fixture.requestId))
@@ -113,7 +110,7 @@ class InformationRequestEvidenceArtifactContractTest
     }
 
     @Test
-    fun `an evidence version names exactly one typed source`()
+    fun `an evidence version names exactly one Document Version`()
     {
         withPostgres { postgres ->
             flyway(postgres).migrate()
@@ -123,7 +120,7 @@ class InformationRequestEvidenceArtifactContractTest
                 val artifactId = UUID.randomUUID()
                 insertArtifact(connection, artifactId, fixture.requestId, fixture.runtimeRequirementId, "record-1")
 
-                refused(connection, "ck_information_request_evidence_version_source") {
+                refused(connection, "document_version_id") {
                     insertVersion(
                         connection,
                         UUID.randomUUID(),
@@ -131,25 +128,10 @@ class InformationRequestEvidenceArtifactContractTest
                         fixture.requestId,
                         1,
                         "DOCUMENT_VERSION",
-                        fixture.documentVersionId,
-                        "record_reference",
-                        "external:record/1",
+                        null
                     )
                 }
-                refused(connection, "ck_information_request_evidence_version_source") {
-                    insertVersion(
-                        connection,
-                        UUID.randomUUID(),
-                        artifactId,
-                        fixture.requestId,
-                        1,
-                        "DOCUMENT_VERSION",
-                        null,
-                        null,
-                        null,
-                    )
-                }
-                refused(connection, "ck_information_request_evidence_version_source") {
+                refused(connection, "ck_information_request_evidence_version_kind") {
                     insertVersion(
                         connection,
                         UUID.randomUUID(),
@@ -158,21 +140,6 @@ class InformationRequestEvidenceArtifactContractTest
                         1,
                         "EXTERNAL_REFERENCE",
                         fixture.documentVersionId,
-                        "record_reference",
-                        "external:record/1",
-                    )
-                }
-                refused(connection, "ck_information_request_evidence_version_source") {
-                    insertVersion(
-                        connection,
-                        UUID.randomUUID(),
-                        artifactId,
-                        fixture.requestId,
-                        1,
-                        "EXTERNAL_REFERENCE",
-                        null,
-                        "record_reference",
-                        "   ",
                     )
                 }
                 refused(connection, "ck_information_request_evidence_version_kind") {
@@ -183,9 +150,7 @@ class InformationRequestEvidenceArtifactContractTest
                         fixture.requestId,
                         1,
                         "INLINE_VALUE",
-                        null,
-                        null,
-                        null,
+                        fixture.documentVersionId,
                     )
                 }
                 refused(connection, "information_request_evidence_version_document_version_fkey") {
@@ -231,14 +196,13 @@ class InformationRequestEvidenceArtifactContractTest
                     1,
                     fixture.documentVersionId,
                 )
-                insertExternalVersion(
+                insertFileVersion(
                     connection,
                     UUID.randomUUID(),
                     artifactId,
                     fixture.requestId,
                     2,
-                    "record_reference",
-                    "external:record/1",
+                    fixture.documentVersionId,
                 )
 
                 assertEquals(2, versionCount(connection, artifactId))
@@ -294,7 +258,7 @@ class InformationRequestEvidenceArtifactContractTest
                     connection.prepareStatement(
                         """
                         UPDATE information_request_evidence_version
-                        SET source_kind = 'EXTERNAL_REFERENCE'
+                        SET declared_media_type = 'text/plain'
                         WHERE id = ?
                         """.trimIndent(),
                     ).use { statement ->
@@ -503,8 +467,6 @@ class InformationRequestEvidenceArtifactContractTest
                     1,
                     "DOCUMENT_VERSION",
                     fixture.documentVersionId,
-                    null,
-                    null,
                     uploaderKind = "PARTICIPANT",
                     uploaderId = fixture.userId,
                     sessionRef = "verified-session",
@@ -526,8 +488,6 @@ class InformationRequestEvidenceArtifactContractTest
                         2,
                         "DOCUMENT_VERSION",
                         fixture.documentVersionId,
-                        null,
-                        null,
                         uploaderKind = null,
                     )
                 }
@@ -540,8 +500,6 @@ class InformationRequestEvidenceArtifactContractTest
                         2,
                         "DOCUMENT_VERSION",
                         fixture.documentVersionId,
-                        null,
-                        null,
                         uploaderKind = "ANONYMOUS",
                     )
                 }
@@ -554,23 +512,7 @@ class InformationRequestEvidenceArtifactContractTest
                         2,
                         "DOCUMENT_VERSION",
                         fixture.documentVersionId,
-                        null,
-                        null,
                         declaredFileName = null,
-                    )
-                }
-                refused(connection, "ck_information_request_evidence_version_declared_file") {
-                    insertVersion(
-                        connection,
-                        UUID.randomUUID(),
-                        artifactId,
-                        fixture.requestId,
-                        2,
-                        "EXTERNAL_REFERENCE",
-                        null,
-                        "process-register",
-                        "REG-4821",
-                        declaredFileName = "record.pdf",
                     )
                 }
             }
@@ -597,8 +539,6 @@ class InformationRequestEvidenceArtifactContractTest
                     1,
                     "DOCUMENT_VERSION",
                     fixture.documentVersionId,
-                    null,
-                    null,
                     attributes = mapOf(
                         "issuer" to "Process Registry",
                         "jurisdiction" to "ZZ",
@@ -764,26 +704,6 @@ class InformationRequestEvidenceArtifactContractTest
                         "INSPECTED",
                         length = 4,
                     )
-                }
-            }
-        }
-    }
-
-    @Test
-    fun `an external reference is never assessed as content`()
-    {
-        withPostgres { postgres ->
-            flyway(postgres).migrate()
-
-            postgres.createConnection("").use { connection ->
-                val fixture = Fixture(connection)
-                val artifactId = UUID.randomUUID()
-                val versionId = UUID.randomUUID()
-                insertArtifact(connection, artifactId, fixture.requestId, fixture.runtimeRequirementId, "record-1")
-                insertExternalVersion(connection, versionId, artifactId, fixture.requestId, 1, "process-register", "REG-4821")
-
-                refused(connection, "evidence assessments describe file-backed evidence only") {
-                    insertAssessment(connection, UUID.randomUUID(), fixture.requestId, versionId, "CONTENT_INSPECTION", "INSPECTED")
                 }
             }
         }
@@ -1428,8 +1348,6 @@ class InformationRequestEvidenceArtifactContractTest
             2,
             "DOCUMENT_VERSION",
             fixture.documentVersionId,
-            null,
-            null,
             attributes = attributes.toMap(),
         )
     }
@@ -1451,31 +1369,6 @@ class InformationRequestEvidenceArtifactContractTest
             versionNumber,
             "DOCUMENT_VERSION",
             documentVersionId,
-            null,
-            null,
-        )
-    }
-
-    private fun insertExternalVersion(
-        connection: Connection,
-        id: UUID,
-        artifactId: UUID,
-        requestId: UUID,
-        versionNumber: Int,
-        referenceType: String,
-        referenceValue: String,
-    )
-    {
-        insertVersion(
-            connection,
-            id,
-            artifactId,
-            requestId,
-            versionNumber,
-            "EXTERNAL_REFERENCE",
-            null,
-            referenceType,
-            referenceValue,
         )
     }
 
@@ -1487,12 +1380,10 @@ class InformationRequestEvidenceArtifactContractTest
         versionNumber: Int,
         sourceKind: String,
         documentVersionId: UUID?,
-        referenceType: String?,
-        referenceValue: String?,
         uploaderKind: String? = "USER",
         uploaderId: UUID? = UUID.randomUUID(),
         sessionRef: String? = null,
-        declaredFileName: String? = if (sourceKind == "DOCUMENT_VERSION") "process-record.pdf" else null,
+        declaredFileName: String? = "process-record.pdf",
         declaredMediaType: String? = null,
         attributes: Map<String, String> = emptyMap(),
     )
@@ -1500,7 +1391,7 @@ class InformationRequestEvidenceArtifactContractTest
         val attributeColumns = attributes.keys.toList()
         val columns = listOf(
             "id", "evidence_artifact_id", "information_request_id", "version_number", "source_kind",
-            "document_version_id", "external_reference_type", "external_reference_value", "created_at",
+            "document_version_id", "created_at",
             "created_by_principal_kind", "created_by_principal_id", "created_by_session_ref",
             "declared_file_name", "declared_media_type",
         ) + attributeColumns
@@ -1514,18 +1405,16 @@ class InformationRequestEvidenceArtifactContractTest
             statement.setInt(4, versionNumber)
             statement.setString(5, sourceKind)
             statement.setObject(6, documentVersionId)
-            statement.setString(7, referenceType)
-            statement.setString(8, referenceValue)
-            statement.setTimestamp(9, Timestamp.from(Instant.now()))
-            statement.setString(10, uploaderKind)
-            statement.setObject(11, uploaderId)
-            statement.setString(12, sessionRef)
-            statement.setString(13, declaredFileName)
-            statement.setString(14, declaredMediaType)
+            statement.setTimestamp(7, Timestamp.from(Instant.now()))
+            statement.setString(8, uploaderKind)
+            statement.setObject(9, uploaderId)
+            statement.setString(10, sessionRef)
+            statement.setString(11, declaredFileName)
+            statement.setString(12, declaredMediaType)
             attributeColumns.forEachIndexed { index, column ->
                 val value = attributes.getValue(column)
-                if (column.endsWith("_on")) statement.setDate(15 + index, java.sql.Date.valueOf(value))
-                else statement.setString(15 + index, value)
+                if (column.endsWith("_on")) statement.setDate(13 + index, java.sql.Date.valueOf(value))
+                else statement.setString(13 + index, value)
             }
             statement.executeUpdate()
         }
@@ -1764,7 +1653,7 @@ class InformationRequestEvidenceArtifactContractTest
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->

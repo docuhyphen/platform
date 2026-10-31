@@ -1,12 +1,12 @@
 package com.docuhyphen.app.api.resource.informationrequest.response
 
+import com.docuhyphen.app.api.exception.InformationRequestVerificationRequiredException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.InformationRequestResponseDtoMapper
-import com.docuhyphen.app.api.model.InformationRequestResponsePatchRequestMapper
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
-import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
+import com.docuhyphen.app.api.model.InformationRequestHiddenResponseClearDtoMapper
+import com.docuhyphen.app.api.resource.command.CommandIdempotencyKeyHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
+import com.docuhyphen.app.api.resource.informationrequest.response.handler.InformationRequestResponseRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.response.operations.InformationRequestResponseResourceOperations
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -14,8 +14,11 @@ import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseClearRequiredException
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
@@ -26,17 +29,13 @@ import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Authenticated, respondent-facing REST adapter for one runtime Information Request's draft
- * responses. Only the occurrences a caller's own patch names are ever projected back, so a shared
- * request never lets one respondent read another party's disposition or narrative through this
- * surface.
- */
 class InformationRequestResponseResource @Inject constructor(
-    private val responseDraftService: InformationRequestResponseDraftService,
+    responseDraftService: InformationRequestResponseDraftService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestResponseResourceOperations
 {
+    private val handler = InformationRequestResponseRequestHandler(responseDraftService)
+
     override fun patch(
         id: String,
         request: PatchInformationRequestResponsesRequest,
@@ -49,22 +48,8 @@ class InformationRequestResponseResource @Inject constructor(
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
-            if (request.patches.isEmpty()) return badRequest("At least one patch is required")
-            if (request.patches.any(InformationRequestResponsePatchRequestMapper::hasConflictingNarrativeOperation))
-                return badRequest("A patch cannot both set and clear its narrative")
-
-            val patches = request.patches.map(InformationRequestResponsePatchRequestMapper::toDomain)
-            val result = responseDraftService.patch(
-                PatchInformationRequestResponsesCommand(
-                    requestId = requestId,
-                    access = accessContextFactory.currentAuthenticated(),
-                    precondition = CommandPreconditionHeader.required(ifMatch),
-                    idempotencyKey = commandKey,
-                    patches = patches,
-                    confirmedHiddenResponseClears = request.confirmedHiddenResponseClearRequirementIds,
-                ),
-            )
-            ok(result, patches.map { it.requirementId }.toSet())
+            handler.invalidPatch(request)?.let { return it }
+            handler.patch(requestId, request, accessContextFactory.currentAuthenticated(), ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -72,21 +57,8 @@ class InformationRequestResponseResource @Inject constructor(
         }
     }
 
-    private fun ok(result: InformationRequestResponseDraftResult, requirementIds: Set<UUID>): Response =
-        Response.ok(
-            result.responses
-                .filter { it.informationRequestRequirementId in requirementIds }
-                .map {
-                    InformationRequestResponseDtoMapper.toDto(
-                        it,
-                        result.requirementsById.getValue(it.informationRequestRequirementId),
-                        result.fieldValueProjectionsByRequirementId[it.informationRequestRequirementId],
-                    )
-                }
-                .toTypedArray(),
-        ).header("ETag", result.responseETag).build()
-
-    private fun requiredIdempotencyKey(raw: String?): String? = raw?.trim()?.takeIf { it.isNotEmpty() }
+    private fun requiredIdempotencyKey(raw: String?): String? =
+        CommandIdempotencyKeyHeader.stated(raw)?.let(InformationRequestCommandHttp::idempotencyKey)
 
     private fun parseUuid(raw: String): UUID? = runCatching { UUID.fromString(raw) }.getOrNull()
 
@@ -101,46 +73,47 @@ class InformationRequestResponseResource @Inject constructor(
         return when (exception)
         {
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
-            is FieldsPreconditionException -> fieldsPreconditionRefused(exception)
+            is FieldsPreconditionException -> InformationRequestCommandHttp.fieldsPreconditionRefused(exception)
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
-            is InformationRequestLifecycleException -> Response.status(CONFLICT)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestHiddenResponseClearRequiredException -> Response.status(CONFLICT)
+                .entity(InformationRequestHiddenResponseClearDtoMapper.toErrorDto(exception)).build()
 
-            is FieldValidationException -> Response.status(BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+            is InformationRequestItemRefusalException -> handler.refused(exception)
+
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
+
+            is FieldValidationException -> InformationRequestCommandHttp.fieldValueRefused(exception)
 
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
 
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
 
+            is InformationRequestVerificationRequiredException -> Response.status(FORBIDDEN)
+                .entity(ResponseError(exception.message, InformationRequestErrorCatalog.CONFIDENTIALITY_DENIED)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                .entity(
+                    ResponseError(
+                        exception.message,
+                        InformationRequestErrorCatalog.FORBIDDEN
+                    )
+                ).build()
 
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
 
-            else ->
-            {
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
             }
         }
-    }
-
-    private fun fieldsPreconditionRefused(exception: FieldsPreconditionException): Response
-    {
-        val status = when (exception.kind)
-        {
-            FieldsPreconditionException.Kind.REQUIRED -> PRECONDITION_REQUIRED
-            FieldsPreconditionException.Kind.STALE -> PRECONDITION_FAILED
-        }
-        val builder = Response.status(status).entity(ResponseError(exception.message, exception.reasonCode))
-        exception.currentETag?.let { builder.header("ETag", it) }
-        return builder.build()
     }
 
     private companion object

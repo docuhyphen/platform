@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.resource.informationrequest.noauth
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestParticipantAccountUpgradeDto
 import com.docuhyphen.app.api.model.entity.ParticipantAccountLink
 import com.docuhyphen.app.api.model.entity.PrincipalKind
@@ -13,31 +15,30 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpgradeInformationRequestParticipantAccountRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestParticipantAccountUpgradeService
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * The authenticated, respondent-facing resource that completes a Participant's registration upgrade
- * to their own App User account. The caller's App User identity comes only from their authenticated
- * access token; the no-auth session id proving contact with the request party comes from the request
- * body, never from the token.
- */
 class InformationRequestParticipantAccountLinkResourceContractTest
 {
     private val upgradeService = mock<InformationRequestParticipantAccountUpgradeService>()
@@ -87,30 +88,66 @@ class InformationRequestParticipantAccountLinkResourceContractTest
         val dto = upgraded.entity as InformationRequestParticipantAccountUpgradeDto
         assertEquals(upgrade.participantAccountLink.id, dto.participantAccountLinkId)
         assertEquals(appUserId, dto.appUserId)
+        assertEquals(upgrade.partyETag, upgraded.getHeaderString("ETag"))
+        assertEquals(upgrade.accountRespondentKey, dto.respondentKey)
         verify(upgradeService).upgrade(
             UpgradeInformationRequestParticipantAccountCommand(
                 requestId = requestId,
                 sessionId = sessionId,
-                appUserId = appUserId,
+                sessionCredential = "session-secret",
+                access = access,
                 precondition = CommandPrecondition.ExpectedRevision(setOf("\"v1\"")),
                 idempotencyKey = "idem-1",
-                sessionToken = "session-secret",
             ),
         )
     }
 
     @Test
-    fun `upgrade refuses a caller whose principal is not an App User`()
-    {
-        whenever(accessContextFactory.currentAuthenticated()).thenReturn(
-            RequestAccessContext(PrincipalRef(PrincipalKind.PARTICIPANT, UUID.randomUUID()), AuthorizationContext()),
+    fun `the service refusal of a session credential for another session maps to forbidden`() {
+        whenever(upgradeService.upgrade(any()))
+            .thenThrow(ForbiddenException("The session credential does not match the named session"))
+        val body = UpgradeInformationRequestParticipantAccountRequest(sessionId = sessionId)
+
+        val response = resource.upgrade(requestId.toString(), body, "\"v1\"", "idem-1", "other-secret")
+
+        assertEquals(Response.Status.FORBIDDEN.statusCode, response.status)
+        assertEquals(
+            "The session credential does not match the named session",
+            (response.entity as ResponseError).errorMessage,
         )
+    }
+
+    @Test
+    fun `an unusable session credential maps to a stated conflict`()
+    {
+        whenever(upgradeService.upgrade(any())).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
+                "A verified request session credential is required",
+            ),
+        )
+        val body = UpgradeInformationRequestParticipantAccountRequest(sessionId = sessionId)
+
+        val response = resource.upgrade(requestId.toString(), body, "\"v1\"", "idem-1", "not-a-credential")
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        assertEquals(
+            InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
+            (response.entity as ResponseError).reasonCode
+        )
+    }
+
+    @Test
+    fun `the service refusal of a caller who is not an account holder maps to forbidden`() {
+        val participantAccess =
+            RequestAccessContext(PrincipalRef(PrincipalKind.PARTICIPANT, UUID.randomUUID()), AuthorizationContext())
+        whenever(accessContextFactory.currentAuthenticated()).thenReturn(participantAccess)
+        whenever(upgradeService.upgrade(any())).thenThrow(ForbiddenException("Only a signed-in account holder can complete an upgrade"))
         val body = UpgradeInformationRequestParticipantAccountRequest(sessionId = sessionId)
 
         val response = resource.upgrade(requestId.toString(), body, "\"v1\"", "idem-1")
 
         assertEquals(Response.Status.FORBIDDEN.statusCode, response.status)
-        verify(upgradeService, org.mockito.kotlin.never()).upgrade(any())
     }
 
     @Test
@@ -123,13 +160,41 @@ class InformationRequestParticipantAccountLinkResourceContractTest
                     "Email mismatch",
                 ),
             )
+            .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Not found"))
             .thenThrow(IllegalArgumentException("Information Request not found"))
             .thenThrow(ForbiddenException("Denied"))
         val body = UpgradeInformationRequestParticipantAccountRequest(sessionId = sessionId)
 
         assertMapped(body, Response.Status.CONFLICT, "Email mismatch")
+        assertMapped(body, Response.Status.NOT_FOUND, "Not found")
         assertMapped(body, Response.Status.NOT_FOUND, "Information Request not found")
         assertMapped(body, Response.Status.FORBIDDEN, "Denied")
+    }
+
+    @Test
+    fun `an owner's suspension is rethrown for the subscription refusal mapper`() {
+        val denial = SubscriptionDenialException(
+            SubscriptionDenial(
+                reason = SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED,
+                planCode = PlanCode.BUSINESS,
+                ownerType = SubscriptionOwnerType.ORGANIZATION,
+                message = "The owner's subscription is suspended",
+            ),
+        )
+        whenever(upgradeService.upgrade(any())).thenThrow(denial)
+        val body = UpgradeInformationRequestParticipantAccountRequest(sessionId = sessionId)
+
+        assertSame(
+            denial,
+            assertThrows<SubscriptionDenialException> {
+                resource.upgrade(
+                    requestId.toString(),
+                    body,
+                    "\"v1\"",
+                    "idem-1"
+                )
+            },
+        )
     }
 
     private fun assertMapped(
@@ -159,6 +224,6 @@ class InformationRequestParticipantAccountLinkResourceContractTest
             resourceId = requestId
             roleName = "CONTRIBUTOR"
         }
-        return InformationRequestParticipantAccountUpgrade(link, share)
+        return InformationRequestParticipantAccountUpgrade(link, share, "\"v2\"", "linked-account-respondent")
     }
 }

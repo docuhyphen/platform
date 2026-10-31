@@ -1,17 +1,12 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
-import com.docuhyphen.app.api.model.InformationRequestResponseDtoMapper
-import com.docuhyphen.app.api.model.InformationRequestResponsePatchRequestMapper
-import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
-import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
-import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
+import com.docuhyphen.app.api.exception.InformationRequestVerificationRequiredException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.InformationRequestHiddenResponseClearDtoMapper
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.occurrence.handler.InformationRequestGroupOccurrenceRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestNoAuthRequestResourceOperations
+import com.docuhyphen.app.api.resource.informationrequest.response.handler.InformationRequestResponseRequestHandler
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
@@ -20,15 +15,19 @@ import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseClearRequiredException
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
@@ -37,11 +36,14 @@ import java.util.*
 class InformationRequestNoAuthRequestResource @Inject constructor(
     private val readAccessService: InformationRequestNoAuthReadAccessService,
     private val partyQueryService: InformationRequestPartyQueryService,
-    private val responseDraftService: InformationRequestResponseDraftService,
-    private val occurrenceService: InformationRequestGroupOccurrenceService,
+    responseDraftService: InformationRequestResponseDraftService,
+    occurrenceService: InformationRequestGroupOccurrenceService,
     private val responseWorkspaceService: InformationRequestResponseWorkspaceService,
 ) : InformationRequestNoAuthRequestResourceOperations
 {
+    private val responseHandler = InformationRequestResponseRequestHandler(responseDraftService)
+    private val occurrences = InformationRequestGroupOccurrenceRequestHandler(occurrenceService)
+
     override fun get(
         id: String,
         accessLinkToken: String?,
@@ -52,12 +54,11 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         {
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val token = requiredToken(accessLinkToken) ?: return missingTokenResponse()
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            val request = readAccessService.readCurrent(requestId, access) { current ->
+                responseWorkspaceService.loadRequest(requestId, current)
             }
-            Response.ok(responseWorkspaceService.loadRequest(requestId, noAuthAccess.access)).build()
+            Response.ok(request).build()
         }
         catch (exception: Exception)
         {
@@ -75,13 +76,11 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         {
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val token = requiredToken(accessLinkToken) ?: return missingTokenResponse()
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            val parties = readAccessService.readCurrent(requestId, access) { current ->
+                partyQueryService.listForManagement(requestId, current)
             }
-            val parties = partyQueryService.listForRequest(requestId, noAuthAccess.access)
-            Response.ok(parties.toTypedArray()).build()
+            Response.ok(parties.parties.toTypedArray()).header("ETag", parties.partiesETag).build()
         }
         catch (exception: Exception)
         {
@@ -99,12 +98,11 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         {
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val token = requiredToken(accessLinkToken) ?: return missingTokenResponse()
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            val workspace = readAccessService.readCurrent(requestId, access) { current ->
+                responseWorkspaceService.load(requestId, current)
             }
-            Response.ok(responseWorkspaceService.load(requestId, noAuthAccess.access)).build()
+            Response.ok(workspace).build()
         }
         catch (exception: Exception)
         {
@@ -127,27 +125,10 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             val token = requiredToken(accessLinkToken) ?: return missingTokenResponse()
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
-            if (request.patches.isEmpty()) return badRequest("At least one patch is required")
-            if (request.patches.any(InformationRequestResponsePatchRequestMapper::hasConflictingNarrativeOperation))
-                return badRequest("A patch cannot both set and clear its narrative")
+            responseHandler.invalidPatch(request)?.let { return it }
 
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
-            }
-            val patches = request.patches.map(InformationRequestResponsePatchRequestMapper::toDomain)
-            val result = responseDraftService.patch(
-                PatchInformationRequestResponsesCommand(
-                    requestId = requestId,
-                    access = noAuthAccess.access,
-                    precondition = CommandPreconditionHeader.required(ifMatch),
-                    idempotencyKey = commandKey,
-                    patches = patches,
-                    confirmedHiddenResponseClears = request.confirmedHiddenResponseClearRequirementIds,
-                ),
-            )
-            ok(result, patches.map { it.requirementId }.toSet())
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            responseHandler.patch(requestId, request, access, ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -171,23 +152,8 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
             if (request.groupKey.isBlank()) return badRequest("A group key is required")
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
-            }
-            okOccurrences(
-                occurrenceService.add(
-                    AddInformationRequestGroupOccurrenceCommand(
-                        requestId = requestId,
-                        access = noAuthAccess.access,
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        groupKey = request.groupKey,
-                        parentOccurrenceId = request.parentOccurrenceId,
-                    ),
-                ),
-            )
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            occurrences.add(requestId, request, access, ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -211,22 +177,8 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             val token = requiredToken(accessLinkToken) ?: return missingTokenResponse()
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
-            }
-            okOccurrences(
-                occurrenceService.remove(
-                    RemoveInformationRequestGroupOccurrenceCommand(
-                        requestId = requestId,
-                        access = noAuthAccess.access,
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        occurrenceId = occurrence,
-                    ),
-                ),
-            )
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            occurrences.remove(requestId, occurrence, access, ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -250,24 +202,8 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
             if (request.groupKey.isBlank()) return badRequest("A group key is required")
-            val noAuthAccess = readAccessService.resolve(token, sessionToken)
-            if (noAuthAccess.requestId != requestId)
-            {
-                return notFound()
-            }
-            okOccurrences(
-                occurrenceService.reorder(
-                    ReorderInformationRequestGroupOccurrencesCommand(
-                        requestId = requestId,
-                        access = noAuthAccess.access,
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        groupKey = request.groupKey,
-                        parentOccurrenceId = request.parentOccurrenceId,
-                        orderedOccurrenceIds = request.occurrenceIds,
-                    ),
-                ),
-            )
+            val access = readAccessService.resolve(requestId, token, sessionToken)
+            occurrences.reorder(requestId, request, access, ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -275,26 +211,8 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
         }
     }
 
-    private fun ok(result: InformationRequestResponseDraftResult, requirementIds: Set<UUID>): Response =
-        Response.ok(
-            result.responses
-                .filter { it.informationRequestRequirementId in requirementIds }
-                .map {
-                    InformationRequestResponseDtoMapper.toDto(
-                        it,
-                        result.requirementsById.getValue(it.informationRequestRequirementId),
-                        result.fieldValueProjectionsByRequirementId[it.informationRequestRequirementId],
-                    )
-                }
-                .toTypedArray(),
-        ).header("ETag", result.responseETag).build()
-
-    private fun okOccurrences(result: InformationRequestGroupOccurrenceResult): Response =
-        Response.ok(result.occurrences.map(InformationRequestGroupOccurrenceDtoMapper::toDto).toTypedArray())
-            .header("ETag", result.responseETag)
-            .build()
-
-    private fun requiredIdempotencyKey(raw: String?): String? = raw?.trim()?.takeIf { it.isNotEmpty() }
+    private fun requiredIdempotencyKey(raw: String?): String? =
+        raw?.trim()?.takeIf { it.isNotEmpty() }?.let(InformationRequestCommandHttp::idempotencyKey)
 
     private fun requiredToken(raw: String?): String? = raw?.takeIf { it.isNotBlank() }
 
@@ -308,54 +226,54 @@ class InformationRequestNoAuthRequestResource @Inject constructor(
             .entity(ResponseError("An access link token is required"))
             .build()
 
-    private fun notFound(): Response =
-        Response.status(NOT_FOUND)
-            .entity(ResponseError("Information Request not found"))
-            .build()
+    private fun handleException(message: String, exception: Exception): Response {
+        if (exception is WebApplicationException) throw exception
+        if (exception is SubscriptionDenialException) throw exception
 
-    private fun handleException(message: String, exception: Exception): Response =
-        when (exception)
+        return when (exception)
         {
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
-            is FieldsPreconditionException -> fieldsPreconditionRefused(exception)
+            is FieldsPreconditionException -> InformationRequestCommandHttp.fieldsPreconditionRefused(exception)
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
-            is InformationRequestLifecycleException -> Response.status(CONFLICT)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestHiddenResponseClearRequiredException -> Response.status(CONFLICT)
+                .entity(InformationRequestHiddenResponseClearDtoMapper.toErrorDto(exception)).build()
 
-            is FieldValidationException -> Response.status(BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+            is InformationRequestItemRefusalException -> responseHandler.refused(exception)
+
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
+
+            is FieldValidationException -> InformationRequestCommandHttp.fieldValueRefused(exception)
 
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
 
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
 
+            is InformationRequestVerificationRequiredException -> Response.status(FORBIDDEN)
+                .entity(ResponseError(exception.message, InformationRequestErrorCatalog.CONFIDENTIALITY_DENIED)).build()
+
             is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                .entity(
+                    ResponseError(
+                        exception.message,
+                        InformationRequestErrorCatalog.FORBIDDEN
+                    )
+                ).build()
 
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
 
-            else ->
-            {
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
             }
         }
-
-    private fun fieldsPreconditionRefused(exception: FieldsPreconditionException): Response
-    {
-        val status = when (exception.kind)
-        {
-            FieldsPreconditionException.Kind.REQUIRED -> PRECONDITION_REQUIRED
-            FieldsPreconditionException.Kind.STALE -> PRECONDITION_FAILED
-        }
-        val builder = Response.status(status).entity(ResponseError(exception.message, exception.reasonCode))
-        exception.currentETag?.let { builder.header("ETag", it) }
-        return builder.build()
     }
 
     private companion object

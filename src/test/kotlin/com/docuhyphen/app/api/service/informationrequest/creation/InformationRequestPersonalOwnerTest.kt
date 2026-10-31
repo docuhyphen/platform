@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.creation
 
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryString
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
@@ -17,13 +18,12 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestTemplateWalkingSkeletonStore
-import com.docuhyphen.app.api.service.informationrequest.capability.WalkingSkeletonDraft
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonDraft
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleService
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
 import com.docuhyphen.app.api.service.informationrequest.template.singleFieldConfiguration
@@ -34,22 +34,39 @@ import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestPersonalOwnerTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
-    @Inject lateinit var versionRepository: InformationRequestTemplateVersionRepository
-    @Inject lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
-    @Inject lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var instantiation: InformationRequestTemplateInstantiationService
-    @Inject lateinit var lifecycle: InformationRequestLifecycleService
-    @Inject lateinit var parties: InformationRequestPartyService
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
+
+    @Inject
+    lateinit var versionRepository: InformationRequestTemplateVersionRepository
+
+    @Inject
+    lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
+
+    @Inject
+    lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var instantiation: InformationRequestTemplateInstantiationService
+
+    @Inject
+    lateinit var lifecycle: InformationRequestLifecycleService
+
+    @Inject
+    lateinit var parties: InformationRequestPartyAssignmentService
 
     private val store by lazy {
         InformationRequestTemplateWalkingSkeletonStore(
@@ -160,14 +177,16 @@ class InformationRequestPersonalOwnerTest
                     namespace = "process-${UUID.randomUUID().toString().take(8)}"
                     templateKey = "platform-collection"
                     displayName = "Platform collection"
-                    createdByAppUserId = actorId
+                    createdByPrincipalKind = com.docuhyphen.app.api.model.entity.PrincipalKind.USER
+                    createdByPrincipalId = actorId
                 },
             )
             val version = versionRepository.save(
                 InformationRequestTemplateVersion().apply {
                     templateDefinitionId = definition.id
                     versionNumber = 1
-                    createdByAppUserId = actorId
+                    createdByPrincipalKind = com.docuhyphen.app.api.model.entity.PrincipalKind.USER
+                    createdByPrincipalId = actorId
                 },
             )
             WalkingSkeletonDraft(definition.id, version.id, actorId, "platform-collection")

@@ -3,10 +3,10 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.AssigneeSpec
 import com.docuhyphen.app.api.repository.notification.NotificationPreferenceRepository
 import com.docuhyphen.app.api.repository.notification.NotificationRuleRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.workflow.AssigneeSpec
 import com.docuhyphen.app.api.service.workflow.WorkflowAssigneeResolver
 import com.docuhyphen.app.api.service.workflow.WorkflowSpecJson
 import jakarta.enterprise.context.ApplicationScoped

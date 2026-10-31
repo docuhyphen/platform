@@ -73,6 +73,7 @@ data class PublishRecordRetentionScheduleCommand(
 data class RecordRetentionScheduleView(
     val current: RecordRetentionSchedule?,
     val versions: List<RecordRetentionSchedule>,
+    val etag: String,
 )
 
 data class RecordDisposalObjectCandidate(
@@ -111,6 +112,26 @@ object RecordPreservationResourceTypes
     const val SUBJECT_IDENTITY = "SUBJECT_IDENTITY"
     const val DOCUMENT = "DOCUMENT"
     const val DOCUMENT_VERSION = "DOCUMENT_VERSION"
+    const val INFORMATION_REQUEST_SUBMISSION_PACKAGE = "INFORMATION_REQUEST_SUBMISSION_PACKAGE"
+    const val INFORMATION_REQUEST_EVIDENCE_ARTIFACT = "INFORMATION_REQUEST_EVIDENCE_ARTIFACT"
+    const val INFORMATION_REQUEST_EVIDENCE_VERSION = "INFORMATION_REQUEST_EVIDENCE_VERSION"
+    const val INFORMATION_REQUEST_OUTBOUND_NOTICE = "INFORMATION_REQUEST_OUTBOUND_NOTICE"
+    const val INFORMATION_REQUEST_RECORD_EXPORT = "INFORMATION_REQUEST_RECORD_EXPORT"
+
+    val HOLDABLE = setOf(
+        INFORMATION_REQUEST,
+        EXCHANGE,
+        ORGANIZATION,
+        APP_USER,
+        SUBJECT_IDENTITY,
+        DOCUMENT,
+        DOCUMENT_VERSION,
+        INFORMATION_REQUEST_SUBMISSION_PACKAGE,
+        INFORMATION_REQUEST_EVIDENCE_ARTIFACT,
+        INFORMATION_REQUEST_EVIDENCE_VERSION,
+        INFORMATION_REQUEST_OUTBOUND_NOTICE,
+        INFORMATION_REQUEST_RECORD_EXPORT,
+    )
 }
 
 enum class RecordTransferVerdict

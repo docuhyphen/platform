@@ -3,10 +3,12 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.entity.ExchangeRecipient
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestationSubjectType
+import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientAttestationRepository
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
 import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 import jakarta.inject.Provider
 import java.sql.Timestamp
@@ -17,6 +19,7 @@ import java.util.*
 class ExchangeRecipientAttestationService @Inject constructor(
     private val repository: ExchangeRecipientAttestationRepository,
     private val recipientServiceProvider: Provider<ExchangeRecipientService>,
+    private val scopedResolvers: Instance<TrustedGroupShareAttestationResolver>,
 )
 {
     fun createGroupAttestation(
@@ -91,6 +94,12 @@ class ExchangeRecipientAttestationService @Inject constructor(
         return findForRecipient(recipient.id)
     }
 
+    fun findForScopedGroupShare(share: Share): ExchangeRecipientAttestation? =
+        scopedResolvers.firstNotNullOfOrNull { it.attestationFor(share) }
+
+    fun scopedGroupShareIdsFor(exchangeRecipientId: UUID): List<UUID> =
+        scopedResolvers.flatMap { it.activeGroupShareIdsFor(exchangeRecipientId) }
+
     fun findForRelationship(relationshipId: UUID): List<ExchangeRecipientAttestation> =
         repository.findByRelationshipId(relationshipId)
 
@@ -103,9 +112,8 @@ class ExchangeRecipientAttestationService @Inject constructor(
         repository.update(attestation)
     }
 
-    /** Removes the attestation for a recipient, if one exists. Used when a recipient binding is replaced. */
     fun deleteForRecipient(exchangeRecipientId: UUID)
     {
-        repository.findByExchangeRecipientId(exchangeRecipientId)?.let { repository.delete(it) }
+        repository.findByExchangeRecipientId(exchangeRecipientId)?.let(repository::deleteAndFlush)
     }
 }

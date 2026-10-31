@@ -37,5 +37,6 @@ object InformationRequestOperationsDtoMapper
         reminderCount = row.standing.reminderCount,
         noticeCounts = row.noticeCounts,
         exceptionCounts = row.exceptionCounts,
+        executionStanding = InformationRequestExecutionStandingDtoMapper.toDto(row.executionStanding),
     )
 }

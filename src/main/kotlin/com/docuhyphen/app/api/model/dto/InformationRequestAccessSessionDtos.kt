@@ -15,3 +15,9 @@ data class InformationRequestAccessSessionDto(
     @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp,
     val sessionToken: String,
 )
+
+@Serializable
+data class InformationRequestAccessSessionStepUpDto(
+    @Serializable(with = UUIDSerializer::class) val sessionId: UUID,
+    @Serializable(with = TimestampSerializer::class) val verifiedUntil: Timestamp,
+)

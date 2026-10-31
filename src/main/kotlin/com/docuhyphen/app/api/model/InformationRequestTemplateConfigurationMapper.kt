@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 
-/** Reconstructs an editable authored document from one frozen Template Version projection. */
 object InformationRequestTemplateConfigurationMapper
 {
     fun toRequest(version: InformationRequestTemplateVersionDto) =
@@ -40,7 +39,7 @@ object InformationRequestTemplateConfigurationMapper
             sectionKeys = stage.sectionKeys,
         )
 
-    private fun toRequest(rule: InformationRequestTemplateConditionRuleDto) =
+    fun toRequest(rule: InformationRequestTemplateConditionRuleDto) =
         InformationRequestTemplateConditionRuleRequest(
             ruleKey = rule.ruleKey,
             expressionVersion = rule.expressionVersion,
@@ -48,7 +47,7 @@ object InformationRequestTemplateConfigurationMapper
             predicates = rule.predicates.map(::toRequest),
         )
 
-    private fun toRequest(predicate: InformationRequestTemplateConditionPredicateDto) =
+    fun toRequest(predicate: InformationRequestTemplateConditionPredicateDto) =
         InformationRequestTemplateConditionPredicateRequest(
             sourceRequirementKey = predicate.sourceRequirementKey,
             fieldDefinitionId = predicate.fieldDefinitionId,

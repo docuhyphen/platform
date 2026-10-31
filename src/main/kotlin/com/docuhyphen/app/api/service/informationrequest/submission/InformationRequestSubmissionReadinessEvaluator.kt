@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRe
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationStage
 import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -13,6 +14,8 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutat
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCompletenessProgressService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationContextLoader
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
@@ -28,6 +31,9 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
     private val completenessProgressService: InformationRequestCompletenessProgressService,
     private val attestationEvaluationService: InformationRequestAttestationEvaluationService,
     private val gate: InformationRequestMutationGate,
+    private val structuredResponseValidationService: InformationRequestStructuredResponseValidationService,
+    private val validationContextLoader: InformationRequestStructuredResponseValidationContextLoader,
+    private val groupCardinality: InformationRequestSubmissionGroupCardinalityEvaluator,
 )
 {
     fun assess(
@@ -57,22 +63,45 @@ class InformationRequestSubmissionReadinessEvaluator @Inject constructor(
 
                 else -> return@mapNotNull null
             }
-            InformationRequestSubmissionItemProblem(
-                requirementId = item.requirement.id,
-                requirementKey = item.requirementKey,
-                occurrencePath = item.requirement.occurrencePath,
-                code = code,
-            )
+            problemOn(item, code)
         }
-        val (disclosed, undisclosed) = problems.partition {
+        val structured = structuredValidationOf(content)
+        val groups = groupCardinality.assess(content, access)
+        val (disclosed, undisclosed) = (problems + structured.itemProblems).partition {
             gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, it.requirementId)
         }
         return InformationRequestSubmissionAssessment(
-            readiness = InformationRequestSubmissionReadiness(disclosed, undisclosed.size),
+            readiness = InformationRequestSubmissionReadiness(
+                problems = disclosed,
+                undisclosedProblemCount = undisclosed.size + structured.packageProblemCount + groups.undisclosedCount,
+                groupProblems = groups.disclosed,
+            ),
             stateByRequirement = states,
             attestations = attestations,
         )
     }
+
+    private fun structuredValidationOf(content: InformationRequestSubmissionContent): InformationRequestStructuredSubmissionProblems {
+        val stage = InformationRequestStructuredResponseValidationStage.SUBMISSION
+        if (!structuredResponseValidationService.appliesTo(stage)) return InformationRequestStructuredSubmissionProblems()
+        val issues = structuredResponseValidationService.evaluate(validationContextLoader.load(content.request, stage))
+        val itemsByRequirement = content.items.associateBy { it.requirement.id }
+        val itemProblems = issues
+            .mapNotNull { issue -> issue.requirementId?.let(itemsByRequirement::get) }
+            .distinctBy { it.requirement.id }
+            .map { item -> problemOn(item, InformationRequestSubmissionProblemCode.STRUCTURED_VALIDATION_FAILED) }
+        return InformationRequestStructuredSubmissionProblems(itemProblems, issues.count { it.requirementId == null })
+    }
+
+    private fun problemOn(
+        item: InformationRequestSubmissionContentItem,
+        code: InformationRequestSubmissionProblemCode,
+    ) = InformationRequestSubmissionItemProblem(
+        requirementId = item.requirement.id,
+        requirementKey = item.requirementKey,
+        occurrencePath = item.requirement.occurrencePath,
+        code = code,
+    )
 
     private fun stateOf(contributions: List<InformationRequestCompletenessContribution>): InformationRequestCompletenessItemState =
         when

@@ -10,7 +10,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class InformationRequestRuntimePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<InformationRequestRuntimePostgreSQLContainer>(imageName)
@@ -820,7 +820,7 @@ class InformationRequestRuntimePersistenceContractTest
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
@@ -1051,8 +1051,8 @@ class InformationRequestRuntimePersistenceContractTest
             """
             INSERT INTO information_request_transition
                 (id, information_request_id, sequence_number, from_state, to_state, mutation,
-                 actor_kind, actor_id, occurred_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'USER', ?, ?)
+                 actor_kind, actor_id, occurred_at, idempotency_key)
+            VALUES (?, ?, ?, ?, ?, ?, 'USER', ?, ?, 'transition-$sequenceNumber')
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, UUID.randomUUID())
@@ -1165,8 +1165,8 @@ class InformationRequestRuntimePersistenceContractTest
             statement.setString(1, value)
             statement.setObject(2, id)
             statement.executeUpdate()
-            }
         }
+    }
 
     private fun updateRequestResponseRevision(connection: Connection, requestId: UUID, revision: Long)
     {
@@ -1239,8 +1239,8 @@ class InformationRequestRuntimePersistenceContractTest
                 statement.executeQuery().use { rows ->
                     check(rows.next())
                     rows.getString(1)
+                }
             }
-        }
 
     private fun requestResponseRevision(connection: Connection, requestId: UUID): Long =
         connection.prepareStatement("SELECT response_revision FROM information_request WHERE id = ?")
@@ -1273,7 +1273,11 @@ class InformationRequestRuntimePersistenceContractTest
             }
 
     private fun activePartyCount(connection: Connection, requestId: UUID): Int =
-        countOf(connection, "SELECT COUNT(*) FROM information_request_party WHERE information_request_id = ?", requestId)
+        countOf(
+            connection,
+            "SELECT COUNT(*) FROM information_request_party WHERE information_request_id = ?",
+            requestId
+        )
 
     private fun currentRequirementCount(connection: Connection, requestId: UUID): Int =
         countOf(
@@ -1304,10 +1308,18 @@ class InformationRequestRuntimePersistenceContractTest
         }
 
     private fun delegatedAuthorityCount(connection: Connection, requestId: UUID): Int =
-        countOf(connection, "SELECT COUNT(*) FROM information_request_delegated_authority WHERE information_request_id = ?", requestId)
+        countOf(
+            connection,
+            "SELECT COUNT(*) FROM information_request_delegated_authority WHERE information_request_id = ?",
+            requestId
+        )
 
     private fun responseDraftCount(connection: Connection, requestId: UUID): Int =
-        countOf(connection, "SELECT COUNT(*) FROM information_request_response WHERE information_request_id = ?", requestId)
+        countOf(
+            connection,
+            "SELECT COUNT(*) FROM information_request_response WHERE information_request_id = ?",
+            requestId
+        )
 
     private fun activeGroupOccurrencePaths(connection: Connection, requestId: UUID): List<String> =
         connection.prepareStatement(

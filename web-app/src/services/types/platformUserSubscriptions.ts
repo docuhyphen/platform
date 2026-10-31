@@ -1,3 +1,5 @@
+import {PlatformFeatureEntitlement} from "./platformFeatureEntitlements.ts";
+
 export interface PlatformUserSubscriptionPolicy
 {
     appUserId: string;
@@ -31,5 +33,17 @@ export interface PlatformUserSubscriptionPolicyRequest
     currentPeriodEnd: string | null;
     gracePeriodEnd: string | null;
     changeReason: string;
+}
+
+export interface PlatformUserFeatureEntitlements {
+    appUserId: string;
+    email: string;
+    displayName: string | null;
+    entitlements: PlatformFeatureEntitlement[];
+}
+
+export interface PlatformUserFeatureEntitlementsRequest {
+    entitlements: PlatformFeatureEntitlement[];
+    changeReason?: string;
 }
 

@@ -5,9 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Minimal authority relation used by runtime authorization facts.
- */
 @Entity
 @Table(name = "information_request_delegated_authority")
 class InformationRequestDelegatedAuthority

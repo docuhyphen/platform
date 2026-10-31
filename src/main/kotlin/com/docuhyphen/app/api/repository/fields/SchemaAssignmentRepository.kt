@@ -5,12 +5,16 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/** Persistence for [SchemaAssignment] rows pinning a resource to a schema version. */
 @ApplicationScoped
 class SchemaAssignmentRepository :
     BaseRepository<SchemaAssignment>(SchemaAssignment::class.java)
 {
-    /** The single primary assignment for a resource, or null. */
+    fun lockResource(resourceType: String, resourceId: UUID) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:resourceKey, 0))")
+            .setParameter("resourceKey", "schema_assignment:$resourceType:$resourceId")
+            .singleResult
+    }
+
     fun findByResource(resourceType: String, resourceId: UUID): SchemaAssignment? =
         entityManager.createQuery(
             """SELECT a FROM SchemaAssignment a
@@ -22,7 +26,6 @@ class SchemaAssignmentRepository :
             .resultList
             .firstOrNull()
 
-    /** Count of assignments pinned to a given schema version (usage impact). */
     fun countByVersion(schemaVersionId: UUID): Long =
         entityManager.createQuery(
             "SELECT COUNT(a) FROM SchemaAssignment a WHERE a.schemaVersionId = :vid",

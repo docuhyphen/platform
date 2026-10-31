@@ -2,15 +2,16 @@ package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
+import com.docuhyphen.app.api.model.dto.SchemaAssignmentStateDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.resource.model.AssignSchemaRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
@@ -23,13 +24,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * A client cannot condition its next write on the state it read unless the validator reaches it, so
- * the Fields read and every successful Fields mutation carry it as the response entity tag. The
- * resource only copies what the service resolved; it never derives a validator of its own.
- */
 class ExchangeFieldsResourceETagTest
 {
     private val schemaAssignmentService = mock<SchemaAssignmentService>()
@@ -49,12 +45,26 @@ class ExchangeFieldsResourceETagTest
     @Test
     fun `reading the fields of an exchange carries the current validator`()
     {
-        whenever(schemaAssignmentService.getAssignment(any())).thenReturn(assignment(etag))
+        val state = SchemaAssignmentStateDto(assignment(etag), canManageSchema = true, canEditValues = true)
+        whenever(schemaAssignmentService.getAssignmentState(any())).thenReturn(state)
 
         val response = resource.getSchema(exchangeId.toString())
 
         assertEquals(Response.Status.OK.statusCode, response.status)
         assertEquals(etag, response.getHeaderString("ETag"))
+        assertEquals(state, response.entity)
+    }
+
+    @Test
+    fun `reading an exchange with no schema answers with what the caller may do and no validator`() {
+        val state = SchemaAssignmentStateDto(null, canManageSchema = true, canEditValues = false)
+        whenever(schemaAssignmentService.getAssignmentState(any())).thenReturn(state)
+
+        val response = resource.getSchema(exchangeId.toString())
+
+        assertEquals(Response.Status.OK.statusCode, response.status)
+        assertNull(response.getHeaderString("ETag"))
+        assertEquals(state, response.entity)
     }
 
     @Test
@@ -74,22 +84,11 @@ class ExchangeFieldsResourceETagTest
         whenever(schemaAssignmentService.applySchemaAssignment(any())).thenReturn(assignment(etag))
 
         val response = resource.assignSchema(
-            exchangeId.toString(), AssignSchemaRequest(UUID.randomUUID()), "*",
+            exchangeId.toString(), AssignSchemaRequest(UUID.randomUUID()), null, "*",
         )
 
         assertEquals(Response.Status.OK.statusCode, response.status)
         assertEquals(etag, response.getHeaderString("ETag"))
-    }
-
-    @Test
-    fun `a projection with no set of answers to validate carries no validator`()
-    {
-        whenever(schemaAssignmentService.getAssignment(any())).thenReturn(assignment(null))
-
-        val response = resource.getSchema(exchangeId.toString())
-
-        assertEquals(Response.Status.OK.statusCode, response.status)
-        assertNull(response.getHeaderString("ETag"))
     }
 
     @Test

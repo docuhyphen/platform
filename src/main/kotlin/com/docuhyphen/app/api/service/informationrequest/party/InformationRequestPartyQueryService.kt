@@ -1,29 +1,28 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
 import com.docuhyphen.app.api.model.InformationRequestPartyDtoMapper
-import com.docuhyphen.app.api.model.dto.InformationRequestPartyDto
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
+import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyListing
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityExternalIdentifierRepository
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
+import com.docuhyphen.app.api.service.informationrequest.privacy.InformationRequestSubjectRestrictionService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
 
-/**
- * Owner- and party-facing reads of a runtime Information Request's parties. Every active party on a
- * request shares the same `INFORMATION_REQUEST_VIEW` capability, so that action alone cannot decide
- * which party rows a caller is shown in full: only a caller holding
- * `INFORMATION_REQUEST_MANAGE_PARTIES`, or the party row that is the caller's own, is shown another
- * party's identity.
- */
 @ApplicationScoped
 class InformationRequestPartyQueryService @Inject constructor(
     private val requestRepository: InformationRequestRepository,
@@ -32,13 +31,14 @@ class InformationRequestPartyQueryService @Inject constructor(
     private val principalDisplayService: PrincipalDisplayService,
     private val identifierRepository: SubjectIdentityExternalIdentifierRepository,
     private val exchangeRecipientService: ExchangeRecipientService,
+    private val restrictions: InformationRequestSubjectRestrictionService,
 )
 {
-    fun listForRequest(requestId: UUID, access: RequestAccessContext): List<InformationRequestPartyDto>
+    private fun visibleParties(
+        requestId: UUID,
+        access: RequestAccessContext
+    ): List<Pair<InformationRequestParty, Boolean>>
     {
-        requestRepository.findById(requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
-
         val viewDecision = authorizationService.authorize(
             access.principal,
             Action.INFORMATION_REQUEST_VIEW,
@@ -52,7 +52,7 @@ class InformationRequestPartyQueryService @Inject constructor(
 
         val manageDecision = authorizationService.authorize(
             access.principal,
-            Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+            Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
             ResourceRef.informationRequest(requestId),
             access.authorization,
         )
@@ -60,41 +60,49 @@ class InformationRequestPartyQueryService @Inject constructor(
 
         return partyRepository.findActiveForRequest(requestId).map { party ->
             val revealIdentity = isManager || isOwnParty(party, access.principal)
-            InformationRequestPartyDtoMapper.toDto(party, revealIdentity)
+            party to revealIdentity
         }
     }
 
     fun listForManagement(requestId: UUID, access: RequestAccessContext): InformationRequestPartyListing
     {
+        InformationRequestReadAuthorization.requireVisibleTarget(authorizationService, requestId, access)
         val request = requestRepository.findById(requestId)
             ?: throw IllegalArgumentException("Information Request not found")
-        val listed = listForRequest(requestId, access)
+        val listed = visibleParties(requestId, access)
+        val ownerId = request.ownerOrganizationId ?: request.ownerUserId
         val subjectReferences = identifierRepository
-            .findForSubjects(listed.mapNotNull { it.subjectIdentityRefId })
+            .findForSubjects(listed.mapNotNull { (party, revealIdentity) -> party.subjectIdentityRefId.takeIf { revealIdentity } })
             .groupBy { it.subjectIdentityRefId }
-        val parties = listed.map { listedParty ->
-            val party = listedParty.copy(
-                trustSuspended = listedParty.exchangeRecipientId?.let(exchangeRecipientService::trustSuspended)
-                    ?: false,
-            )
+        val parties = listed.map { (party, revealIdentity) ->
             val principalId = party.principalId
             val principalKind = party.principalKind
             val subjectId = party.subjectIdentityRefId
-            when
+            val label = when
             {
+                !revealIdentity -> null
                 principalId != null && principalKind != null ->
-                    party.copy(label = principalDisplayService.display(PrincipalRef(principalKind, principalId)).name)
+                    principalDisplayService.display(PrincipalRef(principalKind, principalId)).name
 
                 subjectId != null ->
-                    party.copy(
-                        label = subjectReferences[subjectId]?.firstOrNull()
-                            ?.let { "${it.identifierType} ${it.identifierValue}" })
+                    subjectReferences[subjectId]?.firstOrNull()
+                        ?.let { "${it.identifierType} ${it.identifierValue}" }
 
-                else -> party
+                else -> null
             }
+            InformationRequestPartyDtoMapper.toDto(
+                party, revealIdentity, label,
+                revealIdentity && party.exchangeRecipientId?.let(exchangeRecipientService::trustSuspended) == true,
+                revealIdentity && party.roleKey == InformationRequestShareRoleKey.SUBJECT && subjectId != null &&
+                        ownerId != null && restrictions.isRestricted(request.ownerType, ownerId, subjectId),
+            )
         }
         return InformationRequestPartyListing(parties, InformationRequestETag.partiesOf(request))
     }
+
+    fun partiesOf(requestId: UUID): List<InformationRequestParty> = partyRepository.findForRequest(requestId)
+
+    fun findParty(partyId: UUID): InformationRequestParty? = partyRepository.findById(partyId)
 
     private fun isOwnParty(party: InformationRequestParty, principal: PrincipalRef): Boolean =
         party.principalKind == principal.kind && party.principalId == principal.id

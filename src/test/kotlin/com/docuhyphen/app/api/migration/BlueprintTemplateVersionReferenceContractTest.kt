@@ -1,10 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -12,21 +9,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class BlueprintReferencePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<BlueprintReferencePostgreSQLContainer>(imageName)
 
-/**
- * A blueprint may name one exact Information Request Template Version for the requests its future
- * instantiations create.
- *
- * The reference is to a Version rather than to a Template, because what a request is issued against
- * has to be exactly reproducible and a Template keeps changing. Storage holds the reference to a
- * real Version and keeps holding it: which statuses a Version may be in when it is selected, and
- * when it may still be instantiated from, are decisions the owning services make, because both
- * answers change over the life of a Version that storage is not told about.
- */
 class BlueprintTemplateVersionReferenceContractTest
 {
     private val baselineVersion = "89"
@@ -46,14 +33,10 @@ class BlueprintTemplateVersionReferenceContractTest
                     referencedVersion(connection, fixture.blueprintId),
                 )
 
-                // Naming nothing stays the ordinary case: a blueprint that creates no request is
-                // unaffected by this capability.
                 val plainBlueprintId = UUID.randomUUID()
                 insertBlueprint(connection, plainBlueprintId, fixture, null)
                 assertNull(referencedVersion(connection, plainBlueprintId))
 
-                // A Version that does not exist cannot be pinned, because a request created from it
-                // could resolve no configuration at all.
                 refused(connection, "blueprint_definition_request_template_version_fkey") {
                     insertBlueprint(connection, UUID.randomUUID(), fixture, UUID.randomUUID())
                 }
@@ -71,8 +54,6 @@ class BlueprintTemplateVersionReferenceContractTest
                 val fixture = Fixture(connection)
                 insertBlueprint(connection, fixture.blueprintId, fixture, fixture.draftVersionId)
 
-                // Forgetting the reference silently would change what the blueprint creates without
-                // anybody deciding to change it.
                 refused(connection, "blueprint_definition_request_template_version_fkey") {
                     deleteVersion(connection, fixture.draftVersionId)
                 }
@@ -92,9 +73,6 @@ class BlueprintTemplateVersionReferenceContractTest
 
                 retire(connection, fixture.publishedVersionId, fixture.userId)
 
-                // The blueprint keeps naming it, so an author can still read what it used to create
-                // and can edit everything else about the blueprint. Whether a new request may be
-                // created from a retired Version is a service decision, not a stored one.
                 assertEquals(
                     fixture.publishedVersionId,
                     referencedVersion(connection, fixture.blueprintId),
@@ -122,8 +100,6 @@ class BlueprintTemplateVersionReferenceContractTest
 
             postgres.createConnection("").use { connection ->
                 assertTrue(hasReferenceColumn(connection))
-                // A blueprint released before this capability existed names no Version and keeps
-                // creating exactly what it created before.
                 assertNull(referencedVersion(connection, releasedBlueprintId))
             }
         }
@@ -145,7 +121,7 @@ class BlueprintTemplateVersionReferenceContractTest
             insertDefinition(connection, definitionId, organizationId)
             insertVersion(connection, draftVersionId, definitionId, 1)
             insertVersion(connection, publishedVersionId, definitionId, 2)
-            publish(connection, publishedVersionId, userId)
+            publish(connection, publishedVersionId)
         }
     }
 
@@ -299,18 +275,17 @@ class BlueprintTemplateVersionReferenceContractTest
         }
     }
 
-    private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publish(connection: Connection, versionId: UUID)
     {
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }
@@ -320,7 +295,7 @@ class BlueprintTemplateVersionReferenceContractTest
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'RETIRED', retired_at = ?, retired_by_app_user_id = ?
+            SET status = 'RETIRED', retired_at = ?, retired_by_principal_kind = 'USER', retired_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->

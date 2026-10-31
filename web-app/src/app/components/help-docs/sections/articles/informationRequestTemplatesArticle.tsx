@@ -1,49 +1,87 @@
 export const informationRequestTemplatesArticle = (
     <>
         <p id={"information-request-templates-intro"}>
-            An Information Request Template is a reusable request: its sections, the items each section
-            asks for, repeated groups, conditions, review stages, and settings. Publishing a Template
-            creates a Version that requests are made from; a published Version never changes.
+            An Information Request Template is a reusable request: its sections, the items each section asks for,
+            repeated groups,
+            conditions, review stages, and settings. Publishing a Template creates a Version that requests are made
+            from; a published
+            Version never changes.
         </p>
 
         <h3 id={"information-request-templates-list-heading"}>Opening the Template list</h3>
         <p id={"information-request-templates-list-help"}>
             Open <b>Settings</b>, then select <b>Content - Information Requests</b>. Use
             <b> My Templates</b> for personally owned Templates, <b>Organization</b> for the active
-            organization, and <b>Platform</b> for read-only platform Templates. Organization Owners and
-            Administrators manage the organization&apos;s Templates. Select <b>New Template</b> to create
-            a draft in the chosen scope.
+            organization, and <b>Platform</b> for platform Templates. Organization Owners and
+            Administrators manage the organization&apos;s Templates and are the only members who see its
+            unpublished drafts; other members see only published Versions. Platform administrators
+            author platform Templates with the same editor; everyone else reads their published
+            Versions. Select <b>New Template</b> to create a draft in the chosen scope.
         </p>
         <p id={"information-request-templates-availability-help"}>
-            The tab appears only when your plan or your active organization includes Information
-            Requests. Without it, the tab is not shown, and you can still respond to and review
-            Information Requests shared with you. You author personal Templates on the Personal plan, or
-            while an active organization whose plan includes Information Requests is selected. When new
-            requests cannot be created, Templates stay readable but <b>New Template</b> is not offered.
+            The tab appears only when your plan or your active organization includes Information Requests, for platform
+            administrators too: select such an organization to author platform Templates. Without it, the tab is not
+            shown, and you can still respond to and review Information Requests shared with you. You author personal
+            Templates on the Personal plan, or while an active organization whose plan includes Information Requests is
+            selected. When new requests cannot be created, Templates stay readable but <b>New Template</b> is not
+            offered; reaching the open request limit does not stop Template authoring.
         </p>
 
         <h3 id={"information-request-templates-editor-heading"}>The editor</h3>
         <p id={"information-request-templates-editor-help"}>
             A draft opens in an editor with the tabs Sections, Groups, Conditions, Review, and Settings,
             and a Versions tab for what has been published.
+            <b id={"information-request-templates-answer-role-label"}> Answered by</b> offers Contributor and Preparer,
+            plus
+            Attestor for a confirmation item; <b id={"information-request-templates-confirmation-role-label"}> Roles
+            that confirm</b> offer all three.
+            Subject identifies who or what the request is about and cannot answer or confirm, and Attestor cannot
+            provide typed
+            data or files. Saving and publishing refuse a Requirement that gives either duty to Subject or such an
+            answer to Attestor.
         </p>
         <ul id={"information-request-templates-editor-list"}>
             <li>
                 <b>Sections</b>: <b>Add section</b>, then <b>Add requirement</b> in a section. An item is a
                 <b> Typed answer</b> collected in a Field of the Template&apos;s request schema, a
-                <b> Document</b> with its evidence policy, or a <b>Confirmation</b>. Each item has a key,
+                <b> Document</b> with its evidence policy, or a <b>Confirmation</b>. Publishing refuses a typed answer
+                whose Field the
+                Schema marks read-only. A Field that is not marked <b>Public</b> can be answered only by people inside
+                the request&apos;s
+                owner, so issuing the request, or giving its answering role to someone outside, is refused naming the
+                item; the editor
+                notes this under <b>Collected Field</b>. A document&apos;s accepted file types are picked from a list.
+                Each item has a key,
                 a prompt, help text, whether it is required, optional, or asked only when a condition is
                 true, who answers it, how they may answer, which other answers they may give instead of a
-                value, and whether it is reviewed.
+                value, and whether it is reviewed. An answer given once can change until it is first
+                submitted and stays fixed afterwards, even if that submission is withdrawn, unless a
+                reviewer returns that answer for correction: a confirmation keeps its decision, and changing
+                another answer cannot clear it through a condition. An item never submitted while shown can
+                still be answered once it applies. Any
+                label in <b>Confidentiality compartment</b> marks the item as protected: people see and
+                answer it only shortly after verifying again.
             </li>
             <li>
-                <b>Groups</b>: a group repeats its items once per entry, with a minimum and maximum number
-                of entries, and can be nested in another group.
+                <b>Groups</b>: a group repeats its items once per entry, with a minimum of zero or more and
+                a maximum of at least one and no smaller than the minimum, and can be nested in another
+                group. A group must hold at least one item somewhere beneath it. A Version holds at most 100 groups,
+                nested at most five deep, each requiring at most 100 entries and allowing at most 1000.
             </li>
             <li>
                 <b>Conditions</b>: a condition tests earlier answers and says what happens to hidden
-                answers when it turns false. The editor refuses unknown keys, unsupported tests, and
-                conditions that depend on each other in a loop.
+                answers when it turns false. Only a Conditional item has a condition. The editor refuses
+                unknown keys, unsupported tests, conditions that depend on each other in a loop, one that would clear or
+                archive the answer
+                of a role other than the one answering what it reads, one that reads an answer outside the item&apos;s
+                own or an enclosing group and not given once for the whole request, and, when the request is submitted
+                in parts, a condition that reads an answer from another part.
+                A Version holds at most 500 items and 500 conditions, and a condition at most 50 tests.
+                A condition reads an item&apos;s answer or a Field&apos;s value, never a confirmation. A document
+                nobody chose an answer for counts as provided once its own files complete it.
+                A compared value is entered as its Field&apos;s type: <b>Yes</b> or <b>No</b>, one of the Field&apos;s
+                options (several, ticked, for <b>is one of</b> and <b>is none of</b>), a date or date and time,
+                or a number such as 12 or 4.50. A choice must be one the Field offers; publishing checks this again.
             </li>
             <li>
                 <b>Review</b>: review stages, their order, how each stage decides an item, and who may not
@@ -51,57 +89,15 @@ export const informationRequestTemplatesArticle = (
             </li>
             <li>
                 <b>Settings</b>: the request schema, whether the request is submitted whole or in parts,
-                and the purpose under which accepted answers may be reused. A Template can use a platform
+                and the purpose under which accepted answers may be reused. When it is submitted in parts, a
+                document and any alternative that can complete it belong to the same part, so each submitted
+                part holds every file that completes it; publishing checks this again. An alternative document is given
+                once for the whole request or in the document&apos;s own group, and cannot name alternatives of its own.
+                Typed answers are recorded against a Schema made for Information Requests, chosen under
+                <b> Used for</b> when the Schema is created in <b>Content - Fields</b>. A Template can use a platform
                 Schema, and an organization Template can also use the organization&apos;s Schemas; personal
                 Fields and Schemas cannot be authored yet.
             </li>
         </ul>
-
-        <h3 id={"information-request-templates-publish-heading"}>Saving and publishing</h3>
-        <p id={"information-request-templates-publish-help"}>
-            <b>Save draft</b> keeps your changes. <b>Before publishing</b> lists anything that would stop
-            the draft from being published, each with <b>Show</b> to open the part it names, and
-            <b> Publish</b> stays unavailable until nothing is listed. If the server still refuses the
-            draft, its message names the section, item, group, or review stage, and <b>Show</b> opens
-            it. Publishing freezes the Version; later changes need a new draft.
-            <b> Copy as a new Template</b> starts another Template from this one, and <b>Retire</b>
-            stops a Version from being used for new requests while requests made from it continue. A
-            platform Template is a starting point that requests never use directly: open it, select
-            <b> Copy as a new Template</b>, and copy it into My Templates or the organization.
-        </p>
-
-        <h3 id={"information-request-conditional-answers-heading"}>Conditional answers</h3>
-        <p id={"information-request-conditional-visibility-help"}>
-            A conditional item is shown only while its condition is true. False or unknown conditions
-            keep its answers out of the active response workspace, including saved Field values. Each
-            repeated entry is evaluated separately: its condition reads that entry&apos;s own answers
-            first, then its enclosing groups, then answers given once for the whole request.
-        </p>
-        <p id={"information-request-conditional-clearing-help"}>
-            Retention policies keep hidden answers in the stored record. When the Template requires
-            confirmed clearing, confirm the affected items before saving. Clearing empties their current
-            Fields and response data while preserving earlier Field revisions. When a condition becomes
-            true again, retained or archived answers return to the active workspace. Cleared answers
-            return as empty and do not restore cleared values.
-        </p>
-
-        <h3 id={"information-request-templates-progress-heading"}>Progress</h3>
-        <p id={"information-request-templates-progress-help"}>
-            A typed answer counts as complete only when its Field has a current answer, or when the
-            respondent saves another answer the item allows, such as not applicable or unavailable, with
-            its reason. Empty saves and cleared Fields stay drafts and are not counted as complete.
-        </p>
-
-        <h3 id={"information-request-configuration-bundles-heading"}>Configuration bundles</h3>
-        <p id={"information-request-configuration-bundles-help"}>
-            A configuration bundle is a versioned JSON document that describes your own setup in one
-            place: which Template Versions it covers, validation policies for answers and files, your
-            reason codes, role presets, due date policies, retention defaults, and optional connector
-            contracts. A connector contract names the connector, its kind, its version, the result keys
-            it returns, and an optional result age limit; its results are always reviewed. DocuHyphen
-            ships no bundle of its own. Integrations can check a bundle before
-            using it with <code>POST /information-request-configuration-bundles/validations</code>, which
-            lists every problem with the place it was found.
-        </p>
     </>
 );

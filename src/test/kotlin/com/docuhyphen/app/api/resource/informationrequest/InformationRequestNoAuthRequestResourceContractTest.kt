@@ -1,28 +1,19 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
-import com.docuhyphen.app.api.model.dto.FieldValueDto
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.InformationRequestDtoMapper
-import com.docuhyphen.app.api.model.dto.InformationRequestDto
-import com.docuhyphen.app.api.model.dto.InformationRequestGroupOccurrenceDto
-import com.docuhyphen.app.api.model.dto.InformationRequestPartyDto
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
-import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
-import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestItemProblem
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
+import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyListing
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationKind
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestNoAuthRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
@@ -32,43 +23,34 @@ import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccur
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseWorkspaceService
-import kotlinx.serialization.json.JsonPrimitive
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException
-import jakarta.ws.rs.DELETE
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.PATCH
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
+import jakarta.ws.rs.*
 import jakarta.ws.rs.core.Response
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * The no-auth, respondent-facing read adapter for a runtime Information Request bound to a verified
- * bootstrap access link. It never authenticates via the global access-token filter; it validates the
- * bootstrap token presented in [ACCESS_LINK_TOKEN_HEADER] itself, the same way
- * [InformationRequestNoAuthAccessResource] validates its own header, then delegates to the very same
- * [InformationRequestQueryService] and [InformationRequestPartyQueryService] the authenticated
- * surface uses, so both surfaces project identical data for an equivalent caller.
- */
 class InformationRequestNoAuthRequestResourceContractTest
 {
-    private val readAccessService = mock<InformationRequestNoAuthReadAccessService>()
+    private val readAccessService = InformationRequestNoAuthAccessDoubles.current()
     private val partyQueryService = mock<InformationRequestPartyQueryService>()
     private val responseDraftService = mock<InformationRequestResponseDraftService>()
     private val occurrenceService = mock<InformationRequestGroupOccurrenceService>()
@@ -82,11 +64,32 @@ class InformationRequestNoAuthRequestResourceContractTest
     )
 
     private val requestId = UUID.randomUUID()
+    private val otherRequestId = UUID.randomUUID()
     private val requirementId = UUID.randomUUID()
     private val sourceTemplateRequirementId = UUID.randomUUID()
     private val sourceTemplateBindingId = UUID.randomUUID()
     private val access = RequestAccessContext(PrincipalRef.participant(UUID.randomUUID()), AuthorizationContext())
-    private val noAuthAccess = InformationRequestNoAuthAccess(access, requestId)
+
+    @Test
+    fun `a wildcard If-Match on a no-auth group occurrence is sent to the service as a missing precondition`() {
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(occurrenceService.add(any()))
+            .thenThrow(com.docuhyphen.app.api.service.command.CommandPreconditionException.required("\"responses-etag\""))
+
+        val response = resource.addGroupOccurrence(
+            requestId.toString(),
+            CreateInformationRequestGroupOccurrenceRequest(groupKey = "entries"),
+            "raw-token",
+            "*",
+            "key-wildcard",
+        )
+
+        assertEquals(428, response.status)
+        verify(occurrenceService).add(
+            org.mockito.kotlin.argThat { precondition == com.docuhyphen.app.api.model.command.CommandPrecondition.Absent },
+        )
+    }
+
     private val request = InformationRequest().apply {
         id = requestId
         exchangeId = UUID.randomUUID()
@@ -107,6 +110,7 @@ class InformationRequestNoAuthRequestResourceContractTest
         partyRevision = 1,
         partyETag = "\"party-etag\"",
     )
+    private val partyListing = InformationRequestPartyListing(listOf(partyDto), "\"parties-etag\"")
 
     @Test
     fun `every content endpoint refuses a forwarded bootstrap token without a session secret`()
@@ -120,38 +124,65 @@ class InformationRequestNoAuthRequestResourceContractTest
             guarded.get(id, "forwarded-bootstrap"),
             guarded.parties(id, "forwarded-bootstrap"),
             guarded.responseWorkspace(id, "forwarded-bootstrap"),
-            guarded.patchResponses(id, PatchInformationRequestResponsesRequest(listOf(
-                InformationRequestResponsePatchRequest(requirementId, InformationRequestResponseDisposition.PROVIDED),
-            )), "forwarded-bootstrap", "\"etag\"", "command"),
-            guarded.addGroupOccurrence(id, CreateInformationRequestGroupOccurrenceRequest("items"),
-                "forwarded-bootstrap", "\"etag\"", "command"),
-            guarded.removeGroupOccurrence(id, UUID.randomUUID().toString(), "forwarded-bootstrap", "\"etag\"", "command"),
-            guarded.reorderGroupOccurrences(id, ReorderInformationRequestGroupOccurrencesRequest("items", occurrenceIds = emptyList()),
-                "forwarded-bootstrap", "\"etag\"", "command"),
+            guarded.patchResponses(
+                id, PatchInformationRequestResponsesRequest(
+                    listOf(
+                        InformationRequestResponsePatchRequest(
+                            requirementId,
+                            InformationRequestResponseDisposition.PROVIDED
+                        ),
+                    )
+                ), "forwarded-bootstrap", "\"etag\"", "command"
+            ),
+            guarded.addGroupOccurrence(
+                id, CreateInformationRequestGroupOccurrenceRequest("items"),
+                "forwarded-bootstrap", "\"etag\"", "command"
+            ),
+            guarded.removeGroupOccurrence(
+                id,
+                UUID.randomUUID().toString(),
+                "forwarded-bootstrap",
+                "\"etag\"",
+                "command"
+            ),
+            guarded.reorderGroupOccurrences(
+                id, ReorderInformationRequestGroupOccurrencesRequest("items", occurrenceIds = emptyList()),
+                "forwarded-bootstrap", "\"etag\"", "command"
+            ),
         )
         responses.forEach { response ->
             assertEquals(Response.Status.CONFLICT.statusCode, response.status)
-            assertEquals(InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
-                (response.entity as com.docuhyphen.app.api.resource.model.ResponseError).reasonCode)
+            assertEquals(
+                InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
+                (response.entity as com.docuhyphen.app.api.resource.model.ResponseError).reasonCode
+            )
         }
-        org.mockito.kotlin.verifyNoInteractions(partyQueryService, responseDraftService,
-            occurrenceService, responseWorkspaceService)
+        verifyNoInteractions(
+            partyQueryService, responseDraftService,
+            occurrenceService, responseWorkspaceService
+        )
     }
 
     @Test
     fun `content adapters pass the independent session credential to the resolver`()
     {
-        whenever(readAccessService.resolve("bootstrap", "session-secret")).thenReturn(noAuthAccess)
-        whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(InformationRequestDtoMapper.toDto(request))
+        whenever(readAccessService.resolve(requestId, "bootstrap", "session-secret")).thenReturn(access)
+        whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(
+            InformationRequestDtoMapper.toDto(
+                request,
+                revealOwner = false,
+                executionStanding = InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE)
+            )
+        )
         assertEquals(200, resource.get(requestId.toString(), "bootstrap", "session-secret").status)
-        verify(readAccessService).resolve("bootstrap", "session-secret")
+        verify(readAccessService).resolve(requestId, "bootstrap", "session-secret")
     }
 
     @Test
     fun `response workspace delegates through the verified no-auth access context`()
     {
         val workspace = mock<InformationRequestResponseWorkspaceDto>()
-        whenever(readAccessService.resolve("bootstrap", "session-secret")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(requestId, "bootstrap", "session-secret")).thenReturn(access)
         whenever(responseWorkspaceService.load(requestId, access)).thenReturn(workspace)
 
         val response = resource.responseWorkspace(requestId.toString(), "bootstrap", "session-secret")
@@ -162,12 +193,42 @@ class InformationRequestNoAuthRequestResourceContractTest
     }
 
     @Test
+    fun `request, party, and workspace reads are made with the access the session recheck holds current`() {
+        val current = access.copy(authorization = AuthorizationContext(sessionRef = "current-session"))
+        whenever(readAccessService.resolve(requestId, "bootstrap", "session-secret")).thenReturn(access)
+        doAnswer { it.getArgument<(RequestAccessContext) -> Any?>(2).invoke(current) }
+            .whenever(readAccessService).readCurrent<Any?>(eq(requestId), eq(access), any())
+        whenever(responseWorkspaceService.loadRequest(requestId, current)).thenReturn(
+            InformationRequestDtoMapper.toDto(
+                request,
+                revealOwner = false,
+                executionStanding = InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE)
+            )
+        )
+        whenever(partyQueryService.listForManagement(requestId, current)).thenReturn(partyListing)
+        whenever(responseWorkspaceService.load(requestId, current)).thenReturn(mock())
+
+        val responses = listOf(
+            resource.get(requestId.toString(), "bootstrap", "session-secret"),
+            resource.parties(requestId.toString(), "bootstrap", "session-secret"),
+            resource.responseWorkspace(requestId.toString(), "bootstrap", "session-secret"),
+        )
+
+        assertEquals(listOf(200, 200, 200), responses.map { it.status })
+        verify(responseWorkspaceService, never()).loadRequest(requestId, access)
+        verify(partyQueryService, never()).listForManagement(requestId, access)
+        verify(responseWorkspaceService, never()).load(requestId, access)
+    }
+
+    @Test
     fun `resource is mounted under the no-auth request prefix and exposes get, parties, and response patch`()
     {
         val resourceClass = InformationRequestNoAuthRequestResourceOperations::class.java
         val methods = resourceClass.declaredMethods.associateBy { it.name }
-        for (name in listOf("get", "parties", "responseWorkspace", "patchResponses", "addGroupOccurrence",
-            "removeGroupOccurrence", "reorderGroupOccurrences"))
+        for (name in listOf(
+            "get", "parties", "responseWorkspace", "patchResponses", "addGroupOccurrence",
+            "removeGroupOccurrence", "reorderGroupOccurrences"
+        ))
             assertTrue(methods.getValue(name).parameters.any {
                 it.getAnnotation(jakarta.ws.rs.HeaderParam::class.java)?.value == "X-Request-Session-Token"
             })
@@ -203,14 +264,18 @@ class InformationRequestNoAuthRequestResourceContractTest
         val response = resource.get(requestId.toString(), null)
 
         assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
-        verify(readAccessService, never()).resolve(any(), org.mockito.kotlin.anyOrNull())
+        verify(readAccessService, never()).resolve(any(), any(), anyOrNull())
     }
 
     @Test
     fun `get resolves the token then returns the same detail projection the authenticated surface uses`()
     {
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
-        val projected = InformationRequestDtoMapper.toDto(request, listOf(
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        val projected = InformationRequestDtoMapper.toDto(
+            request,
+            revealOwner = false,
+            InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE),
+            listOf(
                 InformationRequestConditionEvaluationProjection(
                     ruleKey = "when-response-missing",
                     expressionVersion = 1,
@@ -218,7 +283,8 @@ class InformationRequestNoAuthRequestResourceContractTest
                     sourceRequirementKeys = setOf("prior-response"),
                     fieldDefinitionIds = emptySet(),
                 ),
-            ))
+            )
+        )
         whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(projected)
 
         val response = resource.get(requestId.toString(), "raw-token")
@@ -235,11 +301,11 @@ class InformationRequestNoAuthRequestResourceContractTest
     @Test
     fun `get refuses a token bound to a different request than the one named in the path`()
     {
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(otherRequestId, "raw-token", null)).thenThrow(otherRequestRefusal())
 
-        val response = resource.get(UUID.randomUUID().toString(), "raw-token")
+        val response = resource.get(otherRequestId.toString(), "raw-token")
 
-        assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
+        assertNotFound(response)
         verify(responseWorkspaceService, never()).loadRequest(any(), any())
     }
 
@@ -249,18 +315,19 @@ class InformationRequestNoAuthRequestResourceContractTest
         val response = resource.parties(requestId.toString(), null)
 
         assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
-        verify(readAccessService, never()).resolve(any(), org.mockito.kotlin.anyOrNull())
+        verify(readAccessService, never()).resolve(any(), any(), anyOrNull())
     }
 
     @Test
     fun `parties resolves the token then returns the same party projection the authenticated surface uses`()
     {
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
-        whenever(partyQueryService.listForRequest(requestId, access)).thenReturn(listOf(partyDto))
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(partyQueryService.listForManagement(requestId, access)).thenReturn(partyListing)
 
         val response = resource.parties(requestId.toString(), "raw-token")
 
         assertEquals(Response.Status.OK.statusCode, response.status)
+        assertEquals(partyListing.partiesETag, response.getHeaderString("ETag"))
         @Suppress("UNCHECKED_CAST")
         val body = response.entity as Array<InformationRequestPartyDto>
         assertEquals(1, body.size)
@@ -272,7 +339,12 @@ class InformationRequestNoAuthRequestResourceContractTest
         val response = resource.patchResponses(
             requestId.toString(),
             PatchInformationRequestResponsesRequest(
-                listOf(InformationRequestResponsePatchRequest(requirementId, InformationRequestResponseDisposition.PROVIDED)),
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
             ),
             null,
             "\"etag\"",
@@ -280,25 +352,30 @@ class InformationRequestNoAuthRequestResourceContractTest
         )
 
         assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
-        verify(readAccessService, never()).resolve(any(), org.mockito.kotlin.anyOrNull())
+        verify(readAccessService, never()).resolve(any(), any(), anyOrNull())
     }
 
     @Test
     fun `patchResponses refuses a token bound to a different request than the one named in the path`()
     {
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(otherRequestId, "raw-token", null)).thenThrow(otherRequestRefusal())
 
         val response = resource.patchResponses(
-            UUID.randomUUID().toString(),
+            otherRequestId.toString(),
             PatchInformationRequestResponsesRequest(
-                listOf(InformationRequestResponsePatchRequest(requirementId, InformationRequestResponseDisposition.PROVIDED)),
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
             ),
             "raw-token",
             "\"etag\"",
             "key-1",
         )
 
-        assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
+        assertNotFound(response)
         verify(responseDraftService, never()).patch(any())
     }
 
@@ -337,13 +414,18 @@ class InformationRequestNoAuthRequestResourceContractTest
                 requirementId to fieldProjection(listOf(fieldValue), "\"field-values-etag\""),
             ),
         )
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
         whenever(responseDraftService.patch(any())).thenReturn(result)
 
         val response = resource.patchResponses(
             requestId.toString(),
             PatchInformationRequestResponsesRequest(
-                listOf(InformationRequestResponsePatchRequest(requirementId, InformationRequestResponseDisposition.PROVIDED)),
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
                 confirmedHiddenResponseClearRequirementIds = setOf(requirementId),
             ),
             "raw-token",
@@ -366,6 +448,180 @@ class InformationRequestNoAuthRequestResourceContractTest
         assertEquals(setOf(requirementId), captor.firstValue.confirmedHiddenResponseClears)
     }
 
+    @Test
+    fun `patchResponses maps every response the draft service discloses without filtering them again`() {
+        val otherRequirementId = UUID.randomUUID()
+        val responses = listOf(requirementId, otherRequirementId).map { id ->
+            InformationRequestResponse().apply {
+                informationRequestId = requestId
+                informationRequestRequirementId = id
+                requirementRevisionId = UUID.randomUUID()
+                occurrencePath = "root"
+                disposition = InformationRequestResponseDisposition.PROVIDED
+                responseRevision = 2
+                recordedByPrincipalKind = PrincipalKind.PARTICIPANT
+                recordedByPrincipalId = UUID.randomUUID()
+            }
+        }
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseDraftService.patch(any())).thenReturn(
+            InformationRequestResponseDraftResult(
+                request = request,
+                responseETag = "\"responses-etag\"",
+                responses = responses,
+                requirementsById = mapOf(
+                    requirementId to requirement(requirementId, sourceTemplateRequirementId, sourceTemplateBindingId),
+                    otherRequirementId to requirement(otherRequirementId, UUID.randomUUID(), UUID.randomUUID()),
+                ),
+            ),
+        )
+
+        val response = resource.patchResponses(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "raw-token",
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.OK.statusCode, response.status)
+        val body = response.entity as Array<InformationRequestResponseDto>
+        assertEquals(listOf(requirementId, otherRequirementId), body.map { it.informationRequestRequirementId })
+    }
+
+    @Test
+    fun `an item refusal on the access link surface maps to 409 naming each refused Requirement`() {
+        val refusal = InformationRequestItemRefusalException(
+            InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+            "The response did not pass structured validation",
+            listOf(
+                InformationRequestItemProblem(
+                    code = InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+                    message = "This entry repeats an earlier entry",
+                    requirementId = requirementId,
+                    occurrencePath = "entries[2]",
+                    validationKind = InformationRequestStructuredResponseValidationKind.DUPLICATE,
+                ),
+            ),
+        )
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseDraftService.patch(any())).thenThrow(refusal)
+        whenever(occurrenceService.add(any())).thenThrow(refusal)
+
+        val patched = resource.patchResponses(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "raw-token",
+            "\"etag\"",
+            "key-1",
+        )
+        val added = resource.addGroupOccurrence(
+            requestId.toString(),
+            CreateInformationRequestGroupOccurrenceRequest(groupKey = "entries"),
+            "raw-token",
+            "\"etag\"",
+            "key-2",
+        )
+
+        listOf(patched, added).forEach { response ->
+            assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+            val body = org.junit.jupiter.api.Assertions.assertInstanceOf(
+                InformationRequestItemRefusalDto::class.java,
+                response.entity
+            )
+            assertEquals(InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED, body.reasonCode)
+            assertEquals(listOf(requirementId), body.problems.map { it.requirementId })
+            assertEquals(
+                InformationRequestStructuredResponseValidationKind.DUPLICATE,
+                body.problems.single().validationKind
+            )
+        }
+    }
+
+    @Test
+    fun `a stored rule refusing a save on the access link surface answers 409 with the constraint code`() {
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseDraftService.patch(any())).thenThrow(
+            RuntimeException(
+                "transaction rolled back",
+                jakarta.persistence.PersistenceException(
+                    "could not execute statement",
+                    java.sql.SQLException("refused by a stored rule", "22001"),
+                ),
+            ),
+        )
+
+        val response = resource.patchResponses(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "raw-token",
+            "\"etag\"",
+            "key-stored-rule",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        assertEquals(
+            InformationRequestErrorCatalog.CONSTRAINT_CONFLICT,
+            (response.entity as com.docuhyphen.app.api.resource.model.ResponseError).reasonCode,
+        )
+    }
+
+    @Test
+    fun `a refused hidden clear on the access link surface names the Requirements to confirm`() {
+        val target = com.docuhyphen.app.api.model.informationrequest.response.HiddenResponseClearTarget(
+            requirementId,
+            sourceTemplateBindingId,
+            "root"
+        )
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseDraftService.patch(any())).thenThrow(
+            com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseClearRequiredException(
+                listOf(target)
+            ),
+        )
+
+        val response = resource.patchResponses(
+            requestId.toString(),
+            PatchInformationRequestResponsesRequest(
+                listOf(
+                    InformationRequestResponsePatchRequest(
+                        requirementId,
+                        InformationRequestResponseDisposition.PROVIDED
+                    )
+                ),
+            ),
+            "raw-token",
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        val body = response.entity as HiddenResponseClearRequiredErrorDto
+        assertEquals(InformationRequestErrorCatalog.HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED, body.reasonCode)
+        assertEquals(listOf(requirementId), body.hiddenResponseClears.map { it.requirementId })
+    }
+
     private fun requirement(id: UUID, sourceRequirementId: UUID, sourceBindingId: UUID) =
         InformationRequestRequirement().apply {
             this.id = id
@@ -384,7 +640,7 @@ class InformationRequestNoAuthRequestResourceContractTest
             occurrenceIndex = 0
             occurrencePath = "items[0]"
         }
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
         whenever(occurrenceService.add(any())).thenReturn(
             InformationRequestGroupOccurrenceResult(
                 request = request,
@@ -409,29 +665,59 @@ class InformationRequestNoAuthRequestResourceContractTest
     }
 
     @Test
+    fun `a JAX-RS refusal from a no-auth occurrence command is rethrown as on the authenticated surface`() {
+        val refusal = NotFoundException("Group occurrence not found")
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(occurrenceService.remove(any())).thenThrow(refusal)
+
+        val thrown = assertThrows<NotFoundException> {
+            resource.removeGroupOccurrence(
+                requestId.toString(),
+                UUID.randomUUID().toString(),
+                "raw-token",
+                "\"etag\"",
+                "remove-key",
+            )
+        }
+
+        assertEquals(refusal, thrown)
+    }
+
+    @Test
     fun `remove and reorder group occurrences reject a token bound to another request`()
     {
-        whenever(readAccessService.resolve("raw-token")).thenReturn(noAuthAccess)
+        whenever(readAccessService.resolve(otherRequestId, "raw-token", null)).thenThrow(otherRequestRefusal())
 
         val remove = resource.removeGroupOccurrence(
-            UUID.randomUUID().toString(),
+            otherRequestId.toString(),
             UUID.randomUUID().toString(),
             "raw-token",
             "\"etag\"",
             "remove-key",
         )
         val reorder = resource.reorderGroupOccurrences(
-            UUID.randomUUID().toString(),
+            otherRequestId.toString(),
             ReorderInformationRequestGroupOccurrencesRequest("items", occurrenceIds = emptyList()),
             "raw-token",
             "\"etag\"",
             "reorder-key",
         )
 
-        assertEquals(Response.Status.NOT_FOUND.statusCode, remove.status)
-        assertEquals(Response.Status.NOT_FOUND.statusCode, reorder.status)
+        assertNotFound(remove)
+        assertNotFound(reorder)
         verify(occurrenceService, never()).remove(any())
         verify(occurrenceService, never()).reorder(any())
+    }
+
+    private fun otherRequestRefusal() =
+        InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Information Request not found")
+
+    private fun assertNotFound(response: Response) {
+        assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
+        assertEquals(
+            InformationRequestErrorCatalog.NOT_FOUND,
+            (response.entity as com.docuhyphen.app.api.resource.model.ResponseError).reasonCode,
+        )
     }
 
     private fun fieldProjection(fields: List<FieldValueDto>, etag: String) = SchemaAssignmentDto(
@@ -450,9 +736,41 @@ class InformationRequestNoAuthRequestResourceContractTest
     )
 
     @Test
+    fun `a plan refusal on the access link surface reaches the subscription mapper instead of becoming a server error`() {
+        val denial = SubscriptionDenialException(
+            SubscriptionDenial(
+                reason = SubscriptionDenialReason.SUBSCRIPTION_SUSPENDED,
+                planCode = PlanCode.BUSINESS,
+                ownerType = SubscriptionOwnerType.ORGANIZATION,
+                message = "The owner's subscription is suspended",
+            ),
+        )
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseDraftService.patch(any())).thenThrow(denial)
+
+        val thrown = assertThrows<SubscriptionDenialException> {
+            resource.patchResponses(
+                requestId.toString(),
+                PatchInformationRequestResponsesRequest(
+                    listOf(
+                        InformationRequestResponsePatchRequest(
+                            requirementId,
+                            InformationRequestResponseDisposition.PROVIDED
+                        )
+                    ),
+                ),
+                "raw-token",
+                "\"etag\"",
+                "key-1",
+            )
+        }
+        assertEquals(denial, thrown)
+    }
+
+    @Test
     fun `domain failures map to stable response statuses`()
     {
-        whenever(readAccessService.resolve("session-required-token"))
+        whenever(readAccessService.resolve(requestId, "session-required-token", null))
             .thenThrow(
                 InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED,
@@ -462,8 +780,17 @@ class InformationRequestNoAuthRequestResourceContractTest
         val conflict = resource.get(requestId.toString(), "session-required-token")
         assertEquals(Response.Status.CONFLICT.statusCode, conflict.status)
 
-        whenever(readAccessService.resolve("denied-token")).thenThrow(ForbiddenException("Denied"))
+        whenever(readAccessService.resolve(requestId, "denied-token", null)).thenThrow(ForbiddenException("Denied"))
         val denied = resource.get(requestId.toString(), "denied-token")
         assertEquals(Response.Status.FORBIDDEN.statusCode, denied.status)
+
+        whenever(readAccessService.resolve(requestId, "raw-token", null)).thenReturn(access)
+        whenever(responseWorkspaceService.load(requestId, access)).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            ),
+        )
+        assertNotFound(resource.responseWorkspace(requestId.toString(), "raw-token"))
     }
 }

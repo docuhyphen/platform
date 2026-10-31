@@ -1,14 +1,18 @@
 import {useState} from "react";
-import {Button, Text} from "@fluentui/react-components";
-import {AddIcon, CopyIcon, DeleteIcon} from "../../../components/IconBundles.tsx";
+import {Text} from "@fluentui/react-components";
 import {
     CreateInformationRequestTemplateRequest,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateStatus,
+    InformationRequestTemplateVersionStandingDto,
 } from "../../../models/models.tsx";
+import ChoiceSelect from "../../../information-requests/shared/choice-select/ChoiceSelect.tsx";
+import {formatInformationRequestTime} from "../../../information-requests/shared/informationRequestFormatting.ts";
 import TemplateRetireDialog from "../template-retire-dialog/TemplateRetireDialog.tsx";
 import TemplateCloneDialog from "../template-clone-dialog/TemplateCloneDialog.tsx";
+import TemplateVersionActions from "../template-version-actions/TemplateVersionActions.tsx";
+import TemplateVersionList from "../template-version-list/TemplateVersionList.tsx";
 import {useTemplateVersionsPanelStyles} from "./TemplateVersionsPanelStyles.tsx";
 
 interface TemplateVersionsPanelProps
@@ -16,22 +20,51 @@ interface TemplateVersionsPanelProps
     template: InformationRequestTemplateDto;
     canManage: boolean;
     busy: boolean;
+    shownVersionNumber: number | null;
+    onView: (versionNumber: number) => void;
     onStartDraft: (versionNumber: number) => Promise<unknown>;
-    onRetire: (versionNumber: number) => Promise<boolean>;
-    onClone: (versionNumber: number, target: CreateInformationRequestTemplateRequest) => Promise<boolean>;
+    onRetire: (versionNumber: number) => Promise<string | null>;
+    onClone: (versionNumber: number, target: CreateInformationRequestTemplateRequest) => Promise<string | null>;
     copyTargets: InformationRequestTemplateScopeKind[];
 }
 
-const dateText = (value?: string): string => value ? new Date(value).toLocaleDateString() : "";
+const standingsOf = (template: InformationRequestTemplateDto): InformationRequestTemplateVersionStandingDto[] => {
+    if (template.versions?.length) return template.versions;
+    const published = template.latestPublishedVersion;
+    return published
+        ? [{versionNumber: published.versionNumber, status: published.status, publishedAt: published.publishedAt}]
+        : [];
+};
 
-const TemplateVersionsPanel = ({template, canManage, copyTargets, busy, onStartDraft, onRetire, onClone}: TemplateVersionsPanelProps) =>
+const TemplateVersionsPanel = ({
+                                   template,
+                                   canManage,
+                                   copyTargets,
+                                   busy,
+                                   shownVersionNumber,
+                                   onView,
+                                   onStartDraft,
+                                   onRetire,
+                                   onClone,
+                               }: TemplateVersionsPanelProps) =>
 {
     const styles = useTemplateVersionsPanelStyles();
     const [dialog, setDialog] = useState<"retire" | "clone" | null>(null);
+    const [dialogRefusal, setDialogRefusal] = useState<string | null>(null);
+    const [picked, setPicked] = useState<number | null>(null);
     const published = template.latestPublishedVersion;
     const draft = template.draftVersion;
-    const copySource = published?.versionNumber ?? draft?.versionNumber;
-    const retirable = published?.status === InformationRequestTemplateStatus.PUBLISHED;
+    const standings = standingsOf(template);
+    const choices = standings
+        .filter(version => version.status === InformationRequestTemplateStatus.PUBLISHED)
+        .map(version => version.versionNumber);
+    const chosen = picked !== null && choices.includes(picked) ? picked : published?.versionNumber;
+    const acting = canManage || copyTargets.length > 0;
+    const open = (next: "retire" | "clone" | null) => {
+        setDialogRefusal(null);
+        setDialog(next);
+    };
+    const settle = (refusal: string | null) => (refusal ? setDialogRefusal(refusal) : open(null));
 
     return (
         <div id={"information-request-template-versions"}
@@ -43,68 +76,60 @@ const TemplateVersionsPanel = ({template, canManage, copyTargets, busy, onStartD
             )}
             {published && (
                 <Text id={"information-request-template-versions-published"}>
-                    {`${published.status === InformationRequestTemplateStatus.RETIRED ? "Retired" : "Published"} version ${published.versionNumber}`}
+                    {`Published version ${published.versionNumber}`}
                 </Text>
             )}
             {published?.publishedAt && (
                 <Text id={"information-request-template-versions-published-at"}
                       className={styles.muted}>
-                    {`Published on ${dateText(published.publishedAt)}. Requests already created keep the version they started with.`}
+                    {`Published on ${formatInformationRequestTime(published.publishedAt)}. Requests already created keep the version they started with.`}
                 </Text>
             )}
-            {(canManage || copyTargets.length > 0) && (
-                <div id={"information-request-template-versions-actions"}
-                     className={styles.actions}>
-                    {canManage && published && !draft && (
-                        <Button id={"information-request-template-start-draft"}
-                                appearance={"primary"}
-                                shape={"circular"}
-                                icon={<AddIcon/>}
-                                disabled={busy}
-                                onClick={() => void onStartDraft(published.versionNumber)}>
-                            {`Start a new draft from version ${published.versionNumber}`}
-                        </Button>
-                    )}
-                    {canManage && published && retirable && (
-                        <Button id={"information-request-template-retire"}
-                                appearance={"secondary"}
-                                shape={"circular"}
-                                icon={<DeleteIcon/>}
-                                disabled={busy}
-                                onClick={() => setDialog("retire")}>
-                            {`Retire version ${published.versionNumber}`}
-                        </Button>
-                    )}
-                    {copySource !== undefined && copyTargets.length > 0 && (
-                        <Button id={"information-request-template-clone"}
-                                appearance={"secondary"}
-                                shape={"circular"}
-                                icon={<CopyIcon/>}
-                                disabled={busy}
-                                onClick={() => setDialog("clone")}>
-                            Copy as a new Template
-                        </Button>
-                    )}
-                </div>
+            {published?.contentHashSha256 && (
+                <Text id={"information-request-template-versions-content-hash"}
+                      className={styles.hash}>
+                    {`Content hash ${published.contentHashSha256}`}
+                </Text>
             )}
-            {dialog === "retire" && published && (
-                <TemplateRetireDialog versionNumber={published.versionNumber}
+            {standings.length > 0 && (
+                <TemplateVersionList versions={standings}
+                                     shownVersionNumber={shownVersionNumber}
+                                     onView={onView}/>
+            )}
+            {acting && choices.length > 1 && (
+                <ChoiceSelect id={"information-request-template-version-choice"}
+                              label={"Version to act on"}
+                              value={chosen === undefined ? "" : String(chosen)}
+                              options={choices.map(number => ({value: String(number), label: `Version ${number}`}))}
+                              className={styles.choice}
+                              onChange={value => setPicked(Number(value))}/>
+            )}
+            {acting && chosen !== undefined && (
+                <TemplateVersionActions versionNumber={chosen}
+                                        canManage={canManage}
+                                        canStartDraft={!draft}
+                                        canCopy={copyTargets.length > 0}
+                                        busy={busy}
+                                        onStartDraft={() => void onStartDraft(chosen)}
+                                        onRetire={() => open("retire")}
+                                        onCopy={() => open("clone")}/>
+            )}
+            {dialog === "retire" && chosen !== undefined && (
+                <TemplateRetireDialog versionNumber={chosen}
+                                      lastPublished={choices.length <= 1}
+                                      draftVersionNumber={draft?.versionNumber}
                                       busy={busy}
-                                      onConfirm={async () =>
-                                      {
-                                          if (await onRetire(published.versionNumber)) setDialog(null);
-                                      }}
-                                      onDismiss={() => setDialog(null)}/>
+                                      refusal={dialogRefusal}
+                                      onConfirm={async () => settle(await onRetire(chosen))}
+                                      onDismiss={() => open(null)}/>
             )}
-            {dialog === "clone" && copySource !== undefined && (
+            {dialog === "clone" && chosen !== undefined && (
                 <TemplateCloneDialog template={template}
                                      targets={copyTargets}
                                      busy={busy}
-                                     onConfirm={async target =>
-                                     {
-                                         if (await onClone(copySource, target)) setDialog(null);
-                                     }}
-                                     onDismiss={() => setDialog(null)}/>
+                                     refusal={dialogRefusal}
+                                     onConfirm={async target => settle(await onClone(chosen, target))}
+                                     onDismiss={() => open(null)}/>
             )}
         </div>
     );

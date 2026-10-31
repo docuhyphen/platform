@@ -8,10 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Stable runtime occurrence of a Template Requirement inside one request. Revisions state what
- * policy was effective for this occurrence over time.
- */
 @Entity
 @Table(name = "information_request_requirement")
 class InformationRequestRequirement

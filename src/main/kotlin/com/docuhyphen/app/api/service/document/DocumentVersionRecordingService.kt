@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.repository.document.DocumentRepository
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
+import com.docuhyphen.app.api.repository.document.DocumentVersionRepository
 import com.docuhyphen.app.api.service.storage.DocumentVersionContentService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -18,6 +18,7 @@ class DocumentVersionRecordingService @Inject constructor(
     private val documentRepository: DocumentRepository,
     private val documentVersionRepository: DocumentVersionRepository,
     private val documentVersionContentService: DocumentVersionContentService,
+    private val storageCleanup: DocumentVersionStorageCleanupService,
 )
 {
     fun recordStandaloneDocument(upload: DocumentVersionUpload): DocumentVersion
@@ -39,15 +40,18 @@ class DocumentVersionRecordingService @Inject constructor(
 
     fun recordNextVersion(document: Document, upload: DocumentVersionUpload): DocumentVersion
     {
+        val versionNumber = nextVersionNumber(document)
         document.hash = upload.expectedDigest.value
         document.encryptionMode = upload.encryptionMode
         document.updateDate = Timestamp.from(Instant.now())
 
-        return recordVersion(document, nextVersionNumber(document), upload)
+        return recordVersion(document, versionNumber, upload)
     }
 
-    fun nextVersionNumber(document: Document): Int =
-        documentVersionRepository.findByDocumentId(document.id).size + 1
+    fun nextVersionNumber(document: Document): Int {
+        documentRepository.lockForUpdate(document)
+        return documentVersionRepository.findByDocumentId(document.id).size + 1
+    }
 
     fun recordVersion(document: Document, versionNumber: Int, upload: DocumentVersionUpload): DocumentVersion
     {
@@ -59,15 +63,11 @@ class DocumentVersionRecordingService @Inject constructor(
         }
 
         DocumentVersionCreatorMapper.recordOn(version, upload.creator)
+        val locator = DocumentVersionObjectKeys.allocate(document.id, version.id, upload.fileName)
+        storageCleanup.guard(locator)
         DocumentVersionContentIdentityMapper.recordOn(
             version,
-            documentVersionContentService.store(
-                document.id,
-                version.id,
-                upload.fileName,
-                upload.file,
-                upload.expectedDigest
-            ),
+            documentVersionContentService.store(locator, upload.file, upload.expectedDigest),
             DocumentVersionContentVerification.forEncryptionMode(upload.encryptionMode),
         )
 
@@ -76,6 +76,11 @@ class DocumentVersionRecordingService @Inject constructor(
     }
 
     fun findVersion(versionId: UUID): DocumentVersion? = documentVersionRepository.findById(versionId)
+
+    fun versionsOf(documentId: UUID): List<DocumentVersion> = documentVersionRepository.findByDocumentId(documentId)
+
+    fun latestVersionOf(documentId: UUID): DocumentVersion? =
+        documentVersionRepository.findLatestByDocumentId(documentId)
 
     fun open(version: DocumentVersion): DocumentVersionContent = documentVersionContentService.open(version)
 

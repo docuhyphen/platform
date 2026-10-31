@@ -2,13 +2,18 @@ import {useState} from "react";
 import {useNavigate} from "react-router-dom";
 import {Button, MessageBar, MessageBarBody, Spinner, Text, Title3} from "@fluentui/react-components";
 import {AddRegular} from "@fluentui/react-icons";
-import CreateInformationRequestDialog from "../../authoring/create-information-request-dialog/CreateInformationRequestDialog.tsx";
+import CreateInformationRequestDialog
+    from "../../authoring/create-information-request-dialog/CreateInformationRequestDialog.tsx";
 import {standingReasonSentence} from "../../shared/executionStandingText.ts";
-import {informationRequestManagePath} from "../../shared/informationRequestWorkspacePaths.ts";
+import {
+    InformationRequestManageArrival,
+    informationRequestManagePath,
+} from "../../shared/informationRequestWorkspacePaths.ts";
 import InformationRequestSummaryRow from "../information-request-summary-row/InformationRequestSummaryRow.tsx";
 import {ExchangeInformationRequestsState} from "../useExchangeInformationRequests.ts";
 import {useInformationRequestWorkspaceOpener} from "../useInformationRequestWorkspaceOpener.ts";
 import {useExchangeInformationRequestsTabStyles} from "./ExchangeInformationRequestsTabStyles.tsx";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 
 interface Props
 {
@@ -20,7 +25,7 @@ const ExchangeInformationRequestsTab = ({exchangeId, state}: Props) =>
 {
     const styles = useExchangeInformationRequestsTabStyles();
     const navigate = useNavigate();
-    const {open, openingId} = useInformationRequestWorkspaceOpener();
+    const {open, manage, openingId} = useInformationRequestWorkspaceOpener();
     const [creating, setCreating] = useState(false);
     const requests = state.listing?.requests ?? [];
 
@@ -44,16 +49,15 @@ const ExchangeInformationRequestsTab = ({exchangeId, state}: Props) =>
             {state.listing?.creationUnavailableReason && (
                 <MessageBar id={"exchange-information-requests-creation-unavailable"}
                             intent={"info"}>
-                    <MessageBarBody>
+                    <MessageBarBody id={"exchange-information-requests-creation-unavailable-body"}>
                         {`New Information Requests cannot be created here right now. ${standingReasonSentence[state.listing.creationUnavailableReason]}`}
                     </MessageBarBody>
                 </MessageBar>
             )}
             {state.error && (
-                <MessageBar id={"exchange-information-requests-error"}
-                            intent={"error"}>
-                    <MessageBarBody>{state.error}</MessageBarBody>
-                </MessageBar>
+                <InformationRequestLoadError id={"exchange-information-requests-error"}
+                                             message={state.error}
+                                             onRetry={() => void state.reload()}/>
             )}
             {state.loading && !state.listing && (
                 <Spinner id={"exchange-information-requests-loading"}
@@ -74,17 +78,22 @@ const ExchangeInformationRequestsTab = ({exchangeId, state}: Props) =>
                         <InformationRequestSummaryRow key={summary.id}
                                                       summary={summary}
                                                       opening={openingId === summary.id}
-                                                      onOpen={open}/>
+                                                      onOpen={open}
+                                                      onManage={manage}/>
                     ))}
                 </ul>
             )}
             <CreateInformationRequestDialog open={creating}
                                             exchangeId={exchangeId}
+                                            owner={state.listing?.creationOwner ?? null}
                                             onDismiss={() => setCreating(false)}
-                                            onCreated={request =>
+                                            onCreated={(request, decisionMakerFailure) =>
                                             {
                                                 setCreating(false);
-                                                navigate(informationRequestManagePath(request.id));
+                                                const arrival: InformationRequestManageArrival = decisionMakerFailure
+                                                    ? {decisionMakerFailure}
+                                                    : {};
+                                                navigate(informationRequestManagePath(request.id), {state: arrival});
                                             }}/>
         </section>
     );

@@ -5,12 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One runtime repetition of an [InformationRequestTemplateRequirementGroup], scoped to one
- * [InformationRequest]. [occurrencePath] is the stable path that a Field, Document, or Response
- * Attestation Requirement instance anchors to, and [parentOccurrenceId] nests one occurrence inside
- * another where the group itself nests, mirroring the template's own group nesting at runtime.
- */
 @Entity
 @Table(name = "information_request_group_occurrence")
 class InformationRequestGroupOccurrence
@@ -27,7 +21,6 @@ class InformationRequestGroupOccurrence
     @Column(name = "parent_occurrence_id", nullable = true)
     var parentOccurrenceId: UUID? = null
 
-    /** Position of this repetition among its siblings under the same parent, starting at zero. */
     @Column(name = "occurrence_index", nullable = false)
     var occurrenceIndex: Int = 0
 

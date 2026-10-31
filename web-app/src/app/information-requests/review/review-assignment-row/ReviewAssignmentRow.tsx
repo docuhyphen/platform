@@ -1,7 +1,11 @@
 import {Button, Text} from "@fluentui/react-components";
 import {InformationRequestReviewAssignmentChange} from "../../../../services/informationRequestReviewService.ts";
-import {InformationRequestReviewAssignmentDto, InformationRequestReviewAssignmentState} from "../../../models/models.tsx";
-import {useReviewAssignmentsPanelStyles} from "../review-assignments-panel/ReviewAssignmentsPanelStyles.tsx";
+import {
+    InformationRequestReviewAssignmentDto,
+    InformationRequestReviewAssignmentState
+} from "../../../models/models.tsx";
+import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
+import {useReviewAssignmentRowStyles} from "./ReviewAssignmentRowStyles.tsx";
 
 interface Props
 {
@@ -9,6 +13,7 @@ interface Props
     reviewerLabel: string;
     stageTitle: string;
     canManage: boolean;
+    mutable?: boolean;
     onChange: (change: InformationRequestReviewAssignmentChange, title: string) => void;
 }
 
@@ -19,20 +24,30 @@ const STATE_LABELS: Record<InformationRequestReviewAssignmentState, string> = {
     [InformationRequestReviewAssignmentState.REVOKED]: "Removed",
 };
 
-const ReviewAssignmentRow = ({assignment, reviewerLabel, stageTitle, canManage, onChange}: Props) =>
+const ReviewAssignmentRow = ({assignment, reviewerLabel, stageTitle, canManage, mutable = true, onChange}: Props) =>
 {
-    const styles = useReviewAssignmentsPanelStyles();
-    const active = assignment.state === InformationRequestReviewAssignmentState.ACTIVE && !assignment.decidedAt;
+    const styles = useReviewAssignmentRowStyles();
+    const active = mutable && assignment.state === InformationRequestReviewAssignmentState.ACTIVE && !assignment.decidedAt;
     const id = `information-request-review-assignment-${assignment.id}`;
+    const detail = [stageTitle, STATE_LABELS[assignment.state]];
+    if (assignment.changedAt) detail.push(`Changed ${formatInformationRequestTime(assignment.changedAt)}`);
+    if (assignment.changeReasonCode) detail.push(`Reason: ${assignment.changeReasonCode}`);
+    if (assignment.changeNarrative) detail.push(assignment.changeNarrative);
+    if (assignment.delegatedFromAssignmentId) detail.push("Delegated from an earlier assignment");
+    if (assignment.dueAt) detail.push(`Due ${formatInformationRequestTime(assignment.dueAt)}`);
 
     return (
         <li id={id}
             className={styles.assignment}>
             <div id={`${id}-text`}>
-                <Text weight={"semibold"}>{reviewerLabel}</Text>
-                <Text size={200}
+                <Text id={`${id}-reviewer`}
+                      weight={"semibold"}>
+                    {reviewerLabel}
+                </Text>
+                <Text id={`${id}-detail`}
+                      size={200}
                       className={styles.detail}>
-                    {` ${stageTitle}. ${STATE_LABELS[assignment.state]}`}
+                    {` ${detail.join(". ")}`}
                 </Text>
             </div>
             {active && (
@@ -47,7 +62,7 @@ const ReviewAssignmentRow = ({assignment, reviewerLabel, stageTitle, canManage, 
                             Recuse
                         </Button>
                     )}
-                    {assignment.callerIsReviewer && (
+                    {(assignment.callerIsReviewer || canManage) && assignment.delegationCandidates.length > 0 && (
                         <Button id={`${id}-delegate`}
                                 size={"small"}
                                 shape={"circular"}

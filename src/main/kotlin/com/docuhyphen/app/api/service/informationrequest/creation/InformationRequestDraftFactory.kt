@@ -2,11 +2,11 @@ package com.docuhyphen.app.api.service.informationrequest.creation
 
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
@@ -63,7 +63,8 @@ class InformationRequestDraftFactory @Inject constructor(
                 ownerUserId = sibling.ownerUserId
                 state = InformationRequestState.DRAFT
                 gatesExchangeClosure = sibling.gatesExchangeClosure
-                createdByAppUserId = access.principal.id.takeIf { access.principal.kind == PrincipalKind.USER }
+                createdByPrincipalKind = access.principal.kind
+                createdByPrincipalId = access.principal.id
                 createdAt = now
                 updatedAt = now
             },
@@ -74,8 +75,8 @@ class InformationRequestDraftFactory @Inject constructor(
                 fromState = null,
                 toState = InformationRequestState.DRAFT,
                 mutation = InformationRequestMutation.CREATE_DRAFT,
-                actor = access.principal,
-                idempotencyKey = "information_request.draft.create|follow-up|${request.id}|$idempotencyKey",
+                actor = InformationRequestAuditActor.of(access),
+                auditIdempotencyKey = "information_request.draft.create|follow-up|${request.id}|$idempotencyKey",
             ),
         )
         materializer.materialize(request, FieldsAccessContext(access.principal, access.authorization))

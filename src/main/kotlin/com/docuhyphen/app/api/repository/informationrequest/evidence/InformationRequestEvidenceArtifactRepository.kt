@@ -5,10 +5,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for evidence artifacts. Every lookup names the Requirement occurrence or the request
- * that owns the artifact, so one occurrence's collected items are never read as another's.
- */
 @ApplicationScoped
 class InformationRequestEvidenceArtifactRepository :
     BaseRepository<InformationRequestEvidenceArtifact>(InformationRequestEvidenceArtifact::class.java)
@@ -38,19 +34,4 @@ class InformationRequestEvidenceArtifactRepository :
         )
             .setParameter("requirementId", requirementId)
             .resultList
-
-    fun findByKey(requirementId: UUID, artifactKey: String): InformationRequestEvidenceArtifact? =
-        entityManager.createQuery(
-            """
-            SELECT artifact
-            FROM InformationRequestEvidenceArtifact artifact
-            WHERE artifact.informationRequestRequirementId = :requirementId
-              AND artifact.artifactKey = :artifactKey
-            """.trimIndent(),
-            InformationRequestEvidenceArtifact::class.java,
-        )
-            .setParameter("requirementId", requirementId)
-            .setParameter("artifactKey", artifactKey)
-            .resultList
-            .firstOrNull()
 }

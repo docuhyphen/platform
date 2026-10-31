@@ -8,12 +8,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
-/**
- * Local-filesystem [AuditArchiveStorage], the default in dev/CI and the fallback when Secrets
- * Manager/S3 are not configured. Uses the same
- * local-directory approach so this phase's archive/verify round trip is fully exercisable without
- * AWS credentials.
- */
 @ApplicationScoped
 @Local
 class LocalAuditArchiveStorage @Inject constructor(
@@ -54,10 +48,38 @@ class LocalAuditArchiveStorage @Inject constructor(
         Files.walk(prefixPath).use { paths ->
             return paths
                 .filter { Files.isRegularFile(it) }
-                .map { root.relativize(it).toString().replace('\\', '/') }
+                .map { decodeKey(root.relativize(it).toString().replace('\\', '/')) }
                 .toList()
         }
     }
 
-    private fun resolve(key: String): Path = Path.of(configService.getLocalDirectory()).resolve(key)
+    private fun resolve(key: String): Path = Path.of(configService.getLocalDirectory()).resolve(encodeKey(key))
+
+    private fun encodeKey(key: String): String = buildString {
+        key.forEach { character ->
+            if (character in FILE_NAME_RESERVED_CHARACTERS) {
+                append('%').append("%02X".format(character.code))
+            } else {
+                append(character)
+            }
+        }
+    }
+
+    private fun decodeKey(encoded: String): String = buildString {
+        var index = 0
+        while (index < encoded.length) {
+            val character = encoded[index]
+            if (character == '%' && index + 2 < encoded.length) {
+                append(encoded.substring(index + 1, index + 3).toInt(16).toChar())
+                index += 3
+            } else {
+                append(character)
+                index++
+            }
+        }
+    }
+
+    companion object {
+        private const val FILE_NAME_RESERVED_CHARACTERS = "%<>:\"\\|?*"
+    }
 }

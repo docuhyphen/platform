@@ -81,6 +81,10 @@ class RecordDisposalService @Inject constructor(
 
     fun viewsFor(owner: RecordOwnerRef): List<RecordDisposalView> = claimRepository.findForOwner(owner).map(::view)
 
+    fun underDisposal(resourceType: String, resourceIds: Collection<UUID>): Set<UUID> =
+        if (resourceIds.isEmpty()) emptySet()
+        else claimRepository.findUnfinalizedResourceIds(resourceType, resourceIds.distinct())
+
     fun openClaimIds(limit: Int): List<UUID> = claimRepository.findOpenIds(limit)
 
     fun scopeOf(claimId: UUID): List<RecordPreservationKey> = claimRepository.scopeOf(claimId)
@@ -93,6 +97,7 @@ class RecordDisposalService @Inject constructor(
         if (stored.deletedAt != null || stored.retained) return stored
         stored.deletionOutcome = outcome
         stored.deletedAt = Timestamp.from(clock.instant())
+        stored.storageLocator = null
         return objectRepository.update(stored)
     }
 

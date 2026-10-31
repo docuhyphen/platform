@@ -3,18 +3,22 @@ import apiClient from "./apiClient.ts";
 import {
     CreateInformationRequestGroupOccurrenceRequest,
     InformationRequestAccessSessionDto,
+    InformationRequestAccessSessionStepUpDto,
     InformationRequestGroupOccurrenceDto,
+    InformationRequestParticipantAccountUpgradeDto,
+    InformationRequestPartyDto,
     InformationRequestResponseDto,
     InformationRequestResponseWorkspaceDto,
     PatchInformationRequestResponsesRequest,
     ReorderInformationRequestGroupOccurrencesRequest,
     ResponseError,
+    UpgradeInformationRequestParticipantAccountRequest,
 } from "../app/models/models.tsx";
 
-const IF_MATCH_HEADER = "If-Match";
-const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
-const ACCESS_LINK_TOKEN_HEADER = "X-Request-Access-Token";
-const SESSION_TOKEN_HEADER = "X-Request-Session-Token";
+export const IF_MATCH_HEADER = "If-Match";
+export const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+export const ACCESS_LINK_TOKEN_HEADER = "X-Request-Access-Token";
+export const SESSION_TOKEN_HEADER = "X-Request-Session-Token";
 const COMMAND_STALE_CODE = "COMMAND_PRECONDITION_STALE";
 const FIELDS_STALE_CODE = "FIELDS_PRECONDITION_STALE";
 
@@ -55,8 +59,10 @@ export const informationRequestAccessTokenKey = (requestId: string): string =>
 
 export const storeInformationRequestAccessToken = (requestId: string, token: string): void =>
 {
-    if (getInformationRequestAccessToken(requestId) !== token)
+    if (getInformationRequestAccessToken(requestId) !== token) {
         window.sessionStorage.removeItem(informationRequestSessionTokenKey(requestId));
+        window.sessionStorage.removeItem(informationRequestSessionIdKey(requestId));
+    }
     window.sessionStorage.setItem(informationRequestAccessTokenKey(requestId), token);
 };
 
@@ -66,11 +72,36 @@ export const getInformationRequestAccessToken = (requestId: string): string =>
 const informationRequestSessionTokenKey = (requestId: string): string =>
     `information-request-session:${requestId}`;
 
+const informationRequestSessionIdKey = (requestId: string): string =>
+    `information-request-session-id:${requestId}`;
+
 export const storeInformationRequestSessionToken = (requestId: string, token: string): void =>
     window.sessionStorage.setItem(informationRequestSessionTokenKey(requestId), token);
 
 export const getInformationRequestSessionToken = (requestId: string): string =>
     window.sessionStorage.getItem(informationRequestSessionTokenKey(requestId)) ?? "";
+
+export const storeInformationRequestSession = (
+    requestId: string,
+    session: Pick<InformationRequestAccessSessionDto, "sessionId" | "sessionToken">,
+): void => {
+    storeInformationRequestSessionToken(requestId, session.sessionToken);
+    window.sessionStorage.setItem(informationRequestSessionIdKey(requestId), session.sessionId);
+};
+
+export const getInformationRequestSessionId = (requestId: string): string =>
+    window.sessionStorage.getItem(informationRequestSessionIdKey(requestId)) ?? "";
+
+export const clearInformationRequestSession = (requestId: string): void => {
+    storeInformationRequestSessionToken(requestId, "");
+    window.sessionStorage.removeItem(informationRequestSessionIdKey(requestId));
+};
+
+export const clearInformationRequestAccessCredentials = (requestId: string): void => {
+    window.sessionStorage.removeItem(informationRequestAccessTokenKey(requestId));
+    window.sessionStorage.removeItem(informationRequestSessionTokenKey(requestId));
+    window.sessionStorage.removeItem(informationRequestSessionIdKey(requestId));
+};
 
 export const isStaleInformationRequestRefusal = (error: unknown): boolean =>
 {
@@ -86,7 +117,7 @@ export const statedInformationRequestRefusal = (error: unknown): unknown =>
 };
 
 const executeRuntimeCommand = async <T>(
-    request: () => Promise<{data: T; headers: Record<string, string | undefined>}>,
+    request: () => Promise<{ data: T; headers: Record<string, string | undefined> }>,
 ): Promise<RuntimeCommandResult<T>> =>
 {
     try
@@ -106,7 +137,7 @@ const executeRuntimeCommand = async <T>(
 };
 
 const executeRequest = async <T>(
-    request: () => Promise<{data: T}>,
+    request: () => Promise<{ data: T }>,
 ): Promise<T> =>
 {
     try
@@ -141,6 +172,42 @@ export const getInformationRequestResponseWorkspace = (
         accessLinkToken ? {headers: informationRequestReadHeaders(requestId, accessLinkToken)} : undefined,
     ));
 
+export const getInformationRequestManagementWorkspace = (
+    requestId: string,
+): Promise<InformationRequestResponseWorkspaceDto> =>
+    executeRequest(() => apiClient.get(
+        `${informationRequestBasePath(requestId)}/response-workspace`,
+        {params: {purpose: "MANAGEMENT"}},
+    ));
+
+export const getInformationRequestNoAuthParties = (
+    requestId: string,
+    accessLinkToken: string,
+): Promise<InformationRequestPartyDto[]> =>
+    executeRequest(() => apiClient.get(
+        `${informationRequestBasePath(requestId, accessLinkToken)}/parties`,
+        {headers: informationRequestReadHeaders(requestId, accessLinkToken)},
+    ));
+
+export const linkInformationRequestParticipantAccount = (
+    requestId: string,
+    request: UpgradeInformationRequestParticipantAccountRequest,
+    partyETag: string,
+    idempotencyKey: string,
+    sessionCredential: string,
+): Promise<InformationRequestParticipantAccountUpgradeDto> =>
+    executeRequest(() => apiClient.post(
+        `${informationRequestBasePath(requestId)}/participant-account-links`,
+        request,
+        {
+            headers: {
+                [IF_MATCH_HEADER]: partyETag,
+                [IDEMPOTENCY_KEY_HEADER]: idempotencyKey,
+                [SESSION_TOKEN_HEADER]: sessionCredential,
+            },
+        },
+    ));
+
 export const issueInformationRequestContactProofChallenge = (accessLinkToken: string): Promise<void> =>
     executeRequest(() => apiClient.post(
         "/no-auth/information-request-access-links/challenges",
@@ -156,6 +223,24 @@ export const verifyInformationRequestContactProofChallenge = (
         "/no-auth/information-request-access-links/sessions",
         {otp},
         {headers: accessLinkHeaders(accessLinkToken)},
+    ));
+
+export const issueInformationRequestStepUpChallenge = (requestId: string, accessLinkToken: string): Promise<void> =>
+    executeRequest(() => apiClient.post(
+        "/no-auth/information-request-access-links/sessions/current/step-up-challenges",
+        undefined,
+        {headers: informationRequestReadHeaders(requestId, accessLinkToken)},
+    ));
+
+export const verifyInformationRequestStepUp = (
+    requestId: string,
+    accessLinkToken: string,
+    otp: string,
+): Promise<InformationRequestAccessSessionStepUpDto> =>
+    executeRequest(() => apiClient.post(
+        "/no-auth/information-request-access-links/sessions/current/step-ups",
+        {otp},
+        {headers: informationRequestReadHeaders(requestId, accessLinkToken)},
     ));
 
 export const patchInformationRequestResponses = (

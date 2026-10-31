@@ -24,6 +24,19 @@ class RequestExecutionGrantRepository :
             .resultList
             .firstOrNull()
 
+    fun findByRequestIds(requestIds: Collection<UUID>): List<RequestExecutionGrant> =
+        if (requestIds.isEmpty()) emptyList()
+        else entityManager.createQuery(
+            """
+            SELECT grant_
+            FROM RequestExecutionGrant grant_
+            WHERE grant_.requestId IN :requestIds
+            """.trimIndent(),
+            RequestExecutionGrant::class.java,
+        )
+            .setParameter("requestIds", requestIds)
+            .resultList
+
     fun insertNow(grant: RequestExecutionGrant): RequestExecutionGrant
     {
         entityManager.persist(grant)

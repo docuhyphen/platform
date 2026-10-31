@@ -1,24 +1,18 @@
 import {Badge, Text} from "@fluentui/react-components";
-import {
-    InformationRequestCorrectionDto,
-    InformationRequestRemediationDto,
-    InformationRequestReviewItemDto,
-} from "../../../models/models.tsx";
-import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {correctionStateLabels} from "../reviewLabels.ts";
+import {InformationRequestCorrectionDto, InformationRequestRemediationDto} from "../../../models/models.tsx";
+import {correctionStateLabels, returnedFilesText} from "../reviewLabels.ts";
 import {useReviewCorrectionSummaryStyles} from "./ReviewCorrectionSummaryStyles.tsx";
 
 interface Props
 {
     correction: InformationRequestCorrectionDto;
-    items: InformationRequestReviewItemDto[];
     remediations: InformationRequestRemediationDto[];
+    labelOf: (requirementId: string) => string;
 }
 
-const ReviewCorrectionSummary = ({correction, items, remediations}: Props) =>
+const ReviewCorrectionSummary = ({correction, remediations, labelOf}: Props) =>
 {
     const styles = useReviewCorrectionSummaryStyles();
-    const keys = new Map(items.map(item => [item.requirementId, item.requirementKey]));
     const id = "information-request-review-correction";
 
     return (
@@ -42,15 +36,15 @@ const ReviewCorrectionSummary = ({correction, items, remediations}: Props) =>
                     <li id={`${id}-requirement-${requirementId}`}
                         key={requirementId}>
                         <Text id={`${id}-requirement-${requirementId}-label`}>
-                            {humanizedKey(keys.get(requirementId) ?? "requested item")}
+                            {labelOf(requirementId)}
                         </Text>
                     </li>
                 ))}
             </ul>
-            {correction.evidenceVersionIds.length > 0 && (
+            {correction.evidence.length > 0 && (
                 <Text id={`${id}-files`}
                       className={styles.detail}>
-                    {`${correction.evidenceVersionIds.length} returned file versions may be replaced or withdrawn.`}
+                    {returnedFilesText(correction.evidence)}
                 </Text>
             )}
             {correction.undisclosedItemCount > 0 && (

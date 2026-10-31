@@ -48,7 +48,7 @@ class InformationRequestSubjectPartyResource @Inject constructor(
                     subjectKind = request.subjectKind,
                     reference = reference,
                     access = accessContextFactory.currentAuthenticated(),
-                    precondition = CommandPreconditionHeader.required(ifMatch),
+                    precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                     idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
                 ),
             )

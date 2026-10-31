@@ -1,20 +1,26 @@
 ﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-    Button, InputOnChangeData, Link, SearchBoxChangeEvent,
+    Button,
+    InputOnChangeData,
+    Link,
     mergeClasses,
-    Spinner, TabValue, Text, Toast, Toaster,
+    SearchBoxChangeEvent,
+    Spinner,
+    TabValue,
+    Text,
+    Toast,
     ToastBody,
+    Toaster,
     ToastTitle,
     ToastTrigger,
     useId,
     useToastController
 } from "@fluentui/react-components";
-import {
-    fetchSignedInUserAppUserExchange
-} from "../../services/exchangeApi.ts";
+import {fetchSignedInUserAppUserExchange} from "../../services/exchangeApi.ts";
 import useToken from "../../context/useToken.tsx";
 import ExchangePreLoader from "./components/exchange-pre-loader/ExchangePreLoader.tsx";
-import {Capability,
+import {
+    Capability,
     DocumentDetailedDto,
     DocumentType,
     ExchangeBasicDto,
@@ -29,29 +35,32 @@ import NoExchangeDocuments from "./components/exchange-documents-none/NoExchange
 import ExchangeDialogsGroup from "./components/exchange-dialog-group/ExchangeDialogsGroup.tsx";
 import ExchangeDetailsHeader from "./components/exchange-details-header/ExchangeDetailsHeader.tsx";
 import ExchangeDetailsLoading from "./components/exchange-details-loading/ExchangeDetailsLoading.tsx";
+import ExchangeDetailsError from "./components/exchange-details-error/ExchangeDetailsError.tsx";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
-import ExchangeList from "./components/exchange-list/ExchangeList.tsx";
+import ExchangeList, {ExchangeTabCounts, InboxRole} from "./components/exchange-list/ExchangeList.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
-import {getPermissions, ExchangePermissions} from "./ExchangePermissions.ts";
+import {ExchangePermissions, getPermissions} from "./ExchangePermissions.ts";
 import ExchangeDocumentsList from "./components/exchange-document-list/ExchangeDocumentsList.tsx";
 import {realtimeService} from "../../services/NotificationService";
 import {
-    publishExchangeDelete,
-    publishRecreateRejectedExchange,
-    publishExchangeUpdate,
     exchangeDeletionObservable,
-    exchangeInitiationObservable
+    exchangeInitiationObservable,
+    publishExchangeDelete,
+    publishExchangeUpdate,
+    publishRecreateRejectedExchange
 } from "../observable/exchangeObservables.ts";
-import ExchangeDocumentPreviewer, {ExchangeDocumentPreviewerHandle} from "./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx";
+import ExchangeDocumentPreviewer, {
+    ExchangeDocumentPreviewerHandle
+} from "./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx";
 import ExchangeAcceptanceDialog from "./components/exchange-acceptance-dialog/ExchangeAcceptanceDialog.tsx";
 import EmptyStateIllustration from "./components/empty-state-illustration/EmptyStateIllustration.tsx";
 import {ExchangeListTab} from "./components/exchange-list/exchange-list-tabs/ExchangeListTabs.tsx";
-import {InboxRole, ExchangeTabCounts} from "./components/exchange-list/ExchangeList.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
 import ExchangeAuditTab from "./components/exchange-audit-tab/ExchangeAuditTab.tsx";
 import ExchangeWorkflowTab from "./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx";
-import ExchangeInformationRequestsTab from "../information-requests/exchange-tab/exchange-information-requests-tab/ExchangeInformationRequestsTab.tsx";
+import ExchangeInformationRequestsTab
+    from "../information-requests/exchange-tab/exchange-information-requests-tab/ExchangeInformationRequestsTab.tsx";
 import {useExchangeInformationRequests} from "../information-requests/exchange-tab/useExchangeInformationRequests.ts";
 import ExchangeFieldsTab from "./components/exchange-fields-tab/ExchangeFieldsTab.tsx";
 import ExchangeTabsHeader from "./components/exchange-tabs-header/ExchangeTabsHeader.tsx";
@@ -88,7 +97,8 @@ const Exchanges: React.FC = () =>
         useState<ExchangePaneNavigationDirection>(null);
     const [preparingExchanges, setPreparingExchanges] = useState<boolean>(true);
     const token = useToken();
-    const {appUser, hasCapability} = useAuth();
+    const {appUser, currentSession, hasCapability} = useAuth();
+    const sessionReady = currentSession != null;
     const canViewExchangeAudit = hasCapability(Capability.ORG_AUDIT_READ);
     const canViewBusinessFields = usePlanFeature(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS).isDiscoverable;
     const canViewWorkflows = usePlanFeature(PlanFeature.WORKFLOW_AUTOMATION).isDiscoverable;
@@ -108,8 +118,9 @@ const Exchanges: React.FC = () =>
     const [selectedSidebarExchangeDocument, setSelectedSidebarExchangeDocument] = React.useState<DocumentDetailedDto | undefined>(undefined);
     const [selectedUpdateExchangeDocument, setSelectedUpdateExchangeDocument] = React.useState<DocumentDetailedDto>(undefined);
     const [exchangeDetails, setExchangeDetails] = useState<ExchangeDetailedDto | null>(null);
-    const informationRequests = useExchangeInformationRequests(exchangeDetails?.id);
+    const informationRequests = useExchangeInformationRequests(exchangeDetails?.id, exchangeDetails?.status);
     const [fetchingDetails, setFetchingDetails] = useState<boolean>(true);
+    const [detailsLoadErrorId, setDetailsLoadErrorId] = useState<string | null>(null);
     const [isExchangeListLoading, setIsExchangeListLoading] = useState<boolean>(true);
     const [filteredDocuments, setFilteredDocuments] = useState<DocumentDetailedDto[]>([]);
     const [documentSearchQuery, setDocumentSearchQuery] = useState<string>("");
@@ -119,18 +130,11 @@ const Exchanges: React.FC = () =>
     const [routeSelectionVersion, setRouteSelectionVersion] = useState(0);
     const [resolvedDocumentLayoutKey, setResolvedDocumentLayoutKey] = useState<string | null>(null);
     const documentPreviewerRef = useRef<ExchangeDocumentPreviewerHandle>(null);
-    // The page currently in view within the inline previewer, so the sidebar comment
-    // composer can offer a "Link to page" option in the default (non-enlarged) preview.
     const [previewerCurrentPage, setPreviewerCurrentPage] = useState<number | undefined>(undefined);
-    // Scroll the inline previewer to a comment's page. Only navigate when the
-    // previewer is showing the same document as the sidebar comments, otherwise
-    // there is nothing meaningful to scroll.
     const canNavigatePreviewerToPage = Boolean(
         selectedExchangeDocument &&
         selectedExchangeDocument.id === selectedSidebarExchangeDocument?.id
     );
-    // Only surface the previewer's page to the sidebar composer when both panes show the
-    // same document, otherwise a comment could be linked to an unrelated document's page.
     const sidebarLinkablePageNumber = canNavigatePreviewerToPage ? previewerCurrentPage : undefined;
     const handleNavigatePreviewerToPage = useCallback((pageNumber: number) =>
     {
@@ -146,11 +150,12 @@ const Exchanges: React.FC = () =>
         userPreferencesLoaded &&
         exchangeDetails?.id === selectedExchangeId &&
         resolvedDocumentLayoutKey === `${selectedExchangeId}:${autoPreviewDocuments}`;
+    const hasDetailsLoadError = !!selectedExchangeId && detailsLoadErrorId === selectedExchangeId;
     const showInitialDetailsSkeleton = useDelayedLoading(
         !isMobile && isExchangeListLoading && !selectedExchangeId,
     );
     const showSelectedDetailsSkeleton = useDelayedLoading(
-        !!selectedExchangeId && !hasSelectedDetails,
+        !!selectedExchangeId && !hasSelectedDetails && !hasDetailsLoadError,
     );
 
     const tokenRef = useRef(token);
@@ -170,16 +175,18 @@ const Exchanges: React.FC = () =>
 
         lastUnavailableExchangeIdRef.current = normalizedExchangeId;
         dispatchToast(
-            <Toast>
-                <ToastTitle action={
-                    <ToastTrigger>
-                        <Link>Dismiss</Link>
-                    </ToastTrigger>
-                }>
-                    This exchange is no longer available.
+            <Toast id={"exchanges-toast"}>
+                <ToastTitle id={"exchanges-this-exchange-is-no-toast-title"}
+                            action={
+                                <ToastTrigger>
+                                    <Link id={"exchanges-dismiss-link"}>Dismiss</Link>
+                                </ToastTrigger>
+                            }>
+                    This Exchange is no longer available.
                 </ToastTitle>
-                <ToastBody>
-                    <Link onClick={() => setActiveListTab('active')}>Go to Active tab</Link>
+                <ToastBody id={"exchanges-go-to-active-tab-toast-body"}>
+                    <Link id={"exchanges-go-to-active-tab-link"}
+                          onClick={() => setActiveListTab('active')}>Go to Active tab</Link>
                 </ToastBody>
             </Toast>,
             {intent: 'warning', timeout: 7000}
@@ -198,7 +205,11 @@ const Exchanges: React.FC = () =>
         }
 
         setPaneNavigationDirection(exchangeId ? "forward" : "back");
-        setResolvedDocumentLayoutKey(null);
+        if (exchangeId !== selectedExchangeId) {
+            setResolvedDocumentLayoutKey(null);
+        } else if (hasDetailsLoadError) {
+            setRouteSelectionVersion(version => version + 1);
+        }
         setSelectedExchangeId(exchangeId);
     };
 
@@ -237,11 +248,6 @@ const Exchanges: React.FC = () =>
         }
         catch (error)
         {
-            // Don't block the page with an alert(),  log and degrade gracefully.
-            // A failing existence-check is annoying, not fatal: we still render
-            // the page with the "no exchanges yet" empty state. If exchanges
-            // genuinely exist, they'll appear once the user navigates back or
-            // once a subsequent list fetch succeeds.
             console.error("Could not determine whether user has exchanges:", error);
             setAppUserHasExchanges(false);
         }
@@ -251,13 +257,10 @@ const Exchanges: React.FC = () =>
         }
     }, []);
 
-    // Keep selection state synchronized with React Router navigation, including notification clicks.
     useEffect(() =>
     {
         setActiveListTab(exchangeRouteState.listTab ?? 'active');
 
-        // Apply the inbox role from the route so a deep-linked outgoing exchange lands on
-        // the correct side of the inbox tab immediately instead of flashing the incoming list.
         if (exchangeRouteState.inboxRole)
         {
             setInboxRole(exchangeRouteState.inboxRole);
@@ -295,8 +298,6 @@ const Exchanges: React.FC = () =>
         const params = new URLSearchParams(window.location.search);
         params.set('tab', activeListTab);
 
-        // The inbox role is only a one-time deep-link hint (e.g. from "View Exchange").
-        // Drop it once consumed so it does not linger as a stale query param.
         params.delete('role');
 
         if (selectedExchangeId)
@@ -329,18 +330,7 @@ const Exchanges: React.FC = () =>
 
     useEffect(() =>
     {
-        // Wait for both the access token AND the signed-in AppUser to be
-        // available before hitting the backend. Right after sign-in/onboarding
-        // the AuthContext is still settling; firing the HEAD call too eagerly
-        // produces sporadic 401s (token mid-refresh) and was the root cause of
-        // the "Failed to check for exchanges" toast users were seeing.
-        //
-        // `token` is intentionally NOT a dependency: the axios interceptor
-        // injects the current token on every request, so when the proactive
-        // refresh rotates the access token mid-exchange we don't want to flip
-        // `preparingExchanges` back to true and re-mount ExchangeList
-        // (which would refetch the list and re-select the first exchange).
-        if (!token || !appUser)
+        if (!token || !appUser || !sessionReady)
         {
             return;
         }
@@ -356,16 +346,8 @@ const Exchanges: React.FC = () =>
         {
             cancelled = true;
         };
-        // Token rotation intentionally does not restart the workspace. The callback
-        // reads the current token from tokenRef when it makes the request.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appUser?.id, checkAppUserExchanges]);
-    //
-    // useEffect(() => {
-    //     if (exchangeId) {
-    //         subscribeToExchange(exchangeId);
-    //     }
-    // }, [exchangeId, subscribeToExchange]);
+    }, [appUser?.id, checkAppUserExchanges, sessionReady]);
 
     useEffect(() =>
     {
@@ -390,15 +372,22 @@ const Exchanges: React.FC = () =>
 
     useEffect(() =>
     {
+        let cancelled = false;
+
         if (selectedExchangeId)
         {
+            if (!sessionReady) return;
+
             const fetchDetails = async () =>
             {
                 setFetchingDetails(true);
+                setDetailsLoadErrorId(null);
 
                 try
                 {
                     const details = (await fetchSignedInUserAppUserExchange(selectedExchangeId)) as ExchangeDetailedDto;
+                    if (cancelled) return;
+
                     setExchangeDetails(details);
                     setFilteredDocuments(details.documents || []);
 
@@ -428,17 +417,19 @@ const Exchanges: React.FC = () =>
                 }
                 catch (error)
                 {
+                    if (cancelled) return;
+
                     if (isExchangeUnavailableError(error))
                     {
-                        // Exchange was removed or is no longer accessible: clear stale deep-link/selection context.
                         clearUnavailableExchangeContext(selectedExchangeId);
                         return;
                     }
                     console.error(error);
+                    setDetailsLoadErrorId(selectedExchangeId);
                 }
                 finally
                 {
-                    setFetchingDetails(false);
+                    if (!cancelled) setFetchingDetails(false);
                 }
             };
             fetchDetails();
@@ -448,14 +439,11 @@ const Exchanges: React.FC = () =>
             setExchangeDetails(null);
             setFetchingDetails(false);
         }
-        // Intentionally only re-fetches when the *selection* changes. The
-        // access token is supplied by the axios interceptor, so a silent
-        // refresh shouldn't re-pull the exchange details. `appUser` only
-        // affects the permissions computation, which is cheap and stable
-        // for the lifetime of the page.
-        // Document selection and error helpers do not trigger Exchange refetches.
+        return () => {
+            cancelled = true;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedExchangeId, routeSelectionVersion]);
+    }, [selectedExchangeId, routeSelectionVersion, sessionReady]);
 
     useEffect(() =>
     {
@@ -497,9 +485,6 @@ const Exchanges: React.FC = () =>
         setIsDocumentToolbarVisible(false);
     }, [selectedExchangeId]);
 
-    // Ensure the correct list tab is active whenever an exchange is selected.
-    // This covers deep-linked exchanges, exchanges whose status changes via real-time
-    // events, and any other situation where the tab may not match the exchange's status.
     useEffect(() =>
     {
         if (!selectedExchangeId || !exchangeDetails) return;
@@ -524,30 +509,27 @@ const Exchanges: React.FC = () =>
             setActiveListTab(targetTab);
         }
 
-        // Update the parent's inbox role display state. An INITIATED exchange owned
-        // by the current user is an outgoing draft; others are incoming.
         if (targetTab === 'inbox')
         {
             const isInitiator = appUser?.id != null && exchangeDetails.initiator?.id === appUser.id;
             setInboxRole(isInitiator ? 'outgoing' : 'incoming');
         }
 
-        // Clear the deep-link ref now that we have applied the correct tab.
         deepLinkedExchangeIdRef.current = null;
     }, [exchangeDetails, selectedExchangeId, activeListTab, appUser?.id]);
 
-    // Subscribe to live document + status events for the currently-selected exchange.
-    // Triggers a single refetch on relevant message types. The server-side subscription
-    // is set up by SUBSCRIBE_EXCHANGE; the unsubscribe runs on exchange change.
     useEffect(() =>
     {
         if (!selectedExchangeId) return;
+        let cancelled = false;
 
         const refetchDetails = async () =>
         {
             try
             {
                 const details = (await fetchSignedInUserAppUserExchange(selectedExchangeId)) as ExchangeDetailedDto;
+                if (cancelled) return;
+
                 setExchangeDetails(details);
                 setFilteredDocuments(details.documents || []);
                 setSelectedExchangeDocument((currentSelection) =>
@@ -560,12 +542,14 @@ const Exchanges: React.FC = () =>
             }
             catch (error)
             {
+                if (cancelled) return;
+
                 if (isExchangeUnavailableError(error))
                 {
                     clearUnavailableExchangeContext(selectedExchangeId);
                     return;
                 }
-                console.error("Failed to refresh exchange after realtime event:", error);
+                console.error("Failed to refresh Exchange after realtime event:", error);
             }
         };
 
@@ -585,19 +569,18 @@ const Exchanges: React.FC = () =>
 
         return () =>
         {
+            cancelled = true;
             realtimeService.unsubscribeFromExchange(selectedExchangeId);
             offAdded();
             offRemoved();
             offUpdated();
         };
-        // The selected Exchange controls the subscription lifecycle.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId]);
 
-    // Process exchange status events for all exchanges visible to this user.
-    // This keeps list items/counters synced even if the changed exchange isn't selected.
     useEffect(() =>
     {
+        let cancelled = false;
         const offStatus = realtimeService.on('EXCHANGE_STATUS_CHANGED', async (msg) =>
         {
             if (!msg.exchangeId) return;
@@ -606,6 +589,7 @@ const Exchanges: React.FC = () =>
             {
                 const updatedExchange = (await fetchSignedInUserAppUserExchange(msg.exchangeId)) as ExchangeDetailedDto;
                 publishExchangeUpdate(updatedExchange);
+                if (cancelled) return;
 
                 if (msg.exchangeId === selectedExchangeId)
                 {
@@ -615,6 +599,8 @@ const Exchanges: React.FC = () =>
             }
             catch (error)
             {
+                if (cancelled) return;
+
                 if (msg.exchangeId === selectedExchangeId && isExchangeUnavailableError(error))
                 {
                     clearUnavailableExchangeContext(selectedExchangeId);
@@ -626,9 +612,9 @@ const Exchanges: React.FC = () =>
 
         return () =>
         {
+            cancelled = true;
             offStatus();
         };
-        // The selected Exchange controls whether detail state is updated.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedExchangeId]);
 
@@ -886,9 +872,6 @@ const Exchanges: React.FC = () =>
 
         const isSingleExchange = exchangeList.length === 1;
 
-        // On phones we only show ONE of [list, details] at a time. We
-        // toggle visibility via classes rather than unmounting so the
-        // ExchangeList preserves its fetched data / scroll / filters.
         const hasMobileSelection = !!selectedExchangeId;
         const listPaneClassName = mergeClasses(
             styles.listPaneWrapper,
@@ -904,19 +887,14 @@ const Exchanges: React.FC = () =>
         const shouldAnimateDetailsTransition =
             selectedExchangeId !== detailsTransitionAnimationSuppressedForId;
 
-        // The empty-state fallbacks below (inbox empty, "select a exchange"
-        // hint, etc.) belong to the desktop details column. On mobile,
-        // when nothing is selected, the ExchangeList already occupies the
-        // entire viewport - rendering these fallbacks as sibling flex
-        // children would compete for height (their `height: 100%` rule
-        // would collapse the list pane to zero). They're only meaningful
-        // here on desktop where they live in a separate column.
         const showDetailsColumnFallbacks = !isMobile;
 
         return (
-            <section className={styles.container}>
+            <section id={"exchanges-container"}
+                     className={styles.container}>
 
-                <div className={listPaneClassName}>
+                <div id={"exchanges-container-div"}
+                     className={listPaneClassName}>
                     <ExchangeList
                         onSelectionChange={changeSelectedExchangeId}
                         onExchangeListChange={setExchangeList}
@@ -931,7 +909,8 @@ const Exchanges: React.FC = () =>
                 </div>
 
                 {showDetailsColumnFallbacks && showInitialDetailsSkeleton && (
-                    <div className={styles.detailsTransitionFrame}>
+                    <div id={"exchanges-details-transition-frame"}
+                         className={styles.detailsTransitionFrame}>
                         <ExchangeDetailsLoading/>
                     </div>
                 )}
@@ -945,167 +924,186 @@ const Exchanges: React.FC = () =>
                             shouldAnimateDetailsTransition && styles.detailsSlideInFromRight
                         )}
                     >
-                        {showSelectedDetailsSkeleton && <ExchangeDetailsLoading/>}
+                        {!hasDetailsLoadError && showSelectedDetailsSkeleton && <ExchangeDetailsLoading/>}
+
+                        {hasDetailsLoadError && !hasSelectedDetails && (
+                            <ExchangeDetailsError onRetry={() => setRouteSelectionVersion(version => version + 1)}/>
+                        )}
 
                         {hasSelectedDetails && exchangeDetails &&
-                            <div className={detailsPaneClassName}>
+                            <div id={"exchanges-div"}
+                                 className={detailsPaneClassName}>
 
-                                <div className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
+                                <div
+                                    id={"exchanges-details-content"}
+                                    className={`${styles.detailsContent} ${fetchingDetails ? styles.detailsContentLoading : ''}`}>
 
-                        {/* Single-exchange: inline banner above the exchange header so content
-                            remains fully visible; no overlay needed because there's nothing
-                            else to switch to. */}
-                        {showAcceptance && isSingleExchange && (
-                            <ExchangeAcceptanceDialog
-                                exchange={exchangeDetails}
-                                isSingleExchange={true}
-                                canDecideLater={canDecideLater}
-                                activeCount={tabCounts.active}
-                                archiveCount={tabCounts.archive}
-                                onAccepted={onExchangeAccepted}
-                                onRejected={onExchangeRejected}
-                                onDismiss={() => {}}
-                                onOpenActive={() => setActiveListTab('active')}
-                                onOpenArchive={() => setActiveListTab('archive')}
-                            />
-                        )}
+                                    {showAcceptance && isSingleExchange && (
+                                        <ExchangeAcceptanceDialog
+                                            exchange={exchangeDetails}
+                                            isSingleExchange={true}
+                                            canDecideLater={canDecideLater}
+                                            activeCount={tabCounts.active}
+                                            archiveCount={tabCounts.archive}
+                                            onAccepted={onExchangeAccepted}
+                                            onRejected={onExchangeRejected}
+                                            onDismiss={() => {
+                                            }}
+                                            onOpenActive={() => setActiveListTab('active')}
+                                            onOpenArchive={() => setActiveListTab('archive')}
+                                        />
+                                    )}
 
-                        <ExchangeDetailsHeader
-                            exchangeDetails={exchangeDetails}
-                            setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
-                            setIsExchangeEndDialogOpen={setIsExchangeEndDialogOpen}
-                            setIsExchangeRescindDialogOpen={setIsExchangeRescindDialogOpen}
-                            setIsDeletedExchangeDialogOpen={setIsDeletedExchangeDialogOpen}
-                            setIsExchangeEditDialogOpen={setIsExchangeEditDialogOpen}
-                            setIsExchangeDetailedViewDialogOpen={setIsExchangeDetailedViewDialogOpen}
-                            setIsExchangeAccessManagementDialogOpen={setIsExchangeAccessManagementDialogOpen}
-                            exchangePermissions={permissions}
-                            onRecreateRejectedExchange={onRecreateRejectedExchange}
-                            onBackToList={isMobile ? () => changeSelectedExchangeId(null) : undefined}
-                        />
-
-                        <ExchangeTabsHeader activeTab={detailsActiveTab}
-                                            documents={exchangeDetails?.documents || []}
-                                            canDownloadZip={!!permissions?.canDownloadDocumentsZip}
-                                            canViewAudit={canViewExchangeAudit}
-                                            canViewDetails={canViewBusinessFields}
-                                            canViewWorkflow={canViewWorkflows}
-                                            canViewInformationRequests={informationRequests.visible}
-                                            isDocumentToolbarVisible={isDocumentToolbarVisible}
-                                            onTabChange={setDetailsActiveTab}
-                                            onDownloadZip={() => setIsDocumentZipDialogOpen(true)}
-                                            onToggleDocumentToolbar={() => setIsDocumentToolbarVisible(visible => !visible)}/>
-
-                        {detailsActiveTab === 'documents' && (
-                        <div className={styles.documentsSectionContainer} id={"documentsSectionContainer"}>
-                            <div className={styles.documentsSection} id={"documentsSection"}>
-                                {(exchangeDetails?.documents?.length > 0) && (
-                                    <ExchangeDocumentsList
+                                    <ExchangeDetailsHeader
                                         exchangeDetails={exchangeDetails}
-                                        permissions={permissions}
-                                        isToolbarVisible={isDocumentToolbarVisible}
-                                        onFilterDocuments={onFilterDocuments}
-                                        documentSearchQuery={documentSearchQuery}
-                                        filteredDocuments={filteredDocuments}
-                                        selectedExchangeDocument={selectedExchangeDocument}
-                                        setSelectedExchangeDocument={setSelectedExchangeDocument}
-                                        setSelectedUploadExchangeDocument={setSelectedUploadExchangeDocument}
-                                        setSelectedSidebarExchangeDocument={setSelectedSidebarExchangeDocument}
-                                        setSelectedUpdateExchangeDocument={setSelectedUpdateExchangeDocument}
-                                        setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
-                                        setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
-                                        onDocumentDeleted={onDocumentDeleted}
-                                        setIsDocumentSidebarOpen={setIsDocumentSidebarOpen}
-                                        isPreviewMode={!!selectedExchangeDocument}
+                                        setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}
+                                        setIsExchangeEndDialogOpen={setIsExchangeEndDialogOpen}
+                                        setIsExchangeRescindDialogOpen={setIsExchangeRescindDialogOpen}
+                                        setIsDeletedExchangeDialogOpen={setIsDeletedExchangeDialogOpen}
+                                        setIsExchangeEditDialogOpen={setIsExchangeEditDialogOpen}
+                                        setIsExchangeDetailedViewDialogOpen={setIsExchangeDetailedViewDialogOpen}
+                                        setIsExchangeAccessManagementDialogOpen={setIsExchangeAccessManagementDialogOpen}
+                                        exchangePermissions={permissions}
+                                        onRecreateRejectedExchange={onRecreateRejectedExchange}
+                                        onBackToList={isMobile ? () => changeSelectedExchangeId(null) : undefined}
                                     />
-                                )}
 
-                                {
-                                    exchangeDetails.documents?.length === 0 &&
-                                    <NoExchangeDocuments setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
-                                }
-                                {selectedExchangeDocument &&
-                                    <ExchangeDocumentPreviewer document={selectedExchangeDocument}
-                                                              ref={documentPreviewerRef}
-                                                              exchange={exchangeDetails}
-                                                              canUploadDocument={!!permissions?.canUploadDocument}
-                                                              onPageChange={setPreviewerCurrentPage}
-                                                              onUploadDocument={() => {
-                                                                  setSelectedUploadExchangeDocument(selectedExchangeDocument);
-                                                                  setIsUploadDocumentDialogOpen(true);
-                                                              }}/>
-                                }
+                                    <ExchangeTabsHeader activeTab={detailsActiveTab}
+                                                        documents={exchangeDetails?.documents || []}
+                                                        canDownloadZip={!!permissions?.canDownloadDocumentsZip}
+                                                        canViewAudit={canViewExchangeAudit}
+                                                        canViewDetails={canViewBusinessFields}
+                                                        canViewWorkflow={canViewWorkflows}
+                                                        canViewInformationRequests={informationRequests.visible}
+                                                        isDocumentToolbarVisible={isDocumentToolbarVisible}
+                                                        onTabChange={setDetailsActiveTab}
+                                                        onDownloadZip={() => setIsDocumentZipDialogOpen(true)}
+                                                        onToggleDocumentToolbar={() => setIsDocumentToolbarVisible(visible => !visible)}/>
 
-                            </div>
-                            {selectedSidebarExchangeDocument && isDocumentSidebarOpen &&
+                                    {detailsActiveTab === 'documents' && (
+                                        <div className={styles.documentsSectionContainer}
+                                             id={"documentsSectionContainer"}>
+                                            <div className={styles.documentsSection}
+                                                 id={"documentsSection"}>
+                                                {(exchangeDetails?.documents?.length > 0) && (
+                                                    <ExchangeDocumentsList
+                                                        exchangeDetails={exchangeDetails}
+                                                        permissions={permissions}
+                                                        isToolbarVisible={isDocumentToolbarVisible}
+                                                        onFilterDocuments={onFilterDocuments}
+                                                        documentSearchQuery={documentSearchQuery}
+                                                        filteredDocuments={filteredDocuments}
+                                                        selectedExchangeDocument={selectedExchangeDocument}
+                                                        setSelectedExchangeDocument={setSelectedExchangeDocument}
+                                                        setSelectedUploadExchangeDocument={setSelectedUploadExchangeDocument}
+                                                        setSelectedSidebarExchangeDocument={setSelectedSidebarExchangeDocument}
+                                                        setSelectedUpdateExchangeDocument={setSelectedUpdateExchangeDocument}
+                                                        setIsUploadDocumentDialogOpen={setIsUploadDocumentDialogOpen}
+                                                        setIsDocumentUpdateDialogOpen={setIsUpdateDocumentDialogOpen}
+                                                        onDocumentDeleted={onDocumentDeleted}
+                                                        setIsDocumentSidebarOpen={setIsDocumentSidebarOpen}
+                                                        isPreviewMode={!!selectedExchangeDocument}
+                                                    />
+                                                )}
 
-                                <ExchangeDocumentSidebar
-                                    isOpen={isDocumentSidebarOpen}
-                                    onOpen={setIsDocumentSidebarOpen}
-                                    exchange={exchangeDetails}
-                                    exchangeDocument={selectedSidebarExchangeDocument}
-                                    pageNumber={sidebarLinkablePageNumber}
-                                    onNavigateToPage={canNavigatePreviewerToPage ? handleNavigatePreviewerToPage : undefined}/>
-                            }
-                        </div>
-                        )}
+                                                {
+                                                    exchangeDetails.documents?.length === 0 &&
+                                                    <NoExchangeDocuments
+                                                        setIsDocumentAddDialogOpen={setIsDocumentAddDialogOpen}/>
+                                                }
+                                                {selectedExchangeDocument &&
+                                                    <ExchangeDocumentPreviewer document={selectedExchangeDocument}
+                                                                               ref={documentPreviewerRef}
+                                                                               exchange={exchangeDetails}
+                                                                               canUploadDocument={!!permissions?.canUploadDocument}
+                                                                               onPageChange={setPreviewerCurrentPage}
+                                                                               onUploadDocument={() => {
+                                                                                   setSelectedUploadExchangeDocument(selectedExchangeDocument);
+                                                                                   setIsUploadDocumentDialogOpen(true);
+                                                                               }}/>
+                                                }
 
-                        {detailsActiveTab === 'details' && canViewBusinessFields && (
-                            <div className={styles.documentsSectionContainer}>
-                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
-                                    <ExchangeFieldsTab exchange={exchangeDetails}/>
+                                            </div>
+                                            {selectedSidebarExchangeDocument && isDocumentSidebarOpen &&
+
+                                                <ExchangeDocumentSidebar
+                                                    isOpen={isDocumentSidebarOpen}
+                                                    onOpen={setIsDocumentSidebarOpen}
+                                                    exchange={exchangeDetails}
+                                                    exchangeDocument={selectedSidebarExchangeDocument}
+                                                    pageNumber={sidebarLinkablePageNumber}
+                                                    onNavigateToPage={canNavigatePreviewerToPage ? handleNavigatePreviewerToPage : undefined}/>
+                                            }
+                                        </div>
+                                    )}
+
+                                    {detailsActiveTab === 'details' && canViewBusinessFields && (
+                                        <div id={"exchanges-documents-section-container"}
+                                             className={styles.documentsSectionContainer}>
+                                            <div
+                                                id={"exchanges-documents-section"}
+                                                className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
+                                                <ExchangeFieldsTab exchange={exchangeDetails}/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {detailsActiveTab === 'information-requests' && informationRequests.visible && (
+                                        <div id={"exchange-information-requests-tab-container"}
+                                             className={styles.documentsSectionContainer}>
+                                            <div id={"exchange-information-requests-tab-content"}
+                                                 className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
+                                                <ExchangeInformationRequestsTab exchangeId={exchangeDetails.id}
+                                                                                state={informationRequests}/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {detailsActiveTab === 'workflow' && canViewWorkflows && (
+                                        <div id={"exchanges-documents-section-container-2"}
+                                             className={styles.documentsSectionContainer}>
+                                            <div
+                                                id={"exchanges-documents-section-2"}
+                                                className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
+                                                <ExchangeWorkflowTab exchange={exchangeDetails}/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {detailsActiveTab === 'audit' && canViewExchangeAudit && (
+                                        <div id={"exchanges-documents-section-container-3"}
+                                             className={styles.documentsSectionContainer}>
+                                            <div
+                                                id={"exchanges-documents-section-3"}
+                                                className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
+                                                <ExchangeAuditTab exchange={exchangeDetails}/>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showAcceptance && !isSingleExchange && (
+                                        <ExchangeAcceptanceDialog
+                                            exchange={exchangeDetails}
+                                            isSingleExchange={false}
+                                            canDecideLater={canDecideLater}
+                                            activeCount={tabCounts.active}
+                                            archiveCount={tabCounts.archive}
+                                            onAccepted={onExchangeAccepted}
+                                            onRejected={onExchangeRejected}
+                                            onDismiss={onDecideLater}
+                                            onOpenActive={() => setActiveListTab('active')}
+                                            onOpenArchive={() => setActiveListTab('archive')}
+                                        />
+                                    )}
                                 </div>
-                            </div>
-                        )}
-
-                        {detailsActiveTab === 'information-requests' && informationRequests.visible && (
-                            <div className={styles.documentsSectionContainer}>
-                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
-                                    <ExchangeInformationRequestsTab exchangeId={exchangeDetails.id}
-                                                                    state={informationRequests}/>
-                                </div>
-                            </div>
-                        )}
-
-                        {detailsActiveTab === 'workflow' && canViewWorkflows && (
-                            <div className={styles.documentsSectionContainer}>
-                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
-                                    <ExchangeWorkflowTab exchange={exchangeDetails}/>
-                                </div>
-                            </div>
-                        )}
-
-                        {detailsActiveTab === 'audit' && canViewExchangeAudit && (
-                            <div className={styles.documentsSectionContainer}>
-                                <div className={`${styles.documentsSection} ${styles.scrollableTabContent}`}>
-                                    <ExchangeAuditTab exchange={exchangeDetails}/>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Multi-exchange: absolute overlay covering detailsContainer.
-                            "Decide Later" advances to the next exchange; navigating
-                            back to this exchange resets dismissal and shows the
-                            overlay again. */}
-                        {showAcceptance && !isSingleExchange && (
-                            <ExchangeAcceptanceDialog
-                                exchange={exchangeDetails}
-                                isSingleExchange={false}
-                                canDecideLater={canDecideLater}
-                                activeCount={tabCounts.active}
-                                archiveCount={tabCounts.archive}
-                                onAccepted={onExchangeAccepted}
-                                onRejected={onExchangeRejected}
-                                onDismiss={onDecideLater}
-                                onOpenActive={() => setActiveListTab('active')}
-                                onOpenArchive={() => setActiveListTab('archive')}
-                            />
-                        )}
-                        </div>
 
                                 {fetchingDetails && (
-                                    <div className={styles.detailsLoadingOverlay}>
-                                        <Spinner size="small" label="Loading exchange..." labelPosition="after"/>
+                                    <div id={"exchanges-details-loading-overlay"}
+                                         className={styles.detailsLoadingOverlay}>
+                                        <Spinner id={"exchanges-loading-exchange-spinner"}
+                                                 size="small"
+                                                 label="Loading exchange..."
+                                                 labelPosition="after"/>
                                     </div>
                                 )}
                             </div>
@@ -1113,19 +1111,31 @@ const Exchanges: React.FC = () =>
                     </div>
                 )}
                 {showDetailsColumnFallbacks && shouldShowIncomingInboxEmptyDetails &&
-                    <div className={styles.noExchangeSelectedSection}>
-                        <div className={styles.inboxEmptyDetailsContent}>
+                    <div id={"exchanges-no-exchange-selected-section"}
+                         className={styles.noExchangeSelectedSection}>
+                        <div id={"exchanges-inbox-empty-details-content"}
+                             className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
-                            <Text size={600} weight={"semibold"} align={"center"}>No incoming requests</Text>
-                            <Text size={300} align={"center"}>
+                            <Text id={"exchanges-no-incoming-requests-text"}
+                                  size={600}
+                                  weight={"semibold"}
+                                  align={"center"}>No incoming requests</Text>
+                            <Text id={"exchanges-you-have-no-pending-text"}
+                                  size={300}
+                                  align={"center"}>
                                 You have no pending requests right now. You have <Text
+                                id={"exchanges-get-exchange-count-label-text"}
                                 weight={"semibold"}>{getExchangeCountLabel(tabCounts.active, 'active')}</Text>
-                                {' '}and <Text
-                                weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
-                                Open <Text weight={"semibold"}>Active</Text> or <Text weight={"semibold"}>Archive</Text>,
-                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchange.
+                                {' '}and <Text id={"exchanges-get-exchange-count-label-text-2"}
+                                               weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
+                                Open <Text id={"exchanges-active-text"}
+                                           weight={"semibold"}>Active</Text> or <Text id={"exchanges-archive-text"}
+                                                                                      weight={"semibold"}>Archive</Text>,
+                                or start a new <Text id={"exchanges-request-or-send-text"}
+                                                     weight={"semibold"}>Request or Send</Text> from Start Exchange.
                             </Text>
-                            <div className={styles.inboxEmptyActions}>
+                            <div id={"exchanges-inbox-empty-actions"}
+                                 className={styles.inboxEmptyActions}>
                                 <Button
                                     id={"exchanges-incoming-empty-open-active-btn"}
                                     appearance="primary"
@@ -1148,19 +1158,31 @@ const Exchanges: React.FC = () =>
                 }
 
                 {showDetailsColumnFallbacks && shouldShowOutgoingInboxEmptyDetails &&
-                    <div className={styles.noExchangeSelectedSection}>
-                        <div className={styles.inboxEmptyDetailsContent}>
+                    <div id={"exchanges-no-exchange-selected-section-2"}
+                         className={styles.noExchangeSelectedSection}>
+                        <div id={"exchanges-inbox-empty-details-content-2"}
+                             className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
-                            <Text size={600} weight={"semibold"} align={"center"}>No outgoing requests</Text>
-                            <Text size={300} align={"center"}>
+                            <Text id={"exchanges-no-outgoing-requests-text"}
+                                  size={600}
+                                  weight={"semibold"}
+                                  align={"center"}>No outgoing requests</Text>
+                            <Text id={"exchanges-you-do-not-have-text"}
+                                  size={300}
+                                  align={"center"}>
                                 You do not have requests awaiting recipient response right now. You have <Text
+                                id={"exchanges-get-exchange-count-label-text-3"}
                                 weight={"semibold"}>{getExchangeCountLabel(tabCounts.active, 'active')}</Text>
-                                {' '}and <Text
-                                weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
-                                Open <Text weight={"semibold"}>Active</Text> or <Text weight={"semibold"}>Archive</Text>,
-                                or start a new <Text weight={"semibold"}>Request or Send</Text> from Start Exchange.
+                                {' '}and <Text id={"exchanges-get-exchange-count-label-text-4"}
+                                               weight={"semibold"}>{getExchangeCountLabel(tabCounts.archive, 'archived')}</Text>.
+                                Open <Text id={"exchanges-active-text-2"}
+                                           weight={"semibold"}>Active</Text> or <Text id={"exchanges-archive-text-2"}
+                                                                                      weight={"semibold"}>Archive</Text>,
+                                or start a new <Text id={"exchanges-request-or-send-text-2"}
+                                                     weight={"semibold"}>Request or Send</Text> from Start Exchange.
                             </Text>
-                            <div className={styles.inboxEmptyActions}>
+                            <div id={"exchanges-inbox-empty-actions-2"}
+                                 className={styles.inboxEmptyActions}>
                                 <Button
                                     id={"exchanges-outgoing-empty-open-active-btn"}
                                     appearance="primary"
@@ -1183,15 +1205,25 @@ const Exchanges: React.FC = () =>
                 }
 
                 {showDetailsColumnFallbacks && shouldShowActiveEmptyDetails &&
-                    <div className={styles.noExchangeSelectedSection}>
-                        <div className={styles.inboxEmptyDetailsContent}>
+                    <div id={"exchanges-no-exchange-selected-section-3"}
+                         className={styles.noExchangeSelectedSection}>
+                        <div id={"exchanges-inbox-empty-details-content-3"}
+                             className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
-                            <Text size={600} weight={"semibold"} align={"center"}>No active exchanges</Text>
-                            <Text size={300} align={"center"}>
-                                You do not have active exchanges right now. Check <Text weight={"semibold"}>Inbox</Text>
-                                {' '}for new requests or review <Text weight={"semibold"}>Archive</Text>.
+                            <Text id={"exchanges-no-active-exchanges-text"}
+                                  size={600}
+                                  weight={"semibold"}
+                                  align={"center"}>No active Exchanges</Text>
+                            <Text id={"exchanges-you-do-not-have-text-2"}
+                                  size={300}
+                                  align={"center"}>
+                                You do not have active Exchanges right now. Check <Text id={"exchanges-inbox-text"}
+                                                                                        weight={"semibold"}>Inbox</Text>
+                                {' '}for new requests or review <Text id={"exchanges-archive-text-3"}
+                                                                      weight={"semibold"}>Archive</Text>.
                             </Text>
-                            <div className={styles.inboxEmptyActions}>
+                            <div id={"exchanges-inbox-empty-actions-3"}
+                                 className={styles.inboxEmptyActions}>
                                 <Button
                                     id={"exchanges-active-empty-open-inbox-btn"}
                                     appearance="primary"
@@ -1214,15 +1246,25 @@ const Exchanges: React.FC = () =>
                 }
 
                 {showDetailsColumnFallbacks && shouldShowArchiveEmptyDetails &&
-                    <div className={styles.noExchangeSelectedSection}>
-                        <div className={styles.inboxEmptyDetailsContent}>
+                    <div id={"exchanges-no-exchange-selected-section-4"}
+                         className={styles.noExchangeSelectedSection}>
+                        <div id={"exchanges-inbox-empty-details-content-4"}
+                             className={styles.inboxEmptyDetailsContent}>
                             <EmptyStateIllustration className={styles.inboxEmptyIllustration}/>
-                            <Text size={600} weight={"semibold"} align={"center"}>Archive is empty</Text>
-                            <Text size={300} align={"center"}>
-                                You do not have archived exchanges yet. Check <Text weight={"semibold"}>Inbox</Text>
-                                {' '}for pending requests or open <Text weight={"semibold"}>Active</Text> exchanges.
+                            <Text id={"exchanges-archive-is-empty-text"}
+                                  size={600}
+                                  weight={"semibold"}
+                                  align={"center"}>Archive is empty</Text>
+                            <Text id={"exchanges-you-do-not-have-text-3"}
+                                  size={300}
+                                  align={"center"}>
+                                You do not have archived Exchanges yet. Check <Text id={"exchanges-inbox-text-2"}
+                                                                                    weight={"semibold"}>Inbox</Text>
+                                {' '}for pending requests or open <Text id={"exchanges-active-text-3"}
+                                                                        weight={"semibold"}>Active</Text> exchanges.
                             </Text>
-                            <div className={styles.inboxEmptyActions}>
+                            <div id={"exchanges-inbox-empty-actions-4"}
+                                 className={styles.inboxEmptyActions}>
                                 <Button
                                     id={"exchanges-archive-empty-open-inbox-btn"}
                                     appearance="primary"
@@ -1245,8 +1287,10 @@ const Exchanges: React.FC = () =>
                 }
 
                 {showDetailsColumnFallbacks && shouldShowSelectionHint &&
-                    <div className={styles.noExchangeSelectedSection}>
-                        <Text size={500}> Select a Exchange in the list to view details</Text>
+                    <div id={"exchanges-no-exchange-selected-section-5"}
+                         className={styles.noExchangeSelectedSection}>
+                        <Text id={"exchanges-select-a-exchange-in-text"}
+                              size={500}> Select a Exchange in the list to view details</Text>
                     </div>
                 }
 
@@ -1258,18 +1302,28 @@ const Exchanges: React.FC = () =>
 
     return (
         <>
-            <Toaster toasterId={toasterId} position="bottom-end"/>
+            <Toaster id={"exchanges-toaster"}
+                     toasterId={toasterId}
+                     position="bottom-end"/>
             {preparingExchanges && <ExchangePreLoader/>}
             {!preparingExchanges && (appUserHasExchanges) && renderExchangesSection()}
             {!preparingExchanges && (!appUserHasExchanges) &&
-                <div className={styles.containerNoExchanges}>
+                <div id={"exchanges-container-no-exchanges"}
+                     className={styles.containerNoExchanges}>
                     <EmptyStateIllustration className={styles.noExchangesIllustration}/>
-                    <Text size={600} weight={"semibold"} align={"center"}>
+                    <Text id={"exchanges-share-your-first-document-text"}
+                          size={600}
+                          weight={"semibold"}
+                          align={"center"}>
                         Share your first document
                     </Text>
-                    <Text size={300} align={"center"}>
-                        Send or receive documents securely to anyone,  your exchanges will appear here.
-                        Tap <Text italic weight={"semibold"}>Start Exchange</Text> in the main menu to begin.
+                    <Text id={"exchanges-send-or-receive-documents-text"}
+                          size={300}
+                          align={"center"}>
+                        Send or receive documents securely to anyone, your Exchanges will appear here.
+                        Tap <Text id={"exchanges-start-exchange-text"}
+                                  italic
+                                  weight={"semibold"}>Start Exchange</Text> in the main menu to begin.
                     </Text>
                 </div>
             }

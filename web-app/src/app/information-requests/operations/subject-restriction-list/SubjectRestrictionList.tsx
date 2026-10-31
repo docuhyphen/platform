@@ -1,7 +1,7 @@
 import {Button, Text} from "@fluentui/react-components";
 import {InformationRequestSubjectRestrictionDto} from "../../../models/models.tsx";
-import {usePrivacyPanelStyles} from "../privacy/PrivacyPanelStyles.tsx";
 import {formattedTime} from "../operationsLabels.ts";
+import {useSubjectRestrictionListStyles} from "./SubjectRestrictionListStyles.tsx";
 
 interface SubjectRestrictionListProps
 {
@@ -13,7 +13,7 @@ interface SubjectRestrictionListProps
 
 const SubjectRestrictionList = ({restrictions, labelOf, busy, onLift}: SubjectRestrictionListProps) =>
 {
-    const styles = usePrivacyPanelStyles();
+    const styles = useSubjectRestrictionListStyles();
 
     return (
         <div id={"information-request-privacy-restrictions"}

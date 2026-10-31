@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
@@ -24,21 +25,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Central authorization for Exchange write paths.
- *
- * Rules verified:
- *  - updateExchange: caller with no EXCHANGE_READ -> ExchangeNotFoundException (existence hidden).
- *  - updateExchange: caller with EXCHANGE_READ but no EXCHANGE_WRITE cannot mutate owner fields.
- *  - updateExchange: caller with EXCHANGE_WRITE can change name/settings.
- *  - updateExchange: EXCHANGE_READ alone cannot change recipient acceptance status.
- *  - updateExchange: caller with EXCHANGE_READ cannot set ENDED status (needs EXCHANGE_WRITE).
- *  - rescindExchange: caller with no EXCHANGE_RESCIND -> ForbiddenException.
- *  - rescindExchange: caller with EXCHANGE_RESCIND on already-RESCINDED exchange is idempotent.
- *  - deleteExchange: caller with no EXCHANGE_DELETE -> ExchangeNotFoundException.
- *  - issueRecipientOtp: caller with no EXCHANGE_WRITE -> ExchangeNotFoundException.
- *  - workflow-instances endpoint: no active org -> empty list returned.
- */
 class ExchangeAuthorizationTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
@@ -68,7 +54,6 @@ class ExchangeAuthorizationTest
         return ctx
     }
 
-    /** Factory that always returns [principal] and an anonymous context. */
     private fun makeFactory(): AuthorizationContextFactory
     {
         val f = mock<AuthorizationContextFactory>()
@@ -77,7 +62,6 @@ class ExchangeAuthorizationTest
         return f
     }
 
-    /** Factory that returns null principal (unauthenticated). */
     private fun makeUnauthFactory(): AuthorizationContextFactory
     {
         val f = mock<AuthorizationContextFactory>()
@@ -85,7 +69,6 @@ class ExchangeAuthorizationTest
         return f
     }
 
-    /** Authorization service that allows [allowed] actions and denies everything else. */
     private fun makeAuthService(vararg allowed: Action): AuthorizationService
     {
         val svc = mock<AuthorizationService>()
@@ -139,11 +122,8 @@ class ExchangeAuthorizationTest
         documentThumbnailService = mock(),
         requestParentLifecycle = mock(),
         requestCompletion = mock(),
+        endingIntents = mock(),
     )
-
-    // -------------------------------------------------------------------------
-    // updateExchange: base-gate tests
-    // -------------------------------------------------------------------------
 
     @Test
     fun `updateExchange - unauthenticated caller throws ExchangeNotFoundException`()
@@ -321,10 +301,6 @@ class ExchangeAuthorizationTest
         assertEquals("Initiator", result.initiator?.person?.lastName)
     }
 
-    // -------------------------------------------------------------------------
-    // rescindExchange
-    // -------------------------------------------------------------------------
-
     @Test
     fun `rescindExchange - unauthenticated caller throws ForbiddenException`()
     {
@@ -345,10 +321,23 @@ class ExchangeAuthorizationTest
         whenever(repo.findById(exchangeId)).thenReturn(makeExchange())
         whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(makeExchange())
 
-        val svc = makeService(authSvc = makeAuthService(), exchangeRepo = repo)
+        val svc = makeService(authSvc = makeAuthService(Action.EXCHANGE_VIEW), exchangeRepo = repo)
         assertThrows<ForbiddenException> {
             svc.rescindExchange(exchangeId.toString())
         }
+        verify(repo, never()).findByIdForUpdate(exchangeId)
+    }
+
+    @Test
+    fun `rescindExchange - a caller who cannot see the Exchange is answered as for an unknown one`() {
+        val repo = mock<ExchangeRepository>()
+        whenever(repo.findByIdForUpdate(exchangeId)).thenReturn(makeExchange())
+
+        val svc = makeService(authSvc = makeAuthService(), exchangeRepo = repo)
+        assertThrows<ExchangeNotFoundException> {
+            svc.rescindExchange(exchangeId.toString())
+        }
+        verify(repo, never()).findByIdForUpdate(exchangeId)
     }
 
     @Test
@@ -366,10 +355,6 @@ class ExchangeAuthorizationTest
         val result = svc.rescindExchange(exchangeId.toString())
         assertEquals(ExchangeStatus.RESCINDED, result.status)
     }
-
-    // -------------------------------------------------------------------------
-    // deleteExchange
-    // -------------------------------------------------------------------------
 
     @Test
     fun `deleteExchange - unauthenticated caller throws ExchangeNotFoundException`()
@@ -405,10 +390,6 @@ class ExchangeAuthorizationTest
         svc.deleteExchange(exchangeId.toString())
     }
 
-    // -------------------------------------------------------------------------
-    // issueRecipientOtp
-    // -------------------------------------------------------------------------
-
     @Test
     fun `issueRecipientOtp - unauthenticated caller throws ExchangeNotFoundException`()
     {
@@ -440,8 +421,6 @@ class ExchangeAuthorizationTest
             authSvc = makeAuthService(Action.EXCHANGE_EDIT),
             exchangeRepo = repo,
         )
-        // requireRecipientSignIn=true should throw ForbiddenException (not ExchangeNotFoundException),
-        // proving the auth gate was passed.
         assertThrows<ForbiddenException> {
             svc.issueRecipientOtp(exchangeId.toString())
         }

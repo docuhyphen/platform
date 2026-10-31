@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextReg
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.exchange.TrustedGroupShareExpansionPolicy
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
 import org.mockito.kotlin.any
@@ -47,8 +48,7 @@ internal class TrustedGroupShareFixture(
         memberRepository,
         mock<AuditRecorder>(),
         mock<ResourceAuthorizationContextRegistry>(),
-        attestationService,
-        validationService,
+        TrustedGroupShareExpansionPolicy(attestationService, validationService),
         mock<Provider<ExchangeRecipientService>>(),
     )
 

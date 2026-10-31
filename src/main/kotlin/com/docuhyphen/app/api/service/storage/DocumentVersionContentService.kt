@@ -6,7 +6,6 @@ import com.docuhyphen.app.api.model.entity.DocumentVersion
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.io.File
-import java.util.*
 
 @ApplicationScoped
 class DocumentVersionContentService @Inject constructor(
@@ -14,32 +13,32 @@ class DocumentVersionContentService @Inject constructor(
 )
 {
     fun store(
-        documentId: UUID,
-        versionId: UUID,
-        fileName: String,
+        locator: ObjectStoreDocumentVersionLocator,
         file: File,
         expected: DocumentVersionContentDigest = DocumentVersionContentDigests.of(file),
-    ): StoredDocumentVersionContent
-    {
-        val allocatedKey = DocumentVersionObjectKeys.allocate(documentId, versionId, fileName)
-        val locator = documentVersionStorageService.writeNewVersion(allocatedKey.value, file, expected)
-
-        return StoredDocumentVersionContent(locator, expected)
-    }
+    ): StoredDocumentVersionContent =
+        StoredDocumentVersionContent(
+            documentVersionStorageService.writeNewVersion(locator.value, file, expected),
+            expected
+        )
 
     fun open(version: DocumentVersion): DocumentVersionContent
     {
-        val file = when (val locator = DocumentVersionStorageLocatorMapper.read(version))
+        val handle = when (val locator = DocumentVersionStorageLocatorMapper.read(version))
         {
             is ObjectStoreDocumentVersionLocator -> documentVersionStorageService.openVersion(locator)
         }
 
-        if (DocumentVersionContentDigests.of(file) != DocumentVersionContentIdentityMapper.digestOf(version))
-        {
-            throw DocumentVersionContentIntegrityException(version.storageLocator)
+        try {
+            if (DocumentVersionContentDigests.of(handle.file) != DocumentVersionContentIdentityMapper.digestOf(version)) {
+                throw DocumentVersionContentIntegrityException(version.storageLocator)
+            }
+        } catch (failure: Exception) {
+            handle.close()
+            throw failure
         }
 
-        return DocumentVersionContent(file, version.fileName)
+        return DocumentVersionContent(handle, version.fileName)
     }
 
     fun delete(locatorKind: String?, locator: String?): DocumentVersionDeletionOutcome

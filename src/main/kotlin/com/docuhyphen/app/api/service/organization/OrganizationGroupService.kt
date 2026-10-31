@@ -5,9 +5,11 @@ import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.organization.PrincipalGroupMemberSpec
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
@@ -15,7 +17,10 @@ import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberReposi
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -28,10 +33,6 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Organization group management over the unified `principal_group` model. The legacy
- * `organization_group*` tables are no longer written or read here.
- */
 @RequestScoped
 class OrganizationGroupService @Inject constructor(
     private val organizationRepository: OrganizationRepository,
@@ -84,12 +85,6 @@ class OrganizationGroupService @Inject constructor(
             }
     }
 
-    /**
-     * Whether the given user may decide an Exchange on behalf of this group. For [PrincipalGroupScope.PERSONAL]
-     * groups (e.g. "My Group"), all invited contacts are plain members with no owner/manager among the
-     * recipients themselves, so any active member may decide. For all other scopes, only an active
-     * owner or manager may decide.
-     */
     fun isActiveDecisionMaker(groupId: UUID, appUserId: UUID): Boolean
     {
         val group = principalGroupRepository.findById(groupId)
@@ -146,7 +141,6 @@ class OrganizationGroupService @Inject constructor(
         organizationRepository.findByAppUserIdAndPersonId(appUserId, personId)
             ?: throw OrganizationNotFoundException("Organization not found for appUserId: $appUserId and personId: $personId")
 
-    //For app integrations
     fun getOrganizationByAppUserIdAndAppId(appUserId: UUID, appId: UUID): Organization =
         organizationRepository.findByAppUserIdAndAppId(appUserId, appId)
             ?: throw OrganizationNotFoundException("Organization not found for appUserId: $appUserId and appId: $appId")
@@ -237,8 +231,6 @@ class OrganizationGroupService @Inject constructor(
 
         val orgId = UUID.fromString(organizationId)
         val gid = UUID.fromString(groupId)
-        // Managing a group's membership/metadata requires GROUP_ADMIN on the group itself,
-        // satisfied by an org admin of the group's org or by a group OWNER/MANAGER.
         authorizeGroup(Action.GROUP_MANAGE_MEMBERS, gid)
         subscriptionGuard.requireMutation(orgId, PlanFeature.ORGANIZATION_ADMINISTRATION)
         val organization = organizationRepository.findById(orgId)
@@ -321,8 +313,6 @@ class OrganizationGroupService @Inject constructor(
         }
 
         val gid = UUID.fromString(groupId)
-        // Deleting a group requires GROUP_DELETE on the group, satisfied by an org ADMIN/OWNER
-        // of the group's org or by a group OWNER (group MANAGER cannot delete).
         authorizeGroup(Action.GROUP_DELETE, gid)
 
         val orgId = UUID.fromString(organizationId)
@@ -334,11 +324,10 @@ class OrganizationGroupService @Inject constructor(
             ?: throw OrganizationGroupNotFoundException("Group not found for id: $groupId")
         val beforeSnapshot = groupSnapshot(gid, group.name, group.isActive, currentMemberSpecs(gid))
 
-        // A group still referenced by an active share is deactivated rather than hard-deleted.
-        val linkedToSessions = shareRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, gid)
-            .any { it.resourceType == ResourceType.EXCHANGE }
+        val linkedToActiveShares = shareRepository.findActiveForPrincipal(PrincipalKind.PRINCIPAL_GROUP, gid)
+            .any { it.resourceType == ResourceType.EXCHANGE || it.resourceType == ResourceType.INFORMATION_REQUEST }
 
-        if (linkedToSessions)
+        if (linkedToActiveShares)
         {
             logger.info("Group ${group.name} is linked to active shares. Deactivating instead of deleting.")
             principalGroupService.deactivateGroup(gid)
@@ -369,7 +358,6 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
-    /** Deactivate a user's membership across all of an organization's groups (e.g. on offboarding). */
     @Transactional
     fun removeUserFromOrganizationGroups(organizationId: UUID, appUserId: UUID)
     {
@@ -378,7 +366,6 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
-    /** Org groups as role-based [PrincipalGroupDto]s sourced from `principal_group`. */
     fun getOrganizationGroupViews(organizationId: String): List<PrincipalGroupDto>
     {
         val orgId = UUID.fromString(organizationId)
@@ -387,15 +374,6 @@ class OrganizationGroupService @Inject constructor(
         return principalGroupRepository.findByOwnerOrg(orgId).map { toGroupView(it) }
     }
 
-    // -------------------------------------------------------------------------
-    // helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Authorize the caller for [action] against an organization resource via the unified
-     * [AuthorizationService]. Org-level actions (e.g. group creation) authorize on the org
-     * itself so role resolution uses the caller's membership grants in that specific org.
-     */
     private fun authorizeOrg(action: Action, organizationId: UUID)
     {
         val principal = authorizationContextFactory.currentPrincipal()
@@ -412,11 +390,6 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
-    /**
-     * Authorize the caller for [action] on the given group via the unified
-     * [AuthorizationService]. The membership-to-grant bridge resolves both the caller's org role
-     * (org admins of the group's org) and their group role (OWNER/MANAGER).
-     */
     private fun authorizeGroup(action: Action, groupId: UUID)
     {
         val principal = authorizationContextFactory.currentPrincipal()
@@ -436,7 +409,7 @@ class OrganizationGroupService @Inject constructor(
     private fun toSpecs(
         organization: Organization,
         members: List<OrganizationGroupMemberModel>,
-    ): List<PrincipalGroupService.GroupMemberSpec> =
+    ): List<PrincipalGroupMemberSpec> =
         members.map { member ->
             val appUserId = UUID.fromString(member.appUserId)
             if (!organizationMembershipService.isMember(appUserId, organization.id))
@@ -445,13 +418,13 @@ class OrganizationGroupService @Inject constructor(
             }
             appUserService.getById(appUserId)
                 ?: throw IllegalArgumentException("Member not found for id: ${member.appUserId}")
-            PrincipalGroupService.GroupMemberSpec(principalId = appUserId, groupRole = member.groupRole)
+            PrincipalGroupMemberSpec(principalId = appUserId, groupRole = member.groupRole)
         }
 
-    private fun currentMemberSpecs(groupId: UUID): List<PrincipalGroupService.GroupMemberSpec> =
+    private fun currentMemberSpecs(groupId: UUID): List<PrincipalGroupMemberSpec> =
         principalGroupMemberRepository.findActiveMembers(groupId)
             .filter { it.principalKind == PrincipalKind.USER }
-            .map { PrincipalGroupService.GroupMemberSpec(principalId = it.principalId, groupRole = it.groupRole) }
+            .map { PrincipalGroupMemberSpec(principalId = it.principalId, groupRole = it.groupRole) }
 
     private fun toGroupView(group: PrincipalGroup): PrincipalGroupDto
     {
@@ -581,7 +554,7 @@ class OrganizationGroupService @Inject constructor(
         groupId: UUID,
         name: String,
         isActive: Boolean,
-        members: List<PrincipalGroupService.GroupMemberSpec>,
+        members: List<PrincipalGroupMemberSpec>,
     ): String
     {
         val m = members

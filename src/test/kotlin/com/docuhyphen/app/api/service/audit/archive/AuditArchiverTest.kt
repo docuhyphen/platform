@@ -5,10 +5,7 @@ import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.LedgerProcessor
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.any
@@ -17,9 +14,9 @@ import org.mockito.kotlin.whenever
 import java.nio.file.Path
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.time.temporal.ChronoUnit
+import java.util.*
 
-/** In-memory [AuditArchiveStorage] test double: refuses overwrite, same contract as the real implementations. */
 class InMemoryAuditArchiveStorage : AuditArchiveStorage
 {
     val objects: MutableMap<String, ByteArray> = mutableMapOf()
@@ -37,24 +34,30 @@ class InMemoryAuditArchiveStorage : AuditArchiveStorage
     override fun listKeysWithPrefix(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }
 }
 
-/**
- * Verifies the segment closure and chaining guarantees provided by [AuditArchiver]:
- *  - a stream with fewer events than the configured segment size is left open (not closed).
- *  - closing a segment uploads a segment content object and a signed manifest object, and
- *    persists an [com.docuhyphen.app.api.model.entity.AuditArchiveSegment] row whose
- *    `merkleRoot`/`segmentDigest` match what [AuditArchiveVerifier] independently recomputes.
- *  - closing a second segment for the same stream links `prevSegmentDigest` to the first
- *    segment's `segmentDigest` (the segment-to-segment chain / boundary checkpoint).
- */
 class AuditArchiverTest
 {
-    /**
-     * Builds [sequences] as a real, hash-chained run of ledger events, using the same canonical
-     * serializer production code uses ([LedgerProcessor.canonicalEnvelopeJson] /
-     * [LedgerProcessor.computeHash]) instead of an arbitrary placeholder hash string, so a segment
-     * built from these events is accepted by [AuditArchiveVerifier]'s per-record hash
-     * recomputation exactly as a genuinely-appended ledger event would be.
-     */
+    @Test
+    fun `streams without a ready segment do not consume the archive batch`(@TempDir tempDir: Path) {
+        val idle = (1..50).map { "idle-$it" }
+        val ready = "user:${UUID.randomUUID()}:2026-01"
+        val ledger = mock<AuditLedgerEventRepository>()
+        whenever(ledger.findDistinctStreamIds()).thenReturn(idle + ready)
+        idle.forEach { whenever(ledger.findByStreamOrderBySequence(it)).thenReturn(emptyList()) }
+        whenever(ledger.findByStreamOrderBySequence(ready)).thenReturn(ledgerEvents(ready, 1L..3L))
+        val segments = mock<AuditArchiveSegmentRepository>()
+        whenever(segments.insert(any())).thenAnswer { it.getArgument(0) }
+        val config = configService(3, tempDir)
+        val result = AuditArchiver(
+            ledger,
+            segments,
+            InMemoryAuditArchiveStorage(),
+            LocalAuditArchiveSigningKeyProvider(config),
+            config
+        )
+            .closeReadySegments(1)
+        assertEquals(1, result.closed)
+    }
+
     private fun ledgerEvents(streamId: String, sequences: LongRange, firstPrevHash: String? = null): List<AuditLedgerEvent>
     {
         var prevHash = firstPrevHash
@@ -71,6 +74,25 @@ class AuditArchiverTest
                 streamSequence = sequence
                 actorKind = "HUMAN"
                 payloadJson = """{"field":"value-$sequence"}"""
+                when (val owner = LedgerProcessor.ownerOfStream(streamId)) {
+                    com.docuhyphen.app.api.service.audit.AuditOwnerScope.Platform -> {
+                        ownerType = "PLATFORM"
+                        ownerId = null
+                        organizationId = null
+                    }
+
+                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Personal -> {
+                        ownerType = "USER"
+                        ownerId = owner.userId
+                        organizationId = null
+                    }
+
+                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Organization -> {
+                        ownerType = "ORGANIZATION"
+                        ownerId = owner.organizationId
+                        organizationId = owner.organizationId
+                    }
+                }
                 this.prevHash = prevHash
             }
             val canonicalJson = LedgerProcessor.canonicalEnvelopeJson(
@@ -115,7 +137,7 @@ class AuditArchiverTest
     @Test
     fun `a stream with fewer events than the segment size is left open`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val ledgerRepo = mock<AuditLedgerEventRepository>()
         whenever(ledgerRepo.findByStreamOrderBySequence(streamId)).thenReturn(ledgerEvents(streamId, 1L..1L))
 
@@ -133,7 +155,7 @@ class AuditArchiverTest
     @Test
     fun `closing a segment uploads a signed manifest that AuditArchiveVerifier accepts`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val events = ledgerEvents(streamId, 1L..3L)
 
         val ledgerRepo = mock<AuditLedgerEventRepository>()
@@ -169,7 +191,7 @@ class AuditArchiverTest
     @Test
     fun `closing a second segment links prevSegmentDigest to the first segment's segmentDigest`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val firstBatch = ledgerEvents(streamId, 1L..2L)
         val secondBatch = ledgerEvents(streamId, 3L..4L, firstPrevHash = firstBatch.last().eventHash)
 
@@ -202,4 +224,34 @@ class AuditArchiverTest
         assertEquals(3L, secondSegment.firstSequence)
         assertEquals(4L, secondSegment.lastSequence)
     }
+
+    @Test
+    fun `closed segments still verify after the database stores their creation time to the microsecond`(@TempDir tempDir: Path) {
+        val streamIds = (1..10).map { "${UUID(0L, it.toLong())}:2026-01" }
+        val ledgerRepo = mock<AuditLedgerEventRepository>()
+        streamIds.forEach { whenever(ledgerRepo.findByStreamOrderBySequence(it)).thenReturn(ledgerEvents(it, 1L..1L)) }
+
+        val segmentRepo = mock<AuditArchiveSegmentRepository>()
+        whenever(segmentRepo.findLatestByStream(any())).thenReturn(null)
+        whenever(segmentRepo.insert(any())).thenAnswer { it.getArgument(0) }
+
+        val storage = InMemoryAuditArchiveStorage()
+        val config = configService(segmentSize = 1, tempDir = tempDir)
+        val signingProvider = LocalAuditArchiveSigningKeyProvider(config)
+        val archiver = AuditArchiver(ledgerRepo, segmentRepo, storage, signingProvider, config)
+        streamIds.forEach { archiver.closeSegmentIfReady(it, force = false) }
+
+        val captor = org.mockito.kotlin.argumentCaptor<com.docuhyphen.app.api.model.entity.AuditArchiveSegment>()
+        org.mockito.kotlin.verify(segmentRepo, org.mockito.kotlin.times(streamIds.size)).insert(captor.capture())
+
+        val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
+        captor.allValues.forEach { segment ->
+            segment.createdAt = storedAtDatabasePrecision(segment.createdAt)
+            val result = verifier.verifySegment(segment)
+            assertTrue(result.valid, "${segment.streamId}: ${result.note}")
+        }
+    }
+
+    private fun storedAtDatabasePrecision(timestamp: Timestamp): Timestamp =
+        Timestamp.from(timestamp.toInstant().plusNanos(500).truncatedTo(ChronoUnit.MICROS))
 }

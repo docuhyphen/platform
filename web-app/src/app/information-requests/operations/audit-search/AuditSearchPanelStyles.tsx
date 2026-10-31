@@ -23,11 +23,4 @@ export const useAuditSearchPanelStyles = makeStyles({
         padding: 0,
         listStyleType: "none",
     },
-    pager: {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: tokens.spacingHorizontalM,
-        flexWrap: "wrap",
-    },
 });

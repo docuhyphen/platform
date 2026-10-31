@@ -17,4 +17,8 @@ export const useReviewHeaderStyles = makeStyles({
     detail: {
         color: tokens.colorNeutralForeground3,
     },
+    reason: {
+        color: tokens.colorNeutralForeground2,
+        overflowWrap: "anywhere",
+    },
 });

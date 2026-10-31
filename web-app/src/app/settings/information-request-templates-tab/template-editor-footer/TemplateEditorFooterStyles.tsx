@@ -6,7 +6,7 @@ export const useTemplateEditorFooterStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalS,
         paddingTop: tokens.spacingVerticalS,
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         flexShrink: 0,
     },
     actions: {

@@ -5,11 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Connects one resource (by [resourceType] + [resourceId]) to exactly one published
- * [SchemaVersion]. A live resource is pinned to an exact version and never silently upgraded.
- * See FIELDS-FEATURE.md "Schema Assignment".
- */
 @Entity
 @Table(name = "schema_assignment")
 class SchemaAssignment
@@ -33,7 +28,6 @@ class SchemaAssignment
     @Column(name = "scope_org_id", nullable = true)
     var scopeOrgId: UUID? = null
 
-    /** Set when [scopeKind] is PERSONAL; copied from the Schema Definition this assignment applies. */
     @Column(name = "scope_user_id", nullable = true)
     var scopeUserId: UUID? = null
 
@@ -41,7 +35,6 @@ class SchemaAssignment
     @Enumerated(EnumType.STRING)
     var assignmentSource: SchemaAssignmentSource = SchemaAssignmentSource.MANUAL
 
-    /** Canonical principal that chose the Schema for this resource. */
     @Column(name = "assigned_by_principal_kind", nullable = true, length = 32)
     @Enumerated(EnumType.STRING)
     var assignedByPrincipalKind: PrincipalKind? = null
@@ -49,7 +42,6 @@ class SchemaAssignment
     @Column(name = "assigned_by_principal_id", nullable = true)
     var assignedByPrincipalId: UUID? = null
 
-    /** Non-secret reference to the access session the assignment was made in. */
     @Column(name = "assigned_by_session_ref", nullable = true, length = 64)
     var assignedBySessionRef: String? = null
 

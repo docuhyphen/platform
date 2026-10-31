@@ -1,10 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestActingParty
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationPolicy
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAttestationResult
@@ -18,14 +21,19 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.command.canonicalForm
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestReviewedContentPrecondition
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionContentCollector
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionStages
@@ -56,27 +64,30 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
+    private val conditionVisibility: InformationRequestConditionVisibility,
 )
 {
     @Transactional
-    fun record(command: RecordInformationRequestSubmissionAttestationCommand): InformationRequestSubmissionAttestationResult
+    fun record(requested: RecordInformationRequestSubmissionAttestationCommand): InformationRequestSubmissionAttestationResult
     {
-        val locked = gate.lock(command.requestId)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef.informationRequestRequirement(command.requirementId),
             operation = ATTEST_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    ATTEST_OPERATION,
-                    command.requestId,
-                    command.requirementId,
-                    command.decision,
-                    command.refusalReason?.trim().orEmpty(),
-                    command.externalSignatureReference?.trim().orEmpty(),
-                    command.partyId ?: "",
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                ATTEST_OPERATION,
+                command.requestId,
+                command.requirementId,
+                command.decision,
+                command.refusalReason?.trim().orEmpty(),
+                command.externalSignatureReference?.trim().orEmpty(),
+                command.partyId,
+                command.precondition.canonicalForm(),
             ),
         )
         return when (
@@ -105,18 +116,20 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
     ): InformationRequestSubmissionAttestationResult
     {
         val request = locked.request
+        gate.authorizeRequirement(command.access, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST, command.requirementId)
         val requirement = requireAssertion(request.id, request.templateVersionId, command.requirementId)
+        conditionVisibility.requireShown(request, listOf(requirement))
         val policy = policyLoader.forBinding(requirement.sourceTemplateBindingId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ATTESTATION_NOT_AN_ASSERTION,
                 "This Information Request Requirement is not an assertion a party can make",
             )
         gate.requireMutation(locked, InformationRequestMutation.ATTEST_RESPONSE)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.ATTEST)
         lockService.requireAttestationOpen(request.id, requirement.id)
-        gate.authorizeRequirement(command.access, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST, requirement.id)
 
         val party = actingParty(locked, policy, requirement, command)
+        lockService.requireAttestationDecisionOpen(request.id, requirement.id, party.role, command.decision)
         val strength = strengthOf(command.access)
         if (strength.rank < policy.minimumAuthenticationStrength.rank)
         {
@@ -132,12 +145,24 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
             ?: throw IllegalStateException("Information Request Template Version not found")
         val stageKey = stages.stageByBinding(version)[requirement.sourceTemplateBindingId]
         val content = contentCollector.collect(request, stageKey)
-        command.precondition.requireSatisfiedBy(InformationRequestETag.submissionOf(stageKey, content.contentHash))
+        InformationRequestReviewedContentPrecondition.requireSatisfiedBy(
+            command.precondition,
+            InformationRequestETag.submissionOf(stageKey, content.contentHash),
+        )
         val current = evaluationService.evaluate(content)[requirement.id]
         if (command.decision == InformationRequestAttestationDecision.ASSENTED)
         {
-            val unmet = InformationRequestAttestationPolicyEvaluator.rolesBefore(policy, party.role)
-                .filter { role -> current?.evaluation?.counted?.none { it.partyRole == role } != false }
+            current?.evaluation?.counted?.firstOrNull {
+                it.partyId == party.party.id && it.externalSignatureReference == reference
+            }?.let { standing ->
+                return InformationRequestSubmissionAttestationResult(
+                    standing,
+                    current,
+                    InformationRequestETag.submissionOf(stageKey, content.contentHash),
+                )
+            }
+            val unmet =
+                InformationRequestAttestationPolicyEvaluator.unmetRolesBefore(policy, party.role, current?.evaluation)
             if (unmet.isNotEmpty())
             {
                 throw InformationRequestLifecycleException(
@@ -172,7 +197,9 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
                 statementHashSha256 = policyLoader.statementHash(binding)
                 policyHashSha256 = policy.policyHash
                 attestedAt = Timestamp.from(now)
-                expiresAt = policy.validityHours?.let { Timestamp.from(now.plus(it.toLong(), ChronoUnit.HOURS)) }
+                expiresAt = policy.validityHours
+                    ?.takeIf { command.decision == InformationRequestAttestationDecision.ASSENTED }
+                    ?.let { Timestamp.from(now.plus(it.toLong(), ChronoUnit.HOURS)) }
                 sequenceNumber = attestationRepository.nextSequenceNumber(request.id)
             },
         )
@@ -182,9 +209,9 @@ class InformationRequestSubmissionAttestationService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.ATTEST_RESPONSE,
-                actor = command.access.principal,
+                actor = InformationRequestAuditActor.of(command.access),
                 partyId = party.party.id,
-                idempotencyKey = "information_request.attestation|${requirement.id}|" +
+                auditIdempotencyKey = "information_request.attestation|${requirement.id}|" +
                         "${command.access.principal.kind}:${command.access.principal.id}|${command.idempotencyKey}",
                 details = buildMap {
                     put("requirementId", requirement.id.toString())

@@ -2,10 +2,13 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.service.fields.FieldValidationException
+import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Test
@@ -13,23 +16,6 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Creation-time schema + field-value seam (EXCHANGE-FIELDS-AT-CREATION-PLAN.md, items 1-3).
- *
- * These target [ExchangeInitiationService.applyCreationTimeFields], the internal seam invoked by
- * [ExchangeInitiationService.initiateExchange] AFTER the Exchange is persisted and BEFORE any
- * workflow fires. That ordering is guaranteed structurally by the single call site in
- * `initiateExchange` (the helper runs before the `workflowEngineService.trigger(...)` block).
- *
- * The service has a Mockito-only test harness (no Quarkus/DB container), so we exercise the seam
- * directly rather than driving the full initiation flow. Verified here:
- *  - schema + values -> assignSchema then setValues, in order, for the EXCHANGE resource type.
- *  - values without a schema -> rejected; no assignment attempted.
- *  - invalid value (validator failure) -> exception propagates so the @Transactional creation rolls
- *    back; the assignment was attempted first.
- *  - a non-owner / forbidden path (assignSchema throws ForbiddenException) propagates.
- *  - no schema supplied -> nothing is assigned (unchanged behavior).
- */
 class ExchangeInitiationFieldsTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
@@ -82,6 +68,7 @@ class ExchangeInitiationFieldsTest
             noAuthExchangeAccessTokenService = mock(),
             exchangeNotificationDeliveryService = mock(),
             exchangeInitiationSubscriptionGuard = mock(),
+            blueprintInformationRequestStarter = mock(),
         )
 
     private fun entry(): FieldValueEntry =

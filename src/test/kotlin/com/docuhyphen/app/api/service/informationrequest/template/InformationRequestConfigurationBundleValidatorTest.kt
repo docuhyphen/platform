@@ -4,22 +4,8 @@ import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequestClockDueEffect
 import com.docuhyphen.app.api.model.entity.InformationRequestClockType
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.informationrequest.template.BundleClockPeriod
-import com.docuhyphen.app.api.model.informationrequest.template.BundleClockPolicy
-import com.docuhyphen.app.api.model.informationrequest.template.BundleConnectorContract
-import com.docuhyphen.app.api.model.informationrequest.template.BundleConnectorKind
-import com.docuhyphen.app.api.model.informationrequest.template.BundleReasonCode
-import com.docuhyphen.app.api.model.informationrequest.template.BundleReasonCodePurpose
-import com.docuhyphen.app.api.model.informationrequest.template.BundleReasonCodeVocabulary
-import com.docuhyphen.app.api.model.informationrequest.template.BundleRetentionDefault
-import com.docuhyphen.app.api.model.informationrequest.template.BundleRolePreset
-import com.docuhyphen.app.api.model.informationrequest.template.BundleTemplateVersionReference
-import com.docuhyphen.app.api.model.informationrequest.template.BundleValidationPolicy
-import com.docuhyphen.app.api.model.informationrequest.template.BundleValidationRule
-import com.docuhyphen.app.api.model.informationrequest.template.BundleValidationRuleKind
-import com.docuhyphen.app.api.model.informationrequest.template.BundleValidationTarget
-import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestConfigurationBundle
-import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestConfigurationBundleParse
+import com.docuhyphen.app.api.model.informationrequest.template.*
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -30,15 +16,86 @@ import java.io.File
 class InformationRequestConfigurationBundleValidatorTest
 {
     private val validator = InformationRequestConfigurationBundleValidator()
+    private val stagedHash = CommandRequestFingerprint.sha256Hex("staged-intake@2")
+    private val periodicHash = CommandRequestFingerprint.sha256Hex("periodic-update@5")
+    private val published = listOf(
+        InformationRequestTemplateVersionContent("staged-intake", 2, stagedHash),
+        InformationRequestTemplateVersionContent("periodic-update", 5, periodicHash),
+    )
+
+    @Test
+    fun `a Template Version reference names a published Version the caller can see`() {
+        val problems =
+            validator.validate(stagedMultiPartyBundle(), published.filterNot { it.templateKey == "staged-intake" })
+
+        assertEquals(listOf("templateVersions[0]:reference.unknown"), problems.map { "${it.path}:${it.code}" })
+    }
+
+    @Test
+    fun `a Template Version reference whose content no longer matches its hash is refused`() {
+        val changed = listOf(InformationRequestTemplateVersionContent("staged-intake", 2, periodicHash))
+
+        val problems = validator.validate(stagedMultiPartyBundle(), changed)
+
+        assertEquals(
+            listOf("templateVersions[0].contentHashSha256:hash.mismatch"),
+            problems.map { "${it.path}:${it.code}" },
+        )
+    }
+
+    @Test
+    fun `a Template Version reference matches any visible Version with its key and number`() {
+        val candidates = listOf(
+            InformationRequestTemplateVersionContent("staged-intake", 2, periodicHash),
+            InformationRequestTemplateVersionContent("staged-intake", 2, stagedHash),
+            InformationRequestTemplateVersionContent("staged-intake", 3, stagedHash),
+        )
+
+        assertEquals(emptyList<Any>(), validator.validate(stagedMultiPartyBundle(), candidates))
+        assertEquals(
+            listOf("templateVersions[0]:reference.unknown"),
+            validator.validate(stagedMultiPartyBundle().let { bundle ->
+                bundle.copy(templateVersions = bundle.templateVersions.map { it.copy(versionNumber = 4) })
+            }, candidates).map { "${it.path}:${it.code}" },
+        )
+    }
 
     @Test
     fun `a staged multi-party bundle and a recurring single-party bundle both validate and round-trip`()
     {
         listOf(stagedMultiPartyBundle(), recurringSinglePartyBundle()).forEach { bundle ->
-            assertEquals(emptyList<Any>(), validator.validate(bundle), bundle.bundleKey)
+            assertEquals(emptyList<Any>(), validator.validate(bundle, published), bundle.bundleKey)
             val parsed = validator.parse(Json.encodeToString(bundle))
             assertEquals(InformationRequestConfigurationBundleParse.Parsed(bundle), parsed)
         }
+    }
+
+    @Test
+    fun `a clock policy names the period that overlaps an earlier one and the reminder that repeats one`() {
+        val bundle = stagedMultiPartyBundle().let { staged ->
+            staged.copy(
+                clockPolicies = staged.clockPolicies.map { policy ->
+                    policy.copy(
+                        escalationAfterMinutes = 0,
+                        businessPeriods = listOf(
+                            BundleClockPeriod(1, 720, 1020),
+                            BundleClockPeriod(1, 540, 780),
+                            BundleClockPeriod(2, 540, 780),
+                            BundleClockPeriod(2, 780, 1020),
+                        ),
+                        reminderOffsetsMinutes = listOf(1440, 60, 1440),
+                    )
+                },
+            )
+        }
+
+        assertEquals(
+            listOf(
+                "clockPolicies[0].businessPeriods[0]:period.overlap",
+                "clockPolicies[0].reminderOffsetsMinutes[2]:collection.duplicate",
+            ),
+            validator.validate(bundle, published).map { "${it.path}:${it.code}" },
+        )
     }
 
     @Test
@@ -100,11 +157,25 @@ class InformationRequestConfigurationBundleValidatorTest
                 ),
             ),
             retentionDefaults = listOf(BundleRetentionDefault("record-retention", 30, 10)),
-            connectorContracts = listOf(BundleConnectorContract("verification", BundleConnectorKind.EXTERNAL_VERIFICATION, 0, emptyList())),
-            templateVersions = listOf(BundleTemplateVersionReference("intake-template", 1, "abc", rolePresetKey = "absent")),
+            connectorContracts = listOf(
+                BundleConnectorContract(
+                    "verification",
+                    BundleConnectorKind.EXTERNAL_VERIFICATION,
+                    0,
+                    emptyList()
+                )
+            ),
+            templateVersions = listOf(
+                BundleTemplateVersionReference(
+                    "intake-template",
+                    1,
+                    "abc",
+                    rolePresetKey = "absent"
+                )
+            ),
         )
 
-        val problems = validator.validate(bundle).map { "${it.path}:${it.code}" }.toSet()
+        val problems = validator.validate(bundle, published).map { "${it.path}:${it.code}" }.toSet()
 
         assertEquals(
             setOf(
@@ -139,7 +210,9 @@ class InformationRequestConfigurationBundleValidatorTest
     {
         val shipped = File("src/main/resources").walkTopDown()
             .filter { it.isFile }
-            .filter { file -> file.extension in setOf("json", "yaml", "yml") && file.readText().contains("\"formatVersion\"") }
+            .filter { file ->
+                file.extension in setOf("json", "yaml", "yml") && file.readText().contains("\"formatVersion\"")
+            }
             .map { it.path }
             .toList()
         assertTrue(shipped.isEmpty(), shipped.toString())
@@ -157,7 +230,7 @@ class InformationRequestConfigurationBundleValidatorTest
             BundleTemplateVersionReference(
                 templateKey = "staged-intake",
                 versionNumber = 2,
-                contentHashSha256 = "a".repeat(64),
+                contentHashSha256 = stagedHash,
                 rolePresetKey = "separated-review",
                 clockPolicyKey = "business-window",
                 retentionDefaultKey = "standard-retention",
@@ -208,7 +281,10 @@ class InformationRequestConfigurationBundleValidatorTest
                     InformationRequestShareRoleKey.ATTESTOR,
                     InformationRequestShareRoleKey.REVIEWER,
                 ),
-                separatedRoles = listOf(InformationRequestShareRoleKey.CONTRIBUTOR, InformationRequestShareRoleKey.REVIEWER),
+                separatedRoles = listOf(
+                    InformationRequestShareRoleKey.CONTRIBUTOR,
+                    InformationRequestShareRoleKey.REVIEWER
+                ),
             ),
         ),
         clockPolicies = listOf(
@@ -237,7 +313,7 @@ class InformationRequestConfigurationBundleValidatorTest
             BundleTemplateVersionReference(
                 templateKey = "periodic-update",
                 versionNumber = 5,
-                contentHashSha256 = "b".repeat(64),
+                contentHashSha256 = periodicHash,
                 rolePresetKey = "single-respondent",
                 clockPolicyKey = "calendar-window",
                 connectorKeys = listOf("record-verification"),

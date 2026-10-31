@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
@@ -9,7 +10,6 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService

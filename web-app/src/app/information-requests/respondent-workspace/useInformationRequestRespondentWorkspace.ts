@@ -1,12 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useParams, useSearchParams} from "react-router-dom";
 import {
-    getInformationRequestAccessToken,
-    getInformationRequestSessionToken,
+    clearInformationRequestSession,
     getInformationRequestResponseWorkspace,
     issueInformationRequestContactProofChallenge,
-    storeInformationRequestAccessToken,
-    storeInformationRequestSessionToken,
+    storeInformationRequestSession,
     verifyInformationRequestContactProofChallenge,
 } from "../../../services/informationRequestRuntimeService.ts";
 import {
@@ -14,6 +12,12 @@ import {
     InformationRequestTemplateRequirementDto,
     ResponseError,
 } from "../../models/models.tsx";
+import {KeptEvidenceUploads, keptEvidenceUploads, KeptUpload} from "../requirement-evidence/keptEvidenceUploads.ts";
+import {isInformationRequestAccessSessionEnded} from "../shared/informationRequestRefusal.ts";
+import {Scoped, useScopeGuard} from "../shared/useScopeGuard.ts";
+import {commandKeysFor} from "../shared/useStableIdempotencyKey.ts";
+import {respondentAccessRefusalMessage} from "./respondentAccessRefusal.ts";
+import {useRespondentAccessLink} from "./useRespondentAccessLink.ts";
 
 export type InformationRequestRespondentAccessMode = "authenticated" | "no-auth";
 
@@ -23,15 +27,20 @@ interface WorkspaceState
     workspace: InformationRequestResponseWorkspaceDto | null;
     requirements: InformationRequestTemplateRequirementDto[];
     accessLinkToken?: string;
+    sessionId: string;
     accessVerified: boolean;
+    linkIncomplete: boolean;
     challengeSent: boolean;
     code: string;
     busy: boolean;
     error: string | null;
+    keptUploads: KeptEvidenceUploads;
+    commandKeys: Map<string, string>;
     setCode: (value: string) => void;
     issueChallenge: () => Promise<void>;
     verifyCode: () => Promise<void>;
     loadWorkspace: () => Promise<void>;
+    endAccessSession: (refusal: unknown) => void;
 }
 
 const errorMessage = (error: unknown): string =>
@@ -39,7 +48,9 @@ const errorMessage = (error: unknown): string =>
     if (typeof error === "string") return error;
     if (error instanceof Error) return error.message;
     const responseError = error as ResponseError;
-    return responseError?.errorMessage ?? "The Information Request could not be loaded.";
+    return respondentAccessRefusalMessage(error)
+        ?? responseError?.errorMessage
+        ?? "The Information Request could not be loaded.";
 };
 
 export const useInformationRequestRespondentWorkspace = (
@@ -49,57 +60,87 @@ export const useInformationRequestRespondentWorkspace = (
     const params = useParams<{requestId: string}>();
     const [searchParams, setSearchParams] = useSearchParams();
     const requestId = accessMode === "authenticated" ? params.requestId ?? "" : searchParams.get("s") ?? "";
-    const [workspace, setWorkspace] = useState<InformationRequestResponseWorkspaceDto | null>(null);
-    const [accessVerified, setAccessVerified] = useState(accessMode === "authenticated");
-    const [challengeSent, setChallengeSent] = useState(false);
-    const [code, setCode] = useState("");
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [storedAccessLinkToken, setStoredAccessLinkToken] = useState("");
+    const linkToken = accessMode === "no-auth" ? searchParams.get("t") : null;
+    const [loaded, setLoaded] = useState<Scoped<InformationRequestResponseWorkspaceDto> | null>(null);
+    const [failures, setFailures] = useState<Record<string, string>>({});
+    const [entered, setEntered] = useState<Scoped<string> | null>(null);
+    const [sentScope, setSentScope] = useState("");
+    const [busyScope, setBusyScope] = useState("");
+    const [keptStore] = useState(() => new Map<string, KeptUpload[]>());
+    const [commandKeyStore] = useState(() => new Map<string, Map<string, string>>());
+    const latestLoad = useRef<Scoped<number>>({scope: "", value: 0});
 
-    const accessLinkToken = useMemo(() => accessMode === "no-auth" ? storedAccessLinkToken : undefined,
-        [accessMode, storedAccessLinkToken]);
+    const {current: currentLink, replace: replaceLink} =
+        useRespondentAccessLink(accessMode === "no-auth", requestId, linkToken, searchParams, setSearchParams);
+    const accessLinkToken = accessMode === "no-auth" ? currentLink?.accessLinkToken ?? "" : undefined;
+    const accessVerified = accessMode === "authenticated" || Boolean(currentLink?.verified);
+    const scope = `${accessMode}|${requestId}|${accessLinkToken ?? ""}`;
+    const guard = useScopeGuard(scope);
+    const workspace = accessVerified && loaded?.scope === scope && loaded.value.request.id === requestId
+        ? loaded.value
+        : null;
+    const respondentKey = workspace?.respondentKey ?? "";
+    const keptUploads = useMemo(
+        () => keptEvidenceUploads(keptStore, `${scope}|${respondentKey}`),
+        [keptStore, respondentKey, scope],
+    );
+    const commandKeys = useMemo(
+        () => commandKeysFor(commandKeyStore, `${requestId}|${respondentKey}`),
+        [commandKeyStore, requestId, respondentKey],
+    );
 
-    useEffect(() =>
+    const fail = useCallback((failedScope: string, refusal: unknown) =>
+        setFailures(current => ({...current, [failedScope]: errorMessage(refusal)})), []);
+
+    const clearFailure = useCallback((clearedScope: string) =>
+        setFailures(current => Object.fromEntries(Object.entries(current).filter(([key]) => key !== clearedScope))), []);
+
+    const endAccessSession = useCallback((refusal: unknown) =>
     {
-        if (accessMode !== "no-auth" || !requestId) return;
-        const token = searchParams.get("t");
-        if (token)
-        {
-            storeInformationRequestAccessToken(requestId, token);
-            const nextParams = new URLSearchParams(searchParams);
-            nextParams.delete("t");
-            setSearchParams(nextParams, {replace: true});
-        }
-        setStoredAccessLinkToken(getInformationRequestAccessToken(requestId));
-        setAccessVerified(Boolean(getInformationRequestSessionToken(requestId)));
-    }, [accessMode, requestId, searchParams, setSearchParams]);
+        if (accessMode !== "no-auth" || !currentLink) return;
+        const ended = replaceLink(
+            currentLink,
+            {sessionId: "", verified: false},
+            () => clearInformationRequestSession(currentLink.requestId),
+        );
+        if (!ended) return;
+        setSentScope(current => current === scope ? "" : current);
+        setEntered(current => current?.scope === scope ? null : current);
+        if (latestLoad.current.scope === scope) latestLoad.current = {scope, value: latestLoad.current.value + 1};
+        setLoaded(current => current?.scope === scope ? null : current);
+        setBusyScope(current => current === scope ? "" : current);
+        fail(scope, refusal);
+    }, [accessMode, currentLink, fail, replaceLink, scope]);
 
     const loadWorkspace = useCallback(async () =>
     {
-        if (!requestId || (accessMode === "no-auth" && !accessLinkToken)) return;
-        setBusy(true);
-        setError(null);
+        if (!requestId || (accessMode === "no-auth" && !accessLinkToken) || !guard.isCurrent(scope)) return;
+        const load = latestLoad.current.value + 1;
+        latestLoad.current = {scope, value: load};
+        const current = () => latestLoad.current.value === load;
+        setBusyScope(scope);
+        clearFailure(scope);
         try
         {
-            setWorkspace(await getInformationRequestResponseWorkspace(requestId, accessLinkToken));
+            const next = await getInformationRequestResponseWorkspace(requestId, accessLinkToken);
+            if (current()) setLoaded({scope, value: next});
         }
         catch (caught: unknown)
         {
-            const reasonCode = (caught as ResponseError)?.reasonCode;
-            if (accessMode === "no-auth" && reasonCode?.startsWith("INFORMATION_REQUEST_ACCESS_SESSION_"))
+            if (!current()) return;
+            if (accessMode === "no-auth" && isInformationRequestAccessSessionEnded(caught))
             {
-                storeInformationRequestSessionToken(requestId, "");
-                setAccessVerified(false);
-                setWorkspace(null);
+                endAccessSession(caught);
+                return;
             }
-            setError(errorMessage(caught));
+            setLoaded(shown => shown?.scope === scope ? null : shown);
+            fail(scope, caught);
         }
         finally
         {
-            setBusy(false);
+            if (current()) setBusyScope(busy => busy === scope ? "" : busy);
         }
-    }, [accessLinkToken, accessMode, requestId]);
+    }, [accessLinkToken, accessMode, clearFailure, endAccessSession, fail, guard, requestId, scope]);
 
     useEffect(() =>
     {
@@ -109,41 +150,51 @@ export const useInformationRequestRespondentWorkspace = (
     const issueChallenge = async () =>
     {
         if (!accessLinkToken) return;
-        setBusy(true);
-        setError(null);
+        const issuing = scope;
+        setBusyScope(issuing);
+        clearFailure(issuing);
         try
         {
             await issueInformationRequestContactProofChallenge(accessLinkToken);
-            setChallengeSent(true);
+            setSentScope(issuing);
         }
         catch (caught: unknown)
         {
-            setError(errorMessage(caught));
+            fail(issuing, caught);
         }
         finally
         {
-            setBusy(false);
+            setBusyScope(current => current === issuing ? "" : current);
         }
     };
 
+    const code = entered?.scope === scope ? entered.value : "";
+
     const verifyCode = async () =>
     {
-        if (!accessLinkToken || !requestId) return;
-        setBusy(true);
-        setError(null);
+        const owner = currentLink;
+        if (!owner || !accessLinkToken || !code) return;
+        const verifying = scope;
+        setBusyScope(verifying);
+        clearFailure(verifying);
         try
         {
             const session = await verifyInformationRequestContactProofChallenge(accessLinkToken, code);
-            storeInformationRequestSessionToken(requestId, session.sessionToken);
-            setAccessVerified(true);
+            replaceLink(
+                owner,
+                {sessionId: session.sessionId, verified: true},
+                () => storeInformationRequestSession(owner.requestId, session),
+            );
+            setSentScope(current => current === verifying ? "" : current);
+            setEntered(current => current?.scope === verifying ? null : current);
         }
         catch (caught: unknown)
         {
-            setError(errorMessage(caught));
+            fail(verifying, caught);
         }
         finally
         {
-            setBusy(false);
+            setBusyScope(current => current === verifying ? "" : current);
         }
     };
 
@@ -152,14 +203,19 @@ export const useInformationRequestRespondentWorkspace = (
         workspace,
         requirements: workspace?.templateVersion.sections.flatMap(section => section.requirements) ?? [],
         accessLinkToken,
+        sessionId: currentLink?.sessionId ?? "",
         accessVerified,
-        challengeSent,
+        linkIncomplete: accessMode === "no-auth" && Boolean(requestId) && currentLink !== null && !currentLink.accessLinkToken,
+        challengeSent: sentScope === scope,
         code,
-        busy,
-        error,
-        setCode,
+        busy: busyScope === scope,
+        error: failures[scope] ?? null,
+        keptUploads,
+        commandKeys,
+        setCode: value => setEntered({scope, value}),
         issueChallenge,
         verifyCode,
         loadWorkspace,
+        endAccessSession,
     };
 };

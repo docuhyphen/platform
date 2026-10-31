@@ -20,6 +20,7 @@ import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 import {RecordPreservationHoldDto, RecordPreservationScope} from "../../models/models.tsx";
 import {holdScopeLabels} from "../recordPreservationLabels.ts";
 import {usePlaceHoldDialogStyles} from "./PlaceHoldDialogStyles.tsx";
+import {useStableIdempotencyKey} from "../../information-requests/shared/useStableIdempotencyKey.ts";
 
 interface PlaceHoldDialogProps
 {
@@ -29,7 +30,8 @@ interface PlaceHoldDialogProps
     onDismiss: () => void;
 }
 
-const REASON_LIMIT = 1000;
+const REASON_LIMIT = 2048;
+const CASE_REFERENCE_LIMIT = 256;
 
 const PlaceHoldDialog = ({resourceType, resourceId, onPlaced, onDismiss}: PlaceHoldDialogProps) =>
 {
@@ -38,6 +40,7 @@ const PlaceHoldDialog = ({resourceType, resourceId, onPlaced, onDismiss}: PlaceH
     const [caseReference, setCaseReference] = useState("");
     const [scope, setScope] = useState<RecordPreservationScope>(RecordPreservationScope.DESCENDANTS_AND_REFERENCES);
     const [busy, setBusy] = useState(false);
+    const keyed = useStableIdempotencyKey();
     const [error, setError] = useState<string | null>(null);
 
     const place = async () =>
@@ -46,13 +49,14 @@ const PlaceHoldDialog = ({resourceType, resourceId, onPlaced, onDismiss}: PlaceH
         setError(null);
         try
         {
-            onPlaced(await placeRecordPreservationHold({
+            const request = {
                 resourceType,
                 resourceId,
                 scope,
                 reason: reason.trim(),
                 caseReference: caseReference.trim() || undefined,
-            }));
+            };
+            onPlaced(await keyed("place-hold", request, key => placeRecordPreservationHold(request, key)));
         }
         catch (caught: unknown)
         {
@@ -63,17 +67,21 @@ const PlaceHoldDialog = ({resourceType, resourceId, onPlaced, onDismiss}: PlaceH
 
     return (
         <Dialog open={true}
-                onOpenChange={(_, data) => { if (!data.open && !busy) onDismiss(); }}>
+                onOpenChange={(_, data) => {
+                    if (!data.open && !busy) onDismiss();
+                }}>
             <DialogSurface id={"place-record-hold-dialog"}
+                           aria-labelledby={"place-record-hold-dialog-title"}
                            className={styles.surface}>
-                <DialogBody>
+                <DialogBody id={"place-record-hold-dialog-body"}>
                     <DialogTitle id={"place-record-hold-dialog-title"}>Place a preservation hold</DialogTitle>
                     <DialogContent id={"place-record-hold-dialog-content"}
                                    className={styles.content}>
                         {error && (
                             <MessageBar id={"place-record-hold-dialog-error"}
-                                        intent={"error"}>
-                                <MessageBarBody>{error}</MessageBarBody>
+                                        intent={"error"}
+                                        role={"alert"}>
+                                <MessageBarBody id={"place-record-hold-dialog-error-body"}>{error}</MessageBarBody>
                             </MessageBar>
                         )}
                         <Field id={"place-record-hold-reason-field"}
@@ -89,6 +97,7 @@ const PlaceHoldDialog = ({resourceType, resourceId, onPlaced, onDismiss}: PlaceH
                                label={"Case reference"}>
                             <Input id={"place-record-hold-case"}
                                    value={caseReference}
+                                   maxLength={CASE_REFERENCE_LIMIT}
                                    disabled={busy}
                                    onChange={(_, data) => setCaseReference(data.value)}/>
                         </Field>

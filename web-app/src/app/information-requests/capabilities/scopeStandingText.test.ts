@@ -26,6 +26,7 @@ const capabilities = (
     personalTemplatesAvailable: reason === undefined,
     assignedWork: false,
     holdsRequests: false,
+    quotas: {maxOpenRequests: 25, openRequests: 25, committedEvidenceBytes: 0},
 });
 
 describe("scopeStandingNotice", () =>
@@ -66,5 +67,17 @@ describe("scopeStandingNotice", () =>
             text: "This organization cannot create or change Information Requests while the account is suspended. "
                 + "Everything recorded stays readable and exportable.",
         });
+    });
+
+    it("tells an owner at the open-request limit how many requests are open and that Templates stay available", () => {
+        expect(scopeStandingNotice(capabilities(SubscriptionOwnerType.ORGANIZATION, InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED)))
+            .toEqual({
+                intent: "info",
+                text: "This organization has 25 of its 25 open Information Requests. A new request can be created once one "
+                    + "is finished or cancelled. Templates can still be created and edited.",
+            });
+        expect(scopeStandingNotice(capabilities(SubscriptionOwnerType.USER, InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED))?.text)
+            .toBe("You have 25 of your 25 open Information Requests. A new request can be created once one is finished or "
+                + "cancelled. Templates can still be created and edited.");
     });
 });

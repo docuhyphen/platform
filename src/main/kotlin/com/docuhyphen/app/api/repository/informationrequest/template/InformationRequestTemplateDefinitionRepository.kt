@@ -6,11 +6,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for [InformationRequestTemplateDefinition]. Every lookup names the owner it is asking
- * about, because a key belongs to one owner and answering for a scope kind alone would answer for
- * every owner of that kind at once.
- */
 @ApplicationScoped
 class InformationRequestTemplateDefinitionRepository :
     BaseRepository<InformationRequestTemplateDefinition>(InformationRequestTemplateDefinition::class.java)
@@ -72,7 +67,6 @@ class InformationRequestTemplateDefinitionRepository :
             .setParameter("orgId", organizationId)
             .resultList
 
-    /** Only the definitions this one person owns, never another person's and never the platform's. */
     fun findAllForUser(userId: UUID): List<InformationRequestTemplateDefinition> =
         entityManager.createQuery(
             """

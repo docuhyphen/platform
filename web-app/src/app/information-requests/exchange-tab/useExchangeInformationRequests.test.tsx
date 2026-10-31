@@ -3,6 +3,7 @@ import {act, renderHook, waitFor} from "@testing-library/react";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import * as authoring from "../../../services/informationRequestAuthoringService.ts";
 import {
+    ExchangeStatus,
     InformationRequestExecutionStandingKind,
     InformationRequestNextAction,
     InformationRequestState,
@@ -73,5 +74,42 @@ describe("useExchangeInformationRequests", () =>
         rerender({exchangeId: undefined});
         await waitFor(() => expect(result.current.listing).toBeNull());
         expect(authoring.getExchangeInformationRequests).toHaveBeenCalledTimes(1);
+    });
+
+    it("drops the earlier Exchange's listing as soon as another Exchange is chosen", async () => {
+        let answerSecond!: (listing: { requests: InformationRequestSummaryDto[]; canCreate: boolean }) => void;
+        vi.mocked(authoring.getExchangeInformationRequests)
+            .mockResolvedValueOnce({requests: [retained], canCreate: true})
+            .mockReturnValueOnce(new Promise(resolve => {
+                answerSecond = resolve;
+            }));
+        const {result, rerender} = renderHook(({exchangeId}: {
+            exchangeId: string
+        }) => useExchangeInformationRequests(exchangeId), {
+            initialProps: {exchangeId: "exchange-a"},
+        });
+        await waitFor(() => expect(result.current.listing?.requests).toHaveLength(1));
+
+        rerender({exchangeId: "exchange-b"});
+
+        expect(result.current.listing).toBeNull();
+        await act(async () => answerSecond({requests: [], canCreate: false}));
+        expect(result.current.listing).toEqual({requests: [], canCreate: false});
+    });
+
+    it("reads the listing again when the Exchange's status changes", async () => {
+        vi.mocked(authoring.getExchangeInformationRequests)
+            .mockResolvedValueOnce({requests: [retained], canCreate: true})
+            .mockResolvedValueOnce({requests: [retained], canCreate: false});
+        const {result, rerender} = renderHook(
+            ({status}: { status: ExchangeStatus }) => useExchangeInformationRequests("exchange-a", status),
+            {initialProps: {status: ExchangeStatus.ACCEPTED_STARTED}},
+        );
+        await waitFor(() => expect(result.current.listing?.canCreate).toBe(true));
+
+        rerender({status: ExchangeStatus.ENDED});
+
+        await waitFor(() => expect(result.current.listing?.canCreate).toBe(false));
+        expect(authoring.getExchangeInformationRequests).toHaveBeenCalledTimes(2);
     });
 });

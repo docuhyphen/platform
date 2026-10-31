@@ -1,12 +1,8 @@
 package com.docuhyphen.app.api.repository.fields
 
-import com.docuhyphen.app.api.model.entity.FieldValueProvenance
-import com.docuhyphen.app.api.model.entity.FieldValueRevision
-import com.docuhyphen.app.api.model.entity.FieldValueRevisionSelection
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.fields.FieldValueSetETag
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
@@ -14,7 +10,6 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -22,7 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import javax.sql.DataSource
@@ -56,23 +51,10 @@ class FieldValueRevisionPostgreSQLResource : QuarkusTestResourceLifecycleManager
     }
 }
 
-/**
- * A recorded revision travels through the mapped entity, not only through the service. This proves
- * the typed answer and the canonical authorship survive the round trip to PostgreSQL and back, that
- * the database refuses to let a recorded revision be rewritten, and that history outlives the live
- * answer it records: removing a Schema Assignment removes the answer, its set, and the assignment,
- * while what was answered remains.
- *
- * The count of changes a set of answers has been through travels the same route, and the database
- * refuses to let that count move backwards no matter which layer asks. Two callers changing the same
- * set at the same moment are held apart by the locking read, so the second decides against what the
- * first committed rather than against the state they both started from.
- */
 @QuarkusTest
 @QuarkusTestResource(FieldValueRevisionPostgreSQLResource::class, restrictToAnnotatedClass = true)
 class FieldValueRevisionPersistenceContractTest
 {
-    /** How long the first caller keeps its lock, so the second reaches its own read while held. */
     private val lockHoldMillis = 400L
 
     @Inject
@@ -198,7 +180,7 @@ class FieldValueRevisionPersistenceContractTest
         }
         assertEquals(valueSetId, surviving.fieldValueSetId)
         assertEquals(assignmentId, surviving.schemaAssignmentId)
-        assertTrue(revisionRepository.findByAssignment(assignmentId).isNotEmpty())
+        assertEquals(revisionId, revisionRepository.findLatest(valueSetId, surviving.fieldContractId)?.id)
     }
 
     @Test
@@ -212,8 +194,6 @@ class FieldValueRevisionPersistenceContractTest
             insertRootValueSet(connection, valueSetId, assignmentId)
         }
 
-        // Each step reads in its own transaction, so a later assertion never reads an earlier
-        // step's cached copy of the set instead of the committed row.
         assertEquals(
             1L,
             QuarkusTransaction.requiringNew().call { requireNotNull(valueSetRepository.findRoot(assignmentId)).revision },
@@ -274,8 +254,6 @@ class FieldValueRevisionPersistenceContractTest
             insertRootValueSet(connection, valueSetId, assignmentId)
         }
 
-        // Both callers read the same state and decide to change it, which is the ordinary case of one
-        // person saving while another already has.
         val stateBothRead = FieldsPrecondition.ExpectedRevision(
             FieldValueSetETag.of(
                 QuarkusTransaction.requiringNew().call { requireNotNull(valueSetRepository.findRoot(assignmentId)) },
@@ -289,7 +267,6 @@ class FieldValueRevisionPersistenceContractTest
                 QuarkusTransaction.requiringNew().call {
                     val set = requireNotNull(valueSetRepository.findRootForUpdate(assignmentId))
                     firstHasLocked.countDown()
-                    // Held long enough for the second caller to reach its own locking read.
                     Thread.sleep(lockHoldMillis)
                     stateBothRead.requireSatisfiedBy(FieldValueSetETag.of(set))
                     set.revision += 1

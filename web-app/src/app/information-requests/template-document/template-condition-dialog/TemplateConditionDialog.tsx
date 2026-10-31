@@ -4,7 +4,6 @@ import {AddIcon} from "../../../components/IconBundles.tsx";
 import {
     FieldOperator,
     InformationRequestConditionHiddenDataPolicy,
-    InformationRequestRequirementType,
     InformationRequestTemplateConditionPredicateRequest,
 } from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
@@ -14,8 +13,9 @@ import TextField from "../../shared/text-field/TextField.tsx";
 import {useTemplateDocument} from "../TemplateDocumentContext.ts";
 import {hiddenDataPolicyLabels} from "../templateAuthoringLabels.ts";
 import {removeItem, replaceItem} from "../templateDraftDocument.ts";
-import {requirementLabel} from "../templateDraftRules.ts";
 import ConditionPredicateRow, {PredicateSource} from "../condition-predicate-row/ConditionPredicateRow.tsx";
+import {conditionPredicateSources} from "./conditionPredicateSources.ts";
+import {settledPredicate} from "../condition-predicate-row/conditionOperators.ts";
 import {useTemplateConditionDialogStyles} from "./TemplateConditionDialogStyles.tsx";
 
 interface TemplateConditionDialogProps
@@ -34,27 +34,20 @@ const TemplateConditionDialog = ({ruleIndex, onClose}: TemplateConditionDialogPr
         existing?.hiddenDataPolicy ?? InformationRequestConditionHiddenDataPolicy.RETAIN_SECURELY);
     const [predicates, setPredicates] = useState<InformationRequestTemplateConditionPredicateRequest[]>(
         existing?.predicates ?? [{operator: FieldOperator.EQUALS}]);
-    const requirements = document.sections.flatMap(section => section.requirements);
-    const sources: PredicateSource[] = [
-        ...requirements.map(requirement => ({
-            value: `requirement:${requirement.requirementKey}`,
-            label: `Answer to "${requirementLabel(requirement)}"`,
-        })),
-        ...requirements
-            .filter(requirement => requirement.requirementType === InformationRequestRequirementType.FIELD)
-            .flatMap(requirement =>
-            {
-                const binding = fieldBindings.find(candidate => candidate.fieldDefinitionId === requirement.collectedFieldDefinitionId);
-                return binding
-                    ? [{value: `field:${binding.fieldDefinitionId}`, label: `Value of ${binding.label}`, valueType: binding.valueType}]
-                    : [];
-            }),
-    ];
+    const sources: PredicateSource[] = conditionPredicateSources(
+        document.sections.flatMap(section => section.requirements),
+        fieldBindings,
+    );
 
     const save = () =>
     {
         const key = ruleKey.trim();
-        const rule = {ruleKey: key, expressionVersion: existing?.expressionVersion ?? 1, hiddenDataPolicy, predicates};
+        const rule = {
+            ruleKey: key,
+            expressionVersion: existing?.expressionVersion ?? 1,
+            hiddenDataPolicy,
+            predicates: predicates.map(settledPredicate),
+        };
         update(current =>
         {
             if (ruleIndex === undefined) return {...current, conditionRules: [...current.conditionRules, rule]};

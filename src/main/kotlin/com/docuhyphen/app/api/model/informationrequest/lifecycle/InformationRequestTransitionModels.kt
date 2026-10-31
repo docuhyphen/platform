@@ -63,11 +63,29 @@ enum class InformationRequestMutation
     RECORD_ESCALATION,
     ASSIGN_PARTY,
     REVOKE_PARTY,
+    GRANT_DELEGATED_AUTHORITY,
+    REVOKE_DELEGATED_AUTHORITY,
+    ISSUE_ACCESS_LINK,
+    ROTATE_ACCESS_LINK,
+    REPLACE_ACCESS_LINK,
+    REVOKE_ACCESS_LINK,
+    REVOKE_ACCESS_SESSION,
+    ISSUE_CONTACT_CHALLENGE,
+    REFUSE_CONTACT_CHALLENGE,
+    ISSUE_ACCESS_SESSION,
+    LINK_PARTICIPANT_ACCOUNT,
+    STEP_UP_ACCESS_SESSION,
     SEND_REMINDER,
     REQUEST_EXTERNAL_SOURCE,
     RECORD_EXTERNAL_VALUE,
     DECIDE_EXTERNAL_VALUE,
+    RECONCILE_IMPORTED_VALUES,
     RECORD_GENERATED_OUTPUT,
+    START_EXTERNAL_SOURCE_ATTEMPT,
+    SCHEDULE_EXTERNAL_SOURCE_RETRY,
+    RECORD_EXTERNAL_SOURCE_PENDING,
+    COMPLETE_EXTERNAL_SOURCE,
+    FAIL_EXTERNAL_SOURCE,
 }
 
 enum class InformationRequestReadActor
@@ -75,7 +93,6 @@ enum class InformationRequestReadActor
     OWNER,
     PARTY,
     EXTERNAL_SESSION,
-    RECOVERY,
 }
 
 enum class InformationRequestExternalSessionEffect
@@ -97,13 +114,13 @@ data class InformationRequestParentSnapshot(
     val status: ExchangeStatus,
     val deleted: Boolean = false,
     val lockedForUpdate: Boolean = false,
+    val requireRecipientSignIn: Boolean = false,
 )
 
 data class InformationRequestParentEffects(
     val ownerRead: Boolean,
     val partyRead: Boolean,
     val externalSessionRead: Boolean,
-    val recoveryRead: Boolean,
     val externalSessionEffect: InformationRequestExternalSessionEffect,
     val nonTerminalRequestEffect: InformationRequestNonTerminalEffect,
 )

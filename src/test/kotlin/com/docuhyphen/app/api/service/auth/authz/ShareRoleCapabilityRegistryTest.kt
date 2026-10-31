@@ -1,11 +1,9 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -13,17 +11,87 @@ import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepo
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class ShareRoleCapabilityRegistryTest
 {
+    @Test
+    fun `Document and Principal Group Shares keep the capabilities of their Exchange role names`() {
+        ExchangeShareRoleName.entries.forEach { role ->
+            val expected = RoleCapabilities.forExchangeShareRole(role)
+            assertEquals(
+                expected,
+                RoleCapabilities.forShareRole(ResourceType.DOCUMENT, role.name),
+                "DOCUMENT ${role.name}"
+            )
+            assertEquals(
+                expected,
+                RoleCapabilities.forShareRole(ResourceType.PRINCIPAL_GROUP, role.name),
+                "PRINCIPAL_GROUP ${role.name}"
+            )
+        }
+        assertTrue(RoleCapabilities.forShareRole(ResourceType.DOCUMENT, "UNKNOWN_ROLE").isEmpty())
+        assertTrue(
+            RoleCapabilities.forShareRole(
+                ResourceType.PRINCIPAL_GROUP,
+                InformationRequestShareRoleKey.CONTRIBUTOR.name
+            ).isEmpty()
+        )
+        ResourceType.entries
+            .filterNot {
+                it in setOf(
+                    ResourceType.EXCHANGE,
+                    ResourceType.DOCUMENT,
+                    ResourceType.PRINCIPAL_GROUP,
+                    ResourceType.INFORMATION_REQUEST
+                )
+            }
+            .forEach { type -> assertTrue(RoleCapabilities.forShareRole(type, "OWNER").isEmpty(), type.name) }
+    }
+
+    @Test
+    fun `a retained record owner Share reads the request and its evidence and does nothing else`() {
+        assertEquals(
+            setOf(
+                Capability.INFORMATION_REQUEST_READ,
+                Capability.INFORMATION_REQUEST_EVIDENCE_READ,
+                Capability.INFORMATION_REQUEST_RETAINED_OWNER_READ,
+            ),
+            RoleCapabilities.forShareRole(
+                ResourceType.INFORMATION_REQUEST,
+                InformationRequestShareRoleKey.RECORD_OWNER.name
+            ),
+        )
+        assertTrue(
+            RoleCapabilities.forShareRole(
+                ResourceType.EXCHANGE,
+                InformationRequestShareRoleKey.RECORD_OWNER.name
+            ).isEmpty()
+        )
+    }
+
+    @Test
+    fun `Document and Principal Group Shares resolve through the central authorization service like Exchange Shares`() {
+        val references = listOf<(UUID) -> ResourceRef>(ResourceRef::exchange, ResourceRef::document, ResourceRef::group)
+        ExchangeShareRoleName.entries.forEach { role ->
+            references.forEach { reference ->
+                val principalId = UUID.randomUUID()
+                val resource = reference(UUID.randomUUID())
+                val service = buildService(activeShare(principalId, resource.type, resource.id, role.name))
+
+                val capabilities =
+                    service.capabilities(PrincipalRef.user(principalId), resource, AuthorizationContext())
+
+                assertEquals(RoleCapabilities.forExchangeShareRole(role), capabilities, "${resource.type} ${role.name}")
+            }
+        }
+    }
+
     private val requestCapabilities = setOf(
         Capability.INFORMATION_REQUEST_CREATE,
         Capability.INFORMATION_REQUEST_READ,
@@ -74,18 +142,7 @@ class ShareRoleCapabilityRegistryTest
         assertFalse(capabilities.contains(Capability.DOCUMENT_READ))
     }
 
-    /**
-     * The complete actor-capability matrix for every request-party Share role, resolved through
-     * the same [DefaultAuthorizationService] path a real decision uses rather than by reading
-     * [RoleCapabilities] directly. Each role's grant is exactly the set the request lifecycle
-     * needs for its actor and nothing more; every capability withheld here stays default-deny for
-     * that actor until a different Share role grants it.
-     */
     private val expectedCapabilitiesByRole: Map<InformationRequestShareRoleKey, Set<Capability>> = mapOf(
-        InformationRequestShareRoleKey.SUBJECT to setOf(
-            Capability.INFORMATION_REQUEST_READ,
-            Capability.INFORMATION_REQUEST_ATTEST,
-        ),
         InformationRequestShareRoleKey.CONTRIBUTOR to setOf(
             Capability.INFORMATION_REQUEST_READ,
             Capability.INFORMATION_REQUEST_RESPOND,
@@ -168,43 +225,69 @@ class ShareRoleCapabilityRegistryTest
     }
 
     @Test
+    fun `a subject holds no request Share, so its role grants nothing and is not a valid Share role`() {
+        assertFalse(RoleCapabilities.isShareRoleValid(ResourceType.INFORMATION_REQUEST, "SUBJECT"))
+        assertEquals(emptySet<Capability>(), RoleCapabilities.forShareRole(ResourceType.INFORMATION_REQUEST, "SUBJECT"))
+    }
+
+    @Test
     fun `each request-party Share role denies the concrete actions its capabilities do not cover`()
     {
         val principalId = UUID.randomUUID()
         val requestId = UUID.randomUUID()
 
-        val subjectShare = activeShare(principalId, ResourceType.INFORMATION_REQUEST, requestId, "SUBJECT")
-        val subjectService = buildService(subjectShare)
-        val subjectResource = ResourceRef.informationRequest(requestId)
-        val subjectPrincipal = PrincipalRef.user(principalId)
+        val readingShare = activeShare(principalId, ResourceType.INFORMATION_REQUEST, requestId, "ATTESTOR")
+        val readingService = buildService(readingShare)
+        val requestResource = ResourceRef.informationRequest(requestId)
+        val partyPrincipal = PrincipalRef.user(principalId)
         val context = AuthorizationContext()
 
         assertTrue(
-            subjectService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_VIEW, subjectResource, context)
-                is Decision.Allow,
+            readingService.authorize(partyPrincipal, Action.INFORMATION_REQUEST_VIEW, requestResource, context)
+                    is Decision.Allow,
         )
         assertTrue(
-            subjectService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND, subjectResource, context)
-                is Decision.Deny,
+            readingService.authorize(
+                partyPrincipal,
+                Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+                requestResource,
+                context
+            )
+                    is Decision.Deny,
         )
         assertTrue(
-            subjectService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW, subjectResource, context)
-                is Decision.Deny,
+            readingService.authorize(
+                partyPrincipal,
+                Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW,
+                requestResource,
+                context
+            )
+                    is Decision.Deny,
         )
         assertTrue(
-            subjectService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_CANCEL, subjectResource, context)
-                is Decision.Deny,
+            readingService.authorize(partyPrincipal, Action.INFORMATION_REQUEST_CANCEL, requestResource, context)
+                    is Decision.Deny,
         )
 
         val attestorShare = activeShare(principalId, ResourceType.INFORMATION_REQUEST, requestId, "ATTESTOR")
         val attestorService = buildService(attestorShare)
         assertTrue(
-            attestorService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST, subjectResource, context)
-                is Decision.Allow,
+            attestorService.authorize(
+                partyPrincipal,
+                Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST,
+                requestResource,
+                context
+            )
+                    is Decision.Allow,
         )
         assertTrue(
-            attestorService.authorize(subjectPrincipal, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND, subjectResource, context)
-                is Decision.Deny,
+            attestorService.authorize(
+                partyPrincipal,
+                Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+                requestResource,
+                context
+            )
+                    is Decision.Deny,
         )
     }
 

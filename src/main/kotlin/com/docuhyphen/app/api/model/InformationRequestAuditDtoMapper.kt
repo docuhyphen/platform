@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditPage
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditReconciliation
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestRecordExportView
+import com.docuhyphen.app.api.service.informationrequest.audit.InformationRequestAuditTargets
 import kotlinx.serialization.json.Json
 import java.sql.Timestamp
 
@@ -21,7 +22,9 @@ object InformationRequestAuditDtoMapper
                 recordedAt = Timestamp.from(event.record.recordedAt),
                 actorKind = event.record.actorKind,
                 actorId = event.record.actorId,
-                requestId = event.record.targetId,
+                targetType = event.record.targetType,
+                targetId = event.record.targetId,
+                requestId = event.record.targetId.takeIf { event.record.targetType == InformationRequestAuditTargets.REQUEST },
                 businessTransactionId = event.record.businessTransactionId,
                 sealed = event.record.sealed,
                 eventHash = event.record.eventHash,
@@ -71,6 +74,8 @@ object InformationRequestAuditDtoMapper
         requestedByPrincipalId = view.export.requestedByPrincipalId,
         requestedAt = view.export.requestedAt,
         verified = view.verified,
+        containsConfidentialContent = view.containsConfidentialContent,
+        withheldRelatedRequestCount = view.withheldRelatedRequestCount,
         content = view.content?.let(Json::parseToJsonElement),
     )
 }

@@ -3,26 +3,15 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.FieldValueProvenance
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentFieldsFixture.Question
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentFieldsFixture.StoredAnswer
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import kotlinx.serialization.json.JsonNull
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
-/**
- * A stored answer is overwritten in place, so on its own it can only say what is true now. Each
- * recorded change is therefore kept beside it as an immutable revision, numbered within its Value
- * Set and question, so any later record can name the exact answer it relied on and clearing an answer
- * is recorded rather than erased.
- *
- * The client posts every editable field on each save, so a repeat that stores nothing new must not
- * become a revision; otherwise the history fills with entries that record nothing having happened.
- */
 class FieldValueRevisionHistoryTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())

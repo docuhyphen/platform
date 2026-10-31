@@ -25,6 +25,8 @@ export function getNotificationTitle(type: NotificationType | string): string
             return 'Exchange Declined';
         case 'exchange.ended':
             return 'Exchange Ended';
+        case 'exchange.ending_refused':
+            return 'Exchange Not Ended';
         case 'document.commented':
             return 'Document Comment';
         case 'document.deleted':

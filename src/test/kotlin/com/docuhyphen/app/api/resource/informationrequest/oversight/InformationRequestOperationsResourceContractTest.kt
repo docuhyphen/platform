@@ -5,14 +5,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsAssignee
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsException
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsFilter
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsPage
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestOperationsRow
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestSlaStanding
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestSlaStatus
+import com.docuhyphen.app.api.model.informationrequest.oversight.*
 import com.docuhyphen.app.api.resource.informationrequest.oversight.operations.InformationRequestOperationsResourceOperations
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsService
 import io.quarkus.security.ForbiddenException
@@ -58,6 +54,10 @@ class InformationRequestOperationsResourceContractTest
                         standing = InformationRequestSlaStanding(InformationRequestSlaStatus.OVERDUE, due, 2, 0),
                         noticeCounts = mapOf(InformationRequestNoticeDeliveryState.UNDELIVERABLE to 1),
                         exceptionCounts = mapOf(InformationRequestOperationsException.NOTICE_UNDELIVERABLE to 1),
+                        executionStanding = InformationRequestExecutionStanding(
+                            InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+                            com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason.SUBSCRIPTION_PAST_DUE,
+                        ),
                     ),
                 ),
                 total = 7,

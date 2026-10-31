@@ -4,7 +4,6 @@ import com.docuhyphen.app.api.model.entity.RecordPreservationHold
 import com.docuhyphen.app.api.service.audit.AnalyticsReconciliationReport
 import com.docuhyphen.app.api.service.audit.RetentionPolicySpec
 
-/** All retention/legal-hold/reconciliation entity-and-report -> DTO mapping, per this codebase's `toDto` convention. */
 object AuditGovernanceDtoMapper
 {
     fun toDto(spec: RetentionPolicySpec): AuditRetentionPolicyDto = AuditRetentionPolicyDto(
@@ -35,6 +34,12 @@ object AuditGovernanceDtoMapper
         releasedAt = hold.releasedAt?.toInstant()?.toString(),
         releaseReason = hold.releaseReason,
         holdRevision = hold.holdRevision,
+        organizationId = hold.ownerId?.toString()
+            .takeIf { hold.ownerKind == com.docuhyphen.app.api.model.entity.RecordOwnerKind.ORGANIZATION },
+        placedByUserId = hold.placedByPrincipalId.toString()
+            .takeIf { hold.placedByPrincipalKind == com.docuhyphen.app.api.model.entity.PrincipalKind.USER },
+        releasedByUserId = hold.releasedByPrincipalId?.toString()
+            .takeIf { hold.releasedByPrincipalKind == com.docuhyphen.app.api.model.entity.PrincipalKind.USER },
     )
 
     fun toDto(report: AnalyticsReconciliationReport): AuditAnalyticsReconciliationDto = AuditAnalyticsReconciliationDto(

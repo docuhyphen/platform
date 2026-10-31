@@ -10,16 +10,27 @@ interface CheckListProps<T extends string>
     selected: T[];
     disabled?: boolean;
     hint?: string;
+    keepSelectionOrder?: boolean;
     onChange: (selected: T[]) => void;
 }
 
-const CheckList = <T extends string>({id, label, options, selected, disabled, hint, onChange}: CheckListProps<T>) =>
+const CheckList = <T extends string>({
+                                         id,
+                                         label,
+                                         options,
+                                         selected,
+                                         disabled,
+                                         hint,
+                                         keepSelectionOrder,
+                                         onChange,
+                                     }: CheckListProps<T>) =>
 {
     const styles = useCheckListStyles();
+    const added = (value: T): T[] => keepSelectionOrder
+        ? [...selected, value]
+        : options.map(option => option.value).filter(option => option === value || selected.includes(option));
     const toggle = (value: T, checked: boolean) =>
-        onChange(checked
-            ? options.map(option => option.value).filter(option => option === value || selected.includes(option))
-            : selected.filter(existing => existing !== value));
+        onChange(checked ? added(value) : selected.filter(existing => existing !== value));
 
     return (
         <Field id={`${id}-field`}

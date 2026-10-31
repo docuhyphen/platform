@@ -2,21 +2,15 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldConstraints
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * A date-time answer names one moment. Reading it back must yield that moment regardless of the
- * offset it was written at, and the offset the responder submitted must survive so the answer can
- * be shown as it was given.
- */
 class FieldValueOffsetDateTimeTest
 {
     private val registry = FieldTypeRegistry()

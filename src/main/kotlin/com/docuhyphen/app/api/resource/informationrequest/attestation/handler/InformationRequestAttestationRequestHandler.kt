@@ -32,7 +32,7 @@ class InformationRequestAttestationRequestHandler(
                 externalSignatureReference = request.externalSignatureReference?.trim()?.ifBlank { null },
                 partyId = request.partyId,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )

@@ -1,7 +1,7 @@
 import {Button, Field, Radio, RadioGroup, Text, Textarea} from "@fluentui/react-components";
 import {InformationRequestReviewOutcome} from "../../../models/models.tsx";
 import {outcomeNeedsFinding, outcomeNeedsNarrative, reviewOutcomeLabels} from "../reviewLabels.ts";
-import {ReviewWorksheetDraft} from "../useInformationRequestReview.ts";
+import {ReviewWorksheetDraft} from "../useReviewWorksheet.ts";
 import {useReviewItemDecisionControlsStyles} from "./ReviewItemDecisionControlsStyles.tsx";
 
 interface Props
@@ -10,6 +10,7 @@ interface Props
     draft?: ReviewWorksheetDraft;
     busy: boolean;
     hasFinding: boolean;
+    waiverPermitted: boolean;
     onChange: (change: Partial<ReviewWorksheetDraft>) => void;
     onAddFinding: () => void;
 }
@@ -17,7 +18,15 @@ interface Props
 const NARRATIVE_LIMIT = 4000;
 const OUTCOMES = Object.values(InformationRequestReviewOutcome);
 
-const ReviewItemDecisionControls = ({itemId, draft, busy, hasFinding, onChange, onAddFinding}: Props) =>
+const ReviewItemDecisionControls = ({
+                                        itemId,
+                                        draft,
+                                        busy,
+                                        hasFinding,
+                                        waiverPermitted,
+                                        onChange,
+                                        onAddFinding
+                                    }: Props) =>
 {
     const styles = useReviewItemDecisionControlsStyles();
     const id = `information-request-review-item-${itemId}-decision`;
@@ -34,7 +43,7 @@ const ReviewItemDecisionControls = ({itemId, draft, busy, hasFinding, onChange, 
                             value={outcome ?? ""}
                             disabled={busy}
                             onChange={(_, data) => onChange({outcome: OUTCOMES.find(value => value === data.value)})}>
-                    {OUTCOMES.map(value => (
+                    {OUTCOMES.filter(value => waiverPermitted || value !== InformationRequestReviewOutcome.WAIVED).map(value => (
                         <Radio id={`${id}-outcome-${value}`}
                                key={value}
                                value={value}

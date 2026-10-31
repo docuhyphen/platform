@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestTitleReader
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockPolicyService
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsService
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeSummaryService
@@ -37,25 +38,51 @@ import java.sql.Timestamp
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestVolumeTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var grantRepository: RequestExecutionGrantRepository
-    @Inject lateinit var clockRepository: InformationRequestClockRepository
-    @Inject lateinit var eventRepository: InformationRequestClockEventRepository
-    @Inject lateinit var policies: InformationRequestClockPolicyService
-    @Inject lateinit var noticeStates: InformationRequestNoticeStateReader
-    @Inject lateinit var deliveries: DomainEventDeliveryStandingService
-    @Inject lateinit var titleReader: InformationRequestTitleReader
-    @Inject lateinit var partyRepository: InformationRequestPartyRepository
-    @Inject lateinit var principalDisplayService: PrincipalDisplayService
-    @Inject lateinit var listings: InformationRequestExchangeSummaryService
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var standingService: InformationRequestExecutionStandingService
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var grantRepository: RequestExecutionGrantRepository
+
+    @Inject
+    lateinit var clockRepository: InformationRequestClockRepository
+
+    @Inject
+    lateinit var eventRepository: InformationRequestClockEventRepository
+
+    @Inject
+    lateinit var policies: InformationRequestClockPolicyService
+
+    @Inject
+    lateinit var noticeStates: InformationRequestNoticeStateReader
+
+    @Inject
+    lateinit var deliveries: DomainEventDeliveryStandingService
+
+    @Inject
+    lateinit var titleReader: InformationRequestTitleReader
+
+    @Inject
+    lateinit var partyRepository: InformationRequestPartyRepository
+
+    @Inject
+    lateinit var principalDisplayService: PrincipalDisplayService
+
+    @Inject
+    lateinit var listings: InformationRequestExchangeSummaryService
 
     @Test
     fun `the operations queue and quota counts stay prompt for five hundred requests and an Exchange lists twenty-five`()
@@ -71,30 +98,35 @@ class InformationRequestVolumeTest
         val operations = operations(organizationId, runtime.template.userId)
 
         val (page, queueTime) = timed {
-            QuarkusTransaction.requiringNew().call { operations.queue(InformationRequestOperationsFilter(limit = 25, offset = 0)) }
+            QuarkusTransaction.requiringNew()
+                .call { operations.queue(InformationRequestOperationsFilter(limit = 25, offset = 0)) }
         }
         val (last, lastPageTime) = timed {
-            QuarkusTransaction.requiringNew().call { operations.queue(InformationRequestOperationsFilter(limit = 25, offset = REQUESTS)) }
+            QuarkusTransaction.requiringNew()
+                .call { operations.queue(InformationRequestOperationsFilter(limit = 25, offset = REQUESTS)) }
         }
         val (listing, listingTime) = timed {
             QuarkusTransaction.requiringNew().call {
                 listings.listForExchange(
                     listedExchangeId,
-                    RequestAccessContext(PrincipalRef.user(runtime.template.userId), AuthorizationContext(activeOrgId = organizationId)),
+                    RequestAccessContext(
+                        PrincipalRef.user(runtime.template.userId),
+                        AuthorizationContext(activeOrgId = organizationId)
+                    ),
                 )
             }
         }
         val (open, countTime) = timed {
             QuarkusTransaction.requiringNew().call {
                 requestRepository.countOpenForOwner(InformationRequestOwnerType.ORGANIZATION, organizationId) to
-                    grantRepository.committedEvidenceBytes(SubscriptionOwnerType.ORGANIZATION, organizationId)
+                        grantRepository.committedEvidenceBytes(SubscriptionOwnerType.ORGANIZATION, organizationId)
             }
         }
 
         println(
             "INFORMATION_REQUEST_VOLUME requests=${REQUESTS + 1} queueMs=${queueTime.toMillis()} " +
-                "lastPageMs=${lastPageTime.toMillis()} listingMs=${listingTime.toMillis()} " +
-                "listed=${listing.requests.size} countsMs=${countTime.toMillis()}",
+                    "lastPageMs=${lastPageTime.toMillis()} listingMs=${listingTime.toMillis()} " +
+                    "listed=${listing.requests.size} countsMs=${countTime.toMillis()}",
         )
         assertEquals(25, page.rows.size)
         assertEquals(REQUESTS + 1L, page.total.toLong())
@@ -142,7 +174,12 @@ class InformationRequestVolumeTest
         )
     }
 
-    private fun insertRequests(connection: java.sql.Connection, runtime: SubmissionRuntimeSqlFixture, exchangeId: UUID, count: Int)
+    private fun insertRequests(
+        connection: java.sql.Connection,
+        runtime: SubmissionRuntimeSqlFixture,
+        exchangeId: UUID,
+        count: Int
+    )
     {
         connection.prepareStatement(
             """
@@ -172,12 +209,22 @@ class InformationRequestVolumeTest
         val owner = InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, organizationId)
         val access = mock<InformationRequestOwnerScopeAccess>()
         whenever(access.currentOwner()).thenReturn(owner)
-        whenever(access.requireAccess(owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenReturn(PrincipalRef.user(userId))
+        whenever(access.requireAccess(owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenReturn(
+            RequestAccessContext(PrincipalRef.user(userId), AuthorizationContext(sessionRef = "owner-session"))
+        )
         return InformationRequestOperationsService(
-            access, requestRepository, clockRepository, eventRepository, policies, noticeStates, deliveries, Clock.systemUTC(),
+            access,
+            requestRepository,
+            clockRepository,
+            eventRepository,
+            policies,
+            noticeStates,
+            deliveries,
+            Clock.systemUTC(),
             titleReader,
             partyRepository,
             principalDisplayService,
+            standingService,
         )
     }
 

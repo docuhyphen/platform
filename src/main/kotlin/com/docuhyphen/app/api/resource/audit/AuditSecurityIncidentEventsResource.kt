@@ -1,13 +1,18 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditProjectionDtoMapper
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditProjectionAccessDeniedException
-import com.docuhyphen.app.api.service.audit.AuditProjectionCursor
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -40,7 +45,7 @@ class AuditSecurityIncidentEventsResource @Inject constructor(
     }
 
     private fun withAuthorizedPlatformAudit(
-        block: (AuditSearchProjectionService.AuditAccessActor) -> Response,
+        block: (AuditAccessActor) -> Response,
     ): Response
     {
         val principal = authorizationContextFactory.currentPrincipal()
@@ -48,7 +53,7 @@ class AuditSecurityIncidentEventsResource @Inject constructor(
         val context = authorizationContextFactory.currentContext()
         val decision = authorizationService.authorize(principal, Action.APP_READ_AUDIT, platformRef(), context)
         val capabilities = authorizationService.capabilities(principal, platformRef(), context)
-        val actor = AuditSearchProjectionService.AuditAccessActor(principal, context, capabilities)
+        val actor = AuditAccessActor(principal, context, capabilities)
         if (decision is Decision.Deny)
         {
             auditSearchProjectionService.recordDeniedAttempt(actor, null, "PLATFORM", "platform", decision.reasonCode)

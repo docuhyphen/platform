@@ -24,8 +24,8 @@ const blueprint = (scope: "APP" | "ORG"): BlueprintDefinitionSummaryDto => ({
     configJson: "{}",
     exchangeDocuments: [],
     participants: [],
-    createdAt: "2026-07-28T00:00:00Z",
-    updatedAt: "2026-07-28T00:00:00Z",
+    createdAt: Date.parse("2026-07-28T00:00:00Z"),
+    updatedAt: Date.parse("2026-07-28T00:00:00Z"),
 });
 
 describe("platformBlueprintService", () =>

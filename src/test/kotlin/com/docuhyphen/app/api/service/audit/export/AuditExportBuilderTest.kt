@@ -1,36 +1,12 @@
 package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
-import com.docuhyphen.app.api.model.entity.AuditExport
-import com.docuhyphen.app.api.model.entity.AuditExportApproval
-import com.docuhyphen.app.api.model.entity.AuditExportStatus
-import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
-import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.StreamHead
-import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
-import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
-import com.docuhyphen.app.api.repository.audit.AuditExportRepository
-import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
-import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
-import com.docuhyphen.app.api.repository.audit.StreamHeadRepository
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditFailurePolicy
-import com.docuhyphen.app.api.service.audit.AuditFailurePolicyResolver
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
-import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
-import com.docuhyphen.app.api.service.audit.LedgerProcessor
-import com.docuhyphen.app.api.service.audit.archive.AuditArchiveObjectAlreadyExistsException
-import com.docuhyphen.app.api.service.audit.archive.AuditArchiveObjectNotFoundException
-import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
-import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
-import com.docuhyphen.app.api.service.audit.archive.AuditArchiver
-import com.docuhyphen.app.api.service.audit.archive.LocalAuditArchiveSigningKeyProvider
-import com.docuhyphen.app.api.service.audit.archive.MerkleTree
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.audit.*
+import com.docuhyphen.app.api.service.audit.*
+import com.docuhyphen.app.api.service.audit.archive.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
@@ -40,31 +16,23 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService
+import com.docuhyphen.app.api.service.user.AppUserService
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Base64
-import java.util.UUID
+import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
-/** In-memory [AuditArchiveStorage] test double, same contract as [com.docuhyphen.app.api.service.audit.archive.InMemoryAuditArchiveStorage]. */
 private class InMemoryStorage : AuditArchiveStorage
 {
     val objects: MutableMap<String, ByteArray> = mutableMapOf()
@@ -82,24 +50,8 @@ private class InMemoryStorage : AuditArchiveStorage
     override fun listKeysWithPrefix(prefix: String): List<String> = objects.keys.filter { it.startsWith(prefix) }
 }
 
-/**
- * Verifies [AuditExportBuilder] ("A range does not verify merely because inner events
- * link; boundary checkpoints are required"):
- *  - a genuinely archived, unbroken stream produces a `READY` export whose bundle round-trips
- *    (manifest hash, detached signature, per-stream integrity report all present and consistent).
- *  - a stream whose segment chain has been broken (a deleted middle segment) fails
- *    [AuditExportBuilder.build] with [AuditExportIntegrityFailedException] and never reaches
- *    `READY` - even though the two remaining segments each still individually hash correctly.
- */
 class AuditExportBuilderTest
 {
-    /**
-     * Builds [sequences] as a real, hash-chained run of ledger events for [organizationId], using
-     * the same canonical serializer production code uses ([LedgerProcessor.canonicalEnvelopeJson] /
-     * [LedgerProcessor.computeHash]) instead of an arbitrary placeholder hash string, so segments
-     * built from these events pass [AuditArchiveVerifier]'s per-record hash recomputation exactly
-     * as genuinely-appended ledger events would.
-     */
     private fun ledgerEvents(
         streamId: String,
         sequences: LongRange,
@@ -122,6 +74,8 @@ class AuditExportBuilderTest
                 streamSequence = sequence
                 actorKind = "HUMAN"
                 this.organizationId = organizationId
+                ownerType = "ORGANIZATION"
+                ownerId = organizationId
                 actorLabel = actorLabelFor(sequence)
                 targetLabel = targetLabelFor(sequence)
                 payloadJson = "{}"
@@ -166,7 +120,6 @@ class AuditExportBuilderTest
         return config
     }
 
-    /** Archives every 3 events into their own segment (2 segments for 6 events), returning the closed segments in order. */
     private fun archiveSegments(
         streamId: String,
         events: List<AuditLedgerEvent>,
@@ -280,9 +233,6 @@ class AuditExportBuilderTest
         assertTrue(entries.containsKey("README.txt"))
         assertTrue(entries.containsKey("verify.mjs"))
 
-        // bundleDigest covers the whole immutable ZIP object (what is actually re-fetched and
-        // re-hashed at download time), not merely manifest.json's own bytes - a change to any
-        // entry, not only the manifest, must be detectable by re-hashing the stored object alone.
         assertEquals(MerkleTree.sha256Hex(bundleBytes), result.bundleDigest)
 
         val eventLines = String(entries.getValue("events.jsonl"), StandardCharsets.UTF_8).lines().filter { it.isNotBlank() }
@@ -519,7 +469,7 @@ class AuditExportBuilderTest
         )
         val now = Instant.now()
         val export = exportService.requestExport(
-            AuditExportService.ExportRequest(
+            AuditExportRequest(
                 organizationId = organizationId,
                 categories = setOf(AuditCategory.EXCHANGE),
                 occurredAfter = now.minusSeconds(3600),
@@ -565,13 +515,6 @@ class AuditExportBuilderTest
         assertEquals(3, manifest.eventCount)
     }
 
-    /**
-     * The signed manifest's `entryDigests` must exactly content-address every protected entry
-     * other than itself and `signature.json`, and `eventsMerkleRoot` must be an independent,
-     * per-event cross-check derived from the exported events' own hashes - not merely delegate to
-     * `events.jsonl`'s own digest. Any one-byte change to a protected entry, or to the event list
-     * used to compute the root, must therefore be individually detectable.
-     */
     @Test
     fun `the signed manifest's entryDigests and eventsMerkleRoot exactly bind every protected bundle entry`(@TempDir tempDir: Path)
     {
@@ -606,13 +549,6 @@ class AuditExportBuilderTest
         assertEquals(expectedRoot, manifest.eventsMerkleRoot)
     }
 
-    /**
-     * Modifying any protected entry after signing must be detectable from its declared digest.
-     * after the bundle has already been built and signed, must be detectable by recomputing its
-     * digest against the value recorded in the signed manifest.
-     * `manifest.json` itself is covered separately below because tampering it invalidates the
-     * signature rather than an entry digest.
-     */
     @Test
     fun `tampering events, integrity, or README entries after the bundle is built is detected by recomputing digests against the signed manifest`(@TempDir tempDir: Path)
     {
@@ -687,7 +623,6 @@ class AuditExportBuilderTest
         assertTrue(!signatureStillValid, "a one-byte change to manifest.json must invalidate the detached signature")
     }
 
-    /** Reads every entry of an in-memory ZIP into a name-to-bytes map for bundle assertions. */
     private fun readZipEntries(bundleBytes: ByteArray): Map<String, ByteArray>
     {
         val entries = mutableMapOf<String, ByteArray>()
@@ -771,8 +706,6 @@ class AuditExportBuilderTest
         val (segments, segmentRepo) = archiveSegments(streamId, events, segmentSize = 3, tempDir = tempDir, storage = storage)
         assertEquals(3, segments.size)
 
-        // Simulate a deleted middle segment: the remaining two segments both still verify their
-        // own content/signature in isolation, but the chain from segment 1 to segment 3 is broken.
         whenever(segmentRepo.findByStreamOrderBySequence(streamId)).thenReturn(listOf(segments[0], segments[2]))
 
         val exportRepo = mock<AuditExportRepository>()
@@ -851,9 +784,6 @@ class AuditExportBuilderTest
         AuditArchiver(closingLedgerRepo, segmentRepo, storage, signingProvider, config).closeSegmentIfReady(streamId, force = false)
         assertEquals(1, segments.size)
 
-        // The export's own query sees all 6 events, but the archiver's view of the stream (used
-        // to force-close a trailing range before the coverage gate runs) still only reports the
-        // first 3 - events 4..6 cannot be closed into a checkpoint by this build attempt.
         val exportLedgerRepo = mock<AuditLedgerEventRepository>()
         whenever(exportLedgerRepo.findDistinctStreamIdsForExport(any(), any(), any(), any())).thenReturn(listOf(streamId))
         whenever(exportLedgerRepo.findForExport(any(), any(), any(), any(), any())).thenReturn(events)
@@ -877,13 +807,6 @@ class AuditExportBuilderTest
         assertTrue(!storage.objectExists("exports/${export.id}/bundle.zip"))
     }
 
-    // --- events.csv formula-injection neutralization -------------------------------------------
-
-    /**
-     * A malicious actor or organization label beginning with `=`, `+`, `-`, or `@` would be
-     * interpreted as a formula by common spreadsheet tools if exported verbatim. `events.csv` must
-     * neutralize this; `events.jsonl` (the canonical evidence) must be completely unaffected.
-     */
     @Test
     fun `events csv neutralizes formula-injection prefixes while events jsonl remains unaltered`(@TempDir tempDir: Path)
     {

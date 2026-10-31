@@ -4,15 +4,17 @@ import {
     InformationRequestShareRoleKey,
     InformationRequestSubjectKind,
 } from "../../../models/models.tsx";
+import {
+    holderRequestFrom,
+    PartyHolder,
+    partyHolderProblem,
+    PartyHolderSelection,
+    TrustedPartyCandidate,
+} from "../party-holder-fields/partyHolder.ts";
 
-export type PartyHolder = "email" | "group";
-
-export interface AddPartyForm
+export interface AddPartyForm extends PartyHolderSelection
 {
     roleKey: InformationRequestShareRoleKey;
-    holder: PartyHolder;
-    email: string;
-    groupId: string;
     subjectId: string;
     subjectKind: InformationRequestSubjectKind;
     authority: string;
@@ -24,7 +26,9 @@ export const emptyAddPartyForm = (): AddPartyForm => ({
     roleKey: InformationRequestShareRoleKey.CONTRIBUTOR,
     holder: "email",
     email: "",
+    userId: "",
     groupId: "",
+    trustedRecipientId: "",
     subjectId: "",
     subjectKind: InformationRequestSubjectKind.PERSON,
     authority: "",
@@ -32,12 +36,18 @@ export const emptyAddPartyForm = (): AddPartyForm => ({
     identifierValue: "",
 });
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const referenceParts = (form: AddPartyForm): string[] =>
     [form.authority, form.identifierType, form.identifierValue].map(part => part.trim());
 
 export const isSubjectRole = (form: AddPartyForm): boolean => form.roleKey === InformationRequestShareRoleKey.SUBJECT;
+
+const signsIn = (roleKey: InformationRequestShareRoleKey): boolean => roleKey === InformationRequestShareRoleKey.REVIEWER;
+
+export const holdersForRole = (roleKey: InformationRequestShareRoleKey, holders: PartyHolder[]): PartyHolder[] =>
+    signsIn(roleKey) ? holders.filter(holder => holder !== "email") : holders;
+
+export const withRole = (form: AddPartyForm, roleKey: InformationRequestShareRoleKey): Partial<AddPartyForm> =>
+    signsIn(roleKey) && form.holder === "email" ? {roleKey, holder: "user"} : {roleKey};
 
 export const addPartyProblem = (form: AddPartyForm): string | null =>
 {
@@ -47,16 +57,14 @@ export const addPartyProblem = (form: AddPartyForm): string | null =>
         const filled = referenceParts(form).filter(Boolean).length;
         return filled === 0 || filled === 3 ? null : "Give the reference's authority, type, and value, or none of them.";
     }
-    if (form.holder === "group") return form.groupId ? null : "Choose a group.";
-    return EMAIL_PATTERN.test(form.email.trim()) ? null : "Enter an email address.";
+    return partyHolderProblem(form);
 };
 
-export const partyRequestFrom = (form: AddPartyForm): AssignInformationRequestPartyRequest =>
+export const partyRequestFrom = (form: AddPartyForm, trusted: TrustedPartyCandidate[]): AssignInformationRequestPartyRequest =>
 {
     if (isSubjectRole(form)) return {roleKey: form.roleKey, subjectIdentityRefId: form.subjectId};
-    return form.holder === "group"
-        ? {roleKey: form.roleKey, principalGroupId: form.groupId}
-        : {roleKey: form.roleKey, email: form.email.trim()};
+    if (form.holder === "email") return {roleKey: form.roleKey, email: form.email.trim()};
+    return {roleKey: form.roleKey, ...holderRequestFrom(form, trusted)};
 };
 
 export const subjectRequestFrom = (form: AddPartyForm): AssignInformationRequestSubjectRequest =>

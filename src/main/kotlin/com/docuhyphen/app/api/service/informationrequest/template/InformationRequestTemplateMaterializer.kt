@@ -1,6 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.model.fields.PublishedSchemaAssignmentCommand
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestRequirementAdvance
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestMaterializationResult
@@ -10,19 +14,16 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.*
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.PublishedSchemaAssignmentCommand
+import com.docuhyphen.app.api.service.fields.FieldValidationException
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityExecutorRegistry
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityNotInstalledException
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
+import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
@@ -46,6 +47,7 @@ class InformationRequestTemplateMaterializer @Inject constructor(
     private val revisionRepository: InformationRequestRequirementRevisionRepository,
     private val currentRepository: InformationRequestRequirementCurrentRepository,
     private val schemaAssignmentService: SchemaAssignmentService,
+    private val fieldsReader: FieldsReadFacade,
     private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
 )
 {
@@ -101,14 +103,21 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 ?: throw IllegalStateException(
                     "Information request template version ${version.id} has Field requirements and no Schema Version",
                 )
-            schemaAssignmentService.assignSchemaVersionForCreation(
-                PublishedSchemaAssignmentCommand(
-                    resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
-                    access = access,
-                    schemaVersionId = schemaVersionId,
-                    source = SchemaAssignmentSource.API,
-                ),
-            )
+            try {
+                schemaAssignmentService.assignSchemaVersionForCreation(
+                    PublishedSchemaAssignmentCommand(
+                        resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
+                        access = access,
+                        schemaVersionId = schemaVersionId,
+                        source = SchemaAssignmentSource.API,
+                    ),
+                )
+            } catch (refused: FieldValidationException) {
+                throw InformationRequestTemplateVersionUnavailableException(
+                    InformationRequestTemplateVersionUnavailableException.SCHEMA_UNAVAILABLE,
+                    "This Template Version's Schema can no longer be used, so no request can be created from it: ${refused.message}",
+                )
+            }
         }
 
         val groups = groupRepository.findForVersion(version.id)
@@ -155,14 +164,10 @@ class InformationRequestTemplateMaterializer @Inject constructor(
             .findAllByDefinition(version.templateDefinitionId)
             .associateBy { it.id }
         val configuration = loadConfiguration(version.id)
-        val hasFieldRequirements = bindings.any { binding ->
-            requirementsById[binding.templateRequirementId]?.requirementType == InformationRequestRequirementType.FIELD
-        }
         val occurrencePathsByGroupKey = advanceGroupOccurrences(
             request,
             groupRepository.findForVersion(fromTemplateVersionId),
             groupRepository.findForVersion(version.id),
-            hasFieldRequirements,
         )
         val existing = requirementRepository.findAllForRequest(request.id)
             .associateBy { it.sourceTemplateRequirementId to it.occurrencePath }
@@ -190,6 +195,11 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 }
             }
         }
+        val boundTemplateRequirementIds = bindings.map { it.templateRequirementId }.toSet()
+        revisionRepository.closeOpen(
+            existing.values.filter { it.sourceTemplateRequirementId !in boundTemplateRequirementIds }.map { it.id },
+            now,
+        )
         supportingEvidenceLinkService.materialize(request)
         return InformationRequestRequirementAdvance(advancedRequirementIds = advanced, addedRequirementIds = added)
     }
@@ -198,13 +208,12 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         request: InformationRequest,
         earlierGroups: List<InformationRequestTemplateRequirementGroup>,
         groups: List<InformationRequestTemplateRequirementGroup>,
-        hasFieldRequirements: Boolean,
     ): Map<String, List<String>>
     {
         val earlierKeys = earlierGroups.associate { it.id to it.groupKey }
         val groupsByKey = groups.associateBy { it.groupKey }
         val occurrences = groupOccurrenceRepository.findForRequest(request.id)
-        occurrences.forEach { occurrence ->
+        groupOccurrenceRepository.findAllForRequest(request.id).forEach { occurrence ->
             val target = earlierKeys[occurrence.sourceTemplateGroupId]?.let(groupsByKey::get) ?: return@forEach
             if (target.id != occurrence.sourceTemplateGroupId)
             {
@@ -213,46 +222,75 @@ class InformationRequestTemplateMaterializer @Inject constructor(
             }
         }
 
-        val occurrencesByGroup = occurrences.groupBy { it.sourceTemplateGroupId }.mapValues { (_, grouped) ->
-            grouped.map { it.id to it.occurrencePath }
-        }.toMutableMap()
-        val started = groups.filter { it.groupKey !in earlierKeys.values && occurrencesByGroup[it.id].isNullOrEmpty() }
-        val childrenByParent = started.groupBy { it.parentGroupId }
+        val usedPaths = groupOccurrenceRepository.findAllForRequest(request.id)
+            .map { it.occurrencePath }
+            .toMutableList()
+        val siblingsByParent = occurrences.groupBy { it.sourceTemplateGroupId to it.parentOccurrenceId }
+        val childrenByParent = groups.groupBy { it.parentGroupId }
+        val pathsByGroupKey = mutableMapOf<String, MutableList<String>>()
 
-        fun start(group: InformationRequestTemplateRequirementGroup)
+        fun reconcile(group: InformationRequestTemplateRequirementGroup, parent: InformationRequestGroupOccurrence?)
         {
-            val parents: List<Pair<UUID?, String?>> = group.parentGroupId
-                ?.let { parent -> occurrencesByGroup[parent].orEmpty().map { (id, path) -> id to path } }
-                ?: listOf(null to null)
-            val created = parents.flatMap { (parentOccurrenceId, parentPath) ->
-                (0 until group.minOccurrences).map { index ->
-                    val path = groupOccurrencePath(group.groupKey, index, parentPath)
-                    val occurrence = groupOccurrenceRepository.save(
-                        InformationRequestGroupOccurrence().apply {
-                            informationRequestId = request.id
-                            sourceTemplateGroupId = group.id
-                            this.parentOccurrenceId = parentOccurrenceId
-                            occurrenceIndex = index
-                            occurrencePath = path
-                        },
-                    )
-                    if (hasFieldRequirements)
-                        schemaAssignmentService.createOccurrenceValueSet(
-                            FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
-                            path,
-                        )
-                    occurrence.id to path
-                }
+            val siblings = siblingsByParent[group.id to parent?.id].orEmpty()
+            val nextDisplayIndex = siblings.maxOfOrNull { it.occurrenceIndex }?.plus(1) ?: 0
+            val created = (0 until group.minOccurrences - siblings.size).map { offset ->
+                val identityIndex = InformationRequestOccurrencePath.nextIdentityIndex(
+                    group.groupKey,
+                    parent?.occurrencePath,
+                    usedPaths,
+                )
+                createOccurrence(
+                    request,
+                    group,
+                    parent?.id,
+                    parent?.occurrencePath,
+                    nextDisplayIndex + offset,
+                    identityIndex,
+                    provisionFieldValueSet = false,
+                ).also { usedPaths += it.occurrencePath }
             }
-            occurrencesByGroup[group.id] = created
-            childrenByParent[group.id].orEmpty().forEach(::start)
+            val kept = siblings + created
+            pathsByGroupKey.getOrPut(group.groupKey) { mutableListOf() }.addAll(kept.map { it.occurrencePath })
+            childrenByParent[group.id].orEmpty().forEach { child -> kept.forEach { reconcile(child, it) } }
         }
 
-        started.filter { group -> started.none { it.id == group.parentGroupId } }.forEach(::start)
-        val keysById = groups.associate { it.id to it.groupKey }
-        return occurrencesByGroup.entries
-            .mapNotNull { (groupId, created) -> keysById[groupId]?.let { it to created.map { (_, path) -> path } } }
-            .toMap()
+        childrenByParent[null].orEmpty().forEach { reconcile(it, null) }
+        provisionOccurrenceValueSets(request, pathsByGroupKey.values.flatten())
+        return pathsByGroupKey
+    }
+
+    private fun provisionOccurrenceValueSets(request: InformationRequest, occurrencePaths: List<String>) {
+        val resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id)
+        if (fieldsReader.assignmentFor(resource) == null) return
+        occurrencePaths.forEach { schemaAssignmentService.createOccurrenceValueSet(resource, it) }
+    }
+
+    @Suppress("LongParameterList")
+    private fun createOccurrence(
+        request: InformationRequest,
+        group: InformationRequestTemplateRequirementGroup,
+        parentOccurrenceId: UUID?,
+        parentPath: String?,
+        displayIndex: Int,
+        identityIndex: Int,
+        provisionFieldValueSet: Boolean,
+    ): InformationRequestGroupOccurrence {
+        val path = InformationRequestOccurrencePath.groupOccurrencePath(group.groupKey, identityIndex, parentPath)
+        val occurrence = groupOccurrenceRepository.save(
+            InformationRequestGroupOccurrence().apply {
+                informationRequestId = request.id
+                sourceTemplateGroupId = group.id
+                this.parentOccurrenceId = parentOccurrenceId
+                occurrenceIndex = displayIndex
+                occurrencePath = path
+            },
+        )
+        if (provisionFieldValueSet)
+            schemaAssignmentService.createOccurrenceValueSet(
+                FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
+                path,
+            )
+        return occurrence
     }
 
     private fun advanceRequirement(
@@ -270,6 +308,10 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         requirementRepository.flushChanges()
         val pointer = currentRepository.findForRequirement(requirement.id)
             ?: throw IllegalStateException("Runtime requirement ${requirement.id} has no current revision")
+        val superseded = revisionRepository.findById(pointer.currentRevisionId)
+            ?: throw IllegalStateException("Runtime requirement ${requirement.id} has no current revision")
+        val openedAt = if (superseded.effectiveFrom.after(now)) superseded.effectiveFrom else now
+        revisionRepository.closeOpen(listOf(requirement.id), openedAt)
         val revision = revisionRepository.save(
             InformationRequestRequirementRevision().apply {
                 informationRequestRequirementId = requirement.id
@@ -279,8 +321,9 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 sourceTemplateBindingId = binding.id
                 revisionNumber = pointer.currentRevisionNumber + 1
                 occurrencePath = requirement.occurrencePath
-                effectiveFrom = now
-                configurationHashSha256 = configurationHash(binding, templateRequirement, configuration)
+                effectiveFrom = openedAt
+                configurationHashSha256 =
+                    InformationRequestRequirementConfigurationHash.of(binding, templateRequirement, configuration)
                 optimisticVersion = 1
             },
         )
@@ -290,12 +333,6 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         currentRepository.update(pointer)
     }
 
-    /**
-     * The occurrence path(s) a binding's Requirement instance(s) must be materialized at: the single
-     * fixed `root` path for a binding with no anchor, or one path per runtime occurrence already
-     * materialized for the group it anchors to -- none at all where that group starts with no
-     * occurrences.
-     */
     private fun occurrencePathsForBinding(
         binding: InformationRequestTemplateRequirementBinding,
         occurrencePathsByGroupKey: Map<String, List<String>>,
@@ -308,16 +345,6 @@ class InformationRequestTemplateMaterializer @Inject constructor(
             occurrencePathsByGroupKey[anchor].orEmpty()
     }
 
-    /**
-     * Creates this request's first runtime occurrence(s) of every group its Template Version defines,
-     * one layer of nesting at a time so a child group's occurrences are created under each of its
-     * parent's occurrences. A group starts with exactly its authored minimum occurrence count, which
-     * may be zero; runtime add/remove/reorder of occurrences is handled elsewhere. Provisions each new
-     * occurrence's Field Value Set alongside it when the request carries Field requirements, since
-     * nothing else creates that set later on demand.
-     *
-     * @return every group's runtime occurrence paths, keyed by the group's stable key.
-     */
     private fun materializeGroupOccurrences(
         request: InformationRequest,
         groups: List<InformationRequestTemplateRequirementGroup>,
@@ -334,35 +361,17 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         )
         {
             val created = (0 until group.minOccurrences).map { index ->
-                val path = groupOccurrencePath(group.groupKey, index, parentPath)
-                val occurrence = groupOccurrenceRepository.save(
-                    InformationRequestGroupOccurrence().apply {
-                        informationRequestId = request.id
-                        sourceTemplateGroupId = group.id
-                        this.parentOccurrenceId = parentOccurrenceId
-                        occurrenceIndex = index
-                        occurrencePath = path
-                    },
-                )
-                if (hasFieldRequirements)
-                    schemaAssignmentService.createOccurrenceValueSet(
-                        FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
-                        path,
-                    )
-                occurrence.id to path
+                createOccurrence(request, group, parentOccurrenceId, parentPath, index, index, hasFieldRequirements)
             }
-            pathsByGroupKey.getOrPut(group.groupKey) { mutableListOf() }.addAll(created.map { it.second })
+            pathsByGroupKey.getOrPut(group.groupKey) { mutableListOf() }.addAll(created.map { it.occurrencePath })
             childrenByParent[group.id].orEmpty().forEach { child ->
-                created.forEach { (occurrenceId, path) -> materializeUnder(child, occurrenceId, path) }
+                created.forEach { materializeUnder(child, it.id, it.occurrencePath) }
             }
         }
 
         childrenByParent[null].orEmpty().forEach { materializeUnder(it, null, null) }
         return pathsByGroupKey
     }
-
-    private fun groupOccurrencePath(groupKey: String, index: Int, parentPath: String?): String =
-        (parentPath?.let { "$it/" } ?: "") + "$groupKey[$index]"
 
     private fun materializeRequirement(
         request: InformationRequest,
@@ -393,7 +402,8 @@ class InformationRequestTemplateMaterializer @Inject constructor(
                 revisionNumber = 1
                 this.occurrencePath = occurrencePath
                 effectiveFrom = now
-                configurationHashSha256 = configurationHash(binding, templateRequirement, configuration)
+                configurationHashSha256 =
+                    InformationRequestRequirementConfigurationHash.of(binding, templateRequirement, configuration)
                 optimisticVersion = 1
             },
         )
@@ -420,73 +430,6 @@ class InformationRequestTemplateMaterializer @Inject constructor(
         evidenceLinksByBinding = evidenceLinkRepository.findForVersion(templateVersionId)
             .groupBy { it.templateBindingId },
     )
-
-    private fun configurationHash(
-        binding: InformationRequestTemplateRequirementBinding,
-        requirement: InformationRequestTemplateRequirement,
-        configuration: InformationRequestTemplateBindingConfiguration,
-    ): String
-    {
-        val policy = configuration.policiesByBinding[binding.id]
-        val material = listOf(
-            "binding:${binding.id}",
-            "requirement:${requirement.id}",
-            "requirementKey:${requirement.requirementKey}",
-            "requirementType:${requirement.requirementType}",
-            "prompt:${binding.prompt}",
-            "helpText:${binding.helpText.orEmpty()}",
-            "responseMode:${binding.responseMode}",
-            "requiredness:${binding.requiredness}",
-            "contributorRole:${binding.contributorRole}",
-            "reviewPolicy:${binding.reviewPolicy}",
-            "confidentiality:${binding.confidentialityCompartmentKey.orEmpty()}",
-            "condition:${binding.conditionalRuleKey.orEmpty()}",
-            "occurrence:${binding.occurrenceAnchorKey.orEmpty()}",
-            "collectedField:${binding.collectedFieldDefinitionId?.toString().orEmpty()}",
-            "dispositions:${configuration.dispositionsByBinding[binding.id].orEmpty().map { it.disposition.name }}",
-            "policy:${policy?.stableHashMaterial().orEmpty()}",
-            "accepted:${policy?.let { acceptedHashMaterial(it, configuration) }.orEmpty()}",
-            "substitutes:${
-                configuration.substitutesByBinding[binding.id].orEmpty().map { it.substituteTemplateBindingId }
-            }",
-            "supporting:${
-                configuration.evidenceLinksByBinding[binding.id].orEmpty().map { it.supportingTemplateBindingId }
-            }",
-        ).joinToString(separator = "\n")
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest(material.toByteArray(StandardCharsets.UTF_8))
-        return digest.joinToString(separator = "") { "%02x".format(it) }
-    }
-
-    private fun acceptedHashMaterial(
-        policy: InformationRequestTemplateEvidencePolicy,
-        configuration: InformationRequestTemplateBindingConfiguration,
-    ): List<String> = configuration.acceptedValuesByPolicy[policy.id]
-        .orEmpty()
-        .map { "${it.attribute}:${it.acceptedValue}" }
-
-    private fun InformationRequestTemplateEvidencePolicy.stableHashMaterial(): String = listOf(
-        minimumFileCount,
-        maximumFileCount,
-        maximumFileSizeBytes,
-        maximumTotalSizeBytes,
-        minimumPageCount,
-        maximumPageCount,
-        issuerRequirement,
-        jurisdictionRequirement,
-        languageRequirement,
-        issueDateRequirement,
-        expiryDateRequirement,
-        coveragePeriodRequirement,
-        certificationRequirement,
-        signatureRequirement,
-        maximumIssueAgeDays,
-        minimumRemainingValidityDays,
-        minimumCoverageDays,
-        coverageContinuityRequired,
-        waiverPolicy,
-        conformancePolicy,
-    ).joinToString(separator = "|")
 
     private fun requireRequestOwnerMatchesTemplate(
         request: InformationRequest,

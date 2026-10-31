@@ -1,15 +1,6 @@
-import {
-    Badge,
-    Button,
-    Menu,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
-    Text,
-} from '@fluentui/react-components';
+import {Badge, Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Text,} from '@fluentui/react-components';
 import {AddRegular, BranchRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {SchemaDefinitionDto, ViewMode} from '../../models/models';
+import {SchemaDefinitionDto, SchemaTargetResourceType, ViewMode} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 
 interface Props
@@ -67,6 +58,14 @@ const SchemaCard = ({schema, canManage, viewMode, onEdit, onPublish, onNewVersio
 
     const statusBadges = (
         <div className={styles.badgeRow}>
+            {schema.targetResourceType === SchemaTargetResourceType.INFORMATION_REQUEST && (
+                <Badge id={`schema-target-${schema.id}`}
+                       appearance="outline"
+                       color="brand"
+                       size="small">
+                    Information Requests
+                </Badge>
+            )}
             {schema.latestPublishedVersion && (
                 <Badge appearance="tint"
                        color="success"

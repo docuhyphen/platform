@@ -18,21 +18,25 @@ import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 import {RecordPreservationHoldDto} from "../../models/models.tsx";
 import {recordTypeLabel} from "../recordPreservationLabels.ts";
 import {useReleaseHoldDialogStyles} from "./ReleaseHoldDialogStyles.tsx";
+import {useStableIdempotencyKey} from "../../information-requests/shared/useStableIdempotencyKey.ts";
+import {isStaleInformationRequestCommand} from "../../information-requests/shared/informationRequestRefusal.ts";
 
 interface ReleaseHoldDialogProps
 {
     hold: RecordPreservationHoldDto;
     onReleased: (hold: RecordPreservationHoldDto) => void;
+    onStale: () => void;
     onDismiss: () => void;
 }
 
-const REASON_LIMIT = 1000;
+const REASON_LIMIT = 2048;
 
-const ReleaseHoldDialog = ({hold, onReleased, onDismiss}: ReleaseHoldDialogProps) =>
+const ReleaseHoldDialog = ({hold, onReleased, onStale, onDismiss}: ReleaseHoldDialogProps) =>
 {
     const styles = useReleaseHoldDialogStyles();
     const [reason, setReason] = useState("");
     const [busy, setBusy] = useState(false);
+    const keyed = useStableIdempotencyKey();
     const [error, setError] = useState<string | null>(null);
 
     const release = async () =>
@@ -41,10 +45,15 @@ const ReleaseHoldDialog = ({hold, onReleased, onDismiss}: ReleaseHoldDialogProps
         setError(null);
         try
         {
-            onReleased(await releaseRecordPreservationHold(hold.id, reason.trim()));
+            onReleased(await keyed(`release:${hold.id}:${hold.holdETag}`, reason.trim(), key =>
+                releaseRecordPreservationHold(hold.id, reason.trim(), hold.holdETag, key)));
         }
         catch (caught: unknown)
         {
+            if (isStaleInformationRequestCommand(caught)) {
+                onStale();
+                return;
+            }
             setError(normalizeApiError(caught, "The hold could not be released.").message);
             setBusy(false);
         }
@@ -54,15 +63,17 @@ const ReleaseHoldDialog = ({hold, onReleased, onDismiss}: ReleaseHoldDialogProps
         <Dialog open={true}
                 onOpenChange={(_, data) => { if (!data.open && !busy) onDismiss(); }}>
             <DialogSurface id={"release-record-hold-dialog"}
+                           aria-labelledby={"release-record-hold-dialog-title"}
                            className={styles.surface}>
-                <DialogBody>
+                <DialogBody id={"release-record-hold-dialog-body"}>
                     <DialogTitle id={"release-record-hold-dialog-title"}>Release preservation hold</DialogTitle>
                     <DialogContent id={"release-record-hold-dialog-content"}
                                    className={styles.content}>
                         {error && (
                             <MessageBar id={"release-record-hold-dialog-error"}
-                                        intent={"error"}>
-                                <MessageBarBody>{error}</MessageBarBody>
+                                        intent={"error"}
+                                        role={"alert"}>
+                                <MessageBarBody id={"release-record-hold-dialog-error-body"}>{error}</MessageBarBody>
                             </MessageBar>
                         )}
                         <Text id={"release-record-hold-dialog-summary"}>

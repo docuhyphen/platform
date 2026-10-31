@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.privacy.operations
 
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.model.LiftInformationRequestSubjectRestrictionRequest
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
@@ -17,6 +18,7 @@ interface InformationRequestSubjectRestrictionResourceOperations
     @Path("/{restrictionId}/lift")
     fun lift(
         @PathParam("restrictionId") restrictionId: String,
-        request: LiftInformationRequestSubjectRestrictionRequest?
+        request: LiftInformationRequestSubjectRestrictionRequest?,
+        @HeaderParam(InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response
 }

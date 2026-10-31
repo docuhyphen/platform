@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.party
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestPartyDto
 import com.docuhyphen.app.api.model.dto.InformationRequestSubjectDto
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
@@ -15,7 +16,6 @@ import com.docuhyphen.app.api.resource.model.AssignInformationRequestSubjectRequ
 import com.docuhyphen.app.api.resource.model.InformationRequestSubjectReferenceRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestSubjectService
 import io.quarkus.security.ForbiddenException
@@ -26,14 +26,10 @@ import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestSubjectResourceContractTest
 {

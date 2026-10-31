@@ -6,6 +6,7 @@ interface NumberFieldProps
     label: string;
     value?: number;
     min?: number;
+    max?: number;
     step?: number;
     disabled?: boolean;
     hint?: string;
@@ -20,7 +21,7 @@ const parsed = (raw: string): number | undefined =>
     return Number.isFinite(value) ? value : undefined;
 };
 
-const NumberField = ({id, label, value, min, step, disabled, hint, className, onChange}: NumberFieldProps) => (
+const NumberField = ({id, label, value, min, max, step, disabled, hint, className, onChange}: NumberFieldProps) => (
     <Field id={`${id}-field`}
            label={label}
            hint={hint}
@@ -30,6 +31,7 @@ const NumberField = ({id, label, value, min, step, disabled, hint, className, on
                inputMode={"decimal"}
                value={value === undefined ? "" : String(value)}
                min={min}
+               max={max}
                step={step}
                disabled={disabled}
                onChange={(_, data) => onChange(parsed(data.value))}/>

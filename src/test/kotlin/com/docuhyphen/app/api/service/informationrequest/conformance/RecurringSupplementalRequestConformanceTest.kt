@@ -1,25 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance
 
 import com.docuhyphen.app.api.migration.FieldAnswerSqlFixture
-import com.docuhyphen.app.api.migration.NextSubmissionVersion
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestCarryForwardDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestLineageKind
-import com.docuhyphen.app.api.model.entity.InformationRequestRecurrenceUnit
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.PromoteInformationRequestAcceptedFactCommand
 import com.docuhyphen.app.api.model.informationrequest.amendment.AmendInformationRequestCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.CancelInformationRequestCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateInformationRequestSuccessorCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateNextInformationRequestOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.DefineInformationRequestRecurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
@@ -27,68 +16,87 @@ import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformat
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.RecurringSupplementalScenario
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCarryForwardPlanner
 import io.quarkus.narayana.jta.QuarkusTransaction
+import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class RecurringSupplementalRequestConformanceTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Inject
+    lateinit var authorizationService: AuthorizationService
 
     @Test
     fun `a linked follow-up keeps its source package, carries forward or invalidates explicitly, rechecks reuse, reconfirms amendments, and keeps cancellation and supersession history`()
     {
         val scenario = scenario()
         val source = scenario.runtime
-        val sourceServices = runtime.build(source.requestId, denies = respondingSide(scenario))
+        val sourceServices = runtime.build(source.requestId, centralAuthorization = authorizationService)
         val sourcePackage = submitWhole(sourceServices, scenario)
         assertEquals(InformationRequestState.CLOSED, state(source.requestId))
-        val fact = QuarkusTransaction.requiringNew().call {
-            sourceServices.acceptedFacts.promote(
-                PromoteInformationRequestAcceptedFactCommand(
-                    requestId = source.requestId,
-                    packageId = sourcePackage,
-                    submissionItemId = runtime.packageReader.view(source.requestId, sourcePackage).items
-                        .single { it.informationRequestRequirementId == scenario.answers.requirementId }.id,
-                    purposeKey = REUSE_PURPOSE,
-                    policyBasisKey = "policy.reuse",
-                    visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
-                    validTo = Instant.now().plus(Duration.ofDays(365)),
-                    access = owner(scenario),
-                    idempotencyKey = "promote-source-answer",
-                ),
+        val promotion = { access: RequestAccessContext, key: String ->
+            PromoteInformationRequestAcceptedFactCommand(
+                requestId = source.requestId,
+                packageId = sourcePackage,
+                submissionItemId = runtime.packageReader.view(source.requestId, sourcePackage).items
+                    .single { it.informationRequestRequirementId == scenario.answers.requirementId }.id,
+                purposeKey = REUSE_PURPOSE,
+                policyBasisKey = "policy.reuse",
+                visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                validTo = Instant.now().plus(Duration.ofDays(365)),
+                access = access,
+                idempotencyKey = key,
             )
         }
+        assertThrows(ForbiddenException::class.java) {
+            QuarkusTransaction.requiringNew()
+                .call { sourceServices.acceptedFacts.promote(promotion(contributor(scenario), "contributor-promotes")) }
+        }
+        val fact = QuarkusTransaction.requiringNew()
+            .call { sourceServices.acceptedFacts.promote(promotion(owner(scenario), "promote-source-answer")) }
         insertLapsedNewerFact(scenario, sourcePackage)
 
         val supplement = QuarkusTransaction.requiringNew().call {
-            sourceServices.successors.create(successor(source.requestId, InformationRequestLineageKind.SUPPLEMENT, scenario, "supplement"))
+            sourceServices.successors.create(
+                successor(
+                    source.requestId,
+                    InformationRequestLineageKind.SUPPLEMENT,
+                    scenario,
+                    "supplement"
+                )
+            )
         }
         assertEquals(sourcePackage, supplement.lineage.sourcePackageId)
         val sourceKeys = QuarkusTransaction.requiringNew().call {
@@ -109,18 +117,30 @@ class RecurringSupplementalRequestConformanceTest
         QuarkusTransaction.requiringNew().run { assertEquals(1, runtime.packageReader.views(source.requestId).size) }
 
         val supplementId = supplement.successor.id
-        val supplementServices = runtime.build(supplementId, denies = respondingSide(scenario))
-        val offers = QuarkusTransaction.requiringNew().call { supplementServices.acceptedFactQueries.offers(supplementId, contributor(scenario)) }
+        val supplementServices = runtime.build(supplementId, centralAuthorization = authorizationService)
+        val offers = QuarkusTransaction.requiringNew()
+            .call { supplementServices.acceptedFactQueries.offers(supplementId, contributor(scenario)) }
         assertEquals(listOf(fact.fact.id), offers.map { it.fact.fact.id })
         assertTrue(offers.single().reconfirmationRequired)
 
         dataSource.connection.use { connection ->
-            execute(connection, "UPDATE information_request SET state = 'ISSUED', issued_at = now() WHERE id = ?", supplementId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'ISSUED', issued_at = now() WHERE id = ?",
+                supplementId
+            )
         }
         val supplementDocument = QuarkusTransaction.requiringNew().call {
-            runtime.requirementRepository.findForRequest(supplementId).single { it.sourceTemplateBindingId == source.documentBindingId }.id
+            runtime.requirementRepository.findForRequest(supplementId)
+                .single { it.sourceTemplateBindingId == source.documentBindingId }.id
         }
-        patch(supplementServices, supplementId, supplementDocument, "record-supplement-document")
+        patch(
+            supplementServices,
+            supplementId,
+            supplementDocument,
+            "record-supplement-document",
+            source.contributorUserId
+        )
         val amended = QuarkusTransaction.requiringNew().call {
             supplementServices.amendments.amend(
                 AmendInformationRequestCommand(
@@ -136,9 +156,18 @@ class RecurringSupplementalRequestConformanceTest
         val documentChange = amended.amendment.changes.single { it.requirementKey == "supporting-record" }
         assertEquals(InformationRequestAmendmentChangeKind.MEANING_CHANGED, documentChange.changeKind)
         assertTrue(documentChange.reconfirmationRequired)
-        assertEquals(InformationRequestSubmissionProblemCode.RECONFIRMATION_REQUIRED, problems(supplementServices, supplementId)[supplementDocument])
-        patch(supplementServices, supplementId, supplementDocument, "reconfirm-supplement-document")
-        assertEquals(null, problems(supplementServices, supplementId)[supplementDocument])
+        assertEquals(
+            InformationRequestSubmissionProblemCode.RECONFIRMATION_REQUIRED,
+            problems(supplementServices, supplementId, scenario)[supplementDocument]
+        )
+        patch(
+            supplementServices,
+            supplementId,
+            supplementDocument,
+            "reconfirm-supplement-document",
+            source.contributorUserId
+        )
+        assertEquals(null, problems(supplementServices, supplementId, scenario)[supplementDocument])
 
         val recurrence = QuarkusTransaction.requiringNew().call {
             sourceServices.followUps.defineRecurrence(
@@ -152,29 +181,50 @@ class RecurringSupplementalRequestConformanceTest
                     precondition = CommandPrecondition.ExpectedRevision(aggregateETag(source.requestId)),
                     idempotencyKey = "define-recurrence",
                 ),
-            )
+            ).recurrence
         }
         val occurrence = QuarkusTransaction.requiringNew().call {
-            sourceServices.followUps.createNextOccurrence(CreateNextInformationRequestOccurrenceCommand(source.requestId, recurrence.id, owner(scenario), "first-occurrence"))
+            sourceServices.followUps.createNextOccurrence(
+                CreateNextInformationRequestOccurrenceCommand(
+                    source.requestId,
+                    recurrence.id,
+                    owner(scenario),
+                    "first-occurrence"
+                )
+            )
         }
         assertEquals(InformationRequestLineageKind.RECURRENCE, occurrence.lineage.lineageKind)
         assertEquals(1, occurrence.lineage.recurrenceSequence)
         assertEquals(sourcePackage, occurrence.lineage.sourcePackageId)
         val notDue = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                sourceServices.followUps.createNextOccurrence(CreateNextInformationRequestOccurrenceCommand(source.requestId, recurrence.id, owner(scenario), "second-occurrence"))
+                sourceServices.followUps.createNextOccurrence(
+                    CreateNextInformationRequestOccurrenceCommand(
+                        source.requestId,
+                        recurrence.id,
+                        owner(scenario),
+                        "second-occurrence"
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.RECURRENCE_NOT_DUE, notDue.reasonCode)
 
         val superseding = QuarkusTransaction.requiringNew().call {
-            supplementServices.successors.create(successor(supplementId, InformationRequestLineageKind.SUPERSEDING, scenario, "supersede-supplement"))
+            supplementServices.successors.create(
+                successor(
+                    supplementId,
+                    InformationRequestLineageKind.SUPERSEDING,
+                    scenario,
+                    "supersede-supplement"
+                )
+            )
         }
         assertEquals(InformationRequestState.SUPERSEDED, superseding.source.state)
         assertEquals(superseding.successor.id, superseding.source.supersededByRequestId)
         val cancelledId = occurrence.successor.id
         val cancelled = QuarkusTransaction.requiringNew().call {
-            runtime.build(cancelledId).lifecycle.cancel(
+            runtime.build(cancelledId, centralAuthorization = authorizationService).lifecycle.cancel(
                 CancelInformationRequestCommand(
                     requestId = cancelledId,
                     reasonCode = "no-longer-needed",
@@ -186,15 +236,20 @@ class RecurringSupplementalRequestConformanceTest
         }
         assertEquals(InformationRequestState.CANCELLED, cancelled.request.state)
         QuarkusTransaction.requiringNew().run {
-            assertTrue(InformationRequestMutation.SUPERSEDE in transitionRepository.findForRequest(supplementId).map { it.mutation })
-            assertTrue(InformationRequestMutation.CANCEL in transitionRepository.findForRequest(cancelledId).map { it.mutation })
+            assertTrue(
+                InformationRequestMutation.SUPERSEDE in transitionRepository.findForRequest(supplementId)
+                    .map { it.mutation })
+            assertTrue(
+                InformationRequestMutation.CANCEL in transitionRepository.findForRequest(cancelledId)
+                    .map { it.mutation })
         }
-        val history = QuarkusTransaction.requiringNew().call { sourceServices.lineageQueries.lineage(source.requestId, owner(scenario)) }
+        val history = QuarkusTransaction.requiringNew()
+            .call { sourceServices.lineageQueries.lineage(source.requestId, owner(scenario)) }
         assertEquals(setOf(supplementId, cancelledId), history.successors.map { it.successorRequestId }.toSet())
         assertNotNull(history.recurrence)
     }
 
-    private fun submitWhole(services: InformationRequestRuntimeServices, scenario: Scenario): UUID
+    private fun submitWhole(services: InformationRequestRuntimeServices, scenario: RecurringSupplementalScenario): UUID
     {
         val source = scenario.runtime
         val attested = QuarkusTransaction.requiringNew().call {
@@ -203,7 +258,10 @@ class RecurringSupplementalRequestConformanceTest
                     requestId = source.requestId,
                     requirementId = source.attestationRequirementId,
                     decision = InformationRequestAttestationDecision.ASSENTED,
-                    access = RequestAccessContext(PrincipalRef.user(source.attestorUserId), AuthorizationContext(sessionRef = "attestor-session")),
+                    access = RequestAccessContext(
+                        PrincipalRef.user(source.attestorUserId),
+                        AuthorizationContext(sessionRef = "attestor-session")
+                    ),
                     precondition = CommandPrecondition.ExpectedRevision(submissionETag(source.requestId)),
                     idempotencyKey = "source-assent",
                 ),
@@ -221,28 +279,51 @@ class RecurringSupplementalRequestConformanceTest
         }
     }
 
-    private fun patch(services: InformationRequestRuntimeServices, requestId: UUID, requirementId: UUID, key: String) =
+    private fun patch(
+        services: InformationRequestRuntimeServices,
+        requestId: UUID,
+        requirementId: UUID,
+        key: String,
+        contributorUserId: UUID
+    ) =
         QuarkusTransaction.requiringNew().call {
             services.responses.patch(
                 PatchInformationRequestResponsesCommand(
                     requestId = requestId,
-                    access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "respondent-session")),
+                    access = RequestAccessContext(
+                        PrincipalRef.user(contributorUserId),
+                        AuthorizationContext(sessionRef = "respondent-session")
+                    ),
                     precondition = CommandPrecondition.ExpectedRevision(
                         InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(requestId))),
                     ),
                     idempotencyKey = key,
-                    patches = listOf(InformationRequestResponsePatch(requirementId = requirementId, disposition = InformationRequestResponseDisposition.PROVIDED)),
+                    patches = listOf(
+                        InformationRequestResponsePatch(
+                            requirementId = requirementId,
+                            disposition = InformationRequestResponseDisposition.PROVIDED
+                        )
+                    ),
                 ),
             )
         }
 
-    private fun problems(services: InformationRequestRuntimeServices, requestId: UUID) =
+    private fun problems(
+        services: InformationRequestRuntimeServices,
+        requestId: UUID,
+        scenario: RecurringSupplementalScenario
+    ) =
         QuarkusTransaction.requiringNew().call {
-            services.submissionQueries.preview(requestId, null, RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())).readiness.problems
+            services.submissionQueries.preview(requestId, null, contributor(scenario)).readiness.problems
                 .associate { it.requirementId to it.code }
         }
 
-    private fun successor(sourceId: UUID, kind: InformationRequestLineageKind, scenario: Scenario, key: String) =
+    private fun successor(
+        sourceId: UUID,
+        kind: InformationRequestLineageKind,
+        scenario: RecurringSupplementalScenario,
+        key: String
+    ) =
         CreateInformationRequestSuccessorCommand(
             sourceRequestId = sourceId,
             kind = kind,
@@ -252,10 +333,13 @@ class RecurringSupplementalRequestConformanceTest
             idempotencyKey = key,
         )
 
-    private fun insertLapsedNewerFact(scenario: Scenario, packageId: UUID)
+    private fun insertLapsedNewerFact(scenario: RecurringSupplementalScenario, packageId: UUID)
     {
         val item = QuarkusTransaction.requiringNew().call {
-            runtime.packageReader.view(scenario.runtime.requestId, packageId).items.single { it.informationRequestRequirementId == scenario.answers.requirementId }
+            runtime.packageReader.view(
+                scenario.runtime.requestId,
+                packageId
+            ).items.single { it.informationRequestRequirementId == scenario.answers.requirementId }
         }
         dataSource.connection.use { connection ->
             execute(
@@ -288,17 +372,27 @@ class RecurringSupplementalRequestConformanceTest
         }
     }
 
-    private fun scenario(): Scenario =
+    private fun scenario(): RecurringSupplementalScenario =
         dataSource.connection.use { connection ->
             lateinit var answers: FieldAnswerSqlFixture
             val source = SubmissionRuntimeSqlFixture(connection, beforePublish = { configured ->
                 answers = FieldAnswerSqlFixture(connection, configured.template, reusePurpose = REUSE_PURPOSE)
             })
             answers.materialize(source)
+            execute(
+                connection,
+                "UPDATE schema_field_binding SET visibility = 'PUBLIC' WHERE schema_version_id = ?",
+                answers.schemaVersionId,
+            )
+            grantShares(connection, source)
             val subjectId = UUID.randomUUID()
             source.insertSubject(subjectId, UUID.randomUUID())
             val next = source.publishNextVersion(adjust = { version ->
-                execute(connection, "UPDATE information_request_template_requirement_binding SET requiredness = 'OPTIONAL' WHERE id = ?", version.documentBindingId)
+                execute(
+                    connection,
+                    "UPDATE information_request_template_requirement_binding SET requiredness = 'OPTIONAL' WHERE id = ?",
+                    version.documentBindingId
+                )
                 execute(
                     connection,
                     "UPDATE information_request_template_version SET schema_version_id = ?, fact_reuse_purpose_key = ? WHERE id = ?",
@@ -325,18 +419,49 @@ class RecurringSupplementalRequestConformanceTest
                 )
                 source.template.insertDisposition(fieldBinding, version.versionId, "PROVIDED")
             })
-            Scenario(source, answers, subjectId, next)
+            RecurringSupplementalScenario(source, answers, subjectId, next)
         }
 
-    private fun respondingSide(scenario: Scenario): (PrincipalRef, Action) -> Boolean = { principal, action ->
-        principal.id != scenario.runtime.template.userId && action == Action.INFORMATION_REQUEST_PROMOTE_FACT
+    private fun grantShares(connection: java.sql.Connection, source: SubmissionRuntimeSqlFixture) {
+        val decisionMakerPartyId = UUID.randomUUID()
+        source.insertPartyForUser(decisionMakerPartyId, "DECISION_MAKER", source.template.userId)
+        listOf(
+            Triple(source.contributorPartyId, source.contributorUserId, "CONTRIBUTOR"),
+            Triple(source.attestorPartyId, source.attestorUserId, "ATTESTOR"),
+            Triple(decisionMakerPartyId, source.template.userId, "DECISION_MAKER"),
+        ).forEach { (partyId, userId, role) ->
+            val shareId = UUID.randomUUID()
+            execute(
+                connection,
+                """
+                INSERT INTO share (id, resource_type, resource_id, principal_kind, principal_id, role_name, source, status, granted_at)
+                VALUES (?, 'INFORMATION_REQUEST', ?, 'USER', ?, ?, 'DIRECT', 'ACTIVE', now())
+                """.trimIndent(),
+                shareId,
+                source.requestId,
+                userId,
+                role,
+            )
+            execute(connection, "UPDATE information_request_party SET share_id = ? WHERE id = ?", shareId, partyId)
+        }
+        execute(
+            connection,
+            """
+            INSERT INTO share (id, resource_type, resource_id, principal_kind, principal_id, role_name, source, status, granted_at)
+            VALUES (?, 'EXCHANGE', ?, 'USER', ?, 'OWNER', 'DIRECT', 'ACTIVE', now())
+            """.trimIndent(),
+            UUID.randomUUID(),
+            source.exchangeId,
+            source.template.userId,
+        )
     }
 
     private fun state(requestId: UUID): InformationRequestState =
         QuarkusTransaction.requiringNew().call { requireNotNull(requestRepository.findById(requestId)).state }
 
     private fun aggregateETag(requestId: UUID): String =
-        QuarkusTransaction.requiringNew().call { InformationRequestETag.aggregateOf(requireNotNull(requestRepository.findById(requestId))) }
+        QuarkusTransaction.requiringNew()
+            .call { InformationRequestETag.aggregateOf(requireNotNull(requestRepository.findById(requestId))) }
 
     private fun submissionETag(requestId: UUID): String =
         QuarkusTransaction.requiringNew().call {
@@ -344,18 +469,17 @@ class RecurringSupplementalRequestConformanceTest
             InformationRequestETag.submissionOf(null, runtime.contentCollector.collect(request, null).contentHash)
         }
 
-    private fun owner(scenario: Scenario) =
-        RequestAccessContext(PrincipalRef.user(scenario.runtime.template.userId), AuthorizationContext(sessionRef = "owner-session"))
+    private fun owner(scenario: RecurringSupplementalScenario) =
+        RequestAccessContext(
+            PrincipalRef.user(scenario.runtime.template.userId),
+            AuthorizationContext(sessionRef = "owner-session")
+        )
 
-    private fun contributor(scenario: Scenario) =
-        RequestAccessContext(PrincipalRef.user(scenario.runtime.contributorUserId), AuthorizationContext(sessionRef = "contributor-session"))
-
-    private data class Scenario(
-        val runtime: SubmissionRuntimeSqlFixture,
-        val answers: FieldAnswerSqlFixture,
-        val subjectId: UUID,
-        val next: NextSubmissionVersion,
-    )
+    private fun contributor(scenario: RecurringSupplementalScenario) =
+        RequestAccessContext(
+            PrincipalRef.user(scenario.runtime.contributorUserId),
+            AuthorizationContext(sessionRef = "contributor-session")
+        )
 
     private companion object
     {

@@ -2,7 +2,13 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.ExchangeFieldSnapshot
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.workflow.ApplicabilitySpec
+import com.docuhyphen.app.api.model.workflow.FieldConditionSpec
+import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
+import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.*
@@ -36,8 +42,6 @@ class WorkflowApplicabilityEvaluatorTest
 
     private fun isApplicable(spec: ApplicabilitySpec?): Boolean =
         evaluator.isApplicable(ResourceType.EXCHANGE.name, exchangeId, orgId, spec)
-
-    // ── Empty / structural ─────────────────────────────────────────────────────
 
     @Test
     fun `null applicability is always applicable`()
@@ -73,8 +77,6 @@ class WorkflowApplicabilityEvaluatorTest
         assertFalse(isApplicable(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("x"))))
     }
 
-    // ── Text ───────────────────────────────────────────────────────────────────
-
     @Test
     fun `text equals matches`()
     {
@@ -96,8 +98,6 @@ class WorkflowApplicabilityEvaluatorTest
         assertFalse(isApplicable(condition(FieldValueType.LONG_TEXT, FieldOperator.STARTS_WITH, JsonPrimitive("world"))))
     }
 
-    // ── Number ─────────────────────────────────────────────────────────────────
-
     @Test
     fun `number comparisons`()
     {
@@ -108,8 +108,6 @@ class WorkflowApplicabilityEvaluatorTest
         assertTrue(isApplicable(condition(FieldValueType.INTEGER, FieldOperator.LESS_THAN_OR_EQUAL, JsonPrimitive(10))))
         assertFalse(isApplicable(condition(FieldValueType.INTEGER, FieldOperator.LESS_THAN, JsonPrimitive(10))))
     }
-
-    // ── Date-time ──────────────────────────────────────────────────────────────
 
     @Test
     fun `date-time comparisons use the moment rather than the wall clock`()
@@ -125,8 +123,6 @@ class WorkflowApplicabilityEvaluatorTest
             ),
         )
 
-        // The stored answer was written as 10:15:30+02:00, so a condition naming the same moment at
-        // any offset must match and one naming a different moment must not.
         assertTrue(
             isApplicable(
                 condition(FieldValueType.DATE_TIME, FieldOperator.EQUALS, JsonPrimitive("2026-08-31T08:15:30Z")),
@@ -174,8 +170,6 @@ class WorkflowApplicabilityEvaluatorTest
         )
     }
 
-    // ── Boolean ────────────────────────────────────────────────────────────────
-
     @Test
     fun `boolean equals`()
     {
@@ -186,15 +180,27 @@ class WorkflowApplicabilityEvaluatorTest
         assertFalse(isApplicable(condition(FieldValueType.BOOLEAN, FieldOperator.EQUALS, JsonPrimitive(false))))
     }
 
-    // ── Select ─────────────────────────────────────────────────────────────────
-
     @Test
     fun `single select equals matches option code`()
     {
         whenever(queryService.getCanonicalValues(exchangeId)).thenReturn(
-            snapshotOf(fieldId to CanonicalFieldValue(FieldValueType.SINGLE_SELECT, false, selectionCodes = listOf("ONB"))),
+            snapshotOf(
+                fieldId to CanonicalFieldValue(
+                    FieldValueType.SINGLE_SELECT,
+                    false,
+                    selectionCodes = listOf("STAGE_A")
+                )
+            ),
         )
-        assertTrue(isApplicable(condition(FieldValueType.SINGLE_SELECT, FieldOperator.EQUALS, JsonPrimitive("ONB"))))
+        assertTrue(
+            isApplicable(
+                condition(
+                    FieldValueType.SINGLE_SELECT,
+                    FieldOperator.EQUALS,
+                    JsonPrimitive("STAGE_A")
+                )
+            )
+        )
         assertFalse(isApplicable(condition(FieldValueType.SINGLE_SELECT, FieldOperator.EQUALS, JsonPrimitive("OTHER"))))
     }
 
@@ -202,9 +208,15 @@ class WorkflowApplicabilityEvaluatorTest
     fun `single select IN`()
     {
         whenever(queryService.getCanonicalValues(exchangeId)).thenReturn(
-            snapshotOf(fieldId to CanonicalFieldValue(FieldValueType.SINGLE_SELECT, false, selectionCodes = listOf("ONB"))),
+            snapshotOf(
+                fieldId to CanonicalFieldValue(
+                    FieldValueType.SINGLE_SELECT,
+                    false,
+                    selectionCodes = listOf("STAGE_A")
+                )
+            ),
         )
-        val inList = JsonArray(listOf(JsonPrimitive("ONB"), JsonPrimitive("KYC")))
+        val inList = JsonArray(listOf(JsonPrimitive("STAGE_A"), JsonPrimitive("STAGE_B")))
         assertTrue(isApplicable(condition(FieldValueType.SINGLE_SELECT, FieldOperator.IN, inList)))
     }
 
@@ -224,10 +236,16 @@ class WorkflowApplicabilityEvaluatorTest
         whenever(queryService.getCanonicalValues(exchangeId)).thenReturn(
             snapshotOf(fieldId to CanonicalFieldValue.empty(FieldValueType.SINGLE_SELECT)),
         )
-        assertFalse(isApplicable(condition(FieldValueType.SINGLE_SELECT, FieldOperator.EQUALS, JsonPrimitive("ONB"))))
+        assertFalse(
+            isApplicable(
+                condition(
+                    FieldValueType.SINGLE_SELECT,
+                    FieldOperator.EQUALS,
+                    JsonPrimitive("STAGE_A")
+                )
+            )
+        )
     }
-
-    // ── Emptiness operators ──────────────────────────────────────────────────────
 
     @Test
     fun `is_empty and is_not_empty`()
@@ -238,8 +256,6 @@ class WorkflowApplicabilityEvaluatorTest
         assertTrue(isApplicable(condition(FieldValueType.SHORT_TEXT, FieldOperator.IS_EMPTY)))
         assertFalse(isApplicable(condition(FieldValueType.SHORT_TEXT, FieldOperator.IS_NOT_EMPTY)))
     }
-
-    // ── AND semantics ────────────────────────────────────────────────────────────
 
     @Test
     fun `all conditions must match`()
@@ -259,8 +275,6 @@ class WorkflowApplicabilityEvaluatorTest
         )
         assertFalse(isApplicable(spec))
     }
-
-    // ── Validation ───────────────────────────────────────────────────────────────
 
     @Test
     fun `validate rejects unsupported operator for type`()
@@ -288,7 +302,7 @@ class WorkflowApplicabilityEvaluatorTest
     @Test
     fun `validate accepts a valid spec`()
     {
-        val spec = condition(FieldValueType.SINGLE_SELECT, FieldOperator.EQUALS, JsonPrimitive("ONB"))
+        val spec = condition(FieldValueType.SINGLE_SELECT, FieldOperator.EQUALS, JsonPrimitive("STAGE_A"))
         evaluator.validate(spec)
     }
 }

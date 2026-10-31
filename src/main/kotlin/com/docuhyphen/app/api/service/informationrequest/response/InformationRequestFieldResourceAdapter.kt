@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -11,6 +13,7 @@ import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.FieldResourceAdapter
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -38,14 +41,9 @@ class InformationRequestFieldResourceAdapter @Inject constructor(
     override fun subscriptionContext(resourceId: UUID): SubscriptionContext? =
         requestRepository.findById(resourceId)?.subscriptionContext()
 
-    /**
-     * A request's Field writes answer to its frozen execution grant, not the owner's live plan, once
-     * the request has been issued: the grant already required the Business Fields feature at that
-     * moment for any Template that binds one, so re-checking a lapsed live plan on every later write
-     * would strand an assigned respondent within limits that were already reserved for them.
-     */
     override fun mutationEntitlementFrozen(resourceId: UUID): Boolean =
-        executionGrantService.findForRequest(resourceId) != null
+        executionGrantService.findForRequest(resourceId)
+            ?.let { PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS.name in it.grantedFeatures } == true
 
     override fun authorizeViewFields(
         resourceId: UUID,

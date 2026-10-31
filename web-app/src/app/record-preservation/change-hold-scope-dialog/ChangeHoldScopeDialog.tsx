@@ -20,22 +20,26 @@ import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
 import {RecordPreservationHoldDto, RecordPreservationScope} from "../../models/models.tsx";
 import {holdScopeLabels} from "../recordPreservationLabels.ts";
 import {useChangeHoldScopeDialogStyles} from "./ChangeHoldScopeDialogStyles.tsx";
+import {useStableIdempotencyKey} from "../../information-requests/shared/useStableIdempotencyKey.ts";
+import {isStaleInformationRequestCommand} from "../../information-requests/shared/informationRequestRefusal.ts";
 
 interface ChangeHoldScopeDialogProps
 {
     hold: RecordPreservationHoldDto;
     onChanged: (hold: RecordPreservationHoldDto) => void;
+    onStale: () => void;
     onDismiss: () => void;
 }
 
-const REASON_LIMIT = 1000;
+const REASON_LIMIT = 2048;
 
-const ChangeHoldScopeDialog = ({hold, onChanged, onDismiss}: ChangeHoldScopeDialogProps) =>
+const ChangeHoldScopeDialog = ({hold, onChanged, onStale, onDismiss}: ChangeHoldScopeDialogProps) =>
 {
     const styles = useChangeHoldScopeDialogStyles();
     const [scope, setScope] = useState<RecordPreservationScope>(hold.scope);
     const [reason, setReason] = useState("");
     const [busy, setBusy] = useState(false);
+    const keyed = useStableIdempotencyKey();
     const [error, setError] = useState<string | null>(null);
 
     const change = async () =>
@@ -44,10 +48,15 @@ const ChangeHoldScopeDialog = ({hold, onChanged, onDismiss}: ChangeHoldScopeDial
         setError(null);
         try
         {
-            onChanged(await changeRecordPreservationHoldScope(hold.id, scope, reason.trim()));
+            onChanged(await keyed(`scope:${hold.id}:${hold.holdETag}`, {scope, reason: reason.trim()}, key =>
+                changeRecordPreservationHoldScope(hold.id, scope, reason.trim(), hold.holdETag, key)));
         }
         catch (caught: unknown)
         {
+            if (isStaleInformationRequestCommand(caught)) {
+                onStale();
+                return;
+            }
             setError(normalizeApiError(caught, "The hold's scope could not be changed.").message);
             setBusy(false);
         }
@@ -55,18 +64,22 @@ const ChangeHoldScopeDialog = ({hold, onChanged, onDismiss}: ChangeHoldScopeDial
 
     return (
         <Dialog open={true}
-                onOpenChange={(_, data) => { if (!data.open && !busy) onDismiss(); }}>
+                onOpenChange={(_, data) => {
+                    if (!data.open && !busy) onDismiss();
+                }}>
             <DialogSurface id={"change-record-hold-scope-dialog"}
                            aria-labelledby={"change-record-hold-scope-dialog-title"}
                            className={styles.surface}>
-                <DialogBody>
+                <DialogBody id={"change-record-hold-scope-dialog-body"}>
                     <DialogTitle id={"change-record-hold-scope-dialog-title"}>Change what this hold covers</DialogTitle>
                     <DialogContent id={"change-record-hold-scope-dialog-content"}
                                    className={styles.content}>
                         {error && (
                             <MessageBar id={"change-record-hold-scope-dialog-error"}
-                                        intent={"error"}>
-                                <MessageBarBody>{error}</MessageBarBody>
+                                        intent={"error"}
+                                        role={"alert"}>
+                                <MessageBarBody
+                                    id={"change-record-hold-scope-dialog-error-body"}>{error}</MessageBarBody>
                             </MessageBar>
                         )}
                         <Text id={"change-record-hold-scope-dialog-summary"}>

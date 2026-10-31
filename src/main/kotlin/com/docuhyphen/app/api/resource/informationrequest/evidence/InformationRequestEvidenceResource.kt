@@ -179,7 +179,7 @@ class InformationRequestEvidenceResource @Inject constructor(
         id: String,
         requirementId: String,
         artifactId: String,
-        reason: String?,
+        request: InformationRequestEvidenceStateChangeRequest?,
         ifMatch: String?,
         idempotencyKey: String?,
     ): Response
@@ -191,7 +191,7 @@ class InformationRequestEvidenceResource @Inject constructor(
                 requirementId(requirementId),
                 artifactId(artifactId),
                 accessContextFactory.currentAuthenticated(),
-                reason,
+                request?.reason,
                 ifMatch,
                 idempotencyKey,
             )

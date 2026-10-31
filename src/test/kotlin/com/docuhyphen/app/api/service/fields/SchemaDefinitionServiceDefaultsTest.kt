@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.repository.fields.*
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.*
@@ -8,10 +9,6 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Unit tests for [SchemaDefinitionService.validateDefaultsForSchema] - the authoring-time guard that
- * blueprint default values are checked against before persistence.
- */
 class SchemaDefinitionServiceDefaultsTest
 {
     private val schemaDefinitionRepository: SchemaDefinitionRepository = mock()

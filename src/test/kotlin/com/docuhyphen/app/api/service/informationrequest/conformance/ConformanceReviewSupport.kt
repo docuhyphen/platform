@@ -1,26 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance
 
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.review.AssignInformationRequestReviewerCommand
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftPatch
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewDecisionsCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewFindingCommand
-import com.docuhyphen.app.api.model.informationrequest.review.SaveInformationRequestReviewDraftCommand
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import io.quarkus.narayana.jta.QuarkusTransaction
-import java.util.UUID
+import java.util.*
 
 internal class ConformanceReviewSupport(
     private val runtime: InformationRequestRuntimeTestServices,

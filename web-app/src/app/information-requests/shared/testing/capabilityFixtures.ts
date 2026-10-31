@@ -21,6 +21,7 @@ export const informationRequestCapabilities = (
     personalTemplatesAvailable: true,
     assignedWork: false,
     holdsRequests: false,
+    quotas: {openRequests: 0, committedEvidenceBytes: 0},
     ...overrides,
 });
 

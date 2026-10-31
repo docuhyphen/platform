@@ -1,43 +1,27 @@
 package com.docuhyphen.app.api.service.informationrequest.capability
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.SchemaCompatibility
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateAuthoringService
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplatePublicationService
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonDraft
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
+import com.docuhyphen.app.api.service.informationrequest.template.*
 import io.quarkus.narayana.jta.QuarkusTransaction
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
-
-data class WalkingSkeletonDraft(
-    val definitionId: UUID,
-    val versionId: UUID,
-    val actorId: UUID,
-    val templateKey: String,
-)
-
-data class WalkingSkeletonField(
-    val fieldDefinitionId: UUID,
-    val fieldContractId: UUID,
-)
 
 class InformationRequestTemplateWalkingSkeletonStore(
     private val dataSource: DataSource,
@@ -53,7 +37,11 @@ class InformationRequestTemplateWalkingSkeletonStore(
             configurationWriter.replaceConfiguration(versionRepository.findById(draft.versionId)!!, configuration)
         }
         QuarkusTransaction.requiringNew().run {
-            publicationService(draft).publishTemplate(draft.definitionId)
+            publicationService(draft).publishTemplate(
+                draft.definitionId,
+                CommandPrecondition.Unconditioned,
+                UUID.randomUUID().toString(),
+            )
         }
     }
 
@@ -66,7 +54,8 @@ class InformationRequestTemplateWalkingSkeletonStore(
                     namespace = "process-${UUID.randomUUID().toString().take(8)}"
                     this.templateKey = templateKey
                     displayName = templateKey.split("-").joinToString(" ") { it.replaceFirstChar(Char::titlecase) }
-                    createdByAppUserId = actorId
+                    createdByPrincipalKind = PrincipalKind.USER
+                    createdByPrincipalId = actorId
                 },
             )
             WalkingSkeletonDraft(definition.id, insertVersion(definition.id, 1, actorId), actorId, templateKey)
@@ -99,7 +88,9 @@ class InformationRequestTemplateWalkingSkeletonStore(
         return id
     }
 
-    fun insertTextField(key: String): WalkingSkeletonField
+    fun insertTextField(key: String): WalkingSkeletonField = insertField(key, FieldValueType.SHORT_TEXT)
+
+    fun insertField(key: String, valueType: FieldValueType): WalkingSkeletonField
     {
         val field = WalkingSkeletonField(UUID.randomUUID(), UUID.randomUUID())
         dataSource.connection.use { connection ->
@@ -128,7 +119,7 @@ class InformationRequestTemplateWalkingSkeletonStore(
             ).use { statement ->
                 statement.setObject(1, field.fieldContractId)
                 statement.setObject(2, field.fieldDefinitionId)
-                statement.setString(3, FieldValueType.SHORT_TEXT.name)
+                statement.setString(3, valueType.name)
                 statement.setString(4, key.split("-").joinToString(" ") { it.replaceFirstChar(Char::titlecase) })
                 statement.setString(5, FieldDataClassification.INTERNAL.name)
                 statement.setTimestamp(6, now)
@@ -206,7 +197,8 @@ class InformationRequestTemplateWalkingSkeletonStore(
             InformationRequestTemplateVersion().apply {
                 templateDefinitionId = definitionId
                 this.versionNumber = versionNumber
-                createdByAppUserId = actorId
+                createdByPrincipalKind = PrincipalKind.USER
+                createdByPrincipalId = actorId
             },
         ).id
 
@@ -221,9 +213,17 @@ class InformationRequestTemplateWalkingSkeletonStore(
         whenever(authoringService.projectTemplate(any())).thenReturn(mock<InformationRequestTemplateDto>())
         return InformationRequestTemplatePublicationService(
             authoringService,
-            definitionRepository,
             versionRepository,
-            capabilityRepository,
+            InformationRequestTemplateVersionFreezer(
+                definitionRepository,
+                versionRepository,
+                capabilityRepository,
+                mock(),
+                mock(),
+                mock(),
+                mock(),
+            ),
+            CommandReceiptService(InMemoryTemplateReceiptStore(), CommandReceiptScope()),
         )
     }
 }

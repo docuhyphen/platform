@@ -1,25 +1,18 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldContract
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldConstraints
+import com.docuhyphen.app.api.model.fields.FieldOption
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.json.JsonElement
 
-/**
- * Validates and canonicalizes a raw field-value input against a persisted [FieldContract].
- * Layer 1 (type shape) and layer 2 (contract constraints) of the validation model. Binding-level
- * requiredness (layer 3) and lifecycle/authorization layers are enforced by the value service.
- * See FIELDS-FEATURE.md "Validation Model".
- */
 @ApplicationScoped
 class FieldValueValidator @Inject constructor(
     private val typeRegistry: FieldTypeRegistry,
 )
 {
-    /**
-     * @throws FieldValidationException if [input] is malformed or violates the contract. The
-     *   returned value's [CanonicalFieldValue.isEmpty] is true for a cleared/absent value.
-     */
     fun canonicalize(contract: FieldContract, input: JsonElement?): CanonicalFieldValue
     {
         val typeContract = typeRegistry.contractFor(contract.valueType)
@@ -28,13 +21,9 @@ class FieldValueValidator @Inject constructor(
         return typeContract.canonicalize(input, constraints, options)
     }
 
-    /**
-     * Validates that a contract's own configuration is coherent: options for select types, and a
-     * numeric scale the store can actually hold so an accepted answer is never rounded on the way in.
-     */
     fun validateContractConfiguration(contract: FieldContract)
     {
-        typeRegistry.contractFor(contract.valueType) // fail closed on unknown type
+        typeRegistry.contractFor(contract.valueType)
         val isNumeric = contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.INTEGER ||
                 contract.valueType == com.docuhyphen.app.api.model.entity.FieldValueType.DECIMAL
         if (isNumeric)

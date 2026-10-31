@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.variable
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind

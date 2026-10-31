@@ -5,34 +5,30 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
+import com.docuhyphen.app.api.resource.exchange.operations.ExchangeDocumentVersionResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentVersionService
+import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.CREATED
 import jakarta.ws.rs.core.Response.status
-import org.jboss.resteasy.reactive.RestForm
+import jakarta.ws.rs.core.StreamingOutput
 import org.slf4j.LoggerFactory
 import java.io.File
 
-@Path("exchanges/{exchangeId}/documents/{documentId}/versions")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class ExchangeDocumentVersionResource @Inject constructor(
     private val exchangeDocumentVersionService: ExchangeDocumentVersionService
-)
+) : ExchangeDocumentVersionResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeDocumentVersionResource::class.java)
     }
 
-    @GET
-    fun getDocumentVersions(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+    override fun getDocumentVersions(
+        exchangeId: String,
+        documentId: String
     ): Response
     {
         return try
@@ -55,6 +51,11 @@ class ExchangeDocumentVersionResource @Inject constructor(
                     status(Response.Status.NOT_FOUND).entity(responseError).build()
                 }
 
+                is ForbiddenException -> {
+                    logger.warn("Refused retrieving document versions: {}", exception.message)
+                    status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+                }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error retrieving document versions", exception)
@@ -72,13 +73,11 @@ class ExchangeDocumentVersionResource @Inject constructor(
         }
     }
 
-    @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    fun createVersion(
-        @RestForm("file") file: File?,
-        @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
+    override fun createVersion(
+        file: File?,
+        encryptionMode: DocumentEncryptionMode?,
+        exchangeId: String,
+        documentId: String,
     ): Response
     {
         return try
@@ -107,6 +106,11 @@ class ExchangeDocumentVersionResource @Inject constructor(
                     status(Response.Status.NOT_FOUND).entity(responseError).build()
                 }
 
+                is ForbiddenException -> {
+                    logger.warn("Refused creating document version: {}", exception.message)
+                    status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+                }
+
                 is IllegalArgumentException ->
                 {
                     logger.error("Error creating document version", exception)
@@ -124,19 +128,16 @@ class ExchangeDocumentVersionResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/{versionId}/file")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun downloadVersion(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
-        @PathParam("versionId") versionId: String
+    override fun downloadVersion(
+        exchangeId: String,
+        documentId: String,
+        versionId: String
     ): Response
     {
         return try
         {
             val content = exchangeDocumentVersionService.getVersionContent(exchangeId, documentId, versionId)
-            Response.ok(content.file.inputStream())
+            Response.ok(StreamingOutput(content::transferTo))
                 .header("Content-Disposition", "attachment; filename=\"${content.fileName}\"")
                 .header("Content-Length", content.file.length())
                 .build()
@@ -151,6 +152,11 @@ class ExchangeDocumentVersionResource @Inject constructor(
                     logger.error("Error downloading document version", exception)
                     val responseError = ResponseError(exception.message)
                     status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                is ForbiddenException -> {
+                    logger.warn("Refused downloading document version: {}", exception.message)
+                    status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is IllegalArgumentException ->
@@ -170,11 +176,9 @@ class ExchangeDocumentVersionResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/latest")
-    fun getLatestVersion(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+    override fun getLatestVersion(
+        exchangeId: String,
+        documentId: String
     ): Response
     {
 
@@ -202,6 +206,11 @@ class ExchangeDocumentVersionResource @Inject constructor(
                     logger.error("Error retrieving latest document version", exception)
                     val responseError = ResponseError(exception.message)
                     status(Response.Status.NOT_FOUND).entity(responseError).build()
+                }
+
+                is ForbiddenException -> {
+                    logger.warn("Refused retrieving latest document version: {}", exception.message)
+                    status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is IllegalArgumentException ->

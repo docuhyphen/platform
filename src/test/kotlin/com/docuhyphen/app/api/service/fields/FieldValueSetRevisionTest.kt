@@ -1,21 +1,11 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
-/**
- * A set of answers counts the changes it has been through, and that count is what a client holds
- * onto to say which state of the set it edited. The count only moves forward, it moves by exactly
- * one for each save that stores something, and a save that stores nothing leaves it where it was,
- * so two clients holding the same count are looking at the same answers.
- *
- * The validator a client sends back names both the set and its count, so a validator taken from one
- * set can never be spent against another.
- */
 class FieldValueSetRevisionTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())
@@ -42,7 +32,6 @@ class FieldValueSetRevisionTest
             ),
         )
 
-        // One save is one change to the set, however many of its questions that save answered.
         assertEquals(5, fixture.updatedSets.single().revision)
     }
 
@@ -53,7 +42,7 @@ class FieldValueSetRevisionTest
             principal = author,
             rootAnswers = mapOf(
                 SchemaAssignmentFieldsFixture.Question.NOTE to
-                    SchemaAssignmentFieldsFixture.StoredAnswer("Unchanged answer", author),
+                        StoredAnswer("Unchanged answer", author),
             ),
             rootSetRevision = 4,
         )
@@ -134,7 +123,6 @@ class FieldValueSetRevisionTest
 
         val assignment = fixture.assign()
 
-        // The default is a stored answer like any other, so the set it landed in has changed once.
         assertEquals(2, fixture.updatedSets.single().revision)
         assertEquals("\"${fixture.savedSets.single().id}:2\"", assignment.etag)
     }

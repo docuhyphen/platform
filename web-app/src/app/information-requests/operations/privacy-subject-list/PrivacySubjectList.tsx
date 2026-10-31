@@ -1,8 +1,8 @@
 import {Button, Text} from "@fluentui/react-components";
 import {InformationRequestSubjectDto} from "../../../models/models.tsx";
-import {usePrivacyPanelStyles} from "../privacy/PrivacyPanelStyles.tsx";
 import {subjectLabel} from "../privacy/privacyLabels.ts";
 import {formattedTime} from "../operationsLabels.ts";
+import {usePrivacySubjectListStyles} from "./PrivacySubjectListStyles.tsx";
 
 interface PrivacySubjectListProps
 {
@@ -13,7 +13,7 @@ interface PrivacySubjectListProps
 
 const PrivacySubjectList = ({subjects, busy, onRecord}: PrivacySubjectListProps) =>
 {
-    const styles = usePrivacyPanelStyles();
+    const styles = usePrivacySubjectListStyles();
 
     return (
         <div id={"information-request-privacy-subjects"}

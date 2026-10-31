@@ -102,7 +102,10 @@ const TemplateRequirementDialog = ({sectionIndex, requirementIndex, onClose}: Te
                                            keyLocked={existing !== undefined}
                                            onDraftReplaced={setDraft}/>
             )}
-            {tab === "answering" && <RequirementAnsweringFields {...fieldProps} onDraftReplaced={setDraft}/>}
+            {tab === "answering" && (
+                <RequirementAnsweringFields {...fieldProps}
+                                            onDraftReplaced={setDraft}/>
+            )}
             {tab === "evidence" && (
                 <>
                     <RequirementEvidenceFields {...fieldProps}/>

@@ -38,7 +38,7 @@ class InformationRequestAmendmentRequestHandler(
                 configuration = request.configuration,
                 reasonCode = request.reasonCode?.trim()?.ifBlank { null },
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )

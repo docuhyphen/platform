@@ -8,15 +8,6 @@ import com.docuhyphen.app.api.service.subscription.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
-/**
- * Applies the two commercial and operational decisions about Information Requests to runtime
- * requests, answered for the owner of the parent Exchange rather than for whichever organization the
- * caller currently has selected.
- *
- * This mirrors [InformationRequestTemplateEntitlementGuard], but a runtime request never names a
- * scope kind of its own: it is always exactly as personal or organization-owned as its parent
- * Exchange, so the owner is read directly from that Exchange.
- */
 @ApplicationScoped
 class InformationRequestEntitlementGuard @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
@@ -45,12 +36,6 @@ class InformationRequestEntitlementGuard @Inject constructor(
         subscriptionAccessService.requireFeature(owner, PlanFeature.INFORMATION_REQUESTS)
     }
 
-    /**
-     * An emergency stop, not a billing lapse: unlike a past-due or canceled owner, a suspended
-     * owner carries no grace window, so this is checked directly against the live subscription
-     * rather than through [requireRequestMutation], which a request already holding a frozen
-     * execution grant otherwise never rechecks again.
-     */
     fun requireNotOperationallySuspended(exchange: Exchange)
     {
         val subscription = subscriptionAccessService.resolve(owner(exchange))
@@ -59,6 +44,17 @@ class InformationRequestEntitlementGuard @Inject constructor(
             throw SubscriptionDenialException(SubscriptionDenialFactory.mutationsNotAllowed(subscription))
         }
     }
+
+    fun isOperationallySuspended(exchange: Exchange): Boolean =
+        subscriptionAccessService.resolve(owner(exchange)).status == SubscriptionStatus.SUSPENDED
+
+    fun permitsRequestMutation(exchange: Exchange): Boolean =
+        try {
+            requireRequestMutation(exchange)
+            true
+        } catch (_: SubscriptionDenialException) {
+            false
+        }
 
     private fun owner(exchange: Exchange): SubscriptionContext
     {

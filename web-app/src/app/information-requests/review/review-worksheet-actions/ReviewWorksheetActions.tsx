@@ -17,6 +17,8 @@ const ReviewWorksheetActions = ({busy, changedCount, onSave, onRecord}: Props) =
         <div id={"information-request-review-worksheet-actions"}
              className={styles.actions}>
             <Text id={"information-request-review-worksheet-status"}
+                  aria-live={"polite"}
+                  aria-atomic={true}
                   className={styles.status}>
                 {changedCount > 0 ? `${changedCount} unsaved changes` : "Every change is saved"}
             </Text>

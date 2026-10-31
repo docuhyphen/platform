@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessProgressContext
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCompletenessContributionEvaluator
 import jakarta.enterprise.context.ApplicationScoped
@@ -28,7 +29,7 @@ class InformationRequestEvidenceCompletenessEvaluator @Inject constructor(
             val disposition = responsesByRequirement[requirement.id]?.disposition
             val evaluation = evaluationService.evaluate(requirement, disposition) ?: return@mapNotNull null
             val complete = completes(evaluation.state, disposition)
-            val conditionState = binding.conditionalRuleKey?.let { ruleKey ->
+            val conditionState = InformationRequestGoverningCondition.ruleKeyOf(binding)?.let { ruleKey ->
                 (conditionByScope[ruleKey to requirement.occurrencePath]
                     ?: conditionByScope[ruleKey to InformationRequestOccurrencePath.ROOT])?.state
             }

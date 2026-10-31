@@ -1,76 +1,52 @@
 package com.docuhyphen.app.api.service.informationrequest.occurrence
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
 import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
 import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationContext
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationIssue
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationKind
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationStage
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementCurrentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.repository.informationrequest.template.*
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.CommandPreconditionException
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseMutationGuard
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestGroupOccurrenceServiceTest
 {
@@ -108,14 +84,173 @@ class InformationRequestGroupOccurrenceServiceTest
             ),
         )
 
-        val locks = inOrder(fixture.exchangeRepository, fixture.requestRepository, fixture.groupOccurrenceRepository)
-        locks.verify(fixture.exchangeRepository).findByIdForUpdate(fixture.request.exchangeId)
+        val locks = inOrder(fixture.exchangeLookup, fixture.requestRepository, fixture.groupOccurrenceRepository)
+        locks.verify(fixture.exchangeLookup).lockExchangeForUpdate(fixture.request.exchangeId)
         locks.verify(fixture.requestRepository).findRequestByIdForUpdate(fixture.request.id)
         locks.verify(fixture.groupOccurrenceRepository).findForGroupAndParentForUpdate(
             fixture.request.id,
             fixture.group.id,
             null,
         )
+    }
+
+    @Test
+    fun `a replayed group command is refused once the parent Exchange no longer accepts responses`() {
+        val fixture = Fixture()
+        val command = fixture.reorderCommand("reorder-before-termination")
+        fixture.service.reorder(command)
+        fixture.exchange.status = ExchangeStatus.REJECTED
+
+        assertThrows<InformationRequestLifecycleException> { fixture.service.reorder(command) }
+    }
+
+    @Test
+    fun `a replayed group command is refused after the request's execution grant is revoked`() {
+        val fixture = Fixture()
+        val command = fixture.reorderCommand("reorder-before-grant-revocation")
+        fixture.service.reorder(command)
+        fixture.grant.revokedAt = java.sql.Timestamp.from(java.time.Instant.now())
+
+        val refusal = assertThrows<InformationRequestLifecycleException> { fixture.service.reorder(command) }
+
+        assertEquals(InformationRequestErrorCatalog.EXECUTION_GRANT_REVOKED, refusal.reasonCode)
+    }
+
+    @Test
+    fun `a replayed group command is refused when the caller may still read the request but no longer respond`() {
+        val fixture = Fixture()
+        val command = fixture.reorderCommand("reorder-before-respond-loss")
+        fixture.service.reorder(command)
+        whenever(
+            fixture.authorizationService.authorize(
+                any(),
+                eq(Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND),
+                eq(ResourceRef.informationRequest(fixture.request.id)),
+                any(),
+            ),
+        ).thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "No longer a responding party"))
+
+        assertThrows<ForbiddenException> { fixture.service.reorder(command) }
+    }
+
+    @Test
+    fun `a replayed reorder answers with its own group's visible siblings under the current response ETag`() {
+        val fixture = Fixture()
+        val command = fixture.reorderCommand("reorder-then-replay")
+        val (first, second) = fixture.reorderedSiblings
+        fixture.service.reorder(command)
+        val elsewhere = fixture.occurrence(fixture.nestedGroup, 0, "items[0]/entries[0]", first.id)
+        whenever(fixture.groupOccurrenceRepository.findForRequest(fixture.request.id)).thenReturn(
+            listOf(
+                first,
+                second,
+                elsewhere
+            )
+        )
+        whenever(fixture.groupAuthorizationService.visibleOccurrences(any(), any(), any())).thenAnswer {
+            it.getArgument<List<InformationRequestGroupOccurrence>>(2)
+                .filterNot { occurrence -> occurrence.id == first.id }
+        }
+        fixture.request.responseRevision = 5
+
+        val replayed = fixture.service.reorder(command)
+
+        assertEquals(listOf(second), replayed.occurrences)
+        assertEquals(InformationRequestETag.responsesOf(fixture.request), replayed.responseETag)
+    }
+
+    @Test
+    fun `adding and removing answer only with siblings the caller may see`() {
+        val fixture = Fixture()
+        fixture.group.maxOccurrences = 3
+        val first = fixture.activeOccurrence(fixture.group, 0, "items[0]")
+        val second = fixture.activeOccurrence(fixture.group, 1, "items[1]")
+        whenever(
+            fixture.groupOccurrenceRepository.findForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null
+            )
+        )
+            .thenReturn(listOf(first, second))
+        whenever(
+            fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null
+            )
+        )
+            .thenReturn(listOf(first, second))
+        whenever(fixture.groupOccurrenceRepository.findActiveForRequestForUpdate(fixture.request.id)).thenReturn(
+            listOf(
+                first,
+                second
+            )
+        )
+        whenever(fixture.groupAuthorizationService.visibleOccurrences(any(), any(), any())).thenAnswer {
+            it.getArgument<List<InformationRequestGroupOccurrence>>(2)
+                .filterNot { occurrence -> occurrence.id == second.id }
+        }
+
+        val added = fixture.service.add(
+            AddInformationRequestGroupOccurrenceCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "add-with-hidden-sibling",
+                groupKey = "items",
+            ),
+        )
+        val removed = fixture.service.remove(
+            RemoveInformationRequestGroupOccurrenceCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "remove-with-hidden-sibling",
+                occurrenceId = first.id,
+            ),
+        )
+
+        assertFalse(added.occurrences.contains(second))
+        assertEquals(2, added.occurrences.size)
+        assertEquals(emptyList<InformationRequestGroupOccurrence>(), removed.occurrences)
+    }
+
+    @Test
+    fun `a replayed remove answers with the removed occurrence's remaining siblings`() {
+        val fixture = Fixture()
+        val first = fixture.activeOccurrence(fixture.group, 0, "items[0]")
+        val second = fixture.activeOccurrence(fixture.group, 1, "items[1]")
+        whenever(
+            fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null
+            )
+        )
+            .thenReturn(listOf(first, second))
+            .thenReturn(listOf(second))
+        whenever(fixture.groupOccurrenceRepository.findActiveForRequestForUpdate(fixture.request.id)).thenReturn(
+            listOf(
+                first,
+                second
+            )
+        )
+        whenever(fixture.groupOccurrenceRepository.findById(first.id)).thenReturn(first)
+        whenever(fixture.groupOccurrenceRepository.findForRequest(fixture.request.id)).thenReturn(listOf(first, second))
+        val command = RemoveInformationRequestGroupOccurrenceCommand(
+            requestId = fixture.request.id,
+            access = fixture.access,
+            precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+            idempotencyKey = "remove-then-replay",
+            occurrenceId = first.id,
+        )
+        fixture.service.remove(command)
+
+        val replayed = fixture.service.remove(command)
+
+        assertEquals(listOf(second), replayed.occurrences)
+        assertEquals(InformationRequestETag.responsesOf(fixture.request), replayed.responseETag)
     }
 
     @Test
@@ -167,6 +302,8 @@ class InformationRequestGroupOccurrenceServiceTest
             ),
         ).thenReturn(listOf(existing))
 
+        whenever(fixture.groupOccurrenceRepository.findAllForRequest(fixture.request.id)).thenReturn(listOf(existing))
+
         val result = fixture.service.add(
             AddInformationRequestGroupOccurrenceCommand(
                 requestId = fixture.request.id,
@@ -205,7 +342,17 @@ class InformationRequestGroupOccurrenceServiceTest
             ResourceRef.informationRequest(fixture.request.id),
             fixture.access.authorization,
         )
-        verify(fixture.transitionHistory).record(any())
+        verify(fixture.transitionHistory).record(check {
+            assertEquals(
+                mapOf(
+                    "occurrenceChange" to "ADD",
+                    "groupKey" to "items",
+                    "occurrenceId" to occurrence.id.toString(),
+                    "occurrencePath" to "items[1]",
+                ),
+                it.details,
+            )
+        })
         verify(fixture.supportingEvidenceLinkService).materialize(fixture.request)
     }
 
@@ -215,7 +362,13 @@ class InformationRequestGroupOccurrenceServiceTest
         val fixture = Fixture()
         val first = fixture.occurrence(fixture.group, 0, "items[0]")
         val second = fixture.occurrence(fixture.group, 1, "items[1]")
-        whenever(fixture.groupOccurrenceRepository.findForGroupAndParentForUpdate(fixture.request.id, fixture.group.id, null))
+        whenever(
+            fixture.groupOccurrenceRepository.findForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null
+            )
+        )
             .thenReturn(listOf(first, second))
         whenever(
             fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
@@ -281,7 +434,62 @@ class InformationRequestGroupOccurrenceServiceTest
         assertTrue(second.removedAt != null)
         assertTrue(fixture.savedRequirements.isEmpty())
         verify(fixture.groupOccurrenceRepository).update(second)
-        verify(fixture.transitionHistory).record(any())
+        verify(fixture.transitionHistory).record(check {
+            assertEquals(
+                mapOf(
+                    "occurrenceChange" to "REMOVE",
+                    "groupKey" to "items",
+                    "occurrenceId" to second.id.toString(),
+                    "occurrencePath" to "items[1]",
+                ),
+                it.details,
+            )
+        })
+    }
+
+    @Test
+    fun `removing an occurrence closes the open revision of every Requirement asked beneath it`() {
+        val fixture = Fixture()
+        val first = fixture.occurrence(fixture.group, 0, "items[0]")
+        val second = fixture.occurrence(fixture.group, 1, "items[1]")
+        val nested = fixture.occurrence(fixture.nestedGroup, 0, "items[1]/entries[0]", second.id)
+        fun runtimeRequirement(path: String) = InformationRequestRequirement().apply {
+            id = UUID.randomUUID()
+            informationRequestId = fixture.request.id
+            sourceTemplateVersionId = fixture.request.templateVersionId
+            sourceTemplateRequirementId = fixture.requirement.id
+            sourceTemplateBindingId = fixture.binding.id
+            occurrencePath = path
+        }
+
+        val kept = runtimeRequirement("items[0]")
+        val removed = runtimeRequirement("items[1]")
+        val removedNested = runtimeRequirement("items[1]/entries[0]")
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id))
+            .thenReturn(listOf(kept, removed, removedNested))
+        whenever(fixture.groupOccurrenceRepository.findActiveByIdForUpdate(fixture.request.id, second.id))
+            .thenReturn(second)
+        whenever(
+            fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null,
+            ),
+        ).thenReturn(listOf(first, second))
+        whenever(fixture.groupOccurrenceRepository.findActiveForRequestForUpdate(fixture.request.id))
+            .thenReturn(listOf(first, second, nested))
+
+        fixture.service.remove(
+            RemoveInformationRequestGroupOccurrenceCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "remove-item-closes-revisions",
+                occurrenceId = second.id,
+            ),
+        )
+
+        verify(fixture.revisionRepository).closeOpen(eq(listOf(removed.id, removedNested.id)), any())
     }
 
     @Test
@@ -336,6 +544,12 @@ class InformationRequestGroupOccurrenceServiceTest
                 null,
             ),
         ).thenReturn(listOf(removed, remaining))
+        whenever(fixture.groupOccurrenceRepository.findAllForRequest(fixture.request.id)).thenReturn(
+            listOf(
+                removed,
+                remaining
+            )
+        )
         whenever(
             fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
                 fixture.request.id,
@@ -370,12 +584,12 @@ class InformationRequestGroupOccurrenceServiceTest
     {
         val fixture = Fixture()
 
-        val failure = assertThrows<com.docuhyphen.app.api.service.command.CommandPreconditionException> {
+        val failure = assertThrows<CommandPreconditionException> {
             fixture.service.add(
                 AddInformationRequestGroupOccurrenceCommand(
                     requestId = fixture.request.id,
                     access = fixture.access,
-                    precondition = CommandPrecondition.ExpectedRevision("\"${fixture.request.id}:0\""),
+                    precondition = CommandPrecondition.ExpectedRevision("\"responses:${fixture.request.id}:0\""),
                     idempotencyKey = "stale-add",
                     groupKey = "items",
                 ),
@@ -383,7 +597,7 @@ class InformationRequestGroupOccurrenceServiceTest
         }
 
         assertEquals(
-            com.docuhyphen.app.api.service.command.CommandPreconditionException.Kind.STALE,
+            CommandPreconditionException.Kind.STALE,
             failure.kind,
         )
         assertEquals(1, fixture.request.responseRevision)
@@ -554,12 +768,110 @@ class InformationRequestGroupOccurrenceServiceTest
         )
 
         val order = inOrder(fixture.groupAuthorizationService, fixture.groupOccurrenceRepository)
-        order.verify(fixture.groupAuthorizationService).authorizeMaterializedBindings(
+        order.verify(fixture.groupAuthorizationService).authorizeGroupCreation(
             eq(fixture.access),
             eq(fixture.request),
             eq(listOf(fixture.binding)),
+            eq(listOf(fixture.binding)),
         )
         order.verify(fixture.groupOccurrenceRepository).save(any())
+    }
+
+    @Test
+    fun `adding a container group's occurrence authorizes every binding authored beneath it`() {
+        val fixture = Fixture()
+        fixture.withNestedGroup(minOccurrences = 0)
+        fixture.binding.occurrenceAnchorKey = fixture.nestedGroup.groupKey
+        fixture.expectNoSiblings(fixture.group, null)
+
+        fixture.service.add(
+            AddInformationRequestGroupOccurrenceCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "add-container-scope",
+                groupKey = "items",
+            ),
+        )
+
+        val order = inOrder(fixture.groupAuthorizationService, fixture.groupOccurrenceRepository)
+        order.verify(fixture.groupAuthorizationService).authorizeGroupCreation(
+            eq(fixture.access),
+            eq(fixture.request),
+            eq(emptyList()),
+            eq(listOf(fixture.binding, fixture.nestedBinding)),
+        )
+        order.verify(fixture.groupOccurrenceRepository).save(any())
+    }
+
+    @Test
+    fun `an occurrence change is validated against the changed shape before it commits`() {
+        val validator = object :
+            com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidator {
+            override val stages = setOf(InformationRequestStructuredResponseValidationStage.OCCURRENCE_CHANGE)
+
+            override fun validate(context: InformationRequestStructuredResponseValidationContext) = listOf(
+                InformationRequestStructuredResponseValidationIssue(
+                    kind = InformationRequestStructuredResponseValidationKind.CROSS_ROW,
+                    message = "The entries no longer cover every period",
+                    occurrencePath = "items[0]",
+                ),
+            )
+        }
+        val fixture = Fixture(listOf(validator))
+        fixture.expectNoSiblings(fixture.group, null)
+        whenever(fixture.validationContextLoader.load(any(), any(), any())).thenAnswer {
+            InformationRequestStructuredResponseValidationContext(
+                stage = InformationRequestStructuredResponseValidationStage.OCCURRENCE_CHANGE,
+                request = fixture.request,
+                requirementsById = emptyMap(),
+            )
+        }
+
+        val failure = assertThrows<InformationRequestItemRefusalException> {
+            fixture.service.add(
+                AddInformationRequestGroupOccurrenceCommand(
+                    requestId = fixture.request.id,
+                    access = fixture.access,
+                    precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                    idempotencyKey = "add-validated-occurrence",
+                    groupKey = "items",
+                ),
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED, failure.reasonCode)
+        assertEquals("items[0]", failure.problems.single().occurrencePath)
+        assertEquals(
+            InformationRequestStructuredResponseValidationKind.CROSS_ROW,
+            failure.problems.single().validationKind
+        )
+        val order = inOrder(fixture.groupOccurrenceRepository, fixture.validationContextLoader)
+        order.verify(fixture.groupOccurrenceRepository).save(any())
+        order.verify(fixture.validationContextLoader).load(
+            eq(fixture.request),
+            eq(InformationRequestStructuredResponseValidationStage.OCCURRENCE_CHANGE),
+            any(),
+        )
+        verify(fixture.transitionHistory, never()).record(any())
+    }
+
+    @Test
+    fun `an occurrence change loads no validation state when no validator checks occurrence changes`() {
+        val fixture = Fixture()
+        fixture.expectNoSiblings(fixture.group, null)
+
+        fixture.service.add(
+            AddInformationRequestGroupOccurrenceCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "add-without-validators",
+                groupKey = "items",
+            ),
+        )
+
+        verify(fixture.validationContextLoader, never()).load(any(), any(), any())
     }
 
     @Test
@@ -579,9 +891,10 @@ class InformationRequestGroupOccurrenceServiceTest
             ),
         )
 
-        verify(fixture.groupAuthorizationService).authorizeMaterializedBindings(
+        verify(fixture.groupAuthorizationService).authorizeGroupCreation(
             eq(fixture.access),
             eq(fixture.request),
+            eq(listOf(fixture.binding, fixture.nestedBinding)),
             eq(listOf(fixture.binding, fixture.nestedBinding)),
         )
     }
@@ -593,7 +906,7 @@ class InformationRequestGroupOccurrenceServiceTest
         fixture.expectNoSiblings(fixture.group, null)
         doThrow(ForbiddenException("Access denied to change Information Request group occurrences"))
             .whenever(fixture.groupAuthorizationService)
-            .authorizeMaterializedBindings(any(), any(), any())
+            .authorizeGroupCreation(any(), any(), any(), any())
 
         assertThrows<ForbiddenException> {
             fixture.service.add(
@@ -646,10 +959,11 @@ class InformationRequestGroupOccurrenceServiceTest
         )
 
         val order = inOrder(fixture.groupAuthorizationService, fixture.groupOccurrenceRepository)
-        order.verify(fixture.groupAuthorizationService).authorizeOccurrenceScope(
+        order.verify(fixture.groupAuthorizationService).authorizeOccurrenceChange(
             eq(fixture.access),
-            eq(fixture.request.id),
+            eq(fixture.request),
             eq(setOf("items[1]", "items[1]/entries[0]")),
+            eq(listOf(fixture.binding)),
         )
         order.verify(fixture.groupOccurrenceRepository).update(second)
     }
@@ -673,7 +987,7 @@ class InformationRequestGroupOccurrenceServiceTest
             .thenReturn(listOf(first, second))
         doThrow(ForbiddenException("Access denied to change this Information Request group occurrence"))
             .whenever(fixture.groupAuthorizationService)
-            .authorizeOccurrenceScope(any(), any(), any())
+            .authorizeOccurrenceChange(any(), any(), any(), any())
 
         assertThrows<ForbiddenException> {
             fixture.service.remove(
@@ -721,12 +1035,49 @@ class InformationRequestGroupOccurrenceServiceTest
         )
 
         val order = inOrder(fixture.groupAuthorizationService, fixture.groupOccurrenceRepository)
-        order.verify(fixture.groupAuthorizationService).authorizeOccurrenceScope(
+        order.verify(fixture.groupAuthorizationService).authorizeOccurrenceChange(
             eq(fixture.access),
-            eq(fixture.request.id),
+            eq(fixture.request),
             eq(setOf("items[0]", "items[1]")),
+            eq(listOf(fixture.binding)),
         )
         order.verify(fixture.groupOccurrenceRepository).update(second)
+    }
+
+    @Test
+    fun `reordering also authorizes the active descendants of every sibling`() {
+        val fixture = Fixture()
+        fixture.withNestedGroup()
+        val first = fixture.occurrence(fixture.group, 0, "items[0]")
+        val second = fixture.occurrence(fixture.group, 1, "items[1]")
+        val nested = fixture.occurrence(fixture.nestedGroup, 0, "items[1]/entries[0]", parentOccurrenceId = second.id)
+        whenever(
+            fixture.groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(
+                fixture.request.id,
+                fixture.group.id,
+                null,
+            ),
+        ).thenReturn(listOf(first, second))
+        whenever(fixture.groupOccurrenceRepository.findActiveForRequestForUpdate(fixture.request.id))
+            .thenReturn(listOf(first, second, nested))
+
+        fixture.service.reorder(
+            ReorderInformationRequestGroupOccurrencesCommand(
+                requestId = fixture.request.id,
+                access = fixture.access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(fixture.request)),
+                idempotencyKey = "reorder-with-descendants",
+                groupKey = "items",
+                orderedOccurrenceIds = listOf(second.id, first.id),
+            ),
+        )
+
+        verify(fixture.groupAuthorizationService).authorizeOccurrenceChange(
+            eq(fixture.access),
+            eq(fixture.request),
+            eq(setOf("items[0]", "items[1]", "items[1]/entries[0]")),
+            eq(listOf(fixture.binding)),
+        )
     }
 
     @Test
@@ -744,7 +1095,7 @@ class InformationRequestGroupOccurrenceServiceTest
         ).thenReturn(listOf(first, second))
         doThrow(ForbiddenException("Access denied to change this Information Request group occurrence"))
             .whenever(fixture.groupAuthorizationService)
-            .authorizeOccurrenceScope(any(), any(), any())
+            .authorizeOccurrenceChange(any(), any(), any(), any())
 
         assertThrows<ForbiddenException> {
             fixture.service.reorder(
@@ -766,7 +1117,9 @@ class InformationRequestGroupOccurrenceServiceTest
         verify(fixture.groupOccurrenceRepository, never()).update(any())
     }
 
-    private class Fixture
+    private class Fixture(
+        validators: List<com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidator> = emptyList(),
+    )
     {
         val organizationId: UUID = UUID.randomUUID()
         val participantId: UUID = UUID.randomUUID()
@@ -817,10 +1170,10 @@ class InformationRequestGroupOccurrenceServiceTest
         val savedGroupOccurrences = mutableListOf<InformationRequestGroupOccurrence>()
         val savedRequirements = mutableListOf<InformationRequestRequirement>()
         val savedRevisions = mutableListOf<InformationRequestRequirementRevision>()
-        val savedCurrents = mutableListOf<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>()
+        val savedCurrents = mutableListOf<InformationRequestRequirementCurrent>()
 
         val requestRepository = mock<InformationRequestRepository>()
-        val exchangeRepository = mock<ExchangeRepository>()
+        val exchangeLookup = mock<ExchangeLookupService>()
         val groupRepository = mock<InformationRequestTemplateRequirementGroupRepository>()
         val groupOccurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>()
         val templateBindingRepository = mock<InformationRequestTemplateRequirementBindingRepository>()
@@ -833,7 +1186,7 @@ class InformationRequestGroupOccurrenceServiceTest
         val requirementRepository = mock<InformationRequestRequirementRepository>()
         val revisionRepository = mock<InformationRequestRequirementRevisionRepository>()
         val currentRepository = mock<InformationRequestRequirementCurrentRepository>()
-        val schemaAssignmentRepository = mock<SchemaAssignmentRepository>()
+        val fieldsReader = mock<FieldsReadFacade>()
         val schemaAssignmentService = mock<SchemaAssignmentService>()
         val authorizationService = mock<AuthorizationService>()
         val entitlementGuard = mock<InformationRequestEntitlementGuard>()
@@ -842,40 +1195,57 @@ class InformationRequestGroupOccurrenceServiceTest
         val groupAuthorizationService = mock<InformationRequestGroupAuthorizationService>()
         val supportingEvidenceLinkService = mock<InformationRequestSupportingEvidenceLinkService>()
         val lockService = mock<InformationRequestSubmissionLockService>()
+        val validationContextLoader =
+            mock<com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationContextLoader>()
         val receiptStore = InMemoryGroupOccurrenceReceiptStore()
+        val grant = issuedExecutionGrant().apply { requestId = this@Fixture.request.id }
         val service = InformationRequestGroupOccurrenceService(
             requestRepository = requestRepository,
-            exchangeRepository = exchangeRepository,
-            groupRepository = groupRepository,
             groupOccurrenceRepository = groupOccurrenceRepository,
-            templateVersionRepository = mock {
-                on { findById(request.templateVersionId) }.thenReturn(
-                    com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion().apply {
-                        id = request.templateVersionId
-                        this.templateDefinitionId = this@Fixture.templateDefinitionId
-                    },
-                )
-            },
-            templateBindingRepository = templateBindingRepository,
-            templateRequirementRepository = templateRequirementRepository,
-            dispositionRepository = dispositionRepository,
-            evidencePolicyRepository = evidencePolicyRepository,
-            acceptedValueRepository = acceptedValueRepository,
-            substituteRepository = substituteRepository,
-            evidenceLinkRepository = evidenceLinkRepository,
             requirementRepository = requirementRepository,
             revisionRepository = revisionRepository,
-            currentRepository = currentRepository,
-            schemaAssignmentRepository = schemaAssignmentRepository,
-            schemaAssignmentService = schemaAssignmentService,
+            materializer = InformationRequestGroupOccurrenceMaterializer(
+                groupRepository = groupRepository,
+                groupOccurrenceRepository = groupOccurrenceRepository,
+                templateVersionRepository = mock {
+                    on { findById(request.templateVersionId) }.thenReturn(
+                        InformationRequestTemplateVersion().apply {
+                            id = request.templateVersionId
+                            this.templateDefinitionId = this@Fixture.templateDefinitionId
+                        },
+                    )
+                },
+                templateBindingRepository = templateBindingRepository,
+                templateRequirementRepository = templateRequirementRepository,
+                dispositionRepository = dispositionRepository,
+                evidencePolicyRepository = evidencePolicyRepository,
+                acceptedValueRepository = acceptedValueRepository,
+                substituteRepository = substituteRepository,
+                evidenceLinkRepository = evidenceLinkRepository,
+                requirementRepository = requirementRepository,
+                revisionRepository = revisionRepository,
+                currentRepository = currentRepository,
+                fieldsReader = fieldsReader,
+                schemaAssignmentService = schemaAssignmentService,
+                supportingEvidenceLinkService = supportingEvidenceLinkService,
+            ),
+            structure = InformationRequestGroupOccurrenceStructure(groupRepository, groupOccurrenceRepository),
+            mutationGuard = InformationRequestResponseMutationGuard(
+                requestRepository,
+                exchangeLookup,
+                InformationRequestContinuationGuard(executionGrantService, entitlementGuard),
+            ),
             authorizationService = authorizationService,
-            commandReceiptService = CommandReceiptService(receiptStore),
-            entitlementGuard = entitlementGuard,
-            executionGrantService = executionGrantService,
+            commandReceiptService = CommandReceiptService(receiptStore, CommandReceiptScope()),
             transitionHistory = transitionHistory,
             groupAuthorizationService = groupAuthorizationService,
-            supportingEvidenceLinkService = supportingEvidenceLinkService,
             lockService = lockService,
+            structuredResponseValidationService =
+                com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationService(
+                    validators
+                ),
+            validationContextLoader = validationContextLoader,
+            noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
         )
 
         init
@@ -883,10 +1253,14 @@ class InformationRequestGroupOccurrenceServiceTest
             whenever(requestRepository.findRequestByIdForUpdate(request.id)).thenReturn(request)
             whenever(requestRepository.findById(request.id)).thenReturn(request)
             whenever(requestRepository.update(request)).thenReturn(request)
-            whenever(exchangeRepository.findByIdForUpdate(request.exchangeId)).thenReturn(exchange)
+            whenever(exchangeLookup.lockExchangeForUpdate(request.exchangeId)).thenReturn(exchange)
             whenever(groupRepository.findForVersion(request.templateVersionId)).thenReturn(listOf(group))
             whenever(templateBindingRepository.findOrdered(request.templateVersionId)).thenReturn(listOf(binding))
-            whenever(templateRequirementRepository.findAllByDefinition(templateDefinitionId)).thenReturn(listOf(requirement))
+            whenever(templateRequirementRepository.findAllByDefinition(templateDefinitionId)).thenReturn(
+                listOf(
+                    requirement
+                )
+            )
             whenever(dispositionRepository.findForVersion(request.templateVersionId)).thenReturn(emptyList())
             whenever(evidencePolicyRepository.findForVersion(request.templateVersionId)).thenReturn(emptyList())
             whenever(acceptedValueRepository.findForVersion(request.templateVersionId)).thenReturn(emptyList())
@@ -908,19 +1282,20 @@ class InformationRequestGroupOccurrenceServiceTest
                 }
             }
             whenever(currentRepository.save(any())).thenAnswer {
-                it.getArgument<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>(0)
+                it.getArgument<InformationRequestRequirementCurrent>(0)
                     .also { current -> savedCurrents += current }
             }
-            whenever(schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, request.id))
+            whenever(fieldsReader.assignmentFor(FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id)))
                 .thenReturn(SchemaAssignment().apply {
                     id = UUID.randomUUID()
                     resourceType = ResourceType.INFORMATION_REQUEST.name
                     resourceId = request.id
                     schemaVersionId = UUID.randomUUID()
                 })
-            whenever(executionGrantService.findForRequest(request.id)).thenReturn(
-                RequestExecutionGrant().apply { requestId = this@Fixture.request.id },
-            )
+            whenever(executionGrantService.findForRequest(request.id)).thenReturn(grant)
+            whenever(groupAuthorizationService.visibleOccurrences(any(), any(), any())).thenAnswer {
+                it.getArgument<List<InformationRequestGroupOccurrence>>(2)
+            }
             whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any()))
                 .thenReturn(Decision.Allow())
         }
@@ -936,7 +1311,7 @@ class InformationRequestGroupOccurrenceServiceTest
             this.parentOccurrenceId = parentOccurrenceId
             occurrenceIndex = index
             occurrencePath = path
-        }
+        }.also { whenever(groupOccurrenceRepository.findById(it.id)).thenReturn(it) }
 
         val nestedGroup = InformationRequestTemplateRequirementGroup().apply {
             id = UUID.randomUUID()
@@ -974,6 +1349,23 @@ class InformationRequestGroupOccurrenceServiceTest
                 .thenReturn(listOf(requirement, nestedRequirement))
         }
 
+        var reorderedSiblings: Pair<InformationRequestGroupOccurrence, InformationRequestGroupOccurrence> =
+            occurrence(group, 0, "items[0]") to occurrence(group, 1, "items[1]")
+
+        fun reorderCommand(key: String): ReorderInformationRequestGroupOccurrencesCommand {
+            val (first, second) = reorderedSiblings
+            whenever(groupOccurrenceRepository.findActiveForGroupAndParentForUpdate(request.id, group.id, null))
+                .thenReturn(listOf(first, second))
+            return ReorderInformationRequestGroupOccurrencesCommand(
+                requestId = request.id,
+                access = access,
+                precondition = CommandPrecondition.ExpectedRevision(InformationRequestETag.responsesOf(request)),
+                idempotencyKey = key,
+                groupKey = "items",
+                orderedOccurrenceIds = listOf(second.id, first.id),
+            )
+        }
+
         fun activeOccurrence(
             group: InformationRequestTemplateRequirementGroup,
             index: Int,
@@ -1004,21 +1396,23 @@ class InformationRequestGroupOccurrenceServiceTest
 
 private class InMemoryGroupOccurrenceReceiptStore : CommandReceiptStore
 {
-    val receipts = mutableListOf<com.docuhyphen.app.api.model.entity.CommandReceipt>()
+    val receipts = mutableListOf<CommandReceipt>()
 
-    override fun findForCommand(request: CommandReceiptRequest): com.docuhyphen.app.api.model.entity.CommandReceipt? =
+    override fun lockCommand(request: CommandReceiptRequest) = Unit
+
+    override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
         receipts.firstOrNull {
             it.resourceType == request.resource.type &&
-                it.resourceId == request.resource.id &&
-                it.operationName == request.operation &&
-                it.actorKind == request.actor.kind &&
-                it.actorId == request.actor.id &&
-                it.idempotencyKey == request.idempotencyKey
+                    it.resourceId == request.resource.id &&
+                    it.operationName == request.operation &&
+                    it.actorKind == request.actor.kind &&
+                    it.actorId == request.actor.id &&
+                    it.idempotencyKey == request.idempotencyKey
         }
 
     override fun insert(
-        receipt: com.docuhyphen.app.api.model.entity.CommandReceipt,
-    ): com.docuhyphen.app.api.model.entity.CommandReceipt
+        receipt: CommandReceipt,
+    ): CommandReceipt
     {
         receipts += receipt
         return receipt

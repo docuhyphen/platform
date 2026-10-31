@@ -13,16 +13,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Verifies the append and recovery guarantees provided by [LedgerProcessor]:
- *  - every committed outbox row yields exactly one ledger event (idempotent by event id).
- *  - a stream's appended events form a contiguous sequence with a single unbroken hash chain
- *    by using the row-lock-then-read-then-write sequencing that
- *    [StreamHeadRepository.lockOrCreate] enforces in production.
- *  - mutating any canonical field, the sequence, or the previous hash breaks recomputed-hash
- *    verification (tamper evidence).
- *  - a per-row append failure is caught, counted, and does not abort the rest of the batch.
- */
 class LedgerProcessorTest
 {
     private fun outboxEntry(
@@ -40,6 +30,10 @@ class LedgerProcessorTest
         targetType = "EXCHANGE"
         targetId = UUID.randomUUID().toString()
         this.organizationId = organizationId
+        if (organizationId != null) {
+            ownerType = "ORGANIZATION"
+            ownerId = organizationId
+        }
         sessionId = "session-1"
         payloadJson = """{"previousStatus":"INITIATED"}"""
         serverTraceId = "trace-1"
@@ -133,7 +127,6 @@ class LedgerProcessorTest
         assertNull(appended[0].prevHash)
         assertEquals(appended[0].eventHash, appended[1].prevHash)
         assertEquals(appended[1].eventHash, appended[2].prevHash)
-        // Every stream_id must be identical (same organization + partition), and every hash unique.
         assertEquals(1, appended.map { it.streamId }.distinct().size)
         assertEquals(3, appended.map { it.eventHash }.distinct().size)
     }
@@ -191,18 +184,14 @@ class LedgerProcessorTest
         val canonicalJson = LedgerProcessor.canonicalize(entry, streamId, actorKind)
         val originalHash = LedgerProcessor.computeHash(canonicalJson, 1L, null)
 
-        // Recomputing from the same inputs must reproduce the same hash (sanity check).
         assertEquals(originalHash, LedgerProcessor.computeHash(canonicalJson, 1L, null))
 
-        // Tampering the payload changes the canonical JSON and therefore the hash.
         val tamperedEntry = outboxEntry(eventId = entry.eventId).apply { payloadJson = """{"previousStatus":"TAMPERED"}""" }
         val tamperedJson = LedgerProcessor.canonicalize(tamperedEntry, streamId, actorKind)
         assertNotEquals(originalHash, LedgerProcessor.computeHash(tamperedJson, 1L, null))
 
-        // Tampering the sequence changes the hash.
         assertNotEquals(originalHash, LedgerProcessor.computeHash(canonicalJson, 2L, null))
 
-        // Tampering the previous hash changes the hash.
         assertNotEquals(originalHash, LedgerProcessor.computeHash(canonicalJson, 1L, "some-other-prev-hash"))
     }
 
@@ -215,6 +204,15 @@ class LedgerProcessorTest
 
         assertEquals("$orgId:2026-03", LedgerProcessor.resolveStreamId(withOrg))
         assertEquals("platform:2026-03", LedgerProcessor.resolveStreamId(withoutOrg))
+    }
+
+    @Test
+    fun `resolveStreamId files an entry by its owner pair alone and never by its organization id`() {
+        val unowned = outboxEntry(occurredAt = Timestamp.from(Instant.parse("2026-03-05T00:00:00Z"))).apply {
+            organizationId = UUID.randomUUID()
+        }
+
+        assertEquals("platform:2026-03", LedgerProcessor.resolveStreamId(unowned))
     }
 
     @Test

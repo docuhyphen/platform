@@ -1,8 +1,9 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
     Capability,
     CreateInformationRequestTemplateRequest,
     InformationRequestCapabilitiesDto,
+    InformationRequestStandingReason,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateSummaryDto,
@@ -11,19 +12,21 @@ import {
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {listSchemas} from "../../../services/fieldsService.ts";
 import {
-    cloneInformationRequestTemplate,
     createInformationRequestTemplate,
-    createInformationRequestTemplateDraftVersion,
     getInformationRequestTemplate,
     listInformationRequestTemplates,
-    publishInformationRequestTemplateDraft,
-    replaceInformationRequestTemplateDraftConfiguration,
-    retireInformationRequestTemplateVersion,
 } from "../../../services/informationRequestTemplateService.ts";
-import {TemplateEditorCommands} from "./template-editor/templateEditorTypes.ts";
-import {distinctSchemas, schemaScopesFor} from "./informationRequestTemplateScope.ts";
+import {normalizeApiError} from "../../../utils/apiErrorUtils.ts";
+import {useServerRead} from "../../information-requests/shared/useServerRead.ts";
+import {useStableIdempotencyKey} from "../../information-requests/shared/useStableIdempotencyKey.ts";
+import {fieldScopeFor} from "./informationRequestTemplateScope.ts";
+import {useTemplateEditorCommands} from "./useTemplateEditorCommands.ts";
 
 const LIST_FAILURE = "Information Request Templates could not be loaded.";
+
+const SCHEMA_FAILURE = "The Schemas this scope can use could not be loaded.";
+
+const NO_SCHEMAS: SchemaDefinitionDto[] = [];
 
 const refusalText = (caught: unknown, fallback: string): string =>
 {
@@ -36,6 +39,16 @@ const refusalText = (caught: unknown, fallback: string): string =>
     return fallback;
 };
 
+const statedRefusal = (caught: unknown): string | null => {
+    const refusal = normalizeApiError(caught, LIST_FAILURE);
+    return refusal.reasonCode && refusal.retryAfterSeconds === undefined ? refusal.message : null;
+};
+
+const templateWorkAvailable = (capabilities: InformationRequestCapabilitiesDto | null): boolean =>
+    capabilities === null
+    || capabilities.newWorkAvailable
+    || capabilities.newWorkUnavailableReason === InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED;
+
 export const useInformationRequestTemplateAdministration = (capabilities: InformationRequestCapabilitiesDto | null) =>
 {
     const {currentSession, hasCapability} = useAuth();
@@ -46,74 +59,86 @@ export const useInformationRequestTemplateAdministration = (capabilities: Inform
         : InformationRequestTemplateScopeKind.PERSONAL;
     const [scopeSelection, setScopeSelection] = useState({contextKey, scope: defaultScope});
     const scope = contextKey === null ? null : scopeSelection.contextKey === contextKey ? scopeSelection.scope : defaultScope;
+    const platformAuthor = hasCapability(Capability.APP_ADMIN);
     const canManageScope = scope === InformationRequestTemplateScopeKind.PERSONAL
         ? capabilities?.personalTemplatesAvailable ?? true
-        : scope === InformationRequestTemplateScopeKind.ORGANIZATION
+        : scope === InformationRequestTemplateScopeKind.PLATFORM
+            ? platformAuthor
+            : scope === InformationRequestTemplateScopeKind.ORGANIZATION
             && hasCapability(Capability.ORG_POLICY_MANAGE)
-            && (capabilities?.newWorkAvailable ?? true);
+            && templateWorkAvailable(capabilities);
     const copyTargets = useMemo<InformationRequestTemplateScopeKind[]>(() => [
         ...(capabilities?.personalTemplatesAvailable ?? true ? [InformationRequestTemplateScopeKind.PERSONAL] : []),
-        ...(activeOrganizationId !== null && hasCapability(Capability.ORG_POLICY_MANAGE) && (capabilities?.newWorkAvailable ?? true)
+        ...(activeOrganizationId !== null && hasCapability(Capability.ORG_POLICY_MANAGE) && templateWorkAvailable(capabilities)
             ? [InformationRequestTemplateScopeKind.ORGANIZATION]
             : []),
-    ], [activeOrganizationId, capabilities, hasCapability]);
+        ...(platformAuthor ? [InformationRequestTemplateScopeKind.PLATFORM] : []),
+    ], [activeOrganizationId, capabilities, hasCapability, platformAuthor]);
     const [templates, setTemplates] = useState<InformationRequestTemplateSummaryDto[]>([]);
     const [openTemplate, setOpenTemplate] = useState<InformationRequestTemplateDto | null>(null);
-    const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [listError, setListError] = useState<string | null>(null);
+    const [listRefusal, setListRefusal] = useState<string | null>(null);
+    const [openError, setOpenError] = useState<string | null>(null);
+    const schemaRead = useServerRead(
+        `${scope ?? ""}:${canManageScope}`,
+        () => scope === null || !canManageScope
+            ? Promise.resolve(NO_SCHEMAS)
+            : listSchemas({scopeKind: fieldScopeFor(scope)}),
+        () => SCHEMA_FAILURE,
+    );
+    const draftETag = useRef<string | undefined>(undefined);
+    const latestListRead = useRef(0);
+    const keyed = useStableIdempotencyKey();
 
     const loadTemplates = useCallback(async () =>
     {
         if (scope === null) return;
+        const read = ++latestListRead.current;
         setLoading(true);
-        setError(null);
+        setListError(null);
+        setListRefusal(null);
         try
         {
-            setTemplates(await listInformationRequestTemplates({scopeKind: scope}));
-        }
-        catch
+            const listed = await listInformationRequestTemplates({scopeKind: scope});
+            if (read === latestListRead.current) setTemplates(listed);
+        } catch (caught: unknown)
         {
-            setTemplates([]);
-            setError(LIST_FAILURE);
+            if (read === latestListRead.current) {
+                const refusal = statedRefusal(caught);
+                setTemplates([]);
+                setListRefusal(refusal);
+                setListError(refusal ? null : LIST_FAILURE);
+            }
         }
         finally
         {
-            setLoading(false);
+            if (read === latestListRead.current) setLoading(false);
         }
     }, [scope]);
 
     useEffect(() =>
     {
+        draftETag.current = undefined;
         setOpenTemplate(null);
+        setOpenError(null);
+        setTemplates([]);
         void loadTemplates();
-        if (scope === null) return;
-        Promise.all(schemaScopesFor(scope).map(scopeKind => listSchemas({scopeKind}).catch(() => [])))
-            .then(lists => setSchemas(distinctSchemas(lists)));
-    }, [loadTemplates, scope]);
-
-    const opened = useCallback((template: InformationRequestTemplateDto): InformationRequestTemplateDto =>
-    {
-        setOpenTemplate(template);
-        void loadTemplates();
-        return template;
     }, [loadTemplates]);
 
-    const openTemplateId = openTemplate?.id;
-    const commands = useMemo<TemplateEditorCommands | null>(() =>
+    const show = useCallback((template: InformationRequestTemplateDto | null) =>
     {
-        if (!openTemplateId) return null;
-        const id = openTemplateId;
-        return {
-            save: async configuration => opened(await replaceInformationRequestTemplateDraftConfiguration(id, configuration)),
-            publish: async () => opened(await publishInformationRequestTemplateDraft(id)),
-            startDraft: async versionNumber =>
-                opened(await createInformationRequestTemplateDraftVersion(id, {sourceVersionNumber: versionNumber})),
-            retire: async versionNumber => opened(await retireInformationRequestTemplateVersion(id, versionNumber)),
-            clone: async (versionNumber, target: CreateInformationRequestTemplateRequest) =>
-                opened(await cloneInformationRequestTemplate(id, {sourceVersionNumber: versionNumber, target})),
-        };
-    }, [openTemplateId, opened]);
+        draftETag.current = template?.draftETag ?? undefined;
+        setOpenTemplate(template);
+    }, []);
+
+    const opened = useCallback((template: InformationRequestTemplateDto): InformationRequestTemplateDto => {
+        show(template);
+        void loadTemplates();
+        return template;
+    }, [loadTemplates, show]);
+
+    const commands = useTemplateEditorCommands(openTemplate?.id, draftETag, keyed, opened);
 
     return {
         hasOrg: activeOrganizationId !== null,
@@ -123,28 +148,33 @@ export const useInformationRequestTemplateAdministration = (capabilities: Inform
         copyTargets,
         templates,
         loading,
-        error,
-        schemas,
+        listError,
+        listRefusal,
+        openError,
+        reloadTemplates: loadTemplates,
+        schemas: schemaRead.value ?? NO_SCHEMAS,
+        schemasError: schemaRead.error,
+        reloadSchemas: schemaRead.reload,
         openTemplate,
         commands,
         open: async (summary: InformationRequestTemplateSummaryDto) =>
         {
-            setError(null);
+            setOpenError(null);
             try
             {
-                setOpenTemplate(await getInformationRequestTemplate(summary.id));
+                show(await getInformationRequestTemplate(summary.id));
             }
             catch
             {
-                setError("The Template could not be opened.");
+                setOpenError("The Template could not be opened.");
             }
         },
-        close: () => setOpenTemplate(null),
+        close: () => show(null),
         create: async (request: CreateInformationRequestTemplateRequest): Promise<string | null> =>
         {
             try
             {
-                opened(await createInformationRequestTemplate(request));
+                opened(await keyed("create", request, key => createInformationRequestTemplate(request, key)));
                 return null;
             }
             catch (caught: unknown)

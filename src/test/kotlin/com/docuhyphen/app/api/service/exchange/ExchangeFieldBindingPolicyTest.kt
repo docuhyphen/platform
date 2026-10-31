@@ -4,38 +4,19 @@ import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.FieldDataClassification
 import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
+import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.FieldBindingAccess
-import com.docuhyphen.app.api.service.fields.FieldBindingDecision
-import com.docuhyphen.app.api.service.fields.FieldBindingDenial
-import com.docuhyphen.app.api.service.fields.FieldValueOperation
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * The Exchange keeps the Fields rules it has always had, now stated where the Fields engine asks for
- * them rather than inside the engine itself.
- *
- * Two rules are covered together because they answer different questions and must not be merged. The
- * policy answers what a caller may do with one question of the Schema, and it is the audience rule: a
- * recipient sees only what is classified for everyone. The adapter answers whether the Exchange is at
- * a point in its life where answers may change at all, and that remains the draft-only rule. A
- * resource with a different lifecycle supplies its own answer to the second question without
- * inheriting this one.
- */
 class ExchangeFieldBindingPolicyTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
@@ -113,8 +94,6 @@ class ExchangeFieldBindingPolicyTest
         )
     }
 
-    // ── The lifecycle rule stays with the adapter ─────────────────────────────
-
     @Test
     fun `an Exchange still accepts answers only while it is a draft`()
     {
@@ -137,11 +116,10 @@ class ExchangeFieldBindingPolicyTest
         whenever(exchangeRepository.findById(exchangeId))
             .thenReturn(exchange(ExchangeStatus.INITIATED, organizationOwned))
 
-        val membershipRepository = mock<OrganizationMembershipRepository>()
-        whenever(membershipRepository.findActiveByUserAndOrg(any(), any()))
-            .thenReturn(if (callerIsOrgMember) mock() else null)
+        val memberships = mock<OrganizationMembershipService>()
+        whenever(memberships.isMember(any(), any())).thenReturn(callerIsOrgMember)
 
-        return ExchangeFieldBindingPolicy(exchangeRepository, membershipRepository)
+        return ExchangeFieldBindingPolicy(exchangeRepository, memberships)
     }
 
     private fun adapter(status: ExchangeStatus): ExchangeFieldResourceAdapter

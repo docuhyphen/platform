@@ -54,7 +54,7 @@ class InformationRequestEvidenceRequestHandler(
             requirementId = requirementId,
             access = access,
             surface = surface,
-            precondition = CommandPreconditionHeader.required(ifMatch),
+            precondition = CommandPreconditionHeader.requiredExact(ifMatch),
             idempotencyKey = key,
             file = InformationRequestEvidenceHttp.evidenceFile(file, encryptionMode),
             attributes = InformationRequestEvidenceHttp.attributes(attributes),
@@ -81,7 +81,7 @@ class InformationRequestEvidenceRequestHandler(
             artifactId = artifactId,
             access = access,
             surface = surface,
-            precondition = CommandPreconditionHeader.required(ifMatch),
+            precondition = CommandPreconditionHeader.requiredExact(ifMatch),
             idempotencyKey = key,
             file = InformationRequestEvidenceHttp.evidenceFile(file, encryptionMode),
             attributes = InformationRequestEvidenceHttp.attributes(attributes),
@@ -164,9 +164,9 @@ class InformationRequestEvidenceRequestHandler(
         requirementId = requirementId,
         artifactId = artifactId,
         access = access,
-        precondition = CommandPreconditionHeader.required(ifMatch),
+        precondition = CommandPreconditionHeader.requiredExact(ifMatch),
         idempotencyKey = InformationRequestEvidenceHttp.idempotencyKey(idempotencyKey),
-        reason = reason?.trim()?.takeIf { it.isNotEmpty() },
+        reason = InformationRequestEvidenceHttp.reason(reason),
     )
 
     private fun commandResponse(

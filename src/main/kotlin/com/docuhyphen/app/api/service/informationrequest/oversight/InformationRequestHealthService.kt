@@ -4,12 +4,12 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthIndicator
 import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthIndicatorKey
 import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthReport
-import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthWindows
 import com.docuhyphen.app.api.repository.informationrequest.oversight.InformationRequestHealthRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -33,14 +33,6 @@ class InformationRequestHealthService @Inject constructor(
     private val connectorFailureHours: Long,
 )
 {
-    val windows: InformationRequestHealthWindows
-        get() = InformationRequestHealthWindows(
-            noticeIntentMinutes,
-            disposalClaimHours,
-            eventBacklogMinutes,
-            connectorFailureHours
-        )
-
     fun report(): InformationRequestHealthReport
     {
         val now = clock.instant()
@@ -50,10 +42,8 @@ class InformationRequestHealthService @Inject constructor(
             InformationRequestHealthIndicatorKey.RESERVATIONS_ABOVE_CAP to healthRepository.countReservationsAboveCap(),
             InformationRequestHealthIndicatorKey.NOTICE_INTENTS_OVERDUE to
                     healthRepository.countNoticeIntentsWithoutNoticeBefore(
-                        now.minus(
-                            noticeIntentMinutes,
-                            ChronoUnit.MINUTES
-                        )
+                        now.minus(noticeIntentMinutes, ChronoUnit.MINUTES),
+                        InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS,
                     ),
             InformationRequestHealthIndicatorKey.CONNECTOR_EXCHANGES_FAILED to
                     healthRepository.countConnectorExchangesFailedSince(
@@ -72,7 +62,7 @@ class InformationRequestHealthService @Inject constructor(
         )
         return InformationRequestHealthReport(
             checkedAt = now,
-            indicators = counts.map { (key, count) -> InformationRequestHealthIndicator(key, count, threshold = 0) },
+            indicators = counts.map { (key, count) -> InformationRequestHealthIndicator(key, count) },
         )
     }
 

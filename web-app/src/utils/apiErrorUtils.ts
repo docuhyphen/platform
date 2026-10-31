@@ -11,18 +11,21 @@ export type NormalizedApiError = {
     retryAfterSeconds?: number;
 };
 
+const readableMessage = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim().length > 0 && !/^\s*</.test(value) ? value : undefined;
+
 export const normalizeApiError = (error: unknown, fallbackMessage: string): NormalizedApiError =>
 {
     if (typeof error === 'string')
     {
-        return {message: error};
+        return {message: readableMessage(error) ?? fallbackMessage};
     }
 
     if (typeof error === 'object' && error !== null)
     {
         const apiError = error as ApiErrorShape;
         return {
-            message: apiError.errorMessage || apiError.message || fallbackMessage,
+            message: readableMessage(apiError.errorMessage) ?? readableMessage(apiError.message) ?? fallbackMessage,
             reasonCode: apiError.reasonCode,
             retryAfterSeconds: apiError.retryAfterSeconds,
         };
@@ -49,19 +52,6 @@ const formatDuration = (seconds: number): string =>
     return `${minutes} minute${minutes > 1 ? 's' : ''} ${remainingSeconds} seconds`;
 };
 
-/**
- * App-wide friendly copy for OTP / verification-code flows.
- *
- * Covers reason codes from:
- *  - No-auth exchange OTP (`OTP_REQUIRED`, `OTP_INVALID`, `OTP_EXPIRED`,
- *    `OTP_NOT_ISSUED`, `OTP_RATE_LIMITED`, `OTP_LOCKED`)
- *  - Exchange status transition errors (`INVALID_STATUS_TRANSITION`)
- *  - Sign-in / sign-up / account recovery flows when the backend chooses to
- *    emit reason codes (`PASSWORD_CHANGE_REQUIRED`, `TEMP_PASSWORD_EXPIRED`,
- *    `SIGN_UP_REQUIRED`, `STEP_UP_REQUIRED`, `MFA_EXCHANGE_EXPIRED`).
- *
- * Unknown reason codes fall back to the original API message.
- */
 export const getOtpFriendlyMessage = (error: NormalizedApiError): string =>
 {
     switch (error.reasonCode)
@@ -95,10 +85,6 @@ export const getOtpFriendlyMessage = (error: NormalizedApiError): string =>
     }
 };
 
-/**
- * Backwards-compatible alias for no-auth exchange OTP error mapping.
- * New callers should use `getOtpFriendlyMessage` directly.
- */
 export const getNoAuthOtpFriendlyMessage = getOtpFriendlyMessage;
 
 

@@ -20,14 +20,18 @@ class AuditTargetHistoryService @Inject constructor(
 {
     fun recordsForTarget(targetType: String, targetId: String, query: AuditTargetQuery): AuditTargetRecordPage =
         page(
-            outboxRepository.findForTargets(null, targetType, setOf(targetId), query),
-            outboxRepository.countForTargets(null, targetType, setOf(targetId), query),
+            outboxRepository.findForTargets(null, setOf(targetType), setOf(targetId), query),
+            outboxRepository.countForTargets(null, setOf(targetType), setOf(targetId), query),
         )
 
-    fun recordsForOwner(owner: AuditOwnerScope, targetType: String, query: AuditTargetQuery): AuditTargetRecordPage =
+    fun recordsForOwner(
+        owner: AuditOwnerScope,
+        targetTypes: Set<String>,
+        query: AuditTargetQuery
+    ): AuditTargetRecordPage =
         page(
-            outboxRepository.findForTargets(owner, targetType, query.targetIds, query),
-            outboxRepository.countForTargets(owner, targetType, query.targetIds, query),
+            outboxRepository.findForTargets(owner, targetTypes, query.targetIds, query),
+            outboxRepository.countForTargets(owner, targetTypes, query.targetIds, query),
         )
 
     private fun page(entries: List<AuditOutboxEntry>, total: Long): AuditTargetRecordPage

@@ -1,19 +1,12 @@
 package com.docuhyphen.app.api.model.entity
 
-import com.docuhyphen.app.api.service.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import jakarta.persistence.*
 import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.LocalDate
 import java.util.*
 
-/**
- * One term of an [InformationRequestTemplateConditionRule]. A predicate reads exactly one source: a
- * Field's current value by [fieldDefinitionId], or another requirement's current disposition by
- * [sourceRequirementKey]. The scalar literal compared against is stored in the column matching
- * [valueType]; the list literal an `IN` / `NOT_IN` predicate compares against lives in
- * [InformationRequestTemplateConditionPredicateLiteral].
- */
 @Entity
 @Table(name = "information_request_template_condition_predicate")
 class InformationRequestTemplateConditionPredicate

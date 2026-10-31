@@ -1,22 +1,22 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.model.informationrequest.review.AssignInformationRequestReviewerCommand
-import com.docuhyphen.app.api.model.informationrequest.review.ChangeInformationRequestReviewAssignmentCommand
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewAssignmentChange
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.command.canonicalForm
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -29,7 +29,6 @@ import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Clock
-import java.util.*
 
 @ApplicationScoped
 class InformationRequestReviewAssignmentService @Inject constructor(
@@ -40,7 +39,6 @@ class InformationRequestReviewAssignmentService @Inject constructor(
     private val settlement: InformationRequestReviewSettlement,
     private val reviewRepository: InformationRequestReviewRepository,
     private val assignmentRepository: InformationRequestReviewAssignmentRepository,
-    private val requestRepository: InformationRequestRepository,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
@@ -50,18 +48,24 @@ class InformationRequestReviewAssignmentService @Inject constructor(
     @Transactional
     fun assign(command: AssignInformationRequestReviewerCommand): InformationRequestReviewCommandResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             ResourceRef(ResourceType.INFORMATION_REQUEST_REVIEW, command.reviewId),
             ASSIGN_OPERATION,
             command.access,
             command.idempotencyKey,
-            "${command.stageKey.trim()}|${command.reviewerPartyId}|${command.dueAt ?: ""}",
+            listOf(
+                command.stageKey.trim(),
+                command.reviewerPartyId,
+                command.dueAt,
+                command.precondition.canonicalForm()
+            ),
         )
         return run(locked, command.access, receipt) {
-            gate.requireMutation(locked, InformationRequestMutation.ASSIGN_REVIEWER)
-            gate.requireContinuationEntitlement(locked)
             gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_REVIEWS), command.requestId)
+            gate.requireMutation(locked, InformationRequestMutation.ASSIGN_REVIEWER)
+            gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
             val review = loader.requireReview(command.requestId, command.reviewId)
             access.requireOpen(review)
             command.precondition.requireSatisfiedBy(loader.reviewETag(review))
@@ -71,8 +75,9 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                     InformationRequestErrorCatalog.REVIEW_STAGE_UNKNOWN,
                     "This review has no stage ${command.stageKey}",
                 )
+            requireStageUnsettled(snapshot, stage.stageKey)
             val party = access.reviewerParty(command.requestId, command.reviewerPartyId)
-            requireNotAssigned(snapshot.assignments, stage.stageKey, party.id)
+            requireNotAssigned(snapshot.assignments, stage.stageKey, party)
             separation.requireMayReview(snapshot, stage, access.principalsOf(party))
             val now = Timestamp.from(clock.instant())
             val dueAt = command.dueAt?.let { due ->
@@ -100,7 +105,21 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                 },
             )
             advance(review, InformationRequestReviewState.IN_REVIEW)
-            record(locked, review, assignment, command.access.principal, command.idempotencyKey, "ASSIGNED", null)
+            record(
+                locked,
+                review,
+                assignment,
+                InformationRequestAuditActor.of(command.access),
+                command.idempotencyKey,
+                "ASSIGNED",
+                null
+            )
+            settlement.settleIfDecided(
+                locked,
+                review,
+                InformationRequestAuditActor.of(command.access),
+                command.idempotencyKey
+            )
             result(locked, review, assignment)
         }
     }
@@ -108,44 +127,61 @@ class InformationRequestReviewAssignmentService @Inject constructor(
     @Transactional
     fun change(command: ChangeInformationRequestReviewAssignmentCommand): InformationRequestReviewCommandResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             ResourceRef(ResourceType.INFORMATION_REQUEST_REVIEW_ASSIGNMENT, command.assignmentId),
             CHANGE_OPERATION,
             command.access,
             command.idempotencyKey,
-            "${command.change}|${command.reasonCode?.trim().orEmpty()}|${command.delegatePartyId ?: ""}",
+            listOf(
+                command.change,
+                command.reasonCode?.trim().orEmpty(),
+                command.delegatePartyId,
+                command.narrative?.trim().orEmpty(),
+                command.precondition.canonicalForm(),
+            ),
         )
         return run(locked, command.access, receipt) {
+            gate.authorizeRequest(
+                command.access,
+                listOf(Action.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_MANAGE_REVIEWS),
+                command.requestId,
+            )
             gate.requireMutation(locked, InformationRequestMutation.ASSIGN_REVIEWER)
-            gate.requireContinuationEntitlement(locked)
+            gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
             val review = loader.requireReview(command.requestId, command.reviewId)
             access.requireOpen(review)
             val assignment = access.requireAssignment(review, command.assignmentId)
             authorizeChange(command, assignment)
             command.precondition.requireSatisfiedBy(loader.reviewETag(review))
             access.requireActive(assignment)
+            InformationRequestReviewInputLimits.requireText(
+                command.reasonCode,
+                "An assignment reason code",
+                InformationRequestReviewInputLimits.MAXIMUM_REASON_LENGTH
+            )
+            InformationRequestReviewInputLimits.requireText(command.narrative, "An assignment change narrative")
+            val reason = requireReason(command)
             val now = Timestamp.from(clock.instant())
             val delegate = when (command.change)
             {
                 InformationRequestReviewAssignmentChange.RECUSAL ->
                 {
-                    val reason = command.reasonCode?.trim()?.ifBlank { null }
-                        ?: throw InformationRequestCommandRequestException("A recusal states its reason")
                     close(assignment, InformationRequestReviewAssignmentState.RECUSED, reason, command, now)
                     null
                 }
 
-                InformationRequestReviewAssignmentChange.DELEGATION -> delegate(review, assignment, command, now)
-                InformationRequestReviewAssignmentChange.REVOCATION ->
-                {
-                    close(
-                        assignment,
-                        InformationRequestReviewAssignmentState.REVOKED,
-                        command.reasonCode?.trim()?.ifBlank { null },
-                        command,
-                        now
-                    )
+                InformationRequestReviewAssignmentChange.DELEGATION -> delegate(
+                    review,
+                    assignment,
+                    command,
+                    reason,
+                    now
+                )
+
+                InformationRequestReviewAssignmentChange.REVOCATION -> {
+                    close(assignment, InformationRequestReviewAssignmentState.REVOKED, reason, command, now)
                     null
                 }
             }
@@ -155,12 +191,23 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                 locked,
                 review,
                 assignment,
-                command.access.principal,
+                InformationRequestAuditActor.of(command.access),
                 command.idempotencyKey,
                 command.change.name,
-                command.reasonCode?.trim()?.ifBlank { null },
+                reason,
+                delegate?.let {
+                    mapOf(
+                        "delegateAssignmentId" to it.id.toString(),
+                        "delegatePartyId" to it.reviewerPartyId.toString()
+                    )
+                }.orEmpty(),
             )
-            settlement.settleIfDecided(locked, review, command.access.principal, command.idempotencyKey)
+            settlement.settleIfDecided(
+                locked,
+                review,
+                InformationRequestAuditActor.of(command.access),
+                command.idempotencyKey
+            )
             result(locked, review, delegate ?: assignment)
         }
     }
@@ -191,10 +238,21 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         }
     }
 
+    private fun requireReason(command: ChangeInformationRequestReviewAssignmentCommand): String =
+        command.reasonCode?.trim()?.ifBlank { null }
+            ?: throw InformationRequestCommandRequestException(
+                when (command.change) {
+                    InformationRequestReviewAssignmentChange.RECUSAL -> "A recusal states its reason"
+                    InformationRequestReviewAssignmentChange.DELEGATION -> "A delegation states its reason"
+                    InformationRequestReviewAssignmentChange.REVOCATION -> "A revocation states its reason"
+                },
+            )
+
     private fun delegate(
         review: InformationRequestReview,
         assignment: InformationRequestReviewAssignment,
         command: ChangeInformationRequestReviewAssignmentCommand,
+        reason: String,
         now: Timestamp,
     ): InformationRequestReviewAssignment
     {
@@ -203,16 +261,11 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         val snapshot = loader.snapshot(review)
         val stage = snapshot.plan.stage(assignment.stageKey)
             ?: throw IllegalStateException("Review assignment names a stage its Template Version no longer states")
+        requireStageUnsettled(snapshot, stage.stageKey)
         val party = access.reviewerParty(review.informationRequestId, delegatePartyId)
-        requireNotAssigned(snapshot.assignments, stage.stageKey, party.id)
+        requireNotAssigned(snapshot.assignments, stage.stageKey, party)
         separation.requireMayReview(snapshot, stage, access.principalsOf(party))
-        close(
-            assignment,
-            InformationRequestReviewAssignmentState.DELEGATED,
-            command.reasonCode?.trim()?.ifBlank { null },
-            command,
-            now
-        )
+        close(assignment, InformationRequestReviewAssignmentState.DELEGATED, reason, command, now)
         entityManager.flush()
         return assignmentRepository.save(
             InformationRequestReviewAssignment().apply {
@@ -232,6 +285,15 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                 assignedAt = now
             },
         )
+    }
+
+    private fun requireStageUnsettled(snapshot: InformationRequestReviewSnapshot, stageKey: String) {
+        if (snapshot.standing.stage(stageKey)?.state == InformationRequestReviewStageState.SETTLED) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.REVIEW_STAGE_NOT_OPEN,
+                "Review stage $stageKey has settled",
+            )
+        }
     }
 
     private fun close(
@@ -254,10 +316,10 @@ class InformationRequestReviewAssignmentService @Inject constructor(
     private fun requireNotAssigned(
         assignments: List<InformationRequestReviewAssignment>,
         stageKey: String,
-        partyId: UUID
+        party: InformationRequestParty,
     )
     {
-        if (assignments.any { it.state == InformationRequestReviewAssignmentState.ACTIVE && it.stageKey == stageKey && it.reviewerPartyId == partyId })
+        if (InformationRequestReviewStageMembership.holds(assignments, stageKey, party))
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.REVIEWER_ALREADY_ASSIGNED,
@@ -278,10 +340,11 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         locked: LockedInformationRequest,
         review: InformationRequestReview,
         assignment: InformationRequestReviewAssignment,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
         change: String,
         reasonCode: String?,
+        additionalDetails: Map<String, String> = emptyMap(),
     )
     {
         val request = locked.request
@@ -294,13 +357,13 @@ class InformationRequestReviewAssignmentService @Inject constructor(
                 actor = actor,
                 reasonCode = reasonCode,
                 partyId = assignment.reviewerPartyId,
-                idempotencyKey = "information_request.review_assignment|${assignment.id}|$change|$idempotencyKey",
+                auditIdempotencyKey = "information_request.review_assignment|${assignment.id}|$change|$idempotencyKey",
                 details = mapOf(
                     "reviewId" to review.id.toString(),
                     "assignmentId" to assignment.id.toString(),
                     "stageKey" to assignment.stageKey,
                     "assignmentChange" to change,
-                ),
+                ) + additionalDetails,
             ),
         )
     }
@@ -310,13 +373,13 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         operation: String,
         requestAccess: RequestAccessContext,
         idempotencyKey: String,
-        material: String,
+        material: List<Any?>,
     ) = CommandReceiptRequest(
         resource = resource,
         operation = operation,
         actor = CommandActorRef.principal(requestAccess.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex("$operation|${resource.id}|$material"),
+        requestFingerprint = CommandRequestFingerprint.of(operation, resource.id, *material.toTypedArray()),
     )
 
     private fun run(
@@ -351,11 +414,7 @@ class InformationRequestReviewAssignmentService @Inject constructor(
         require(recorded.resourceType == ResourceType.INFORMATION_REQUEST_REVIEW_ASSIGNMENT) {
             "Command receipt does not reference a review assignment"
         }
-        gate.authorizeRequest(
-            requestAccess,
-            listOf(Action.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_MANAGE_REVIEWS),
-            locked.request.id,
-        )
+        access.requireReviewReader(requestAccess, locked.request.id)
         val assignment = assignmentRepository.findById(recorded.resourceId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,

@@ -6,30 +6,15 @@ import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementConfigService
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsageService
+import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * A runtime request never names its own scope kind: it answers to exactly the owner of its parent
- * Exchange, whether that owner is an organization or a person.
- */
 class InformationRequestEntitlementGuardTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -116,12 +101,6 @@ class InformationRequestEntitlementGuardTest
         assertDoesNotThrow { guard.requireRequestMutation(personalExchange(appUserId)) }
     }
 
-    // ── Emergency operational suspension ─────────────────────────────────────────
-    //
-    // Distinct from a billing lapse: a suspended subscription carries no grace window and is
-    // checked directly against the live subscription, since this is the one decision that must
-    // still reach a request whose execution grant is already frozen.
-
     @Test
     fun `an active owner is not operationally suspended`()
     {
@@ -171,8 +150,6 @@ class InformationRequestEntitlementGuardTest
 
         assertDoesNotThrow { guard.requireNotOperationallySuspended(personalExchange(appUserId)) }
     }
-
-    // ── Fixture ───────────────────────────────────────────────────────────────
 
     private fun guard(
         mode: SubscriptionEnforcementMode = SubscriptionEnforcementMode.ENFORCE,

@@ -1,21 +1,28 @@
 import apiClient from "./apiClient.ts";
+import {postInformationRequestSupplement} from "./informationRequestSuccessorTransport.ts";
 import {statedInformationRequestRefusal} from "./informationRequestRuntimeService.ts";
 import {
     AssignInformationRequestPartyRequest,
     AssignInformationRequestSubjectRequest,
+    ChangeInformationRequestCompletionGateRequest,
     CreateInformationRequestRequest,
     DefineInformationRequestRecurrenceRequest,
+    DefineInformationRequestRefreshRuleRequest,
     InformationRequestAccessLinkDto,
     InformationRequestAccessLinkIssuedDto,
+    InformationRequestAssignedWorkDto,
+    InformationRequestDocumentPlaceholderDto,
     InformationRequestDto,
     InformationRequestExchangeListingDto,
-    InformationRequestLineageKind,
     InformationRequestLineageViewDto,
     InformationRequestPartyDto,
     InformationRequestPartyListingDto,
+    InformationRequestRecipientPreviewDto,
     InformationRequestRecurrenceDto,
+    InformationRequestRefreshRuleDto,
     InformationRequestSubjectDto,
     InformationRequestSuccessorResultDto,
+    InformationRequestTrustedRecipientCandidateDto,
     IssueInformationRequestAccessLinkRequest,
     ReassignInformationRequestPartyRequest,
 } from "../app/models/models.tsx";
@@ -67,15 +74,18 @@ export const informationRequestAccessLinkUrl = (requestId: string, accessToken: 
 export const getExchangeInformationRequests = (exchangeId: string): Promise<InformationRequestExchangeListingDto> =>
     read(() => apiClient.get(`/exchanges/${exchangeId}/information-requests`));
 
+export const getAssignedInformationRequests = (): Promise<InformationRequestAssignedWorkDto[]> =>
+    read(() => apiClient.get("/information-request-assignments"));
+
 export const createInformationRequest = (request: CreateInformationRequestRequest, idempotencyKey: string): Promise<InformationRequestDto> =>
     read(() => apiClient.post("/information-requests", request, {headers: commandHeaders(idempotencyKey)}));
 
-export const getInformationRequest = (requestId: string): Promise<InformationRequestDto> =>
-    read(() => apiClient.get(requestPath(requestId)));
-
 export const getInformationRequestParties = async (requestId: string): Promise<InformationRequestPartyListingDto> =>
 {
-    const {data, headers} = await call<InformationRequestPartyDto[]>(() => apiClient.get(`${requestPath(requestId)}/parties`));
+    const {
+        data,
+        headers
+    } = await call<InformationRequestPartyDto[]>(() => apiClient.get(`${requestPath(requestId)}/parties`));
     return {parties: data, partiesETag: etagOf(headers)};
 };
 
@@ -120,11 +130,25 @@ export const assignInformationRequestSubject = (
 ): Promise<InformationRequestPartyChange> =>
     partyChange(() => apiClient.post(`${requestPath(requestId)}/subjects`, request, {headers: commandHeaders(idempotencyKey, partiesETag)}));
 
+export const getInformationRequestTrustedRecipientCandidates = (
+    requestId: string,
+): Promise<InformationRequestTrustedRecipientCandidateDto[]> =>
+    read(() => apiClient.get(`${requestPath(requestId)}/trusted-recipient-candidates`));
+
+export const getInformationRequestRecipientPreview = (
+    requestId: string,
+    partyId: string,
+): Promise<InformationRequestRecipientPreviewDto> =>
+    read(() => apiClient.get(`${requestPath(requestId)}/parties/${partyId}/recipient-preview`));
+
 export const getInformationRequestSubjects = (): Promise<InformationRequestSubjectDto[]> =>
     read(() => apiClient.get("/information-request-subjects"));
 
 export const getInformationRequestAccessLinks = (requestId: string): Promise<InformationRequestAccessLinkDto[]> =>
     read(() => apiClient.get(`${requestPath(requestId)}/access-links`));
+
+export const getInformationRequestDocumentPlaceholders = (requestId: string): Promise<InformationRequestDocumentPlaceholderDto[]> =>
+    read(() => apiClient.get(`${requestPath(requestId)}/document-placeholders`));
 
 export const issueInformationRequestAccessLink = (
     requestId: string,
@@ -186,10 +210,27 @@ export const requestInformationRequestSupplement = (
     requestETag: string,
     idempotencyKey: string,
 ): Promise<InformationRequestSuccessorResultDto> =>
+    read(() => postInformationRequestSupplement(
+        requestId, reasonCode, commandHeaders(idempotencyKey, requestETag),
+    ));
+
+export const defineInformationRequestRefreshRule = (
+    requestId: string,
+    request: DefineInformationRequestRefreshRuleRequest,
+    requestETag: string,
+    idempotencyKey: string,
+): Promise<InformationRequestRefreshRuleDto> =>
+    read(() => apiClient.post(`${requestPath(requestId)}/refresh-rules`, request, {headers: commandHeaders(idempotencyKey, requestETag)}));
+
+export const createInformationRequestRefresh = (
+    requestId: string,
+    refreshRuleId: string,
+    idempotencyKey: string,
+): Promise<InformationRequestSuccessorResultDto> =>
     read(() => apiClient.post(
-        `${requestPath(requestId)}/successors`,
-        {kind: InformationRequestLineageKind.SUPPLEMENT, reasonCode},
-        {headers: commandHeaders(idempotencyKey, requestETag)},
+        `${requestPath(requestId)}/refresh-rules/${refreshRuleId}/refreshes`,
+        {},
+        {headers: commandHeaders(idempotencyKey)},
     ));
 
 export const issueInformationRequest = (requestId: string, requestETag: string, idempotencyKey: string): Promise<InformationRequestDto> =>
@@ -206,6 +247,20 @@ export const cancelInformationRequest = (
         {reasonCode},
         {headers: commandHeaders(idempotencyKey, requestETag)},
     ));
+
+export const changeInformationRequestCompletionGate = (
+    requestId: string,
+    gatesExchangeClosure: boolean,
+    requestETag: string,
+    idempotencyKey: string,
+): Promise<InformationRequestDto> => {
+    const request: ChangeInformationRequestCompletionGateRequest = {gatesExchangeClosure};
+    return read(() => apiClient.put(
+        `${requestPath(requestId)}/completion-gate`,
+        request,
+        {headers: commandHeaders(idempotencyKey, requestETag)},
+    ));
+};
 
 export const supersedeInformationRequest = (
     requestId: string,

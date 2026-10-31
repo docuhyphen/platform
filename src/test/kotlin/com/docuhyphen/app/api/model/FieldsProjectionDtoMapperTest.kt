@@ -1,45 +1,20 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.service.fields.ResolvedFieldBinding
-import com.docuhyphen.app.api.service.fields.ResolvedFieldValue
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.ResolvedFieldBinding
+import com.docuhyphen.app.api.model.fields.ResolvedFieldValue
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * Shaping gathered Fields records into the responses a consumer reads. These mappers hold no
- * collaborators and reach nothing, so every case is stated as records in and a response out.
- *
- * The distinctions worth pinning are the ones a consumer branches on: which record each name is
- * taken from, when an answer counts as empty, and how a value of each type is written.
- */
 class FieldsProjectionDtoMapperTest
 {
-    // ── One question and its answer ──────────────────────────────────────────
-
     @Test
     fun `an entry takes its identity from the stable definition and its wording from the contract`()
     {
@@ -109,11 +84,8 @@ class FieldsProjectionDtoMapperTest
 
         val dto = FieldValueDtoMapper.toDto(ResolvedFieldValue(question, stored))
 
-        // Written as digits rather than as a JSON number, so its width survives the client.
         assertEquals(JsonPrimitive("12.50"), dto.value)
     }
-
-    // ── One question as an editor is built from it ───────────────────────────
 
     @Test
     fun `a question description carries where it sits and how it must be answered`()
@@ -157,8 +129,6 @@ class FieldsProjectionDtoMapperTest
 
         assertEquals(listOf("first-option", "second-option"), dto.options.map { it.code })
     }
-
-    // ── The assignment envelope ──────────────────────────────────────────────
 
     @Test
     fun `the envelope names the resource, the schema governing it, and the version in force`()
@@ -239,8 +209,6 @@ class FieldsProjectionDtoMapperTest
 
         assertNull(dto.etag)
     }
-
-    // ── Fixture ──────────────────────────────────────────────────────────────
 
     private fun question(
         label: String = "Recorded note",

@@ -2,44 +2,26 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.resource.model.CreateSchemaRequest
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.fields.model.SchemaTargetAuthoringFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Which resource a Schema is written for used to be settled before the caller asked: creation wrote
- * the Exchange code as a literal and never read the request. These tests hold the target as
- * something the author states and the platform checks, so a second kind of resource can be given
- * schemas without the first kind's name standing in for every kind.
- */
 class SchemaTargetAuthoringTest
 {
     private val principal = PrincipalRef.user(UUID.randomUUID())
 
-    private data class Fixture(
-        val service: SchemaDefinitionService,
-        val schemaRepository: SchemaDefinitionRepository,
-    )
-
-    private fun fixture(): Fixture
+    private fun fixture(): SchemaTargetAuthoringFixture
     {
         val schemaRepository = mock<SchemaDefinitionRepository>()
         val versionRepository = mock<SchemaVersionRepository>()
@@ -54,7 +36,7 @@ class SchemaTargetAuthoringTest
         whenever(schemaRepository.save(any())).thenAnswer { it.getArgument(0) }
         whenever(versionRepository.save(any())).thenAnswer { it.getArgument(0) }
 
-        return Fixture(
+        return SchemaTargetAuthoringFixture(
             SchemaDefinitionService(
                 schemaDefinitionRepository = schemaRepository,
                 schemaVersionRepository = versionRepository,
@@ -83,7 +65,7 @@ class SchemaTargetAuthoringTest
         targetResourceType = target,
     )
 
-    private fun savedBy(fixture: Fixture): SchemaDefinition
+    private fun savedBy(fixture: SchemaTargetAuthoringFixture): SchemaDefinition
     {
         val saved = argumentCaptor<SchemaDefinition>()
         verify(fixture.schemaRepository).save(saved.capture())

@@ -49,6 +49,7 @@ data class InformationRequestPrivacyRequestDto(
     val refusalCode: String? = null,
     val refusalDetail: String? = null,
     @Serializable(with = UUIDSerializer::class) val recordExportId: UUID? = null,
+    val recordExportAvailable: Boolean = false,
     val recordedByPrincipalKind: PrincipalKind,
     @Serializable(with = UUIDSerializer::class) val recordedByPrincipalId: UUID,
     @Serializable(with = TimestampSerializer::class) val recordedAt: Timestamp,

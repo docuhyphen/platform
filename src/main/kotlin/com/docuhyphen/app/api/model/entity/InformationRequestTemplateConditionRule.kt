@@ -3,13 +3,6 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.util.*
 
-/**
- * One versioned condition an [InformationRequestTemplateVersion] defines. A requirement binding
- * that names this rule's key as its conditional rule is asked only while the rule evaluates true.
- *
- * Rules are structure one version states, not a stable identity: a rewrite of the document
- * replaces every rule of the version the same way it replaces every section, binding, and group.
- */
 @Entity
 @Table(name = "information_request_template_condition_rule")
 class InformationRequestTemplateConditionRule

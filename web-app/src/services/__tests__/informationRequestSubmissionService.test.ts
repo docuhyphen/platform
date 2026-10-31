@@ -2,6 +2,7 @@
 import {AxiosError, AxiosHeaders} from "axios";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import apiClient from "../apiClient.ts";
+import {requestInformationRequestSupplement} from "../informationRequestAuthoringService.ts";
 import {
     createInformationRequestSupplement,
     getInformationRequestAmendments,
@@ -27,6 +28,18 @@ const refusal = (status: number, data: object) =>
 
 describe("Information Request submission transport", () =>
 {
+    it("uses the same supplement body from authoring and submission when the reason is blank", async () => {
+        vi.mocked(apiClient.post).mockResolvedValue({data: {}, headers: {}});
+        await createInformationRequestSupplement("request-a", undefined, {
+            expectedETag: "etag",
+            idempotencyKey: "first"
+        });
+        const calls = vi.mocked(apiClient.post).mock.calls;
+        const submissionBody: unknown = calls[calls.length - 1]?.[1];
+        await requestInformationRequestSupplement("request-a", "", "etag", "second");
+        expect(calls[calls.length - 1]?.[1]).toEqual(submissionBody);
+    });
+
     beforeEach(() =>
     {
         vi.clearAllMocks();

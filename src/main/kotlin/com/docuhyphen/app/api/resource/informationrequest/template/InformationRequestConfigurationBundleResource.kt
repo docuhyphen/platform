@@ -5,13 +5,13 @@ import com.docuhyphen.app.api.model.InformationRequestConfigurationBundleDtoMapp
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.template.operations.InformationRequestConfigurationBundleResourceOperations
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleValidator
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleService
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
 class InformationRequestConfigurationBundleResource @Inject constructor(
-    private val validator: InformationRequestConfigurationBundleValidator,
+    private val bundleService: InformationRequestConfigurationBundleService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestConfigurationBundleResourceOperations
 {
@@ -19,10 +19,10 @@ class InformationRequestConfigurationBundleResource @Inject constructor(
     {
         return try
         {
-            accessContextFactory.currentAuthenticated()
+            val access = accessContextFactory.currentAuthenticated()
             val body = document?.takeIf { it.isNotBlank() }
                 ?: throw InformationRequestCommandRequestException("A validation names the bundle document to check")
-            Response.ok(InformationRequestConfigurationBundleDtoMapper.toDto(validator.check(body))).build()
+            Response.ok(InformationRequestConfigurationBundleDtoMapper.toDto(bundleService.check(body, access))).build()
         }
         catch (exception: Exception)
         {

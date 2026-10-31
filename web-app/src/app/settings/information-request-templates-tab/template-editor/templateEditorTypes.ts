@@ -11,6 +11,8 @@ export interface TemplateEditorCommands
     startDraft: (sourceVersionNumber: number) => Promise<InformationRequestTemplateDto>;
     retire: (versionNumber: number) => Promise<InformationRequestTemplateDto>;
     clone: (sourceVersionNumber: number, target: CreateInformationRequestTemplateRequest) => Promise<InformationRequestTemplateDto>;
+    adoptLatestDraft: () => Promise<boolean>;
+    reload: () => Promise<InformationRequestTemplateDto>;
 }
 
 export type TemplateEditorPanel = "sections" | "groups" | "conditions" | "review" | "settings" | "versions";

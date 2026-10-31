@@ -1,4 +1,4 @@
-import {InformationRequestResponseDto} from "../../../models/models.tsx";
+import {FieldOption, InformationRequestResponseDto} from "../../../models/models.tsx";
 import {ReusableAnswerResult, useReusableAnswerSettings} from "../ReusableAnswerContext.ts";
 import ReusableAnswerOffer from "../reusable-answer-offer/ReusableAnswerOffer.tsx";
 
@@ -8,6 +8,7 @@ interface Props
     requestId: string;
     response: InformationRequestResponseDto | undefined;
     shownValue: unknown;
+    options: FieldOption[];
     responseETag: string;
     busy: boolean;
     onApplied: () => void;

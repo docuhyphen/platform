@@ -1,8 +1,9 @@
 import {useAuth} from "../../../context/AuthContext.tsx";
-import {Capability} from "../../models/models.tsx";
+import {Capability, InformationRequestOwnerType} from "../../models/models.tsx";
 
 export interface OperationsAccess
 {
+    ownerType: InformationRequestOwnerType;
     canViewOperations: boolean;
     canSendReminders: boolean;
     canManagePrivacy: boolean;
@@ -19,6 +20,7 @@ export const useOperationsAccess = (): OperationsAccess =>
     const permits = (capability: Capability): boolean => personal || hasCapability(capability);
 
     return {
+        ownerType: personal ? InformationRequestOwnerType.USER : InformationRequestOwnerType.ORGANIZATION,
         canViewOperations: permits(Capability.INFORMATION_REQUEST_OPERATIONS_READ),
         canSendReminders: permits(Capability.INFORMATION_REQUEST_OPERATIONS_MANAGE),
         canManagePrivacy: permits(Capability.INFORMATION_REQUEST_PRIVACY_MANAGE),

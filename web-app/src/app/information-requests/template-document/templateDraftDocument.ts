@@ -50,60 +50,50 @@ export const emptyDraftDocument = (): TemplateDraftDocument => ({
     reviewStages: [],
 });
 
-const withoutId = <T extends {id: string}>(value: T): Omit<T, "id"> =>
-{
-    const copy: Partial<T> = {...value};
-    delete copy.id;
-    return copy as Omit<T, "id">;
-};
+type WithoutNulls<T> = { [K in keyof T]: Exclude<T[K], null> };
+
+const presentFields = <T extends object, K extends keyof T>(value: T, ...omitted: K[]): Omit<WithoutNulls<T>, K> =>
+    Object.fromEntries(Object.entries(value)
+        .filter(([key, entry]) => entry !== null && !omitted.some(omittedKey => omittedKey === key))) as Omit<WithoutNulls<T>, K>;
 
 const evidencePolicyRequest = (
     policy: InformationRequestTemplateEvidencePolicyDto,
 ): InformationRequestTemplateEvidencePolicyRequest => ({
-    ...withoutId(policy),
+    ...presentFields(policy, "id"),
     acceptedValues: policy.acceptedValues.map(value => ({...value})),
 });
 
 const attestationPolicyRequest = (
     policy: InformationRequestTemplateAttestationPolicyDto,
 ): InformationRequestTemplateAttestationPolicyRequest => ({
-    ...withoutId(policy),
+    ...presentFields(policy, "id"),
     requiredRoles: [...policy.requiredRoles],
 });
 
-const requirementRequest = (requirement: InformationRequestTemplateRequirementDto): InformationRequestTemplateRequirementRequest =>
-{
-    const statement: Partial<InformationRequestTemplateRequirementDto> = {...requirement};
-    delete statement.id;
-    delete statement.templateRequirementId;
-    delete statement.evidencePolicy;
-    delete statement.attestationPolicy;
-    return {
-        ...(statement as Omit<InformationRequestTemplateRequirementDto,
-            "id" | "templateRequirementId" | "evidencePolicy" | "attestationPolicy">),
-        permittedDispositions: [...requirement.permittedDispositions],
-        substituteRequirementKeys: [...requirement.substituteRequirementKeys],
-        supportingEvidenceRequirementKeys: [...requirement.supportingEvidenceRequirementKeys],
-        ...(requirement.evidencePolicy ? {evidencePolicy: evidencePolicyRequest(requirement.evidencePolicy)} : {}),
-        ...(requirement.attestationPolicy
-            ? {attestationPolicy: attestationPolicyRequest(requirement.attestationPolicy)}
-            : {}),
-    };
-};
+const requirementRequest = (requirement: InformationRequestTemplateRequirementDto): InformationRequestTemplateRequirementRequest => ({
+    ...presentFields(requirement, "id", "templateRequirementId", "evidencePolicy", "attestationPolicy"),
+    permittedDispositions: [...requirement.permittedDispositions],
+    substituteRequirementKeys: [...requirement.substituteRequirementKeys],
+    supportingEvidenceRequirementKeys: [...requirement.supportingEvidenceRequirementKeys],
+    ...(requirement.evidencePolicy ? {evidencePolicy: evidencePolicyRequest(requirement.evidencePolicy)} : {}),
+    ...(requirement.attestationPolicy
+        ? {attestationPolicy: attestationPolicyRequest(requirement.attestationPolicy)}
+        : {}),
+});
 
 const conditionRuleRequest = (rule: InformationRequestTemplateConditionRuleDto): InformationRequestTemplateConditionRuleRequest => ({
     ruleKey: rule.ruleKey,
     expressionVersion: rule.expressionVersion,
     hiddenDataPolicy: rule.hiddenDataPolicy,
-    predicates: rule.predicates.map(withoutId),
+    predicates: rule.predicates.map(predicate => presentFields(predicate, "id")),
 });
 
 const reviewStageRequest = (stage: InformationRequestTemplateReviewStageDto): InformationRequestTemplateReviewStageRequest => ({
-    ...withoutId(stage),
+    ...presentFields(stage, "id"),
     sectionKeys: [...stage.sectionKeys],
 });
 
-export const draftDocumentFromVersion = (version?: InformationRequestTemplateVersionDto): TemplateDraftDocument =>
+export const draftDocumentFromVersion = (version?: InformationRequestTemplateVersionDto | null): TemplateDraftDocument =>
 {
     if (!version) return emptyDraftDocument();
     return {
@@ -115,7 +105,7 @@ export const draftDocumentFromVersion = (version?: InformationRequestTemplateVer
             ...(section.submissionStageKey ? {submissionStageKey: section.submissionStageKey} : {}),
             requirements: section.requirements.map(requirementRequest),
         })),
-        groups: version.groups.map(withoutId),
+        groups: version.groups.map(group => presentFields(group, "id")),
         conditionRules: version.conditionRules.map(conditionRuleRequest),
         submissionMode: version.submissionMode ?? InformationRequestSubmissionMode.WHOLE_PACKAGE,
         submissionStageOrdering: version.submissionStageOrdering ?? InformationRequestSubmissionStageOrdering.ANY_ORDER,

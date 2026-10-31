@@ -4,10 +4,93 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAcceptedFactContractTest
 {
+    @Test
+    fun `supersession records retain the successor identity independently of its fact row`() {
+        withFact { connection, facts ->
+            val prior = UUID.randomUUID()
+            val successor = UUID.randomUUID()
+            facts.insertFact(prior)
+            facts.insertFact(successor, supersedes = prior)
+            assertEquals(
+                successor.toString(), queryString(
+                    connection,
+                    "SELECT successor_fact_id::text FROM information_request_fact_supersession WHERE predecessor_fact_id = ?",
+                    prior
+                )
+            )
+            assertEquals(
+                0, queryInt(
+                    connection, """
+                SELECT count(*) FROM information_schema.constraint_column_usage
+                WHERE table_name = 'information_request_fact_supersession' AND column_name = 'successor_fact_id'
+            """.trimIndent()
+                )
+            )
+            refusedBy(connection, "fact supersession history is append-only") {
+                execute(
+                    connection,
+                    "DELETE FROM information_request_fact_supersession WHERE predecessor_fact_id = ?",
+                    prior
+                )
+            }
+            val schedule = UUID.randomUUID()
+            val claim = UUID.randomUUID()
+            execute(
+                connection, """
+                INSERT INTO record_retention_schedule (id, owner_kind, owner_id, resource_type, version_number,
+                    minimum_retention_days, disposal_after_days, recorded_by_principal_kind, recorded_by_principal_id)
+                VALUES (?, 'ORGANIZATION', ?, 'INFORMATION_REQUEST', 1, 0, 0, 'USER', ?)
+            """.trimIndent(), schedule, facts.runtime.template.organizationId, facts.runtime.template.userId
+            )
+            execute(
+                connection,
+                """
+                INSERT INTO record_disposal_claim (id, resource_type, resource_id, owner_kind, owner_id, basis,
+                    retention_schedule_id, state, claimed_by_principal_kind, claimed_by_principal_id, claimed_at)
+                VALUES (?, 'INFORMATION_REQUEST', ?, 'ORGANIZATION', ?, 'RETENTION_SCHEDULE', ?, 'CLAIMED', 'USER', ?, now())
+            """.trimIndent(),
+                claim,
+                facts.runtime.requestId,
+                facts.runtime.template.organizationId,
+                schedule,
+                facts.runtime.template.userId
+            )
+            execute(
+                connection,
+                "INSERT INTO record_disposal_claim_scope (claim_id, resource_type, resource_id, direct) VALUES (?, 'INFORMATION_REQUEST', ?, TRUE)",
+                claim,
+                facts.runtime.requestId.toString()
+            )
+            execute(
+                connection,
+                "UPDATE record_disposal_claim SET state = 'OBJECTS_DELETED', objects_deleted_at = now(), claim_revision = claim_revision + 1 WHERE id = ?",
+                claim
+            )
+            queryString(connection, "SELECT set_config('docuhyphen.record_disposal_claim', ?, false)", claim.toString())
+            execute(connection, "DELETE FROM information_request_accepted_fact WHERE id = ?", successor)
+            assertEquals(
+                successor.toString(), queryString(
+                    connection,
+                    "SELECT successor_fact_id::text FROM information_request_fact_supersession WHERE predecessor_fact_id = ?",
+                    prior
+                )
+            )
+            execute(connection, "DELETE FROM information_request_accepted_fact WHERE id = ?", prior)
+            assertEquals(
+                0,
+                queryInt(
+                    connection,
+                    "SELECT count(*) FROM information_request_fact_supersession WHERE predecessor_fact_id = ?",
+                    prior
+                )
+            )
+        }
+    }
+
     @Test
     fun `promoted facts store a policy basis and exact submitted evidence references`()
     {
@@ -234,6 +317,7 @@ internal class FactSqlFixture(
     private val connection: Connection,
     val runtime: SubmissionRuntimeSqlFixture,
     val answers: FieldAnswerSqlFixture,
+    reviewRequired: Boolean = false,
 )
 {
     val subjectId: UUID = UUID.randomUUID()
@@ -245,7 +329,7 @@ internal class FactSqlFixture(
     {
         runtime.insertSubject(subjectId, UUID.randomUUID())
         runtime.insertSubject(unrelatedSubjectId)
-        runtime.insertPackage(packageId, 1)
+        runtime.insertPackage(packageId, 1, reviewRequired = reviewRequired)
         answers.insertFieldItem(runtime, itemId, packageId)
     }
 

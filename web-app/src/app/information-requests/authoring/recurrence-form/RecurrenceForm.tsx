@@ -13,6 +13,13 @@ interface Props
     onSchedule: (request: DefineInformationRequestRecurrenceRequest) => void;
 }
 
+const MAXIMUM_INTERVAL_COUNT = 1000;
+const LAST_DUE_YEAR = 9999;
+
+const withinSchedule = (firstDueTime: Date | null): firstDueTime is Date =>
+    Boolean(firstDueTime && !Number.isNaN(firstDueTime.getTime()) && firstDueTime.getTime() >= 0 &&
+        firstDueTime.getUTCFullYear() <= LAST_DUE_YEAR);
+
 const RecurrenceForm = ({busy, onSchedule}: Props) =>
 {
     const styles = useRecurrenceFormStyles();
@@ -21,7 +28,8 @@ const RecurrenceForm = ({busy, onSchedule}: Props) =>
     const [firstDue, setFirstDue] = useState("");
     const [maximum, setMaximum] = useState<number | undefined>(undefined);
     const firstDueTime = firstDue ? new Date(firstDue) : null;
-    const ready = Boolean(count && count > 0 && firstDueTime && !Number.isNaN(firstDueTime.getTime()) && (maximum === undefined || maximum > 0));
+    const ready = Boolean(count && count > 0 && count <= MAXIMUM_INTERVAL_COUNT && withinSchedule(firstDueTime) &&
+        (maximum === undefined || maximum > 0));
 
     const schedule = () =>
     {
@@ -41,8 +49,10 @@ const RecurrenceForm = ({busy, onSchedule}: Props) =>
              className={styles.form}>
             <NumberField id={"information-request-recurrence-count"}
                          label={"Repeat every"}
+                         hint={"From 1 to 1,000."}
                          value={count}
                          min={1}
+                         max={MAXIMUM_INTERVAL_COUNT}
                          step={1}
                          disabled={busy}
                          onChange={setCount}/>

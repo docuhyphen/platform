@@ -51,4 +51,11 @@ enum class InformationRequestShareRoleKey
     ATTESTOR,
     REVIEWER,
     DECISION_MAKER,
+    RECORD_OWNER,
+    ;
+
+    companion object {
+        val RESPONDING_ROLES: Set<InformationRequestShareRoleKey> = setOf(SUBJECT, CONTRIBUTOR, PREPARER, ATTESTOR)
+        val PARTY_ROLES: Set<InformationRequestShareRoleKey> = entries.toSet() - RECORD_OWNER
+    }
 }

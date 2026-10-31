@@ -1,27 +1,20 @@
 package com.docuhyphen.app.api.service.variable
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.variable.model.SequenceTenantFixture
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class SequenceTenantBoundaryTest
 {
@@ -58,20 +51,15 @@ class SequenceTenantBoundaryTest
             }
         }
 
-    private data class ServiceFixture(
-        val service: SequenceDefinitionService,
-        val repository: SequenceDefinitionRepository,
-    )
-
     private fun fixture(
         appAdmin: Boolean = true,
         orgAdmin: Boolean = false,
         allowedActions: Array<out Action> = emptyArray(),
         context: AuthorizationContext = authorizationContext(),
-    ): ServiceFixture
+    ): SequenceTenantFixture
     {
         val repository = mock<SequenceDefinitionRepository>()
-        return ServiceFixture(
+        return SequenceTenantFixture(
             service = SequenceDefinitionService(
                 repository = repository,
                 authorizationService = authorizationService(*allowedActions),

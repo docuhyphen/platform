@@ -1,44 +1,48 @@
 package com.docuhyphen.app.api.service.informationrequest.acceptedfact
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.migration.FactSqlFixture
-import com.docuhyphen.app.api.migration.FieldAnswerSqlFixture
-import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
-import com.docuhyphen.app.api.migration.execute
-import com.docuhyphen.app.api.migration.queryInt
-import com.docuhyphen.app.api.migration.queryString
+import com.docuhyphen.app.api.migration.*
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
+import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RecertifyInformationRequestAcceptedFactCommand
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RevokeInformationRequestAcceptedFactCommand
+import com.docuhyphen.app.api.model.informationrequest.audit.CreateInformationRequestRecordExportCommand
+import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalOutcome
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
+import com.docuhyphen.app.api.model.recordpreservation.PublishRecordRetentionScheduleCommand
+import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
+import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
+import com.docuhyphen.app.api.repository.informationrequest.disposal.InformationRequestDisposalRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.acceptedfact.model.RecertificationFixture
+import com.docuhyphen.app.api.service.informationrequest.acceptedfact.model.RecertificationLaterRequest
+import com.docuhyphen.app.api.service.informationrequest.disposal.InformationRequestDisposalService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.record.InformationRequestRecordAssembler
+import com.docuhyphen.app.api.service.informationrequest.record.InformationRequestRecordExportService
+import com.docuhyphen.app.api.service.recordpreservation.RecordRetentionScheduleService
 import io.quarkus.arc.Arc
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import kotlinx.serialization.json.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -48,12 +52,35 @@ import javax.sql.DataSource
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestFactRecertificationTransactionTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
-    @Inject lateinit var entityManager: EntityManager
-    @Inject lateinit var assembler: InformationRequestRecordAssembler
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Inject
+    lateinit var entityManager: EntityManager
+
+    @Inject
+    lateinit var assembler: InformationRequestRecordAssembler
+
+    @Inject
+    lateinit var disposalService: InformationRequestDisposalService
+
+    @Inject
+    lateinit var disposalRepository: InformationRequestDisposalRepository
+
+    @Inject
+    lateinit var schedules: RecordRetentionScheduleService
+
+    @Inject
+    lateinit var exports: InformationRequestRecordExportService
 
     @Test
     fun `recertification writes the reused value with exact source provenance only after explicit assent`()
@@ -114,17 +141,44 @@ class InformationRequestFactRecertificationTransactionTest
     }
 
     @Test
+    fun `a retried recertification answers the response ETag as it stands after a later change`() {
+        val fixture = fixture()
+        val factId = insertFact(fixture)
+        val services = laterServices(fixture)
+        val command = recertify(fixture, factId, "recertify-then-change")
+        val result = QuarkusTransaction.requiringNew().call { services.factRecertifications.recertify(command) }
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                "UPDATE information_request SET response_revision = response_revision + 1 WHERE id = ?",
+                fixture.laterRequestId,
+            )
+        }
+
+        val replayed = QuarkusTransaction.requiringNew().call { services.factRecertifications.recertify(command) }
+
+        assertEquals(result.view.recertification.id, replayed.view.recertification.id)
+        assertNotEquals(result.responseETag, replayed.responseETag)
+        assertEquals(currentResponseETag(fixture), replayed.responseETag)
+    }
+
+    @Test
     fun `the later request's record lists its recertification with the copied provenance`()
     {
         val fixture = fixture()
         val factId = insertFact(fixture)
         linkEvidence(fixture, factId)
         val services = laterServices(fixture)
-        val result = QuarkusTransaction.requiringNew().call { services.factRecertifications.recertify(recertify(fixture, factId, "recertify-record")) }
+        val result = QuarkusTransaction.requiringNew()
+            .call { services.factRecertifications.recertify(recertify(fixture, factId, "recertify-record")) }
 
-        val record = QuarkusTransaction.requiringNew().call { assembler.assemble(requireNotNull(requestRepository.findById(fixture.laterRequestId))) }
+        val record = QuarkusTransaction.requiringNew()
+            .call { assembler.assemble(requireNotNull(requestRepository.findById(fixture.laterRequestId))) { true } }
         val listed = record.getValue("recertifications").jsonArray.single().jsonObject
-        assertEquals(result.view.recertification.id.toString(), listed.getValue("recertificationId").jsonPrimitive.content)
+        assertEquals(
+            result.view.recertification.id.toString(),
+            listed.getValue("recertificationId").jsonPrimitive.content
+        )
         assertEquals(factId.toString(), listed.getValue("factId").jsonPrimitive.content)
         assertEquals(fixture.requestId.toString(), listed.getValue("sourceInformationRequestId").jsonPrimitive.content)
         assertEquals(fixture.facts.packageId.toString(), listed.getValue("sourcePackageId").jsonPrimitive.content)
@@ -133,6 +187,50 @@ class InformationRequestFactRecertificationTransactionTest
             listOf(fixture.runtime.evidenceVersionId.toString()),
             listed.getValue("evidenceVersionIds").jsonArray.map { it.jsonPrimitive.content },
         )
+    }
+
+    @Test
+    fun `the later request's export names the fact's source request only to a caller who may view that source`() {
+        val fixture = fixture()
+        val factId = insertFact(fixture)
+        linkEvidence(fixture, factId)
+        QuarkusTransaction.requiringNew()
+            .call {
+                laterServices(fixture).factRecertifications.recertify(
+                    recertify(
+                        fixture,
+                        factId,
+                        "recertify-export"
+                    )
+                )
+            }
+        val laterManager = laterManager(fixture, viewsSource = false)
+        val sourceViewer = laterManager(fixture, viewsSource = true)
+
+        val withheld = export(fixture, laterManager, "later-manager-export")
+        val named = export(fixture, sourceViewer, "source-viewer-export")
+        val retained = QuarkusTransaction.requiringNew()
+            .call { exports.read(fixture.laterRequestId, named.id, laterManager) }
+        val shown = QuarkusTransaction.requiringNew()
+            .call { exports.read(fixture.laterRequestId, named.id, sourceViewer) }
+
+        sourceIdentities(fixture).forEach { assertFalse(withheld.contentJson.contains(it), it) }
+        val frozenWithout = recertificationIn(withheld.contentJson)
+        assertTrue(frozenWithout.getValue("sourceRedacted").jsonPrimitive.boolean)
+        assertEquals(factId.toString(), frozenWithout.getValue("factId").jsonPrimitive.content)
+        assertEquals(
+            fixture.laterRequirementId.toString(),
+            frozenWithout.getValue("requirementId").jsonPrimitive.content
+        )
+        assertEquals(
+            fixture.requestId.toString(),
+            recertificationIn(named.contentJson).getValue("sourceInformationRequestId").jsonPrimitive.content,
+        )
+        assertTrue(retained.verified)
+        assertEquals(1, retained.withheldRelatedRequestCount)
+        sourceIdentities(fixture).forEach { assertFalse(retained.content.orEmpty().contains(it), it) }
+        assertEquals(named.contentJson, shown.content)
+        assertEquals(0, shown.withheldRelatedRequestCount)
     }
 
     @Test
@@ -160,7 +258,11 @@ class InformationRequestFactRecertificationTransactionTest
         assertThrows(CommandPreconditionException::class.java) {
             QuarkusTransaction.requiringNew().call {
                 services.factRecertifications.recertify(
-                    recertify(fixture, factId, "stale").copy(precondition = CommandPrecondition.ExpectedRevision("\"stale\"")),
+                    recertify(
+                        fixture,
+                        factId,
+                        "stale"
+                    ).copy(precondition = CommandPrecondition.ExpectedRevision("\"stale\"")),
                 )
             }
         }
@@ -199,11 +301,115 @@ class InformationRequestFactRecertificationTransactionTest
         val offered = QuarkusTransaction.requiringNew().call {
             services.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture))
         }
-        assertEquals(listOf(factId), offered.map { it.fact.fact.id })
+        assertTrue(offered.isEmpty(), "$offered")
 
         val refused = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
                 services.factRecertifications.recertify(recertify(fixture, factId, "requesting-side"))
+            }
+        }
+        assertEquals(InformationRequestErrorCatalog.ACCEPTED_FACT_OFFER_UNAVAILABLE, refused.reasonCode)
+        assertNothingWritten(fixture)
+    }
+
+    @Test
+    fun `a Requirement that cannot take a full answer is offered no earlier accepted answer`() {
+        val fixture = fixture(permitted = listOf("PARTIALLY_PROVIDED", "NOT_APPLICABLE"))
+        insertFact(fixture)
+        val services = runtime.build(fixture.laterRequestId)
+
+        val offered = QuarkusTransaction.requiringNew().call {
+            services.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture))
+        }
+
+        assertEquals(emptyList<UUID>(), offered.map { it.fact.fact.id })
+    }
+
+    @Test
+    fun `a live recertification keeps its source request from retention and privacy disposal`() {
+        val fixture = fixture()
+        val factId = insertFact(fixture)
+        linkEvidence(fixture, factId)
+        QuarkusTransaction.requiringNew()
+            .call { laterServices(fixture).factRecertifications.recertify(recertify(fixture, factId, "kept-source")) }
+        finish(fixture.requestId)
+        disposeImmediately(fixture)
+
+        listOf(RecordDisposalBasis.RETENTION_SCHEDULE, RecordDisposalBasis.PRIVACY_DELETION).forEach { basis ->
+            val refused = disposalService.claim(
+                fixture.requestId,
+                basis,
+                UUID.randomUUID().takeIf { basis == RecordDisposalBasis.PRIVACY_DELETION },
+                PrincipalRef.user(fixture.runtime.template.userId),
+            ) as? InformationRequestDisposalOutcome.Refused
+            assertEquals(InformationRequestErrorCatalog.RECORD_REFERENCED, refused?.reasonCode, basis.name)
+            assertTrue(refused?.detail.orEmpty().contains("FACT_RECERTIFICATION"), refused?.detail)
+        }
+        assertEquals(
+            listOf("SHARED_REFERENCE"),
+            QuarkusTransaction.requiringNew()
+                .call { disposalRepository.storedObjects(fixture.requestId) }
+                .map { it.retainedReason },
+        )
+        assertEquals(1, requestCount(fixture.requestId))
+    }
+
+    @Test
+    fun `the source request disposes once the later request holding its recertification is disposed`() {
+        val fixture = fixture()
+        val factId = insertFact(fixture)
+        linkEvidence(fixture, factId)
+        QuarkusTransaction.requiringNew()
+            .call { laterServices(fixture).factRecertifications.recertify(recertify(fixture, factId, "later-first")) }
+        finish(fixture.requestId)
+        finish(fixture.laterRequestId)
+        disposeImmediately(fixture)
+        val actor = PrincipalRef.user(fixture.runtime.template.userId)
+
+        val later =
+            disposalService.claimAndProcess(fixture.laterRequestId, RecordDisposalBasis.RETENTION_SCHEDULE, null, actor)
+        assertTrue(later is InformationRequestDisposalOutcome.Claimed, later.toString())
+        assertEquals(0, recertifications(fixture))
+        val source =
+            disposalService.claimAndProcess(fixture.requestId, RecordDisposalBasis.RETENTION_SCHEDULE, null, actor)
+        assertTrue(source is InformationRequestDisposalOutcome.Claimed, source.toString())
+
+        assertEquals(0, requestCount(fixture.requestId))
+        assertEquals(0, requestCount(fixture.laterRequestId))
+        dataSource.connection.use { connection ->
+            assertEquals(
+                "FINALIZED",
+                queryString(
+                    connection,
+                    "SELECT state FROM record_disposal_claim WHERE resource_id = ?",
+                    fixture.requestId
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `a fact whose source request is under disposal is neither offered nor recertified`() {
+        val fixture = fixture()
+        val factId = insertFact(fixture)
+        linkEvidence(fixture, factId)
+        finish(fixture.requestId)
+        disposeImmediately(fixture)
+        val claimed = disposalService.claim(
+            fixture.requestId,
+            RecordDisposalBasis.RETENTION_SCHEDULE,
+            null,
+            PrincipalRef.user(fixture.runtime.template.userId),
+        )
+        assertTrue(claimed is InformationRequestDisposalOutcome.Claimed, claimed.toString())
+        val services = laterServices(fixture)
+
+        val offered = QuarkusTransaction.requiringNew()
+            .call { services.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture)) }
+        assertTrue(offered.isEmpty(), offered.toString())
+        val refused = assertThrows(InformationRequestLifecycleException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                services.factRecertifications.recertify(recertify(fixture, factId, "source-under-disposal"))
             }
         }
         assertEquals(InformationRequestErrorCatalog.ACCEPTED_FACT_OFFER_UNAVAILABLE, refused.reasonCode)
@@ -298,7 +504,11 @@ class InformationRequestFactRecertificationTransactionTest
         dataSource.connection.use { connection ->
             assertEquals(
                 0,
-                queryInt(connection, "SELECT COUNT(*) FROM information_request_response WHERE information_request_id = ?", fixture.laterRequestId),
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_response WHERE information_request_id = ?",
+                    fixture.laterRequestId
+                ),
             )
             assertEquals(
                 0,
@@ -310,6 +520,33 @@ class InformationRequestFactRecertificationTransactionTest
             )
         }
     }
+
+    private fun finish(requestId: UUID) =
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() - INTERVAL '3 days' WHERE id = ?",
+                requestId,
+            )
+        }
+
+    private fun disposeImmediately(fixture: RecertificationFixture) =
+        QuarkusTransaction.requiringNew().run {
+            schedules.publish(
+                PublishRecordRetentionScheduleCommand(
+                    RecordOwnerRef.organization(fixture.runtime.template.organizationId),
+                    RecordPreservationResourceTypes.INFORMATION_REQUEST,
+                    0,
+                    0,
+                    PrincipalRef.user(fixture.runtime.template.userId),
+                ),
+            )
+        }
+
+    private fun requestCount(requestId: UUID): Int =
+        dataSource.connection.use { connection ->
+            queryInt(connection, "SELECT COUNT(*) FROM information_request WHERE id = ?", requestId)
+        }
 
     private fun recertifications(fixture: RecertificationFixture): Int =
         dataSource.connection.use { connection ->
@@ -338,6 +575,64 @@ class InformationRequestFactRecertificationTransactionTest
 
     private fun laterServices(fixture: RecertificationFixture) =
         runtime.build(fixture.laterRequestId, denies = respondentDenials(fixture))
+
+    private fun laterManager(fixture: RecertificationFixture, viewsSource: Boolean): RequestAccessContext {
+        val userId = UUID.randomUUID()
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                """
+                INSERT INTO app_user
+                    (id, is_active, created_date, email, email_verification_completed, is_temporary,
+                     sign_in_attempts, exchange_version, multifactor_authentication_type,
+                     is_password_temporary, email_mfa_fallback_enabled)
+                VALUES (?, TRUE, now(), ?, TRUE, FALSE, 0, 0, 'EMAIL', FALSE, FALSE)
+                """.trimIndent(),
+                userId,
+                "later-manager-${userId.toString().take(8)}@process.test",
+            )
+            grantShare(connection, fixture.laterRequestId, userId)
+            if (viewsSource) grantShare(connection, fixture.requestId, userId)
+        }
+        return RequestAccessContext(
+            PrincipalRef.user(userId),
+            AuthorizationContext(sessionRef = "later-manager-session")
+        )
+    }
+
+    private fun grantShare(connection: java.sql.Connection, requestId: UUID, userId: UUID) =
+        execute(
+            connection,
+            """
+            INSERT INTO share (id, resource_type, resource_id, principal_kind, principal_id, role_name, source, status, granted_at)
+            VALUES (?, 'INFORMATION_REQUEST', ?, 'USER', ?, 'DECISION_MAKER', 'DIRECT', 'ACTIVE', now())
+            """.trimIndent(),
+            UUID.randomUUID(),
+            requestId,
+            userId,
+        )
+
+    private fun export(
+        fixture: RecertificationFixture,
+        access: RequestAccessContext,
+        key: String
+    ): InformationRequestRecordExport =
+        QuarkusTransaction.requiringNew().call {
+            exports.create(
+                CreateInformationRequestRecordExportCommand(
+                    fixture.laterRequestId,
+                    access,
+                    null,
+                    key
+                )
+            ).export
+        }
+
+    private fun recertificationIn(content: String) =
+        Json.parseToJsonElement(content).jsonObject.getValue("recertifications").jsonArray.single().jsonObject
+
+    private fun sourceIdentities(fixture: RecertificationFixture): List<String> =
+        listOf(fixture.requestId, fixture.facts.packageId, fixture.runtime.evidenceVersionId).map { it.toString() }
 
     private fun revoke(fixture: RecertificationFixture, factId: UUID) =
         dataSource.connection.use { connection ->
@@ -408,12 +703,26 @@ class InformationRequestFactRecertificationTransactionTest
             )
         }
 
-    private fun fixture(): RecertificationFixture =
+    private fun fixture(permitted: List<String> = emptyList()): RecertificationFixture =
         dataSource.connection.use { connection ->
             lateinit var answers: FieldAnswerSqlFixture
             val templateLinkId = UUID.randomUUID()
             val source = SubmissionRuntimeSqlFixture(connection, beforePublish = { configured ->
                 answers = FieldAnswerSqlFixture(connection, configured.template, reusePurpose = "profile.reuse")
+                if (permitted.isNotEmpty()) {
+                    execute(
+                        connection,
+                        "DELETE FROM information_request_template_binding_disposition WHERE template_binding_id = ?",
+                        answers.bindingId,
+                    )
+                    permitted.forEach {
+                        configured.template.insertDisposition(
+                            answers.bindingId,
+                            configured.template.versionId,
+                            it
+                        )
+                    }
+                }
                 execute(
                     connection,
                     "INSERT INTO information_request_template_binding_evidence_link (id, template_binding_id, supporting_template_binding_id, template_version_id) VALUES (?, ?, ?, ?)",
@@ -424,10 +733,15 @@ class InformationRequestFactRecertificationTransactionTest
                 )
             })
             answers.materialize(source)
-            execute(connection, "UPDATE schema_field_binding SET visibility = 'PUBLIC' WHERE id = ?", answers.schemaFieldBindingId)
+            execute(
+                connection,
+                "UPDATE schema_field_binding SET visibility = 'PUBLIC' WHERE id = ?",
+                answers.schemaFieldBindingId
+            )
             val facts = FactSqlFixture(connection, source, answers)
             val submittedEvidenceId = supportingEvidence(connection, source, answers, facts, templateLinkId)
-            val later = LaterRequest(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
+            val later =
+                RecertificationLaterRequest(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
             insertLaterRequest(connection, source, answers, facts, later)
             RecertificationFixture(source, facts, answers, later.requestId, later.requirementId, submittedEvidenceId)
         }
@@ -480,7 +794,7 @@ class InformationRequestFactRecertificationTransactionTest
         source: SubmissionRuntimeSqlFixture,
         answers: FieldAnswerSqlFixture,
         facts: FactSqlFixture,
-        later: LaterRequest,
+        later: RecertificationLaterRequest,
     )
     {
         val template = source.template
@@ -589,6 +903,7 @@ class InformationRequestFactRecertificationTransactionTest
             later.requirementId,
             later.revisionId,
         )
+        val assignmentId = UUID.randomUUID()
         execute(
             connection,
             """
@@ -596,7 +911,7 @@ class InformationRequestFactRecertificationTransactionTest
                                            assignment_source, assigned_by_principal_kind, assigned_by_principal_id, assigned_at)
             VALUES (?, 'INFORMATION_REQUEST', ?, ?, 'ORGANIZATION', ?, 'MANUAL', 'USER', ?, now())
             """.trimIndent(),
-            UUID.randomUUID(),
+            assignmentId,
             later.requestId,
             answers.schemaVersionId,
             template.organizationId,
@@ -604,11 +919,17 @@ class InformationRequestFactRecertificationTransactionTest
         )
         execute(
             connection,
+            "INSERT INTO field_value_set (id, schema_assignment_id, set_kind, created_at, updated_at) VALUES (?, ?, 'ROOT', now(), now())",
+            UUID.randomUUID(),
+            assignmentId,
+        )
+        execute(
+            connection,
             """
             INSERT INTO request_execution_grant
                 (id, request_id, owner_type, owner_organization_id, plan_code, subscription_status,
-                 enforcement_mode, acting_party_cap, issued_at, created_at)
-            VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', 5, now(), now())
+                 enforcement_mode, acting_party_cap, granted_features, issued_at, created_at)
+            VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', 5, ARRAY ['BUSINESS_FIELDS_AND_SCHEMAS', 'INFORMATION_REQUESTS'], now(), now())
             """.trimIndent(),
             UUID.randomUUID(),
             later.requestId,
@@ -616,32 +937,21 @@ class InformationRequestFactRecertificationTransactionTest
         )
     }
 
-    private fun respondentDenials(fixture: RecertificationFixture): (PrincipalRef, Action) -> Boolean = { principal, action ->
-        principal.id != fixture.runtime.template.userId && action == Action.INFORMATION_REQUEST_PROMOTE_FACT
-    }
+    private fun respondentDenials(fixture: RecertificationFixture): (PrincipalRef, Action) -> Boolean =
+        { principal, action ->
+            principal.id != fixture.runtime.template.userId &&
+                    action in setOf(Action.INFORMATION_REQUEST_PROMOTE_FACT, Action.INFORMATION_REQUEST_REVOKE_FACT)
+        }
 
     private fun owner(fixture: RecertificationFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.template.userId), AuthorizationContext(sessionRef = "owner-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.template.userId),
+            AuthorizationContext(sessionRef = "owner-session")
+        )
 
     private fun contributor(fixture: RecertificationFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.contributorUserId), AuthorizationContext(sessionRef = "contributor-session"))
-
-    private data class LaterRequest(
-        val exchangeId: UUID,
-        val requestId: UUID,
-        val requirementId: UUID,
-        val revisionId: UUID,
-    )
-
-    internal data class RecertificationFixture(
-        val runtime: SubmissionRuntimeSqlFixture,
-        val facts: FactSqlFixture,
-        val answers: FieldAnswerSqlFixture,
-        val laterRequestId: UUID,
-        val laterRequirementId: UUID,
-        val submittedEvidenceId: UUID,
-    )
-    {
-        val requestId: UUID get() = runtime.requestId
-    }
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.contributorUserId),
+            AuthorizationContext(sessionRef = "contributor-session")
+        )
 }

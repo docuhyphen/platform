@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.document.DocumentVersionUpload
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.repository.document.DocumentRepository
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
+import com.docuhyphen.app.api.repository.document.DocumentVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import io.quarkus.narayana.jta.QuarkusTransaction
@@ -16,12 +16,13 @@ import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.util.UUID
+import java.util.*
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
@@ -59,7 +60,7 @@ class DocumentVersionRecordingContractTest
 
         QuarkusTransaction.requiringNew().run {
             val stored = requireNotNull(documentVersionRepository.findById(version.id))
-            val document = requireNotNull(documentRepository.findById(stored.document.id))
+            val document = requireNotNull(documentRepository.findById(requireNotNull(stored.document).id))
 
             assertEquals("collected-record.pdf", document.title)
             assertEquals(DocumentType.PDF, document.type)
@@ -82,7 +83,7 @@ class DocumentVersionRecordingContractTest
         }
 
         val second = QuarkusTransaction.requiringNew().call {
-            val document = requireNotNull(documentRepository.findById(first.document.id))
+            val document = requireNotNull(documentRepository.findById(requireNotNull(first.document).id))
             val file = upload("second")
             recordingService.recordNextVersion(
                 document,
@@ -99,11 +100,50 @@ class DocumentVersionRecordingContractTest
         QuarkusTransaction.requiringNew().run {
             val stored = requireNotNull(documentVersionRepository.findById(second.id))
 
-            assertEquals(first.document.id, stored.document.id)
+            assertEquals(requireNotNull(first.document).id, requireNotNull(stored.document).id)
             assertEquals("2", stored.version)
             assertEquals("collected-record-revised.pdf", stored.fileName)
             assertEquals(DocumentVersionContentVerification.UNVERIFIED, stored.contentVerification)
-            assertEquals("first", recordingService.open(requireNotNull(documentVersionRepository.findById(first.id))).file.readText())
+            assertEquals(
+                "first",
+                recordingService.open(requireNotNull(documentVersionRepository.findById(first.id))).file.readText()
+            )
+        }
+    }
+
+    @Test
+    fun `two versions recorded at the same time for one document receive different numbers`() {
+        val creator = PrincipalRef.user(UUID.randomUUID())
+        val first = QuarkusTransaction.requiringNew().call {
+            recordingService.recordStandaloneDocument(standalone("first", creator))
+        }
+        val documentId = requireNotNull(first.document).id
+        val heldVersionRecorded = CountDownLatch(1)
+        val holder = Executors.newSingleThreadExecutor()
+        try {
+            val held = holder.submit<String> {
+                QuarkusTransaction.requiringNew().call {
+                    val version = recordingService.recordNextVersion(
+                        requireNotNull(documentRepository.findById(documentId)),
+                        standalone("held", creator),
+                    )
+                    heldVersionRecorded.countDown()
+                    Thread.sleep(HOLD_OPEN_MILLIS)
+                    version.version
+                }
+            }
+            assertTrue(heldVersionRecorded.await(30, TimeUnit.SECONDS), "The held version was never recorded")
+
+            val competing = QuarkusTransaction.requiringNew().call {
+                recordingService.recordNextVersion(
+                    requireNotNull(documentRepository.findById(documentId)),
+                    standalone("competing", creator),
+                ).version
+            }
+
+            assertEquals(setOf("2", "3"), setOf(held.get(30, TimeUnit.SECONDS), competing))
+        } finally {
+            holder.shutdownNow()
         }
     }
 
@@ -150,4 +190,8 @@ class DocumentVersionRecordingContractTest
             deleteOnExit()
             writeText(content)
         }
+
+    private companion object {
+        const val HOLD_OPEN_MILLIS = 1500L
+    }
 }

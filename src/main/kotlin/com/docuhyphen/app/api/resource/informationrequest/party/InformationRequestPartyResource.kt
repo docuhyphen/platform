@@ -11,19 +11,22 @@ import com.docuhyphen.app.api.resource.model.ReassignInformationRequestPartyRequ
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
-import io.quarkus.security.ForbiddenException
-import io.quarkus.security.UnauthorizedException
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyRevocationService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestSubjectService
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.*
+import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
+import jakarta.ws.rs.core.Response.Status.CREATED
 import org.slf4j.LoggerFactory
 import java.util.*
 
 class InformationRequestPartyResource @Inject constructor(
     private val partyQueryService: InformationRequestPartyQueryService,
-    private val partyService: InformationRequestPartyService,
+    private val partyAssignments: InformationRequestPartyAssignmentService,
+    private val partyRevocations: InformationRequestPartyRevocationService,
+    private val subjects: InformationRequestSubjectService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestPartyResourceOperations
 {
@@ -37,7 +40,7 @@ class InformationRequestPartyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            handleException("Information Request party list failed", exception)
+            InformationRequestCommandHttp.refused(logger, "Information Request party list failed", exception)
         }
     }
 
@@ -59,12 +62,12 @@ class InformationRequestPartyResource @Inject constructor(
                     "Name exactly one of userId, principalGroupId, email, or subjectIdentityRefId",
                 )
             }
-            val precondition = CommandPreconditionHeader.required(ifMatch)
+            val precondition = CommandPreconditionHeader.requiredExact(ifMatch)
             val commandKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val email = request.email
             val result = if (email != null)
-                partyService.assignExternalParticipant(
+                partyAssignments.assignExternalParticipant(
                     AssignExternalParticipantInformationRequestPartyCommand(
                         requestId = requestId,
                         roleKey = request.roleKey,
@@ -75,21 +78,22 @@ class InformationRequestPartyResource @Inject constructor(
                         idempotencyKey = commandKey,
                     ),
                 )
-            else
-                partyService.assign(
-                    AssignInformationRequestPartyCommand(
-                        requestId = requestId,
-                        roleKey = request.roleKey,
-                        principal = request.userId?.let(PrincipalRef::user) ?: request.principalGroupId?.let(
-                            PrincipalRef::group
-                        ),
-                        subjectIdentityRefId = request.subjectIdentityRefId,
-                        exchangeRecipientId = request.exchangeRecipientId,
-                        access = access,
-                        precondition = precondition,
-                        idempotencyKey = commandKey,
+            else {
+                val command = AssignInformationRequestPartyCommand(
+                    requestId = requestId,
+                    roleKey = request.roleKey,
+                    principal = request.userId?.let(PrincipalRef::user) ?: request.principalGroupId?.let(
+                        PrincipalRef::group
                     ),
+                    subjectIdentityRefId = request.subjectIdentityRefId,
+                    exchangeRecipientId = request.exchangeRecipientId,
+                    access = access,
+                    precondition = precondition,
+                    idempotencyKey = commandKey,
                 )
+                if (command.subjectIdentityRefId != null) subjects.assignKnownSubject(command)
+                else partyAssignments.assign(command)
+            }
             Response.status(CREATED)
                 .entity(InformationRequestPartyDtoMapper.toDto(result.party, revealIdentity = true))
                 .header("ETag", result.partiesETag)
@@ -118,14 +122,14 @@ class InformationRequestPartyResource @Inject constructor(
             val principal = request.userId?.let(PrincipalRef::user)
                 ?: request.principalGroupId?.let(PrincipalRef::group)
                 ?: throw InformationRequestCommandRequestException("Name the userId or principalGroupId to reassign to")
-            val result = partyService.reassign(
+            val result = partyRevocations.reassign(
                 ReassignInformationRequestPartyCommand(
                     requestId = InformationRequestCommandHttp.uuid(id, "information request id"),
                     partyId = InformationRequestCommandHttp.uuid(partyId, "party id"),
                     principal = principal,
                     exchangeRecipientId = request.exchangeRecipientId,
                     access = accessContextFactory.currentAuthenticated(),
-                    precondition = CommandPreconditionHeader.required(ifMatch),
+                    precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                     idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
                 ),
             )
@@ -146,12 +150,12 @@ class InformationRequestPartyResource @Inject constructor(
     {
         return try
         {
-            val result = partyService.revoke(
+            val result = partyRevocations.revoke(
                 RevokeInformationRequestPartyCommand(
                     requestId = InformationRequestCommandHttp.uuid(id, "information request id"),
                     partyId = InformationRequestCommandHttp.uuid(partyId, "party id"),
                     access = accessContextFactory.currentAuthenticated(),
-                    precondition = CommandPreconditionHeader.required(ifMatch),
+                    precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                     idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
                 ),
             )
@@ -172,25 +176,6 @@ class InformationRequestPartyResource @Inject constructor(
 
     private fun badRequest(message: String): Response =
         Response.status(BAD_REQUEST).entity(ResponseError(message)).build()
-
-    private fun handleException(message: String, exception: Exception): Response =
-        when (exception)
-        {
-            is IllegalArgumentException -> Response.status(NOT_FOUND)
-                .entity(ResponseError(exception.message)).build()
-
-            is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
-
-            is UnauthorizedException -> Response.status(UNAUTHORIZED)
-                .entity(ResponseError(exception.message)).build()
-
-            else ->
-            {
-                logger.error(message, exception)
-                Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
-            }
-        }
 
     private companion object
     {

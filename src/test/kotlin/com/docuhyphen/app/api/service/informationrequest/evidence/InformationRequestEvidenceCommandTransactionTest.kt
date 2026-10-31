@@ -1,17 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -21,26 +15,29 @@ import com.docuhyphen.app.api.repository.informationrequest.occurrence.Informati
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
+import jakarta.transaction.Synchronization
+import jakarta.transaction.TransactionSynchronizationRegistry
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.eclipse.microprofile.config.inject.ConfigProperty
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.mockito.kotlin.any
@@ -50,7 +47,7 @@ import org.mockito.kotlin.whenever
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -64,10 +61,20 @@ class InformationRequestEvidenceCommandTransactionTest
     lateinit var dataSource: DataSource
 
     @Inject
+    lateinit var synchronizations: TransactionSynchronizationRegistry
+
+    @Inject
+    @ConfigProperty(name = "document.version.storage.local.root-directory")
+    lateinit var storageRoot: String
+
+    @Inject
     lateinit var requestRepository: InformationRequestRepository
 
     @Inject
     lateinit var exchangeRepository: ExchangeRepository
+
+    @Inject
+    lateinit var exchangeLookup: ExchangeLookupService
 
     @Inject
     lateinit var requirementRepository: InformationRequestRequirementRepository
@@ -123,7 +130,10 @@ class InformationRequestEvidenceCommandTransactionTest
         assertFalse(deploymentPolicy.malwareScanningConfigured())
         QuarkusTransaction.requiringNew().run {
             val requirement = requireNotNull(requirementRepository.findById(fixture.requirementId))
-            assertEquals(InformationRequestEvidenceRequirementState.SATISFIED, evaluationService.evaluate(requirement)?.state)
+            assertEquals(
+                InformationRequestEvidenceRequirementState.SATISFIED,
+                evaluationService.evaluate(requirement)?.state
+            )
             val version = versionRepository.findForArtifact(uploaded.artifact.artifact.id).single()
             val reviewer = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
             assertDoesNotThrow { contentRelease.requireReleasable(version, reviewer) }
@@ -171,21 +181,25 @@ class InformationRequestEvidenceCommandTransactionTest
         QuarkusTransaction.requiringNew().run {
             val artifact = requireNotNull(artifactRepository.findById(uploaded.artifact.artifact.id))
             val versions = versionRepository.findForArtifact(artifact.id)
-            val documentVersions = versions.map { requireNotNull(documentVersionRecordingService.findVersion(requireNotNull(it.documentVersionId))) }
+            val documentVersions =
+                versions.map { requireNotNull(documentVersionRecordingService.findVersion(requireNotNull(it.documentVersionId))) }
 
             assertEquals(InformationRequestEvidenceCollectionState.WITHDRAWN, artifact.collectionState)
             assertEquals(3L, artifact.artifactRevision)
             assertEquals(listOf(1, 2), versions.map { it.versionNumber })
             assertEquals(listOf("1", "2"), documentVersions.map { it.version })
-            assertEquals(1, documentVersions.map { it.document.id }.distinct().size)
+            assertEquals(1, documentVersions.map { requireNotNull(it.document).id }.distinct().size)
             assertEquals(
                 listOf("first content", "second content"),
                 documentVersions.map { documentVersionRecordingService.open(it).file.readText() },
             )
-            assertEquals(0, exchangeDocumentCount(documentVersions.first().document.id))
+            assertEquals(0, exchangeDocumentCount(requireNotNull(documentVersions.first().document).id))
             assertEquals(
                 null,
-                exchangeRepository.findDocumentBySessionIdAndDocumentId(fixture.exchangeId, documentVersions.first().document.id),
+                exchangeRepository.findDocumentBySessionIdAndDocumentId(
+                    fixture.exchangeId,
+                    requireNotNull(documentVersions.first().document).id
+                ),
             )
             assertEquals(withdrawn.artifactETag, InformationRequestETag.artifactOf(artifact))
         }
@@ -203,7 +217,14 @@ class InformationRequestEvidenceCommandTransactionTest
         assertThrows(IllegalStateException::class.java)
         {
             QuarkusTransaction.requiringNew().call {
-                services.uploads.upload(upload(fixture, "failing-key", evidenceFile("first content"), caller = uploader))
+                services.uploads.upload(
+                    upload(
+                        fixture,
+                        "failing-key",
+                        evidenceFile("first content"),
+                        caller = uploader
+                    )
+                )
             }
         }
 
@@ -219,6 +240,111 @@ class InformationRequestEvidenceCommandTransactionTest
         }
         assertEquals("evidence-1", retried.artifact.artifact.artifactKey)
     }
+
+    @Test
+    fun `a failed upload removes the bytes it stored and its retry stores only the committed copy`() {
+        val fixture = InformationRequestEvidencePostgresFixture().insertInto(dataSource)
+        val history = mock<InformationRequestTransitionHistoryService>()
+        whenever(history.record(any())).thenThrow(IllegalStateException("history unavailable"))
+        val before = storedObjects()
+
+        assertThrows(IllegalStateException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services(fixture, history).uploads.upload(
+                    upload(
+                        fixture,
+                        "stored-bytes-key",
+                        evidenceFile("kept once")
+                    )
+                )
+            }
+        }
+
+        assertEquals(emptySet<String>(), storedObjects() - before)
+        val retried = QuarkusTransaction.requiringNew().call {
+            services(fixture).uploads.upload(upload(fixture, "stored-bytes-key", evidenceFile("kept once")))
+        }
+        assertEquals(storedLocatorsOf(retried.artifact.artifact.id), storedObjects() - before)
+    }
+
+    @Test
+    fun `a failed replacement removes the bytes it stored and keeps the committed version`() {
+        val fixture = InformationRequestEvidencePostgresFixture().insertInto(dataSource)
+        val uploaded = QuarkusTransaction.requiringNew().call {
+            services(fixture).uploads.upload(upload(fixture, "replaced-upload-key", evidenceFile("first version")))
+        }
+        val committed = storedLocatorsOf(uploaded.artifact.artifact.id)
+        val before = storedObjects()
+        val history = mock<InformationRequestTransitionHistoryService>()
+        whenever(history.record(any())).thenThrow(IllegalStateException("history unavailable"))
+
+        assertThrows(IllegalStateException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services(fixture, history).uploads.replace(replacement(fixture, uploaded, "failing-replacement-key"))
+            }
+        }
+
+        assertEquals(before, storedObjects())
+        assertTrue(storedObjects().containsAll(committed))
+        QuarkusTransaction.requiringNew().call {
+            services(fixture).uploads.replace(replacement(fixture, uploaded, "failing-replacement-key"))
+        }
+        assertEquals(storedLocatorsOf(uploaded.artifact.artifact.id) - committed, storedObjects() - before)
+    }
+
+    @Test
+    fun `an upload whose transaction fails at commit removes the bytes it stored`() {
+        val fixture = InformationRequestEvidencePostgresFixture().insertInto(dataSource)
+        val before = storedObjects()
+
+        assertThrows(Exception::class.java)
+        {
+            QuarkusTransaction.requiringNew().run {
+                services(fixture).uploads.upload(upload(fixture, "commit-refused-key", evidenceFile("never committed")))
+                synchronizations.registerInterposedSynchronization(object : Synchronization {
+                    override fun beforeCompletion() = throw IllegalStateException("commit refused")
+
+                    override fun afterCompletion(status: Int) = Unit
+                })
+            }
+        }
+
+        QuarkusTransaction.requiringNew().run {
+            assertTrue(artifactRepository.findForRequest(fixture.requestId).isEmpty())
+        }
+        assertEquals(emptySet<String>(), storedObjects() - before)
+    }
+
+    private fun replacement(
+        fixture: InformationRequestEvidencePostgresFixture,
+        uploaded: InformationRequestEvidenceCommandResult,
+        idempotencyKey: String,
+    ) = ReplaceInformationRequestEvidenceCommand(
+        requestId = fixture.requestId,
+        requirementId = fixture.requirementId,
+        artifactId = uploaded.artifact.artifact.id,
+        access = access,
+        surface = InformationRequestEvidenceSurface.AUTHENTICATED,
+        precondition = CommandPrecondition.ExpectedRevision(uploaded.artifactETag),
+        idempotencyKey = idempotencyKey,
+        file = evidenceFile("replacement version"),
+        attributes = InformationRequestEvidenceAttributes.NONE,
+    )
+
+    private fun storedObjects(): Set<String> {
+        val root = File(storageRoot)
+        return root.walkTopDown().filter { it.isFile }.map { it.relativeTo(root).invariantSeparatorsPath }.toSet()
+    }
+
+    private fun storedLocatorsOf(artifactId: UUID): Set<String> =
+        QuarkusTransaction.requiringNew().call {
+            versionRepository.findForArtifact(artifactId)
+                .map { requireNotNull(documentVersionRecordingService.findVersion(requireNotNull(it.documentVersionId))) }
+                .map { it.storageLocator }
+                .toSet()
+        }
 
     @Test
     fun `a concurrent retry of the same upload waits for the first and replays it`()
@@ -276,7 +402,7 @@ class InformationRequestEvidenceCommandTransactionTest
         whenever(authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
         val grantService = mock<InformationRequestExecutionGrantService>()
         whenever(grantService.findForRequest(fixture.requestId)).thenReturn(
-            RequestExecutionGrant().apply {
+            issuedExecutionGrant().apply {
                 requestId = fixture.requestId
                 ownerType = "ORGANIZATION"
                 planCode = "BUSINESS"
@@ -287,14 +413,15 @@ class InformationRequestEvidenceCommandTransactionTest
         )
         val gate = InformationRequestEvidenceGate(
             requestRepository = requestRepository,
-            exchangeRepository = exchangeRepository,
+            exchangeLookup = exchangeLookup,
             requirementRepository = requirementRepository,
             occurrenceRepository = occurrenceRepository,
             templateRequirementRepository = templateRequirementRepository,
             authorizationService = authorizationService,
-            entitlementGuard = mock(),
-            executionGrantService = grantService,
+            continuationGuard = InformationRequestContinuationGuard(grantService, mock()),
             lockService = lockService,
+            requirementContext = mock(),
+            conditionVisibility = InformationRequestConditionVisibility(mock(), mock()),
         )
         val viewLoader = InformationRequestEvidenceViewLoader(versionRepository, documentVersionRecordingService)
         return EvidenceServices(
@@ -307,6 +434,7 @@ class InformationRequestEvidenceCommandTransactionTest
                 transitionHistory = history,
                 viewLoader = viewLoader,
                 intake = intake,
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
             ),
             collection = InformationRequestEvidenceCollectionService(
                 gate = gate,
@@ -314,6 +442,7 @@ class InformationRequestEvidenceCommandTransactionTest
                 commandReceiptService = commandReceiptService,
                 transitionHistory = history,
                 viewLoader = viewLoader,
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
             ),
         )
     }
@@ -342,7 +471,12 @@ class InformationRequestEvidenceCommandTransactionTest
             document.addPage(PDPage())
             document.save(target)
         }
-        return InformationRequestEvidenceFile(target, "collected-record.pdf", "application/pdf", DocumentEncryptionMode.INTERNAL)
+        return InformationRequestEvidenceFile(
+            target,
+            "collected-record.pdf",
+            "application/pdf",
+            DocumentEncryptionMode.INTERNAL
+        )
     }
 
     private fun evidenceFile(content: String): InformationRequestEvidenceFile =
@@ -358,13 +492,14 @@ class InformationRequestEvidenceCommandTransactionTest
 
     private fun exchangeDocumentCount(documentId: UUID): Int =
         dataSource.connection.use { connection ->
-            connection.prepareStatement("SELECT COUNT(*) FROM exchange_document WHERE documents_id = ?").use { statement ->
-                statement.setObject(1, documentId)
-                statement.executeQuery().use { rows ->
-                    rows.next()
-                    rows.getInt(1)
+            connection.prepareStatement("SELECT COUNT(*) FROM exchange_document WHERE documents_id = ?")
+                .use { statement ->
+                    statement.setObject(1, documentId)
+                    statement.executeQuery().use { rows ->
+                        rows.next()
+                        rows.getInt(1)
+                    }
                 }
-            }
         }
 
     private fun documentVersionCountCreatedBy(creator: PrincipalRef): Int =

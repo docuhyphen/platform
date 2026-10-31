@@ -137,6 +137,12 @@ class InformationRequestRefreshRule
     @Column(name = "lead_days", nullable = false)
     var leadDays: Int = 0
 
+    @Column(name = "attempt_count", nullable = false)
+    var attemptCount: Int = 0
+
+    @Column(name = "next_attempt_at")
+    var nextAttemptAt: Timestamp? = null
+
     @Column(name = "created_by_principal_kind", nullable = false, length = 32)
     @Enumerated(EnumType.STRING)
     lateinit var createdByPrincipalKind: PrincipalKind
@@ -170,4 +176,26 @@ enum class InformationRequestRecurrenceUnit
     WEEK,
     MONTH,
     YEAR,
+}
+
+@Entity
+@Table(name = "information_request_lineage_source_package")
+class InformationRequestLineageSourcePackage {
+    @Id
+    var id: UUID = UUID.randomUUID()
+
+    @Column(name = "lineage_id", nullable = false)
+    lateinit var lineageId: UUID
+
+    @Column(name = "successor_request_id", nullable = false)
+    lateinit var successorRequestId: UUID
+
+    @Column(name = "source_request_id", nullable = false)
+    lateinit var sourceRequestId: UUID
+
+    @Column(name = "package_id", nullable = false)
+    lateinit var packageId: UUID
+
+    @Column(name = "created_at", nullable = false)
+    var createdAt: Timestamp = Timestamp.from(Instant.now())
 }

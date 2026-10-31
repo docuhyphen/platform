@@ -58,16 +58,37 @@ class InformationRequestAcceptedFactRepository :
             .resultList
     }
 
-    fun findSuperseding(factIds: Collection<UUID>): List<InformationRequestAcceptedFact>
+    fun findSupersedingIds(factIds: Collection<UUID>): Map<UUID, UUID>
     {
-        if (factIds.isEmpty()) return emptyList()
-        return entityManager.createQuery(
-            "SELECT fact FROM InformationRequestAcceptedFact fact WHERE fact.supersedesFactId IN :factIds",
-            InformationRequestAcceptedFact::class.java,
-        )
-            .setParameter("factIds", factIds)
-            .resultList
+        if (factIds.isEmpty()) return emptyMap()
+        return entityManager.createNativeQuery(
+            "SELECT predecessor_fact_id, successor_fact_id FROM information_request_fact_supersession WHERE predecessor_fact_id IN :factIds",
+        ).setParameter("factIds", factIds).resultList.associate { result ->
+            val row = result as Array<*>
+            row[0] as UUID to row[1] as UUID
+        }
     }
+
+    fun reusableSourceRequestIds(requestIds: Collection<UUID>): Set<UUID> {
+        if (requestIds.isEmpty()) return emptySet()
+        return entityManager.createQuery(
+            """
+            SELECT request.id FROM InformationRequest request, Exchange exchange
+            WHERE request.id IN :requestIds AND exchange.id = request.exchangeId AND exchange.isDeleted = false
+            """.trimIndent(),
+            UUID::class.java,
+        ).setParameter("requestIds", requestIds).resultList.toSet()
+    }
+
+    fun correctedSourceItemIds(itemIds: Collection<UUID>): Set<UUID> {
+        if (itemIds.isEmpty()) return emptySet()
+        return entityManager.createQuery(
+            "SELECT correction.submissionItemId FROM InformationRequestItemCorrection correction WHERE correction.submissionItemId IN :itemIds",
+            UUID::class.java,
+        ).setParameter("itemIds", itemIds).resultList.toSet()
+    }
+
+
 }
 
 @ApplicationScoped

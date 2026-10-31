@@ -6,15 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * Names one requested Document that supports the answer to another requirement of the same
- * [InformationRequestTemplateVersion].
- *
- * The relation runs one way: the supported end is never a Document requirement and the supporting
- * end always is, so a chain of supporting evidence cannot close into a cycle. The Version is carried
- * alongside both ends so neither can reach outside the configuration that holds them, and so the
- * set freezes with it.
- */
 @Entity
 @Table(name = "information_request_template_binding_evidence_link")
 class InformationRequestTemplateBindingEvidenceLink

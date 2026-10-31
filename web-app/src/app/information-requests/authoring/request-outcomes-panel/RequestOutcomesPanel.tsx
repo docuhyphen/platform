@@ -1,29 +1,34 @@
 import {MessageBar, MessageBarBody, Spinner, Text, Title3} from "@fluentui/react-components";
-import {InformationRequestState} from "../../../models/models.tsx";
+import {InformationRequestPartyDto} from "../../../models/models.tsx";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
 import AcceptedFactsSection from "../accepted-facts-section/AcceptedFactsSection.tsx";
 import BusinessDecisionsSection from "../business-decisions-section/BusinessDecisionsSection.tsx";
 import ItemCorrectionsSection from "../item-corrections-section/ItemCorrectionsSection.tsx";
+import {useRecordedCorrections} from "../item-corrections-section/useRecordedCorrections.ts";
+import {OutcomeActionPermissions} from "../author-workspace-content/authorActionPermissions.ts";
 import {useRequestOutcomes} from "./useRequestOutcomes.ts";
 import {useRequestOutcomesPanelStyles} from "./RequestOutcomesPanelStyles.tsx";
 
 interface Props
 {
     requestId: string;
-    state: InformationRequestState;
+    permissions: OutcomeActionPermissions;
     prompts: Record<string, string>;
-    subjectId?: string;
+    promptsByKey: Record<string, string>;
+    subjects: InformationRequestPartyDto[];
     canCorrect: boolean;
 }
 
-const FACT_STATES = new Set([InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS, InformationRequestState.CLOSED]);
-
-const RequestOutcomesPanel = ({requestId, state, prompts, subjectId, canCorrect}: Props) =>
+const RequestOutcomesPanel = ({requestId, permissions, prompts, promptsByKey, subjects, canCorrect}: Props) =>
 {
     const styles = useRequestOutcomesPanelStyles();
     const outcomes = useRequestOutcomes(requestId);
+    const recorded = useRecordedCorrections(requestId, canCorrect ? subjects : []);
+    const correctedItemIds = new Set(recorded.corrections.map(correction => correction.submissionItemId));
     const labelOf = (requirementId: string, requirementKey?: string): string =>
-        prompts[requirementId] ?? (requirementKey ? humanizedKey(requirementKey) : "Requested item");
+        prompts[requirementId]
+        ?? (requirementKey ? promptsByKey[requirementKey] ?? humanizedKey(requirementKey) : "Requested item");
 
     return (
         <section id={"information-request-outcomes"}
@@ -37,8 +42,13 @@ const RequestOutcomesPanel = ({requestId, state, prompts, subjectId, canCorrect}
                 <MessageBar id={"information-request-outcomes-error"}
                             intent={"error"}
                             role={"alert"}>
-                    <MessageBarBody>{outcomes.error}</MessageBarBody>
+                    <MessageBarBody id={"information-request-outcomes-error-body"}>{outcomes.error}</MessageBarBody>
                 </MessageBar>
+            )}
+            {outcomes.loadError && (
+                <InformationRequestLoadError id={"information-request-outcomes-load-error"}
+                                             message={outcomes.loadError}
+                                             onRetry={() => void outcomes.reload()}/>
             )}
             <Text id={"information-request-outcomes-status"}
                   role={"status"}
@@ -52,17 +62,21 @@ const RequestOutcomesPanel = ({requestId, state, prompts, subjectId, canCorrect}
             )}
             {outcomes.loaded && outcomes.canManage && (
                 <AcceptedFactsSection outcomes={outcomes}
+                                      subjects={subjects}
+                                      correctedItemIds={correctedItemIds}
                                       labelOf={labelOf}
-                                      editable={FACT_STATES.has(state)}/>
+                                      promotable={permissions.promote}
+                                      revocable={permissions.revoke}/>
             )}
-            {outcomes.loaded && canCorrect && subjectId && (
+            {outcomes.loaded && canCorrect && subjects.length > 0 && (
                 <ItemCorrectionsSection outcomes={outcomes}
-                                        subjectId={subjectId}
+                                        subjects={subjects}
+                                        recorded={recorded}
                                         labelOf={labelOf}/>
             )}
-            {outcomes.loaded && (
+            {outcomes.loaded && outcomes.decisionsVisible && (
                 <BusinessDecisionsSection outcomes={outcomes}
-                                          editable={outcomes.canManage && state !== InformationRequestState.DRAFT}/>
+                                          editable={permissions.decide && outcomes.canManage}/>
             )}
         </section>
     );

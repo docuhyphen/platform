@@ -1,30 +1,35 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.model.blueprint.BlueprintInformationRequestInstantiationSnapshot
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.BlueprintFieldDefaultsCommand
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestMaterializationResult
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.creation.InformationRequestDocumentPlaceholderRepository
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
-import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
-import com.docuhyphen.app.api.service.blueprint.BlueprintInformationRequestInstantiationSnapshot
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.fields.BlueprintFieldDefaultsCommand
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
+import com.docuhyphen.app.api.service.informationrequest.creation.model.BlueprintInstantiationFixture
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyMaterializationService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
+import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
@@ -44,6 +49,25 @@ class InformationRequestBlueprintInstantiationServiceTest
         PrincipalRef.user(actorId),
         AuthorizationContext(activeOrgId = organizationId),
     )
+
+    @Test
+    fun `a retried Blueprint instantiation answers the request with the ETag it has after a later change`() {
+        val fixture = fixture()
+        val command = CreateInformationRequestFromBlueprintCommand(
+            blueprintDefinitionId = blueprintId,
+            exchangeId = exchangeId,
+            access = access,
+            idempotencyKey = "create-from-blueprint-before-a-later-change",
+        )
+        val first = fixture.service.createFromBlueprint(command)
+        fixture.savedRequests.single().aggregateRevision += 1
+
+        val replay = fixture.service.createFromBlueprint(command)
+
+        assertNotEquals(first.requestETag, replay.requestETag)
+        assertEquals(InformationRequestETag.aggregateOf(fixture.savedRequests.single()), replay.requestETag)
+        assertEquals(1, fixture.savedRequests.size)
+    }
 
     @Test
     fun `blueprint instantiation pins the named version snapshots defaults and replays the command result`()
@@ -66,10 +90,11 @@ class InformationRequestBlueprintInstantiationServiceTest
         assertEquals(templateVersionId, first.request.templateVersionId)
         assertEquals(InformationRequestOwnerType.ORGANIZATION, first.request.ownerType)
         assertEquals(organizationId, first.request.ownerOrganizationId)
-        assertEquals(actorId, first.request.createdByAppUserId)
+        assertEquals(PrincipalKind.USER, first.request.createdByPrincipalKind)
+        assertEquals(actorId, first.request.createdByPrincipalId)
 
         val partyDefaults = argumentCaptor<List<BlueprintInformationRequestPartyDefault>>()
-        verify(fixture.partyService).materializeBlueprintDefaultParties(
+        verify(fixture.partyMaterialization).materializeBlueprintDefaultParties(
             eq(first.request),
             partyDefaults.capture(),
             eq(access),
@@ -82,7 +107,7 @@ class InformationRequestBlueprintInstantiationServiceTest
         assertEquals(contributorId, partyDefaults.firstValue.first().principal.id)
 
         val fieldDefaults = argumentCaptor<BlueprintFieldDefaultsCommand>()
-        verify(fixture.schemaAssignmentService).applyBlueprintFieldDefaults(fieldDefaults.capture())
+        verify(fixture.schemaAssignmentService).applyBlueprintFieldDefaultsForCreation(fieldDefaults.capture())
         assertEquals(ResourceType.INFORMATION_REQUEST.name, fieldDefaults.firstValue.resource.resourceType)
         assertEquals(first.request.id, fieldDefaults.firstValue.resource.resourceId)
         assertEquals(fieldDefinitionId, fieldDefaults.firstValue.defaults.single().fieldDefinitionId)
@@ -161,20 +186,29 @@ class InformationRequestBlueprintInstantiationServiceTest
         verify(fixture.placeholderRepository, never()).save(any())
     }
 
-    private data class Fixture(
-        val service: InformationRequestBlueprintInstantiationService,
-        val blueprintService: BlueprintDefinitionService,
-        val requestRepository: InformationRequestRepository,
-        val placeholderRepository: InformationRequestDocumentPlaceholderRepository,
-        val partyService: InformationRequestPartyService,
-        val schemaAssignmentService: SchemaAssignmentService,
-        val authorizationService: AuthorizationService,
-        val entitlementGuard: InformationRequestEntitlementGuard,
-        val savedRequests: MutableList<InformationRequest>,
-        val savedPlaceholders: MutableList<InformationRequestDocumentPlaceholder>,
-    )
+    @Test
+    fun `a caller who may not create on the Exchange learns nothing about the owner's plan`() {
+        val fixture = fixture()
+        whenever(fixture.entitlementGuard.requireRequestCreation(any())).thenThrow(IllegalStateException("past due"))
+        whenever(fixture.authorizationService.authorize(any(), eq(Action.INFORMATION_REQUEST_CREATE), any(), any()))
+            .thenReturn(Decision.Deny("DENIED", "denied"))
 
-    private fun fixture(): Fixture
+        assertThrows<ForbiddenException> {
+            fixture.service.createFromBlueprint(
+                CreateInformationRequestFromBlueprintCommand(
+                    blueprintDefinitionId = blueprintId,
+                    exchangeId = exchangeId,
+                    access = access,
+                    idempotencyKey = "create-by-an-outsider",
+                ),
+            )
+        }
+
+        verify(fixture.entitlementGuard, never()).requireRequestCreation(any())
+        assertTrue(fixture.savedRequests.isEmpty())
+    }
+
+    private fun fixture(): BlueprintInstantiationFixture
     {
         val exchange = Exchange().apply {
             id = exchangeId
@@ -182,8 +216,8 @@ class InformationRequestBlueprintInstantiationServiceTest
             status = ExchangeStatus.ACCEPTED_STARTED
             isDeleted = false
         }
-        val exchangeRepository = mock<ExchangeRepository>()
-        whenever(exchangeRepository.findByIdForUpdate(exchangeId)).thenReturn(exchange)
+        val exchangeLookup = mock<ExchangeLookupService>()
+        whenever(exchangeLookup.lockExchangeForUpdate(exchangeId)).thenReturn(exchange)
 
         val blueprintService = mock<BlueprintDefinitionService>()
         whenever(
@@ -225,7 +259,7 @@ class InformationRequestBlueprintInstantiationServiceTest
             InformationRequestMaterializationResult(requirementCount = 2),
         )
 
-        val partyService = mock<InformationRequestPartyService>()
+        val partyMaterialization = mock<InformationRequestPartyMaterializationService>()
         val schemaAssignmentService = mock<SchemaAssignmentService>()
         val entitlementGuard = mock<InformationRequestEntitlementGuard>()
         val transitionHistory = mock<InformationRequestTransitionHistoryService>()
@@ -240,24 +274,27 @@ class InformationRequestBlueprintInstantiationServiceTest
             }
         }
 
-        return Fixture(
+        return BlueprintInstantiationFixture(
             service = InformationRequestBlueprintInstantiationService(
-                exchangeRepository = exchangeRepository,
+                exchangeLookup = exchangeLookup,
                 requestRepository = requestRepository,
                 placeholderRepository = placeholderRepository,
                 blueprintService = blueprintService,
-                partyService = partyService,
+                partyMaterialization = partyMaterialization,
                 schemaAssignmentService = schemaAssignmentService,
                 materializer = materializer,
                 authorizationService = authorizationService,
-                commandReceiptService = CommandReceiptService(InMemoryBlueprintCommandReceiptStore()),
+                commandReceiptService = CommandReceiptService(
+                    InMemoryBlueprintCommandReceiptStore(),
+                    CommandReceiptScope()
+                ),
                 transitionHistory = transitionHistory,
                 entitlementGuard = entitlementGuard,
             ),
             blueprintService = blueprintService,
             requestRepository = requestRepository,
             placeholderRepository = placeholderRepository,
-            partyService = partyService,
+            partyMaterialization = partyMaterialization,
             schemaAssignmentService = schemaAssignmentService,
             authorizationService = authorizationService,
             entitlementGuard = entitlementGuard,
@@ -313,14 +350,16 @@ private class InMemoryBlueprintCommandReceiptStore : CommandReceiptStore
 {
     private val receipts = mutableListOf<CommandReceipt>()
 
+    override fun lockCommand(request: CommandReceiptRequest) = Unit
+
     override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
         receipts.firstOrNull {
             it.resourceType == request.resource.type &&
-                it.resourceId == request.resource.id &&
-                it.operationName == request.operation &&
-                it.actorKind == request.actor.kind &&
-                it.actorId == request.actor.id &&
-                it.idempotencyKey == request.idempotencyKey
+                    it.resourceId == request.resource.id &&
+                    it.operationName == request.operation &&
+                    it.actorKind == request.actor.kind &&
+                    it.actorId == request.actor.id &&
+                    it.idempotencyKey == request.idempotencyKey
         }
 
     override fun insert(receipt: CommandReceipt): CommandReceipt

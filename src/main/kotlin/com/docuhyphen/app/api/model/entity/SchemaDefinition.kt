@@ -5,11 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The stable identity of a configurable business concept for a resource type (for example
- * `acme:customer-case`). Live mutable field rules belong to a [SchemaVersion], not here.
- * See FIELDS-FEATURE.md "Schema Definition".
- */
 @Entity
 @Table(name = "schema_definition")
 class SchemaDefinition
@@ -24,7 +19,6 @@ class SchemaDefinition
     @Column(name = "scope_org_id", nullable = true)
     var scopeOrgId: UUID? = null
 
-    /** Set when [scopeKind] is PERSONAL; the one user who owns this definition. */
     @Column(name = "scope_user_id", nullable = true)
     var scopeUserId: UUID? = null
 
@@ -40,11 +34,6 @@ class SchemaDefinition
     @Column(name = "description", nullable = true, length = 1024)
     var description: String? = null
 
-    /**
-     * The kind of resource this definition is written for. Every writer states it, because more
-     * than one kind can be written for and defaulting to any of them would silently mislabel the
-     * others. The stored codes are the ones the schema target registry declares.
-     */
     @Column(name = "target_resource_type", nullable = false, length = 48)
     lateinit var targetResourceType: String
 

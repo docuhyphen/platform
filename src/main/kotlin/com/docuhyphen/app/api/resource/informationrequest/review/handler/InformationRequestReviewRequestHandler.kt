@@ -64,11 +64,11 @@ class InformationRequestReviewRequestHandler(
                 reviewerPartyId = body.reviewerPartyId,
                 dueAt = body.dueAt?.toInstant(),
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.CREATED, result)
+        return commandResponse(Response.Status.CREATED, result, access)
     }
 
     @Suppress("LongParameterList")
@@ -93,11 +93,11 @@ class InformationRequestReviewRequestHandler(
                 narrative = request?.narrative,
                 delegatePartyId = request?.delegatePartyId,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.OK, result)
+        return commandResponse(Response.Status.OK, result, access)
     }
 
     fun saveWorksheet(
@@ -124,7 +124,7 @@ class InformationRequestReviewRequestHandler(
                     InformationRequestReviewDraftPatch(it.submissionItemId, it.outcome, it.narrative, it.clear)
                 },
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
             ),
         )
         return Response.ok(InformationRequestReviewDtoMapper.toDto(result)).header("ETag", result.draftETag).build()
@@ -145,11 +145,11 @@ class InformationRequestReviewRequestHandler(
                 reviewId = reviewId,
                 assignmentId = assignmentId,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.OK, result)
+        return commandResponse(Response.Status.OK, result, access)
     }
 
     @Suppress("LongParameterList")
@@ -173,11 +173,11 @@ class InformationRequestReviewRequestHandler(
                 outcome = body.outcome,
                 narrative = body.narrative,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.CREATED, result)
+        return commandResponse(Response.Status.CREATED, result, access)
     }
 
     fun finding(
@@ -195,6 +195,7 @@ class InformationRequestReviewRequestHandler(
                 requestId = requestId,
                 reviewId = reviewId,
                 submissionItemId = body.submissionItemId,
+                assignmentId = body.assignmentId,
                 evidenceVersionId = body.evidenceVersionId,
                 reasonCode = body.reasonCode,
                 narrative = body.narrative,
@@ -207,7 +208,7 @@ class InformationRequestReviewRequestHandler(
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.CREATED, result)
+        return commandResponse(Response.Status.CREATED, result, access)
     }
 
     fun comment(
@@ -233,7 +234,7 @@ class InformationRequestReviewRequestHandler(
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.CREATED, result)
+        return commandResponse(Response.Status.CREATED, result, access)
     }
 
     @Suppress("LongParameterList")
@@ -256,18 +257,27 @@ class InformationRequestReviewRequestHandler(
                 kind = kind,
                 reason = body.reason,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )
-        return commandResponse(Response.Status.CREATED, result)
+        return commandResponse(Response.Status.CREATED, result, access)
     }
 
-    private fun commandResponse(status: Response.Status, result: InformationRequestReviewCommandResult): Response
+    private fun commandResponse(
+        status: Response.Status,
+        result: InformationRequestReviewCommandResult,
+        access: RequestAccessContext,
+    ): Response
     {
         val (packageNumber, stageKey) = queries.packagePosition(result.review)
         return Response.status(status)
-            .entity(InformationRequestReviewDtoMapper.toDto(result, packageNumber, stageKey))
+            .entity(
+                InformationRequestReviewDtoMapper.toDto(
+                    result, packageNumber, stageKey,
+                    queries.commandOpeningReasonVisible(result.review, access)
+                )
+            )
             .header("ETag", result.reviewETag)
             .build()
     }

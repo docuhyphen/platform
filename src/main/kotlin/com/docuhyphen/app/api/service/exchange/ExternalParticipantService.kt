@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExternalParticipant
+import com.docuhyphen.app.api.model.exchange.ExternalParticipantOwner
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -8,12 +9,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-sealed class ExternalParticipantOwner
-{
-    data class Organization(val organizationId: UUID) : ExternalParticipantOwner()
-    data class Personal(val userId: UUID) : ExternalParticipantOwner()
-}
 
 @ApplicationScoped
 class ExternalParticipantService @Inject constructor(
@@ -28,18 +23,12 @@ class ExternalParticipantService @Inject constructor(
     ): ExternalParticipant
     {
         val normalized = normalizeEmail(email)
+        repository.lockOwnerEmail(owner.organizationIdOrNull(), owner.userIdOrNull(), normalized)
         repository.findByOwnerAndEmail(
             ownerOrganizationId = owner.organizationIdOrNull(),
             ownerAppUserId = owner.userIdOrNull(),
             email = normalized,
-        )?.let { existing ->
-            if (!existing.isActive)
-            {
-                existing.isActive = true
-                return repository.update(existing)
-            }
-            return existing
-        }
+        )?.let { return it }
 
         return repository.save(
             ExternalParticipant().apply {
@@ -70,6 +59,8 @@ class ExternalParticipantService @Inject constructor(
         participant.lastSeenAt = timestamp
         return repository.update(participant)
     }
+
+    fun findById(participantId: UUID): ExternalParticipant? = repository.findById(participantId)
 
     fun findOwned(participantId: UUID, owner: ExternalParticipantOwner): ExternalParticipant?
     {

@@ -15,7 +15,7 @@ interface InformationRequestRefreshRuleResourceOperations
     @POST
     fun define(
         @PathParam("id") id: String,
-        request: DefineInformationRequestRefreshRuleRequest,
+        request: DefineInformationRequestRefreshRuleRequest?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response

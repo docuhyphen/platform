@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
@@ -8,7 +9,10 @@ import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthRateLimitService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -39,6 +43,8 @@ internal class ExchangeInitiationAutoAcceptFixture
     val emailTemplateService: EmailTemplateService = mock()
     val recipientSelectionResolver: ExchangeRecipientSelectionResolver = mock()
     val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService = mock()
+    val blueprintInformationRequestStarter: ExchangeBlueprintInformationRequestStarter = mock()
+    val shareService: ShareService = mock()
     val service: ExchangeInitiationService
 
     init
@@ -59,7 +65,6 @@ internal class ExchangeInitiationAutoAcceptFixture
         val authorizationService = mock<AuthorizationService>()
         val appUserService = mock<AppUserService>()
         val organizationService = mock<OrganizationService>()
-        val shareService = mock<ShareService>()
         val templateInterpolator = mock<TemplateVariableInterpolator>()
         val configurationService = mock<ConfigurationService>()
         val entityManager = mock<EntityManager>()
@@ -120,12 +125,16 @@ internal class ExchangeInitiationAutoAcceptFixture
         whenever(recipientService.createBinding(any(), any(), any(), any(), any(), any()))
             .thenReturn(ExchangeRecipient())
         whenever(configurationService.emailSubjectTitle).thenReturn("DocuHyphen")
-        whenever(emailTemplateService.renderExchangeCreatedRecipientEmail(
-            any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(),
-        )).thenReturn("Recipient message")
-        whenever(emailTemplateService.renderExchangeCreatedInitiatorEmail(
-            any(), any(), any(), any(),
-        )).thenReturn("Initiator message")
+        whenever(
+            emailTemplateService.renderExchangeCreatedRecipientEmail(
+                any(), any(), any(), anyOrNull(), anyOrNull(), any(), any(), anyOrNull(), anyOrNull(),
+            )
+        ).thenReturn("Recipient message")
+        whenever(
+            emailTemplateService.renderExchangeCreatedInitiatorEmail(
+                any(), any(), any(), any(),
+            )
+        ).thenReturn("Initiator message")
 
         service = ExchangeInitiationService(
             exchangeRepository = exchangeRepository,
@@ -158,6 +167,7 @@ internal class ExchangeInitiationAutoAcceptFixture
             noAuthExchangeAccessTokenService = mock<NoAuthExchangeAccessTokenService>(),
             exchangeNotificationDeliveryService = exchangeNotificationDeliveryService,
             exchangeInitiationSubscriptionGuard = mock<ExchangeInitiationSubscriptionGuard>(),
+            blueprintInformationRequestStarter = blueprintInformationRequestStarter,
         )
         ExchangeInitiationService::class.java.getDeclaredField("entityManager").apply {
             isAccessible = true
@@ -169,6 +179,8 @@ internal class ExchangeInitiationAutoAcceptFixture
         primaryRecipient: ExchangeRecipientSelectionRequest =
             RegisteredUserRecipientSelectionRequest(recipient.id.toString()),
         requestRecipientSignIn: Boolean = false,
+        documents: List<ExchangeRequestDocumentRequest> = listOf(requestedDocument()),
+        blueprintDefinitionId: UUID? = null,
     ): Exchange
     {
         if (primaryRecipient is ExternalEmailRecipientSelectionRequest)
@@ -187,18 +199,20 @@ internal class ExchangeInitiationAutoAcceptFixture
                 ),
             )
         }
-        val document = ExchangeRequestDocumentRequest().apply {
-            title = "Requested document"
-            required = true
-        }
         return service.initiateExchange(
             ExchangeInitiationDto(
                 name = "Auto-start Exchange",
                 primaryRecipient = primaryRecipient,
                 requestRecipientSignIn = requestRecipientSignIn,
-                exchangeDocuments = listOf(document),
+                exchangeDocuments = documents,
+                blueprintDefinitionId = blueprintDefinitionId,
             ),
         )
+    }
+
+    private fun requestedDocument(): ExchangeRequestDocumentRequest = ExchangeRequestDocumentRequest().apply {
+        title = "Requested document"
+        required = true
     }
 
     private fun appUser(emailAddress: String): AppUser = AppUser().apply {

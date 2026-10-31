@@ -1,18 +1,20 @@
 package com.docuhyphen.app.api.service.informationrequest.condition
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
-import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionSnapshot
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
-import com.docuhyphen.app.api.service.fields.CanonicalValueCodec
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestDocumentFileCompletion
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStore
@@ -30,16 +32,16 @@ class InformationRequestConditionEvaluationService @Inject constructor(
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
     private val responseStore: InformationRequestResponseStore,
-    private val schemaAssignmentRepository: SchemaAssignmentRepository,
-    private val fieldValueSetRepository: FieldValueSetRepository,
-    private val fieldValueRepository: FieldValueRepository,
-    private val fieldValueSelectionRepository: FieldValueSelectionRepository,
-    private val fieldContractRepository: FieldContractRepository,
+    private val fieldValueReader: InformationRequestCanonicalFieldValueReader,
     private val templateProjectionLoader: InformationRequestTemplateProjectionLoader,
     private val evaluator: InformationRequestConditionEvaluator,
+    private val documentFiles: InformationRequestDocumentFileCompletion,
 )
 {
-    fun evaluate(requestId: UUID): List<InformationRequestConditionEvaluationProjection>
+    fun evaluate(requestId: UUID): List<InformationRequestConditionEvaluationProjection> =
+        snapshot(requestId).evaluations
+
+    fun snapshot(requestId: UUID): InformationRequestConditionSnapshot
     {
         val request = requestRepository.findById(requestId)
             ?: throw InformationRequestLifecycleException(
@@ -47,16 +49,88 @@ class InformationRequestConditionEvaluationService @Inject constructor(
                 "Information Request not found",
             )
         val rules = templateProjectionLoader.loadConditionRules(request.templateVersionId)
-        if (rules.isEmpty()) return emptyList()
+        if (rules.isEmpty()) return InformationRequestConditionSnapshot(emptyList())
 
         val activeOccurrencePaths = occurrenceRepository.findForRequest(requestId).map { it.occurrencePath }.toSet()
         val requirements = requirementRepository.findForRequest(requestId)
             .filter { InformationRequestOccurrencePath.isActiveOccurrence(it.occurrencePath, activeOccurrencePaths) }
-        val scopesByRuleKey = scopesByRuleKey(request.templateVersionId, requirements)
+        val bindingsById = bindingRepository.findOrdered(request.templateVersionId).associateBy { it.id }
+        val governingRules = requirements
+            .mapNotNull { requirement ->
+                InformationRequestGoverningCondition.ruleKeyOf(bindingsById[requirement.sourceTemplateBindingId])
+                    ?.let { requirement.id to it }
+            }
+            .toMap()
+        val scopesByRuleKey = requirements
+            .filter { it.id in governingRules }
+            .groupBy({ governingRules.getValue(it.id) }, { it.occurrencePath })
+            .mapValues { (_, paths) -> paths.distinct().sorted() }
         val scopes = scopesByRuleKey.values.flatten().toSet() + InformationRequestOccurrencePath.ROOT
-        val fieldValuesByScope = fieldValuesByScope(requestId, scopes)
-        val dispositionsByScope = dispositionsByScope(requestId, request.templateVersionId, requirements, scopes)
+        val storedValues = fieldValueReader.valuesByOccurrencePath(
+            requestId,
+            scopes.flatMap { occurrenceScopePaths(it) }.toSet() + InformationRequestOccurrencePath.ROOT,
+        )
+        val responsesByRequirement = responseStore.findAllForRequest(requestId)
+            .associateBy { it.informationRequestRequirementId }
+        val hiddenEnvelopes = requirements
+            .filter { it.id in governingRules && responsesByRequirement[it.id]?.activeInResponse == false }
+            .map { it.id }
+            .toSet()
+        val templateRequirementsById = templateRequirementsOf(request.templateVersionId)
+        val requirementKeyById =
+            templateRequirementsById.mapValues { (_, templateRequirement) -> templateRequirement.requirementKey }
+        val documentsFiledComplete = documentsCompletedByOwnFiles(rules, requirements, templateRequirementsById)
+        val round = { inactive: Set<UUID> ->
+            evaluateRound(
+                rules = rules,
+                scopesByRuleKey = scopesByRuleKey,
+                scopes = scopes,
+                fieldValuesByOccurrencePath = InformationRequestActiveFieldValues.withoutInactiveFields(
+                    storedValues,
+                    requirements,
+                    inactive,
+                    bindingsById,
+                ),
+                dispositionsByScope = dispositionsByScope(
+                    requirements,
+                    requirementKeyById,
+                    responsesByRequirement,
+                    inactive,
+                    scopes,
+                    documentsFiledComplete,
+                ),
+            )
+        }
 
+        var inactive = hiddenEnvelopes
+        var evaluations = round(inactive)
+        repeat(governingRules.size + 1) {
+            val next = hiddenEnvelopes + requirements
+                .filter { requirement ->
+                    governingRules[requirement.id]?.let { ruleKey ->
+                        stateAt(
+                            evaluations,
+                            ruleKey,
+                            requirement.occurrencePath
+                        ) != InformationRequestConditionEvaluationState.TRUE
+                    } == true
+                }
+                .map { it.id }
+            if (next == inactive) return InformationRequestConditionSnapshot(evaluations, inactive)
+            inactive = next
+            evaluations = round(inactive)
+        }
+        return InformationRequestConditionSnapshot(evaluations, inactive)
+    }
+
+    private fun evaluateRound(
+        rules: List<InformationRequestTemplateConditionRuleDto>,
+        scopesByRuleKey: Map<String, List<String>>,
+        scopes: Set<String>,
+        fieldValuesByOccurrencePath: Map<String, Map<UUID, CanonicalFieldValue?>>,
+        dispositionsByScope: Map<String, Map<String, InformationRequestResponseDisposition?>>,
+    ): List<InformationRequestConditionEvaluationProjection> {
+        val fieldValuesByScope = scopes.associateWith { scope -> overlay(scope, fieldValuesByOccurrencePath) }
         return rules.flatMap { rule ->
             val evaluationRequest = InformationRequestTemplateDtoMapper.toEvaluationRequest(rule)
             val ruleScopes = scopesByRuleKey[rule.ruleKey] ?: listOf(InformationRequestOccurrencePath.ROOT)
@@ -71,96 +145,74 @@ class InformationRequestConditionEvaluationService @Inject constructor(
         }
     }
 
-    /**
-     * The occurrence paths each rule has to be answered for, being the paths of the runtime
-     * Requirements that name it. A rule no Requirement names is answered once at the root.
-     */
-    private fun scopesByRuleKey(
-        templateVersionId: UUID,
-        requirements: List<InformationRequestRequirement>,
-    ): Map<String, List<String>>
-    {
-        val ruleKeyByBindingId = bindingRepository.findOrdered(templateVersionId)
-            .mapNotNull { binding -> binding.conditionalRuleKey?.let { binding.id to it } }
-            .toMap()
-        if (ruleKeyByBindingId.isEmpty()) return emptyMap()
-        return requirements
-            .mapNotNull { requirement ->
-                ruleKeyByBindingId[requirement.sourceTemplateBindingId]?.let { it to requirement.occurrencePath }
-            }
-            .groupBy({ it.first }, { it.second })
-            .mapValues { (_, paths) -> paths.distinct().sorted() }
-    }
+    private fun stateAt(
+        evaluations: List<InformationRequestConditionEvaluationProjection>,
+        ruleKey: String,
+        occurrencePath: String,
+    ): InformationRequestConditionEvaluationState? =
+        (evaluations.firstOrNull { it.ruleKey == ruleKey && it.occurrencePath == occurrencePath }
+            ?: evaluations.firstOrNull { it.ruleKey == ruleKey && InformationRequestOccurrencePath.isRoot(it.occurrencePath) })
+            ?.state
 
-    /**
-     * Values visible from each occurrence, being that occurrence's own Value Set laid over the root
-     * set so a predicate on a root-collected Field still resolves while inside a repeated group.
-     */
-    private fun fieldValuesByScope(
-        requestId: UUID,
-        scopes: Set<String>,
-    ): Map<String, Map<UUID, CanonicalFieldValue?>>
-    {
-        val assignment = schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, requestId)
-            ?: return emptyMap()
-        val rootValues = fieldValueSetRepository.findRoot(assignment.id)
-            ?.let { canonicalValues(it.id) }
-            .orEmpty()
-        return scopes.associateWith { scope ->
-            if (InformationRequestOccurrencePath.isRoot(scope))
-                rootValues
-            else
-                occurrenceScopePaths(scope).fold(rootValues) { values, occurrencePath ->
-                    values + fieldValueSetRepository.findOccurrence(assignment.id, occurrencePath)
-                        ?.let { canonicalValues(it.id) }
-                        .orEmpty()
-                }
+    private fun overlay(
+        scope: String,
+        valuesByOccurrencePath: Map<String, Map<UUID, CanonicalFieldValue?>>,
+    ): Map<UUID, CanonicalFieldValue?> =
+        occurrenceScopePaths(scope).fold(valuesByOccurrencePath[InformationRequestOccurrencePath.ROOT].orEmpty()) { values, path ->
+            values + valuesByOccurrencePath[path].orEmpty()
         }
+
+    private fun templateRequirementsOf(templateVersionId: UUID): Map<UUID, InformationRequestTemplateRequirement> {
+        val version = templateVersionRepository.findById(templateVersionId) ?: return emptyMap()
+        return templateRequirementRepository
+            .findAllByDefinition(version.templateDefinitionId)
+            .associateBy { it.id }
     }
 
-    private fun canonicalValues(valueSetId: UUID): Map<UUID, CanonicalFieldValue?>
-    {
-        val values = fieldValueRepository.findByValueSet(valueSetId)
-        if (values.isEmpty()) return emptyMap()
-        val fieldDefinitionIdByContractId = fieldContractRepository
-            .findByIds(values.map { it.fieldContractId }.distinct())
-            .associate { it.id to it.fieldDefinitionId }
-        return values.mapNotNull { value ->
-            fieldDefinitionIdByContractId[value.fieldContractId]?.let { fieldDefinitionId ->
-                fieldDefinitionId to CanonicalValueCodec.toCanonical(value, selectionCodes(value))
-            }
-        }.toMap()
-    }
-
-    /**
-     * Dispositions readable from each occurrence. A source Requirement answered once per occurrence
-     * resolves to that occurrence's own answer, a root-collected source resolves to its single
-     * answer, and a source that resolves to several answers from this occurrence is left out so the
-     * predicate stays unknown instead of picking one arbitrarily.
-     */
-    private fun dispositionsByScope(
-        requestId: UUID,
-        templateVersionId: UUID,
+    private fun documentsCompletedByOwnFiles(
+        rules: List<InformationRequestTemplateConditionRuleDto>,
         requirements: List<InformationRequestRequirement>,
+        templateRequirementsById: Map<UUID, InformationRequestTemplateRequirement>,
+    ): Set<UUID>
+    {
+        val sourceKeys = rules.flatMap { it.predicates }.mapNotNull { it.sourceRequirementKey }.toSet()
+        if (sourceKeys.isEmpty()) return emptySet()
+        return requirements
+            .filter { requirement ->
+                templateRequirementsById[requirement.sourceTemplateRequirementId]?.let { templateRequirement ->
+                    templateRequirement.requirementKey in sourceKeys &&
+                            templateRequirement.requirementType == InformationRequestRequirementType.DOCUMENT
+                } == true
+            }
+            .filter(documentFiles::completedByOwnFiles)
+            .map { it.id }
+            .toSet()
+    }
+
+    private fun dispositionsByScope(
+        requirements: List<InformationRequestRequirement>,
+        requirementKeyById: Map<UUID, String>,
+        responsesByRequirement: Map<UUID, InformationRequestResponse>,
+        inactive: Set<UUID>,
         scopes: Set<String>,
+        documentsFiledComplete: Set<UUID>,
     ): Map<String, Map<String, InformationRequestResponseDisposition?>>
     {
         if (requirements.isEmpty()) return emptyMap()
-        val version = templateVersionRepository.findById(templateVersionId) ?: return emptyMap()
-        val requirementKeyById = templateRequirementRepository
-            .findAllByDefinition(version.templateDefinitionId)
-            .associate { it.id to it.requirementKey }
-        val dispositionByRequirementId = responseStore.findCurrentForRequest(requestId)
-            .associate { it.informationRequestRequirementId to it.disposition }
         val answersByRequirementKey = requirements
             .mapNotNull { requirement ->
                 requirementKeyById[requirement.sourceTemplateRequirementId]?.let { key ->
-                    key to (
-                            requirement.occurrencePath to (
-                                    dispositionByRequirementId[requirement.id]
-                                        ?: InformationRequestResponseDisposition.NOT_ANSWERED
-                                    )
-                            )
+                    val stated = responsesByRequirement[requirement.id]
+                        ?.takeIf { it.activeInResponse && requirement.id !in inactive }
+                        ?.disposition
+                    val disposition = when {
+                        stated != null && stated != InformationRequestResponseDisposition.NOT_ANSWERED -> stated
+                        requirement.id !in inactive && requirement.id in documentsFiledComplete ->
+                            InformationRequestResponseDisposition.PROVIDED
+
+                        else -> InformationRequestResponseDisposition.NOT_ANSWERED
+                    }
+                    key to (requirement.occurrencePath to disposition)
                 }
             }
             .groupBy({ it.first }, { it.second })
@@ -197,10 +249,4 @@ class InformationRequestConditionEvaluationService @Inject constructor(
             segments.take(index + 1).joinToString("/")
         }
     }
-
-    private fun selectionCodes(value: FieldValue): List<String> =
-        if (value.valueType == FieldValueType.SINGLE_SELECT || value.valueType == FieldValueType.MULTI_SELECT)
-            fieldValueSelectionRepository.findByValue(value.id).map { it.optionCode }
-        else
-            emptyList()
 }

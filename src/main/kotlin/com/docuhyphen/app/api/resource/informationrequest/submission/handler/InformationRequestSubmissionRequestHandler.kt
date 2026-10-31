@@ -56,7 +56,7 @@ class InformationRequestSubmissionRequestHandler(
             requestId = requestId,
             stageKey = stageKey?.trim()?.ifBlank { null },
             access = access,
-            precondition = CommandPreconditionHeader.required(ifMatch),
+            precondition = CommandPreconditionHeader.requiredExact(ifMatch),
             idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
         )
         return commandResponse(Response.Status.CREATED, submissionService.submit(command), access)
@@ -76,7 +76,7 @@ class InformationRequestSubmissionRequestHandler(
             packageId = packageId,
             reasonCode = reasonCode?.trim()?.ifBlank { null },
             access = access,
-            precondition = CommandPreconditionHeader.required(ifMatch),
+            precondition = CommandPreconditionHeader.requiredExact(ifMatch),
             idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
         )
         return commandResponse(Response.Status.OK, submissionService.withdraw(command), access)

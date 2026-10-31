@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {NotificationDto} from '../../../../models/models.tsx';
-import {getNotificationMessage} from './notificationPresentation.ts';
+import {getNotificationMessage, getNotificationTitle} from './notificationPresentation.ts';
 
 const notification = (overrides: Partial<NotificationDto>): NotificationDto => ({
     id: 'notification-1',
@@ -10,6 +10,12 @@ const notification = (overrides: Partial<NotificationDto>): NotificationDto => (
     isRead: false,
     data: {},
     ...overrides,
+});
+
+describe('getNotificationTitle', () => {
+    it('names a refused Exchange ending instead of a generic title', () => {
+        expect(getNotificationTitle('exchange.ending_refused')).toBe('Exchange Not Ended');
+    });
 });
 
 describe('getNotificationMessage', () =>
@@ -43,12 +49,12 @@ describe('getNotificationMessage', () =>
             data: {
                 commenterName: 'Jane Doe',
                 documentName: 'Signed agreement.pdf',
-                exchangeName: 'Supplier onboarding',
+                exchangeName: 'Project kickoff',
             },
         }));
 
         expect(message).toBe(
-            'Jane Doe commented on "Signed agreement.pdf" in Exchange "Supplier onboarding".',
+            'Jane Doe commented on "Signed agreement.pdf" in Exchange "Project kickoff".',
         );
     });
 

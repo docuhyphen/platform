@@ -1,6 +1,5 @@
 import {
     InformationRequestContributorRole,
-    InformationRequestEvidenceWaiverPolicy,
     InformationRequestRequiredness,
     InformationRequestRequirementType,
     InformationRequestResponseDisposition,
@@ -14,21 +13,29 @@ import {TemplateDraftDocument} from "./templateDraftDocument.ts";
 import {
     keyShapeMessage,
     MACHINE_KEY_PATTERN,
+    NO_SCHEMA_FACTS,
     requirementLabel,
     TemplateDraftProblem,
     TemplateDraftTarget,
     TemplateProblemSink,
+    TemplateSchemaFacts,
 } from "./templateDraftRules.ts";
-import {conditionProblems, groupProblems, reviewProblems} from "./templatePlanValidation.ts";
+import {dependencyProblems} from "./templateDependencyValidation.ts";
+import {evidenceProblems} from "./templateEvidenceValidation.ts";
+import {conditionProblems, conditionStageProblem, groupProblems, reviewProblems} from "./templatePlanValidation.ts";
+import {textLimitProblems} from "./templateTextLimits.ts";
 
-export type {TemplateDraftProblem, TemplateDraftTarget} from "./templateDraftRules.ts";
+export type {TemplateDraftProblem, TemplateDraftTarget, TemplateSchemaFacts} from "./templateDraftRules.ts";
 
 const PURPOSE_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const ANSWERABLE_MODES = new Set([InformationRequestResponseMode.PROVIDE, InformationRequestResponseMode.PROVIDE_ONCE]);
 
-const documentProblems = (document: TemplateDraftDocument, add: TemplateProblemSink) =>
+const documentProblems = (document: TemplateDraftDocument, retiredSchema: boolean, add: TemplateProblemSink) =>
 {
     if (document.sections.length === 0) add("Add at least one section.", {panel: "sections"});
+    if (document.schemaVersionId && retiredSchema) {
+        add("The Request Schema this draft names was retired, so saving is refused until you choose a published one.", {panel: "settings"});
+    }
     const collectsTypedData = document.sections.some(section =>
         section.requirements.some(requirement => requirement.requirementType === InformationRequestRequirementType.FIELD));
     if (collectsTypedData && !document.schemaVersionId)
@@ -51,11 +58,16 @@ const answerProblems = (
 {
     const label = requirementLabel(requirement);
     const ruleKey = requirement.conditionalRuleKey?.trim();
+    if (requirement.contributorRole === InformationRequestContributorRole.SUBJECT) {
+        report(`Requirement "${label}" needs an acting role. Subject identifies who or what the request is about.`);
+    }
     if (requirement.requiredness === InformationRequestRequiredness.CONDITIONAL && !ruleKey)
     {
         report(`Requirement "${label}" applies only sometimes, so choose the condition that decides it.`);
     }
-    if (ruleKey && !document.conditionRules.some(rule => rule.ruleKey === ruleKey))
+    if (ruleKey && requirement.requiredness !== InformationRequestRequiredness.CONDITIONAL) {
+        report(`Requirement "${label}" is not asked only when a condition is true, so remove its condition "${ruleKey}".`);
+    } else if (ruleKey && !document.conditionRules.some(rule => rule.ruleKey === ruleKey))
     {
         report(`Requirement "${label}" names condition "${ruleKey}", which is not a condition of this Template.`);
     }
@@ -83,39 +95,6 @@ const answerProblems = (
     }
 };
 
-const evidenceProblems = (requirement: InformationRequestTemplateRequirementRequest, report: (message: string) => void) =>
-{
-    const label = requirementLabel(requirement);
-    const policy = requirement.evidencePolicy;
-    if (requirement.requirementType === InformationRequestRequirementType.DOCUMENT && !policy)
-    {
-        report(`Requirement "${label}" needs an evidence policy to judge its files by.`);
-    }
-    if (!policy) return;
-    if (policy.maximumFileCount !== undefined && policy.maximumFileCount < (policy.minimumFileCount ?? 1))
-    {
-        report(`Requirement "${label}" needs at least as many files allowed as it requires.`);
-    }
-    if (policy.maximumFileSizeBytes !== undefined && policy.maximumFileSizeBytes <= 0)
-    {
-        report(`Requirement "${label}" needs a positive file size limit.`);
-    }
-    if (policy.maximumPageCount !== undefined && policy.maximumPageCount < (policy.minimumPageCount ?? 0))
-    {
-        report(`Requirement "${label}" needs at least as many pages allowed as it requires.`);
-    }
-    const permitsWaiver = (requirement.permittedDispositions ?? []).includes(InformationRequestResponseDisposition.WAIVED);
-    const waiver = policy.waiverPolicy ?? InformationRequestEvidenceWaiverPolicy.NOT_PERMITTED;
-    if (waiver !== InformationRequestEvidenceWaiverPolicy.NOT_PERMITTED && !permitsWaiver)
-    {
-        report(`Requirement "${label}" states a waiver rule, so it permits a waived answer.`);
-    }
-    if (waiver === InformationRequestEvidenceWaiverPolicy.NOT_PERMITTED && permitsWaiver)
-    {
-        report(`Requirement "${label}" permits a waived answer, so its evidence policy states the waiver rule that reaches it.`);
-    }
-};
-
 const attestationProblems = (requirement: InformationRequestTemplateRequirementRequest, report: (message: string) => void) =>
 {
     const policy = requirement.attestationPolicy;
@@ -124,6 +103,9 @@ const attestationProblems = (requirement: InformationRequestTemplateRequirementR
     const roles: InformationRequestContributorRole[] = policy.requiredRoles?.length
         ? policy.requiredRoles
         : [requirement.contributorRole ?? InformationRequestContributorRole.CONTRIBUTOR];
+    if (roles.includes(InformationRequestContributorRole.SUBJECT)) {
+        report(`Requirement "${label}" needs acting confirmation roles. Subject cannot confirm information.`);
+    }
     if (new Set(roles).size !== roles.length) report(`Requirement "${label}" names the same party role twice.`);
     if (policy.minimumAssentCount !== undefined && policy.minimumAssentCount < roles.length)
     {
@@ -138,17 +120,23 @@ const attestationProblems = (requirement: InformationRequestTemplateRequirementR
 const referenceProblems = (
     requirement: InformationRequestTemplateRequirementRequest,
     documentKeys: ReadonlySet<string>,
+    stageByRequirement: ReadonlyMap<string, string>,
     report: (message: string) => void,
 ) =>
 {
     const label = requirementLabel(requirement);
+    const stage = stageByRequirement.get(requirement.requirementKey);
+    const substituteKeys = new Set(requirement.substituteRequirementKeys ?? []);
     [...(requirement.substituteRequirementKeys ?? []), ...(requirement.supportingEvidenceRequirementKeys ?? [])]
         .forEach(key =>
         {
+            const substituteStage = substituteKeys.has(key) ? stageByRequirement.get(key) : undefined;
             if (key === requirement.requirementKey) report(`Requirement "${label}" cannot reference itself.`);
             else if (!documentKeys.has(key))
             {
                 report(`Requirement "${label}" references "${key}", which is not a requested document of this Template.`);
+            } else if (stage && substituteStage && substituteStage !== stage) {
+                report(`Requirement "${label}" is submitted in stage "${stage}", so its alternative "${key}" from stage "${substituteStage}" cannot complete it.`);
             }
         });
 };
@@ -156,6 +144,7 @@ const referenceProblems = (
 const sectionProblems = (
     document: TemplateDraftDocument,
     collectableFieldIds: ReadonlySet<string> | undefined,
+    readOnlyFieldIds: ReadonlySet<string> | undefined,
     add: TemplateProblemSink,
 ) =>
 {
@@ -166,6 +155,12 @@ const sectionProblems = (
     const documentKeys = new Set(document.sections.flatMap(section => section.requirements
         .filter(requirement => requirement.requirementType === InformationRequestRequirementType.DOCUMENT)
         .map(requirement => requirement.requirementKey)));
+    const stageByRequirement = new Map(staged
+        ? document.sections.flatMap(section => {
+            const stage = section.submissionStageKey?.trim().toLowerCase();
+            return stage ? section.requirements.map(requirement => [requirement.requirementKey, stage] as const) : [];
+        })
+        : []);
     document.sections.forEach((section, sectionIndex) =>
     {
         const target = {panel: "sections" as const, sectionIndex};
@@ -193,6 +188,9 @@ const sectionProblems = (
                 else if (collectableFieldIds && !collectableFieldIds.has(fieldId))
                 {
                     report(`Requirement "${requirementLabel(requirement)}" collects a Field the chosen Request Schema does not ask for.`);
+                } else if (readOnlyFieldIds?.has(fieldId)
+                    && ANSWERABLE_MODES.has(requirement.responseMode ?? InformationRequestResponseMode.PROVIDE)) {
+                    report(`Requirement "${requirementLabel(requirement)}" collects a Field its Request Schema marks read-only, so nobody could answer it.`);
                 }
                 else if (collectorByField.has(fieldId))
                 {
@@ -203,7 +201,9 @@ const sectionProblems = (
             answerProblems(requirement, document, report);
             evidenceProblems(requirement, report);
             attestationProblems(requirement, report);
-            referenceProblems(requirement, documentKeys, report);
+            referenceProblems(requirement, documentKeys, stageByRequirement, report);
+            const conditionStage = conditionStageProblem(requirement, document, stageByRequirement);
+            if (conditionStage) report(conditionStage);
         });
     });
 };
@@ -211,23 +211,27 @@ const sectionProblems = (
 export const templateDraftProblems = (
     document: TemplateDraftDocument,
     collectableFieldIds?: ReadonlySet<string>,
+    readOnlyFieldIds?: ReadonlySet<string>,
+    facts: TemplateSchemaFacts = NO_SCHEMA_FACTS,
 ): TemplateDraftProblem[] =>
 {
     const problems: TemplateDraftProblem[] = [];
     const add: TemplateProblemSink = (message, target) =>
         problems.push({key: `problem-${problems.length}`, message, target});
-    documentProblems(document, add);
-    sectionProblems(document, collectableFieldIds, add);
+    documentProblems(document, facts.retired, add);
+    sectionProblems(document, collectableFieldIds, readOnlyFieldIds, add);
     groupProblems(document, add);
-    conditionProblems(document, add);
+    conditionProblems(document, facts.optionCodes, add);
+    dependencyProblems(document, add);
     reviewProblems(document, add);
+    textLimitProblems(document, add);
     return problems;
 };
 
 export const targetForRefusal = (
     document: TemplateDraftDocument,
     refusal: InformationRequestTemplateRefusalDto,
-): TemplateDraftTarget =>
+): TemplateDraftTarget | undefined =>
 {
     const sectionIndex = document.sections.findIndex(section =>
         refusal.requirementKey
@@ -243,9 +247,9 @@ export const targetForRefusal = (
     }
     const groupIndex = document.groups.findIndex(group => group.groupKey === refusal.groupKey);
     if (refusal.groupKey && groupIndex >= 0) return {panel: "groups", groupIndex};
-    const ruleIndex = document.conditionRules.findIndex(rule => rule.ruleKey === refusal.groupKey);
-    if (refusal.groupKey && ruleIndex >= 0) return {panel: "conditions", ruleIndex};
+    const ruleIndex = document.conditionRules.findIndex(rule => rule.ruleKey === refusal.conditionRuleKey);
+    if (refusal.conditionRuleKey && ruleIndex >= 0) return {panel: "conditions", ruleIndex};
     const stageIndex = document.reviewStages.findIndex(stage => stage.stageKey === refusal.reviewStageKey);
     if (refusal.reviewStageKey) return stageIndex >= 0 ? {panel: "review", stageIndex} : {panel: "review"};
-    return {panel: "settings"};
+    return undefined;
 };

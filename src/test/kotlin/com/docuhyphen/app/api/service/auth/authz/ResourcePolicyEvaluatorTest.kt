@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ShareObligations
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -20,7 +19,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * A resource kind may narrow an allowed decision with facts only that kind understands, but it

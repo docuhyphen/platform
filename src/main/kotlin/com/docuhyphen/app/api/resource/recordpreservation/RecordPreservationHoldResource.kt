@@ -3,25 +3,21 @@ package com.docuhyphen.app.api.resource.recordpreservation
 import com.docuhyphen.app.api.exception.RecordPreservationRequestException
 import com.docuhyphen.app.api.model.RecordPreservationDtoMapper
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
+import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.model.ChangeRecordPreservationHoldScopeRequest
 import com.docuhyphen.app.api.resource.model.PlaceRecordPreservationHoldRequest
 import com.docuhyphen.app.api.resource.model.ReleaseRecordPreservationHoldRequest
+import com.docuhyphen.app.api.resource.recordpreservation.operations.RecordPreservationHoldResourceOperations
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationAdministration
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
-@Path("/record-preservation-holds")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class RecordPreservationHoldResource @Inject constructor(
     private val administration: RecordPreservationAdministration,
-)
+) : RecordPreservationHoldResourceOperations
 {
-    @GET
-    fun list(@QueryParam("status") statuses: List<String>?): Response
+    override fun list(statuses: List<String>?): Response
     {
         return try
         {
@@ -38,22 +34,14 @@ class RecordPreservationHoldResource @Inject constructor(
         }
     }
 
-    @GET
-    @Path("/{holdId}")
-    fun get(@PathParam("holdId") holdId: String): Response
+    override fun get(holdId: String): Response
     {
         return try
         {
-            Response.ok(
-                RecordPreservationDtoMapper.toDto(
-                    administration.hold(
-                        RecordPreservationHttp.uuid(
-                            holdId,
-                            "hold id"
-                        )
-                    )
-                )
-            ).build()
+            RecordPreservationHttp.hold(
+                Response.Status.OK,
+                administration.hold(RecordPreservationHttp.uuid(holdId, "hold id")),
+            )
         }
         catch (exception: Exception)
         {
@@ -61,13 +49,13 @@ class RecordPreservationHoldResource @Inject constructor(
         }
     }
 
-    @POST
-    fun place(request: PlaceRecordPreservationHoldRequest?): Response
+    override fun place(request: PlaceRecordPreservationHoldRequest?, idempotencyKey: String?): Response
     {
         return try
         {
             val body =
                 request ?: throw RecordPreservationRequestException("A hold names its resource, scope, and reason")
+            val key = RecordPreservationHttp.idempotencyKey(idempotencyKey)
             val view = administration.placeHold(
                 body.resourceType,
                 body.resourceId,
@@ -75,8 +63,9 @@ class RecordPreservationHoldResource @Inject constructor(
                 body.reason,
                 body.caseReference,
                 body.effectiveFrom?.toInstant(),
+                key,
             )
-            Response.status(Response.Status.CREATED).entity(RecordPreservationDtoMapper.toDto(view)).build()
+            RecordPreservationHttp.hold(Response.Status.CREATED, view)
         }
         catch (exception: Exception)
         {
@@ -84,16 +73,25 @@ class RecordPreservationHoldResource @Inject constructor(
         }
     }
 
-    @PATCH
-    @Path("/{holdId}/scope")
-    fun changeScope(@PathParam("holdId") holdId: String, request: ChangeRecordPreservationHoldScopeRequest?): Response
+    override fun changeScope(
+        holdId: String,
+        request: ChangeRecordPreservationHoldScopeRequest?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+    ): Response
     {
         return try
         {
             val body = request ?: throw RecordPreservationRequestException("A scope change states the scope and reason")
-            val view =
-                administration.changeHoldScope(RecordPreservationHttp.uuid(holdId, "hold id"), body.scope, body.reason)
-            Response.ok(RecordPreservationDtoMapper.toDto(view)).build()
+            val key = RecordPreservationHttp.idempotencyKey(idempotencyKey)
+            val view = administration.changeHoldScope(
+                RecordPreservationHttp.uuid(holdId, "hold id"),
+                body.scope,
+                body.reason,
+                CommandPreconditionHeader.requiredExact(ifMatch),
+                key,
+            )
+            RecordPreservationHttp.hold(Response.Status.OK, view)
         }
         catch (exception: Exception)
         {
@@ -101,15 +99,24 @@ class RecordPreservationHoldResource @Inject constructor(
         }
     }
 
-    @POST
-    @Path("/{holdId}/release")
-    fun release(@PathParam("holdId") holdId: String, request: ReleaseRecordPreservationHoldRequest?): Response
+    override fun release(
+        holdId: String,
+        request: ReleaseRecordPreservationHoldRequest?,
+        ifMatch: String?,
+        idempotencyKey: String?,
+    ): Response
     {
         return try
         {
             val body = request ?: throw RecordPreservationRequestException("A release states its reason")
-            val view = administration.releaseHold(RecordPreservationHttp.uuid(holdId, "hold id"), body.reason)
-            Response.ok(RecordPreservationDtoMapper.toDto(view)).build()
+            val key = RecordPreservationHttp.idempotencyKey(idempotencyKey)
+            val view = administration.releaseHold(
+                RecordPreservationHttp.uuid(holdId, "hold id"),
+                body.reason,
+                CommandPreconditionHeader.requiredExact(ifMatch),
+                key,
+            )
+            RecordPreservationHttp.hold(Response.Status.OK, view)
         }
         catch (exception: Exception)
         {

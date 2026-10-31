@@ -4,11 +4,12 @@ import {InformationRequestReviewAssignmentChange} from "../../../../services/inf
 import {
     InformationRequestReviewAssignmentDto,
     InformationRequestReviewDto,
-    InformationRequestShareRoleKey,
+    InformationRequestReviewStageState
 } from "../../../models/models.tsx";
 import AssignReviewerDialog from "../assign-reviewer-dialog/AssignReviewerDialog.tsx";
 import AssignmentChangeDialog from "../assignment-change-dialog/AssignmentChangeDialog.tsx";
 import ReviewAssignmentRow from "../review-assignment-row/ReviewAssignmentRow.tsx";
+import {reviewIsOpen} from "../reviewOverrideStage.ts";
 import {ReviewManagement} from "../useReviewManagement.ts";
 import {useReviewAssignmentsPanelStyles} from "./ReviewAssignmentsPanelStyles.tsx";
 
@@ -29,6 +30,8 @@ const ReviewAssignmentsPanel = ({review, management}: Props) =>
 {
     const styles = useReviewAssignmentsPanelStyles();
     const [assigning, setAssigning] = useState(false);
+    const unsettledStages = review.stages.filter(stage => stage.state !== InformationRequestReviewStageState.SETTLED);
+    const open = reviewIsOpen(review);
     const [pending, setPending] = useState<PendingChange | null>(null);
     const stageTitle = (stageKey: string) => review.stages.find(stage => stage.stageKey === stageKey)?.title ?? stageKey;
     const reviewerLabel = (assignment: InformationRequestReviewAssignmentDto) =>
@@ -36,7 +39,6 @@ const ReviewAssignmentsPanel = ({review, management}: Props) =>
         const label = management.parties.find(party => party.id === assignment.reviewerPartyId)?.label ?? "Reviewer";
         return assignment.callerIsReviewer ? `${label} (you)` : label;
     };
-    const delegates = management.parties.filter(party => party.roleKey === InformationRequestShareRoleKey.REVIEWER);
 
     return (
         <section id={"information-request-review-assignments"}
@@ -48,7 +50,7 @@ const ReviewAssignmentsPanel = ({review, management}: Props) =>
                         as={"h2"}>
                     Reviewers
                 </Title3>
-                {review.canManage && (
+                {review.canManage && open && unsettledStages.length > 0 && (
                     <Button id={"information-request-review-assignments-add"}
                             appearance={"secondary"}
                             shape={"circular"}
@@ -66,30 +68,30 @@ const ReviewAssignmentsPanel = ({review, management}: Props) =>
                                          reviewerLabel={reviewerLabel(assignment)}
                                          stageTitle={stageTitle(assignment.stageKey)}
                                          canManage={review.canManage}
+                                         mutable={open && unsettledStages.some(stage => stage.stageKey === assignment.stageKey)}
                                          onChange={(change, title) => setPending({assignment, change, title})}/>
                 ))}
             </ul>
             {assigning && (
-                <AssignReviewerDialog stages={review.stages}
+                <AssignReviewerDialog stages={unsettledStages}
                                       parties={management.parties}
+                                      partiesError={management.partiesError}
+                                      partiesLoading={management.partiesLoading}
+                                      onRetryParties={() => void management.retryParties()}
                                       busy={management.busy}
-                                      onConfirm={request =>
-                                      {
-                                          setAssigning(false);
-                                          void management.assign(request);
-                                      }}
+                                      message={management.message}
+                                      onConfirm={request => void management.assign(request)
+                                          .then(done => done && setAssigning(false))}
                                       onDismiss={() => setAssigning(false)}/>
             )}
             {pending && (
                 <AssignmentChangeDialog title={pending.title}
                                         change={pending.change}
-                                        delegates={delegates.filter(party => party.id !== pending.assignment.reviewerPartyId)}
+                                        candidates={pending.assignment.delegationCandidates}
                                         busy={management.busy}
-                                        onConfirm={request =>
-                                        {
-                                            setPending(null);
-                                            void management.changeAssignment(pending.assignment.id, pending.change, request);
-                                        }}
+                                        message={management.message}
+                                        onConfirm={request => void management.changeAssignment(pending.assignment.id, pending.change, request)
+                                            .then(done => done && setPending(null))}
                                         onDismiss={() => setPending(null)}/>
             )}
         </section>

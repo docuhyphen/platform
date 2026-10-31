@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.resource.informationrequest
 
+import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestDtoMapper
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestDto
 import com.docuhyphen.app.api.model.dto.InformationRequestResponseWorkspaceDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
@@ -17,10 +19,13 @@ import com.docuhyphen.app.api.model.informationrequest.creation.CreateAdHocInfor
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromTemplateVersionCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.CancelInformationRequestCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestLifecycleResult
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.IssueInformationRequestCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.SupersedeInformationRequestCommand
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestWorkspacePurpose
 import com.docuhyphen.app.api.resource.informationrequest.operations.InformationRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.CancelInformationRequestRequest
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestDraftRequest
@@ -28,14 +33,13 @@ import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SupersedeInformationRequestRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityNotInstalledException
 import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestAdHocCreationService
 import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestBlueprintInstantiationService
 import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestTemplateInstantiationService
+import com.docuhyphen.app.api.service.informationrequest.execution.ExecutionStandingTestDoubles
 import com.docuhyphen.app.api.service.informationrequest.execution.RequestExecutionUsageExhaustedException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleService
@@ -52,28 +56,26 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * The owner-facing runtime request resource exposes list, draft creation, issuance, cancellation, and
- * supersession. These tests pin the HTTP shape, header handling, and service delegation; respondent
- * actions have their own resources and must not appear here.
- */
 class InformationRequestResourceContractTest
 {
-    private val queryService = mock<InformationRequestQueryService>()
     private val creationService = mock<InformationRequestAdHocCreationService>()
     private val lifecycleService = mock<InformationRequestLifecycleService>()
     private val accessContextFactory = mock<InformationRequestAccessContextFactory>()
     private val responseWorkspaceService = mock<InformationRequestResponseWorkspaceService>()
     private val blueprintInstantiationService = mock<InformationRequestBlueprintInstantiationService>()
     private val templateInstantiationService = mock<InformationRequestTemplateInstantiationService>()
+    private val authorizationService = mock<com.docuhyphen.app.api.service.auth.authz.AuthorizationService>()
     private val resource = InformationRequestResource(
-        queryService,
         creationService,
         lifecycleService,
         accessContextFactory,
         responseWorkspaceService,
         blueprintInstantiationService,
         templateInstantiationService,
+        com.docuhyphen.app.api.service.informationrequest.InformationRequestHeaderProjectionService(
+            authorizationService,
+            ExecutionStandingTestDoubles.active()
+        ),
     )
 
     private val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
@@ -98,8 +100,7 @@ class InformationRequestResourceContractTest
         val methods = resourceClass.declaredMethods.associateBy { it.name }
 
         assertEquals("/information-requests", resourceClass.getAnnotation(Path::class.java).value)
-        assertTrue(methods.getValue("list").isAnnotationPresent(GET::class.java))
-        assertFalse(methods.getValue("list").isAnnotationPresent(Path::class.java))
+        assertFalse(methods.containsKey("list"))
         assertTrue(methods.getValue("create").isAnnotationPresent(POST::class.java))
         assertFalse(methods.getValue("create").isAnnotationPresent(Path::class.java))
         assertTrue(methods.getValue("cancel").isAnnotationPresent(POST::class.java))
@@ -153,7 +154,10 @@ class InformationRequestResourceContractTest
         val refused = resource.issue(requestId.toString(), "\"v1\"", "idem-issue")
 
         assertEquals(Response.Status.CONFLICT.statusCode, refused.status)
-        assertEquals(InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED, (refused.entity as ResponseError).reasonCode)
+        assertEquals(
+            InformationRequestErrorCatalog.CAPABILITY_NOT_INSTALLED,
+            (refused.entity as ResponseError).reasonCode
+        )
     }
 
     @Test
@@ -164,7 +168,11 @@ class InformationRequestResourceContractTest
         assertTrue(methods.getValue("get").isAnnotationPresent(GET::class.java))
         assertEquals("/{id}", methods.getValue("get").getAnnotation(Path::class.java).value)
 
-        val projected = InformationRequestDtoMapper.toDto(request, listOf(
+        val projected = InformationRequestDtoMapper.toDto(
+            request,
+            revealOwner = true,
+            InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE),
+            listOf(
                 InformationRequestConditionEvaluationProjection(
                     ruleKey = "when-response-provided",
                     expressionVersion = 1,
@@ -172,7 +180,8 @@ class InformationRequestResourceContractTest
                     sourceRequirementKeys = setOf("prior-response"),
                     fieldDefinitionIds = setOf(UUID.randomUUID()),
                 ),
-            ))
+            )
+        )
         whenever(responseWorkspaceService.loadRequest(requestId, access)).thenReturn(projected)
 
         val found = resource.get(requestId.toString())
@@ -194,7 +203,7 @@ class InformationRequestResourceContractTest
         val workspace = mock<InformationRequestResponseWorkspaceDto>()
         whenever(responseWorkspaceService.load(requestId, access)).thenReturn(workspace)
 
-        val response = resource.responseWorkspace(requestId.toString())
+        val response = resource.responseWorkspace(requestId.toString(), null)
 
         assertEquals(Response.Status.OK.statusCode, response.status)
         assertEquals(workspace, response.entity)
@@ -202,21 +211,19 @@ class InformationRequestResourceContractTest
     }
 
     @Test
-    fun `list requires an exchange id and delegates to the query service`()
+    fun `response workspace reads for management only when asked and refuses an unknown purpose`()
     {
-        whenever(queryService.listForExchange(exchangeId, access)).thenReturn(listOf(request))
+        val workspace = mock<InformationRequestResponseWorkspaceDto>()
+        whenever(responseWorkspaceService.load(requestId, access, InformationRequestWorkspacePurpose.MANAGEMENT))
+            .thenReturn(workspace)
 
-        val missing = resource.list(null)
-        val invalid = resource.list("not-a-uuid")
-        val listed = resource.list(exchangeId.toString())
+        val managed = resource.responseWorkspace(requestId.toString(), "management")
+        val unknown = resource.responseWorkspace(requestId.toString(), "review")
 
-        assertEquals(Response.Status.BAD_REQUEST.statusCode, missing.status)
-        assertEquals(Response.Status.BAD_REQUEST.statusCode, invalid.status)
-        assertEquals(Response.Status.OK.statusCode, listed.status)
-        @Suppress("UNCHECKED_CAST")
-        val body = listed.entity as Array<InformationRequestDto>
-        assertEquals(1, body.size)
-        assertEquals(requestId, body.single().id)
+        assertEquals(Response.Status.OK.statusCode, managed.status)
+        assertEquals(workspace, managed.entity)
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, unknown.status)
+        verify(responseWorkspaceService, never()).load(requestId, access)
     }
 
     @Test
@@ -335,6 +342,31 @@ class InformationRequestResourceContractTest
     }
 
     @Test
+    fun `a stored rule refusing an ad hoc request answers 409 with the constraint code`() {
+        whenever(creationService.createAdHoc(any())).thenThrow(
+            RuntimeException(
+                "transaction rolled back",
+                jakarta.persistence.PersistenceException(
+                    "could not execute statement",
+                    java.sql.SQLException("refused by a stored rule", "23514"),
+                ),
+            ),
+        )
+
+        val refused = resource.create(
+            CreateInformationRequestDraftRequest(
+                exchangeId = exchangeId,
+                displayName = "Collection request",
+                configuration = configurationRequest(),
+            ),
+            "idem-ad-hoc-stored-rule",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, refused.status)
+        assertEquals(InformationRequestErrorCatalog.CONSTRAINT_CONFLICT, (refused.entity as ResponseError).reasonCode)
+    }
+
+    @Test
     fun `an unavailable Template Version and exhausted capacity are refused with stable codes`()
     {
         whenever(templateInstantiationService.createFromTemplateVersion(any())).thenThrow(
@@ -366,6 +398,11 @@ class InformationRequestResourceContractTest
         )
         assertEquals(Response.Status.CONFLICT.statusCode, exhausted.status)
         assertEquals(InformationRequestErrorCatalog.CAPACITY_EXHAUSTED, (exhausted.entity as ResponseError).reasonCode)
+        assertEquals(
+            "This request's plan allows 1 acting party, and every Decision Maker, Contributor, Preparer, Reviewer and " +
+                    "Attestor counts. Remove a party to stay within it.",
+            (exhausted.entity as ResponseError).errorMessage,
+        )
     }
 
     @Test
@@ -377,7 +414,8 @@ class InformationRequestResourceContractTest
 
         val missingKey = resource.cancel(requestId.toString(), CancelInformationRequestRequest(), "\"v1\"", null)
         val invalidId = resource.cancel("not-a-uuid", null, "\"v1\"", "idem-1")
-        val cancelled = resource.cancel(requestId.toString(), CancelInformationRequestRequest("withdrawn"), "\"v1\"", "idem-1")
+        val cancelled =
+            resource.cancel(requestId.toString(), CancelInformationRequestRequest("withdrawn"), "\"v1\"", "idem-1")
 
         assertEquals(Response.Status.BAD_REQUEST.statusCode, missingKey.status)
         assertEquals(Response.Status.BAD_REQUEST.statusCode, invalidId.status)
@@ -424,21 +462,59 @@ class InformationRequestResourceContractTest
     }
 
     @Test
+    fun `a cancellation or supersession reason that is not a machine code is a bad request with its stable code`() {
+        val refusal = InformationRequestCommandRequestException(
+            "Not a reason code",
+            InformationRequestErrorCatalog.REASON_CODE_INVALID
+        )
+        whenever(lifecycleService.cancel(any())).thenThrow(refusal)
+        whenever(lifecycleService.supersede(any())).thenThrow(refusal)
+
+        val cancelled = resource.cancel(
+            requestId.toString(),
+            CancelInformationRequestRequest("The respondent asked us to stop"),
+            "\"v1\"",
+            "idem-free-text",
+        )
+        val superseded = resource.supersede(
+            requestId.toString(),
+            SupersedeInformationRequestRequest(UUID.randomUUID(), "Replaced by the newer request"),
+            "\"v1\"",
+            "idem-free-text",
+        )
+
+        listOf(cancelled, superseded).forEach { response ->
+            assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
+            assertEquals(
+                InformationRequestErrorCatalog.REASON_CODE_INVALID,
+                (response.entity as ResponseError).reasonCode
+            )
+        }
+    }
+
+    @Test
     fun `domain failures map to stable response statuses`()
     {
-        whenever(queryService.listForExchange(eq(exchangeId), any()))
+        whenever(responseWorkspaceService.loadRequest(eq(requestId), any()))
             .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Not found"))
-            .thenThrow(IllegalArgumentException("Exchange not found"))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.STATE_INVALID,
+                    "Cannot change now"
+                )
+            )
+            .thenThrow(IllegalArgumentException("Information Request not found"))
             .thenThrow(ForbiddenException("Denied"))
 
-        assertMapped(Response.Status.CONFLICT, "Not found")
-        assertMapped(Response.Status.NOT_FOUND, "Exchange not found")
+        assertMapped(Response.Status.NOT_FOUND, "Not found")
+        assertMapped(Response.Status.CONFLICT, "Cannot change now")
+        assertMapped(Response.Status.NOT_FOUND, "Information Request not found")
         assertMapped(Response.Status.FORBIDDEN, "Denied")
     }
 
     private fun assertMapped(status: Response.Status, message: String)
     {
-        val response = resource.list(exchangeId.toString())
+        val response = resource.get(requestId.toString())
         assertEquals(status.statusCode, response.status)
         assertEquals(message, (response.entity as ResponseError).errorMessage)
     }

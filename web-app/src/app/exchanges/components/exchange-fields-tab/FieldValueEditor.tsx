@@ -11,13 +11,22 @@ interface Props
     onChange: (value: unknown) => void;
     showLabel?: boolean;
     labelledBy?: string;
+    id?: string;
+    locked?: boolean;
 }
 
-const FieldValueEditor = ({binding, value, onChange, showLabel = true, labelledBy}: Props) =>
+const FieldValueEditor = ({
+                              binding,
+                              value,
+                              onChange,
+                              showLabel = true,
+                              labelledBy,
+                              id: controlId,
+                              locked = false
+                          }: Props) =>
 {
-    const id = `exchange-field-${binding.fieldContractId}`;
-    const disabled = binding.isReadOnly;
-    // A number is carried as text so its width survives; the editors bind to that text directly.
+    const id = controlId ?? `exchange-field-${binding.fieldContractId}`;
+    const disabled = binding.isReadOnly || locked;
     const asText = value === null || value === undefined ? '' : String(value);
 
     const renderControl = () =>
@@ -108,7 +117,8 @@ const FieldValueEditor = ({binding, value, onChange, showLabel = true, labelledB
     };
 
     return (
-        <Field label={showLabel ? binding.label : undefined}
+        <Field id={`${id}-field`}
+               label={showLabel ? binding.label : undefined}
                required={showLabel && binding.isRequired}
                hint={showLabel ? binding.helpText ?? undefined : undefined}>
             {renderControl()}

@@ -1,7 +1,7 @@
-import {Badge, Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
-import {DownloadIcon} from "../../../components/IconBundles.tsx";
+import {useState} from "react";
+import {Button, Field, Input, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
 import LoadedPanel from "../loaded-panel/LoadedPanel.tsx";
-import {formattedTime} from "../operationsLabels.ts";
+import RecordExportRow from "../record-export-row/RecordExportRow.tsx";
 import {useRecordExports} from "./useRecordExports.ts";
 import {useRecordExportsPanelStyles} from "./RecordExportsPanelStyles.tsx";
 
@@ -14,6 +14,11 @@ const RecordExportsPanel = ({requestId}: RecordExportsPanelProps) =>
 {
     const styles = useRecordExportsPanelStyles();
     const records = useRecordExports(requestId);
+    const [region, setRegion] = useState("");
+
+    const create = async () => {
+        if (await records.create(region)) setRegion("");
+    };
 
     return (
         <div id={"information-request-record-exports"}
@@ -24,61 +29,65 @@ const RecordExportsPanel = ({requestId}: RecordExportsPanelProps) =>
                       weight={"semibold"}>
                     Record exports
                 </Text>
-                <Button id={"information-request-record-exports-create-btn"}
-                        appearance={"primary"}
-                        shape={"circular"}
-                        disabled={records.busy}
-                        onClick={records.create}>
-                    {records.busy && <Spinner size={"tiny"}/>}
-                    Create export
-                </Button>
+                <div id={"information-request-record-exports-create"}
+                     className={styles.create}>
+                    <Field id={"information-request-record-exports-region-field"}
+                           label={"Transfer region (optional)"}
+                           className={styles.region}>
+                        <Input id={"information-request-record-exports-region"}
+                               value={region}
+                               maxLength={64}
+                               disabled={records.busy}
+                               onChange={(_, data) => setRegion(data.value)}/>
+                    </Field>
+                    <Button id={"information-request-record-exports-create-btn"}
+                            appearance={"primary"}
+                            shape={"circular"}
+                            disabled={records.busy}
+                            onClick={() => void create()}>
+                        {records.busy && (
+                            <Spinner id={"information-request-record-exports-create-spinner"}
+                                     size={"tiny"}/>
+                        )}
+                        Create export
+                    </Button>
+                </div>
             </div>
             {records.error && (
                 <MessageBar id={"information-request-record-exports-command-error"}
-                            intent={"error"}>
-                    <MessageBarBody>{records.error}</MessageBarBody>
+                            intent={"error"}
+                            role={"alert"}>
+                    <MessageBarBody id={"information-request-record-exports-command-error-body"}>
+                        {records.error}
+                    </MessageBarBody>
                 </MessageBar>
             )}
+            <Text id={"information-request-record-exports-status"}
+                  role={"status"}
+                  aria-live={"polite"}>
+                {records.notice ?? ""}
+            </Text>
             <LoadedPanel idPrefix={"information-request-record-exports"}
                          loaded={records.exports}
                          loadingLabel={"Loading record exports"}
                          emptyText={"No record exports have been made for this request."}
                          isEmpty={value => value.length === 0}>
                 {value => (
-                    <ul id={"information-request-record-exports-list"}
-                        className={styles.list}>
-                        {value.map(recordExport =>
-                        {
-                            const id = `information-request-record-export-${recordExport.id}`;
-                            return (
-                                <li id={id}
-                                    key={recordExport.id}
-                                    className={styles.entry}>
-                                    <div id={`${id}-summary`}
-                                         className={styles.summary}>
-                                        <Text id={`${id}-requested`}>{`Made ${formattedTime(recordExport.requestedAt)}`}</Text>
-                                        <Text id={`${id}-hash`}
-                                              className={styles.detail}>
-                                            {`${recordExport.contentHashAlgorithm} ${recordExport.contentHash.slice(0, 16)}, ${recordExport.contentLength} bytes, stored in ${recordExport.storageLocation}`}
-                                        </Text>
-                                    </div>
-                                    <Badge id={`${id}-verified`}
-                                           appearance={"outline"}
-                                           color={recordExport.verified ? "success" : "danger"}>
-                                        {recordExport.verified ? "Verified" : "Hash mismatch"}
-                                    </Badge>
-                                    <Button id={`${id}-download`}
-                                            appearance={"secondary"}
-                                            shape={"circular"}
-                                            icon={<DownloadIcon/>}
-                                            disabled={!recordExport.verified}
-                                            onClick={() => records.download(recordExport.id)}>
-                                        Download
-                                    </Button>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                    <>
+                        <ul id={"information-request-record-exports-list"}
+                            className={styles.list}>
+                            {value.map(recordExport => (
+                                <RecordExportRow key={recordExport.id}
+                                                 recordExport={recordExport}
+                                                 onDownload={() => void records.download(recordExport.id)}/>
+                            ))}
+                        </ul>
+                        <Text id={"information-request-record-exports-hash-note"}
+                              className={styles.note}>
+                            Each hash covers the record as it is stored. A downloaded file is laid out for reading, so
+                            its own checksum differs from the hash shown.
+                        </Text>
+                    </>
                 )}
             </LoadedPanel>
         </div>

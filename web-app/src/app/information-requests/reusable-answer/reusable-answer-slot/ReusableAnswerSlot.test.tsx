@@ -9,6 +9,7 @@ import {
     InformationRequestAcceptedFactOfferDto,
     InformationRequestContributorRole,
     InformationRequestDto,
+    InformationRequestExecutionStandingKind,
     InformationRequestOwnerType,
     InformationRequestRequiredness,
     InformationRequestRequirementType,
@@ -20,7 +21,8 @@ import {
     InformationRequestTemplateRequirementDto,
     SchemaFieldBindingDto,
 } from "../../../models/models.tsx";
-import InformationRequestStructuredResponseWorkspace from "../../structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx";
+import InformationRequestStructuredResponseWorkspace
+    from "../../structured-response-workspace/InformationRequestStructuredResponseWorkspace.tsx";
 import {ReusableAnswerContext} from "../ReusableAnswerContext.ts";
 
 const onRefresh = vi.fn();
@@ -34,9 +36,10 @@ const request: InformationRequestDto = {
     state: InformationRequestState.IN_PROGRESS,
     gatesExchangeClosure: true,
     aggregateRevision: 3,
-    createdAt: "2026-09-08T00:00:00Z",
-    updatedAt: "2026-09-08T00:00:00Z",
+    createdAt: Date.parse("2026-09-08T00:00:00Z"),
+    updatedAt: Date.parse("2026-09-08T00:00:00Z"),
     requestETag: "\"request:3\"",
+    executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
     conditionEvaluations: [],
 };
 
@@ -90,7 +93,7 @@ const stored = (value: string | null): InformationRequestResponseDto => ({
         value,
     }],
     responseRevision: 1,
-    updatedAt: "2026-09-08T00:00:00Z",
+    updatedAt: Date.parse("2026-09-08T00:00:00Z"),
 });
 
 const offer = (requirementId: string): InformationRequestAcceptedFactOfferDto => ({
@@ -104,17 +107,17 @@ const offer = (requirementId: string): InformationRequestAcceptedFactOfferDto =>
         valueType: FieldValueType.SHORT_TEXT,
         value: "Earlier answer",
         confidence: InformationRequestAcceptedFactConfidence.DECLARED,
-        validFrom: "2026-09-01T08:00:00Z",
+        validFrom: Date.parse("2026-09-01T08:00:00Z"),
         freshness: InformationRequestAcceptedFactFreshness.CURRENT,
     },
 });
 
 const renderWorkspace = (responses: InformationRequestResponseDto[], offers: InformationRequestAcceptedFactOfferDto[]) =>
     render(
-        <ReusableAnswerContext.Provider value={{offers, recertify}}>
+        <ReusableAnswerContext.Provider value={{offers, error: null, reload: () => Promise.resolve(), recertify}}>
             <InformationRequestStructuredResponseWorkspace request={request}
+                                                           respondentKey={"respondent-a"}
                                                            responseETag={"\"responses:1\""}
-                                                           enabled={true}
                                                            groups={[]}
                                                            occurrences={[]}
                                                            requirements={[requirement]}
@@ -134,9 +137,14 @@ describe("reusable answers in the structured response workspace", () =>
     {
         vi.stubGlobal("ResizeObserver", class
         {
-            observe() {}
-            unobserve() {}
-            disconnect() {}
+            observe() {
+            }
+
+            unobserve() {
+            }
+
+            disconnect() {
+            }
         });
     });
 
@@ -159,6 +167,21 @@ describe("reusable answers in the structured response workspace", () =>
 
         await waitFor(() => expect(onRefresh).toHaveBeenCalled());
         expect(recertify).toHaveBeenCalledWith("request-reuse", "fact-a", "runtime-1", "\"responses:1\"");
+    });
+
+    it("keeps a note typed for the item when the earlier answer is used", async () => {
+        recertify.mockResolvedValue({outcome: "SAVED", responseETag: "\"responses:2\""});
+        renderWorkspace([stored(null)], [offer("runtime-1")]);
+        const note = () => document.getElementById("information-request-response-narrative-root-recorded-note") as HTMLTextAreaElement;
+
+        fireEvent.change(note(), {target: {value: "Checked against the register"}});
+        fireEvent.click(screen.getByRole("checkbox", {name: "I confirm this answer is still accurate"}));
+        fireEvent.click(screen.getByRole("button", {name: "Use this answer"}));
+
+        await waitFor(() => expect(recertify).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(onRefresh).toHaveBeenCalled());
+        expect(note().value).toBe("Checked against the register");
+        expect(window.sessionStorage.getItem("information-request-unsaved:request-reuse:respondent-a")).toContain("Checked against the register");
     });
 
     it("offers nothing for another Requirement or when the current answer already matches", () =>

@@ -10,13 +10,13 @@ import com.docuhyphen.app.api.model.dto.PlatformOrganizationListDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationSummaryDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
+import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
-import com.docuhyphen.app.api.service.subscription.FeatureEntitlementDecision
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionFeatureEntitlementAdminService
 import io.quarkus.security.UnauthorizedException
@@ -249,10 +249,6 @@ class PlatformOrganizationService @Inject constructor(
         else -> throw IllegalArgumentException("Direction must be asc or desc")
     }
 
-    /**
-     * The requested codes are validated where they are stored, so only the narrative the
-     * administrator attached to this change is checked here.
-     */
     private fun validateChangeReason(request: PlatformOrganizationFeatureEntitlementsUpdateRequest)
     {
         require(request.changeReason == null || request.changeReason.length <= MAX_CHANGE_REASON_LENGTH) {

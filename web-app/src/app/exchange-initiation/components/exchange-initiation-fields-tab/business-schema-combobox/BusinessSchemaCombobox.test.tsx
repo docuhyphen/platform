@@ -1,11 +1,7 @@
 /** @vitest-environment jsdom */
 import {cleanup, fireEvent, render} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {
-    FieldLifecycleStatus,
-    FieldScopeKind,
-    SchemaDefinitionDto,
-} from '../../../../models/models';
+import {FieldLifecycleStatus, FieldScopeKind, SchemaDefinitionDto,} from '../../../../models/models';
 import BusinessSchemaCombobox from './BusinessSchemaCombobox';
 
 const schema = (
@@ -21,7 +17,7 @@ const schema = (
     scopeKind: FieldScopeKind.ORGANIZATION,
     targetResourceType: 'EXCHANGE',
     status: FieldLifecycleStatus.PUBLISHED,
-    createdAt: '2026-08-17T00:00:00Z',
+    createdAt: Date.parse('2026-08-17T00:00:00Z'),
 });
 
 afterEach(cleanup);
@@ -32,7 +28,7 @@ describe('BusinessSchemaCombobox', () =>
     {
         const {container} = render(
             <BusinessSchemaCombobox
-                schemas={[schema('claim', 'Insurance Claim', 'insurance', 'claim-case')]}
+                schemas={[schema('alpha', 'Alpha Case', 'process-a', 'alpha-case')]}
                 onSchemaChange={vi.fn()}
             />,
         );
@@ -44,8 +40,8 @@ describe('BusinessSchemaCombobox', () =>
     it('filters schemas by display name and namespaced key', () =>
     {
         const schemas = [
-            schema('claim', 'Insurance Claim', 'insurance', 'claim-case'),
-            schema('loan', 'Loan Application', 'finance', 'loan-application'),
+            schema('alpha', 'Alpha Case', 'process-a', 'alpha-case'),
+            schema('beta', 'Beta Case', 'process-b', 'beta-case'),
         ];
         const {container} = render(
             <BusinessSchemaCombobox
@@ -55,10 +51,10 @@ describe('BusinessSchemaCombobox', () =>
         );
         const combobox = container.querySelector('#exchange-initiation-schema-select') as HTMLInputElement;
 
-        fireEvent.input(combobox, {target: {value: 'finance:loan'}});
+        fireEvent.input(combobox, {target: {value: 'process-b:beta'}});
         fireEvent.click(combobox);
 
-        expect(document.querySelector('#exchange-initiation-schema-option-loan')).toBeTruthy();
-        expect(document.querySelector('#exchange-initiation-schema-option-claim')).toBeNull();
+        expect(document.querySelector('#exchange-initiation-schema-option-beta')).toBeTruthy();
+        expect(document.querySelector('#exchange-initiation-schema-option-alpha')).toBeNull();
     });
 });

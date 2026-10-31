@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.migration
 
+import com.docuhyphen.app.api.migration.model.RootOccurrenceRow
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.MigrationVersion
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -11,16 +12,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class RootOccurrencePathPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<RootOccurrencePathPostgreSQLContainer>(imageName)
 
-/**
- * The root occurrence of an Information Request has one spelling, `root`. A Requirement, its
- * revision, and its response stored under the earlier `$` spelling are carried to `root`, and the
- * earlier spelling cannot be stored again.
- */
 class InformationRequestRootOccurrencePathContractTest
 {
     private val previousVersion = "126"
@@ -65,10 +61,6 @@ class InformationRequestRootOccurrencePathContractTest
         }
     }
 
-    // Support
-
-    private data class Occurrence(val requirementId: UUID, val revisionId: UUID, val responseId: UUID)
-
     private inner class Fixture(connection: Connection)
     {
         val organizationId: UUID = UUID.randomUUID()
@@ -90,7 +82,14 @@ class InformationRequestRootOccurrencePathContractTest
             insertTemplateVersion(connection, templateVersionId, definitionId)
             insertTemplateRequirement(connection, templateRequirementId, definitionId)
             insertTemplateSection(connection, sectionId, templateVersionId)
-            insertTemplateBinding(connection, templateBindingId, templateVersionId, definitionId, templateRequirementId, sectionId)
+            insertTemplateBinding(
+                connection,
+                templateBindingId,
+                templateVersionId,
+                definitionId,
+                templateRequirementId,
+                sectionId
+            )
             publishVersion(connection, templateVersionId, userId)
             insertRequest(connection, requestId, exchangeId, templateVersionId, organizationId)
         }
@@ -110,7 +109,7 @@ class InformationRequestRootOccurrencePathContractTest
             )
         }
 
-        fun occurrence(connection: Connection, occurrencePath: String): Occurrence
+        fun occurrence(connection: Connection, occurrencePath: String): RootOccurrenceRow
         {
             val requirementId = UUID.randomUUID()
             val revisionId = UUID.randomUUID()
@@ -139,7 +138,7 @@ class InformationRequestRootOccurrencePathContractTest
                 """.trimIndent(),
                 responseId, requestId, requirementId, revisionId, occurrencePath, userId,
             )
-            return Occurrence(requirementId, revisionId, responseId)
+            return RootOccurrenceRow(requirementId, revisionId, responseId)
         }
     }
 
@@ -252,23 +251,24 @@ class InformationRequestRootOccurrencePathContractTest
             connection,
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
-            Timestamp.from(Instant.now()), actorId, versionId,
+            Timestamp.from(Instant.now()), versionId,
         )
     }
 
-    private fun insertRequest(connection: Connection, id: UUID, exchangeId: UUID, versionId: UUID, ownerId: UUID) = execute(
-        connection,
-        """
+    private fun insertRequest(connection: Connection, id: UUID, exchangeId: UUID, versionId: UUID, ownerId: UUID) =
+        execute(
+            connection,
+            """
         INSERT INTO information_request
             (id, exchange_id, template_version_id, owner_type, owner_organization_id,
              state, gates_exchange_closure, aggregate_revision, party_revision, created_at, updated_at)
         VALUES (?, ?, ?, 'ORGANIZATION', ?, 'DRAFT', TRUE, 1, 1, ?, ?)
         """.trimIndent(),
-        id, exchangeId, versionId, ownerId, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()),
-    )
+            id, exchangeId, versionId, ownerId, Timestamp.from(Instant.now()), Timestamp.from(Instant.now()),
+        )
 
     private fun execute(connection: Connection, sql: String, vararg values: Any?)
     {

@@ -1,10 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {
-    FieldDataClassification,
-    FieldValueDto,
-    FieldValueType,
-    SchemaFieldBindingDto,
-} from '../../../models/models';
+import {FieldDataClassification, FieldValueDto, FieldValueType, SchemaFieldBindingDto,} from '../../../models/models';
 import {buildSparseFieldValuePayload} from './fieldValuePayload';
 
 const binding = (overrides: Partial<SchemaFieldBindingDto>): SchemaFieldBindingDto => ({
@@ -153,5 +148,20 @@ describe('buildSparseFieldValuePayload', () =>
         const payload = buildSparseFieldValuePayload(bindings, [], {flag: true});
 
         expect(payload).toEqual([{fieldContractId: 'flag', value: true}]);
+    });
+
+    it('sends a cleared single or multiple choice as its empty value', () => {
+        const bindings = [
+            binding({fieldContractId: 'single', valueType: FieldValueType.SINGLE_SELECT}),
+            binding({fieldContractId: 'multiple', valueType: FieldValueType.MULTI_SELECT}),
+        ];
+        const values = [storedValue('single', 'FIRST'), storedValue('multiple', ['FIRST'])];
+
+        const payload = buildSparseFieldValuePayload(bindings, values, {single: null, multiple: []});
+
+        expect(payload).toEqual([
+            {fieldContractId: 'single', value: null},
+            {fieldContractId: 'multiple', value: []},
+        ]);
     });
 });

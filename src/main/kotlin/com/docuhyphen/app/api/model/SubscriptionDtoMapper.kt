@@ -4,22 +4,18 @@ import com.docuhyphen.app.api.model.dto.EffectiveSubscriptionDto
 import com.docuhyphen.app.api.model.dto.SubscriptionDenialDto
 import com.docuhyphen.app.api.model.dto.SubscriptionLimitsDto
 import com.docuhyphen.app.api.model.dto.SubscriptionUsageDto
-import com.docuhyphen.app.api.service.subscription.*
+import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
+import com.docuhyphen.app.api.service.subscription.SubscriptionUsage
 import java.time.Instant
 
-/**
- * Maps resolved subscription values onto their transport contracts.
- *
- * External billing references and change reasons are deliberately not carried across: they are
- * operational fields for platform administration, not part of what a session needs to know.
- */
 object SubscriptionDtoMapper
 {
     fun toDto(
         subscription: EffectiveSubscription,
         usage: SubscriptionUsage,
         enforcementMode: SubscriptionEnforcementMode,
-        availableFeatures: Set<PlanFeature> = subscription.features,
         at: Instant = Instant.now(),
     ): EffectiveSubscriptionDto
     {
@@ -28,7 +24,7 @@ object SubscriptionDtoMapper
             ownerType = subscription.ownerType.name,
             ownerId = subscription.ownerId,
             status = subscription.status.name,
-            features = availableFeatures.map { it.name }.sorted(),
+            features = subscription.features.map { it.name }.sorted(),
             limits = toDto(subscription),
             usage = toDto(usage),
             allowsMutations = subscription.allowsMutations(at),

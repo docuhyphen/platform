@@ -1,33 +1,17 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
+import com.docuhyphen.app.api.model.dto.SchemaAssignmentStateDto
 import com.docuhyphen.app.api.model.entity.FieldValueSet
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
 import com.docuhyphen.app.api.model.entity.SchemaDefinition
 import com.docuhyphen.app.api.model.entity.SchemaVersion
+import com.docuhyphen.app.api.model.fields.ResolvedFieldValue
+import com.docuhyphen.app.api.model.fields.SchemaAssignmentCapabilities
 import com.docuhyphen.app.api.service.fields.FieldValueSetETag
-import com.docuhyphen.app.api.service.fields.ResolvedFieldValue
 
-/**
- * Shapes a resource's Schema Assignment and the answers it holds into the projection a consumer
- * reads: which Schema governs the resource, which version of it is in force, the questions it asks,
- * the answers themselves, and the validator naming the exact state those answers stand in. Nothing
- * here reaches a repository.
- */
 object SchemaAssignmentDtoMapper
 {
-    /**
-     * The projection for one assignment.
-     *
-     * [questions] are the questions this caller may be shown together with the answers held for
-     * them, already narrowed and ordered by whoever gathered them. Both the descriptions an editor is
-     * built from and the answers it shows are derived from that one list, so the projection cannot
-     * describe a question it withholds the answer to, or answer one it does not describe.
-     *
-     * [valueSet] is the set those answers were read from, and is null only where the resource holds
-     * no set of answers yet; a projection with no set carries no validator rather than an invented
-     * one, because there is no state for a later write to be judged against.
-     */
     fun toDto(
         assignment: SchemaAssignment,
         definition: SchemaDefinition,
@@ -48,5 +32,14 @@ object SchemaAssignmentDtoMapper
         bindings = questions.map { SchemaFieldBindingDtoMapper.toDto(it.question) },
         fields = questions.map(FieldValueDtoMapper::toDto),
         etag = valueSet?.let(FieldValueSetETag::of),
+    )
+
+    fun toStateDto(
+        assignment: SchemaAssignmentDto?,
+        capabilities: SchemaAssignmentCapabilities,
+    ): SchemaAssignmentStateDto = SchemaAssignmentStateDto(
+        assignment = assignment,
+        canManageSchema = capabilities.canManageSchema,
+        canEditValues = capabilities.canEditValues,
     )
 }

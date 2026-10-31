@@ -9,7 +9,14 @@ import java.util.*
 class ExternalParticipantRepository :
     BaseRepository<ExternalParticipant>(ExternalParticipant::class.java)
 {
-    /** Owner-scoped lookup. `ownerAppUserId` is used for personal participant ownership. */
+    fun lockOwnerEmail(ownerOrganizationId: UUID?, ownerAppUserId: UUID?, email: String) {
+        val owner = ownerOrganizationId?.let { "organization:$it" }
+            ?: "user:${requireNotNull(ownerAppUserId)}"
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))")
+            .setParameter("key", "external-participant:$owner:${email.trim().lowercase()}")
+            .singleResult
+    }
+
     fun findByOwnerAndEmail(
         ownerOrganizationId: UUID?,
         ownerAppUserId: UUID?,
@@ -53,37 +60,4 @@ class ExternalParticipantRepository :
         }
     }
 
-    /** Legacy organization-only lookup kept for existing display callers. */
-    fun findByOwnerAndEmail(ownerOrganizationId: UUID?, email: String): ExternalParticipant?
-    {
-        val lower = email.trim().lowercase()
-        return if (ownerOrganizationId == null)
-        {
-            entityManager.createQuery(
-                """SELECT p FROM ExternalParticipant p
-                   WHERE p.ownerOrganizationId IS NULL
-                     AND p.ownerAppUserId IS NULL
-                     AND p.emailLower = :e""",
-                ExternalParticipant::class.java,
-            )
-                .setParameter("e", lower)
-                .resultList
-                .firstOrNull()
-        }
-        else
-        {
-            entityManager.createQuery(
-                """SELECT p FROM ExternalParticipant p
-                   WHERE p.ownerOrganizationId = :oid
-                     AND p.ownerAppUserId IS NULL
-                     AND p.emailLower = :e""",
-                ExternalParticipant::class.java,
-            )
-                .setParameter("oid", ownerOrganizationId)
-                .setParameter("e", lower)
-                .resultList
-                .firstOrNull()
-        }
-    }
 }
-

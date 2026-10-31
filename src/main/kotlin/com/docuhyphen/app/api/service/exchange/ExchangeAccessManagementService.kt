@@ -3,10 +3,14 @@
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.SessionAccessEntryDto
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.exchange.ExchangeRecipientBinding
+import com.docuhyphen.app.api.model.exchange.ExternalParticipantOwner
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
@@ -20,6 +24,7 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -32,16 +37,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Manage-access write API over the unified [com.docuhyphen.app.api.model.entity.Share] model
- * Grants, changes, and revokes access to an Exchange.
- *
- * Guarding: for now only the session **initiator** (owner) may change access. This is the
- * pragmatic guard until [com.docuhyphen.app.api.service.auth.authz.AuthorizationService] is
- * wired with full org-context (the `EXCHANGE_MANAGE_ACCESS` capability needs `AuthorizationContext`,
- * which lands with the JWT active-org work). The check is centralised in [requireSessionOwner]
- * so it can be swapped for the capability check in one place.
- */
 @ApplicationScoped
 class ExchangeAccessManagementService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
@@ -49,7 +44,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val shareService: ShareService,
     private val shareQueryService: ShareQueryService,
     private val appUserService: AppUserService,
-    private val externalParticipantRepository: ExternalParticipantRepository,
+    private val externalParticipants: ExternalParticipantService,
     private val organizationGroupService: OrganizationGroupService,
     private val exchangeRecipientService: ExchangeRecipientService,
     private val exchangeRecipientSelectionResolver: ExchangeRecipientSelectionResolver,
@@ -67,6 +62,7 @@ class ExchangeAccessManagementService @Inject constructor(
     private val auditOwnerScopeResolver: AuditOwnerScopeResolver,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
     private val exchangeFeatureSubscriptionGuard: ExchangeFeatureSubscriptionGuard,
+    private val requestParentLifecycle: InformationRequestParentLifecycleService,
 )
 {
     companion object
@@ -95,13 +91,11 @@ class ExchangeAccessManagementService @Inject constructor(
         val requestedKind = parsePrincipalKind(principalKind)
         requireAssignableRole(roleName)
 
-        // Prevent the caller from granting themselves a share (they already have OWNER).
         val callerAppUserId = authTokenContext.authToken.appUser?.id
         if (requestedKind == PrincipalKind.USER && principalId.trim() == callerAppUserId?.toString())
         {
             throw IllegalArgumentException("You cannot add yourself to a session you own")
         }
-        // Also prevent adding by email if it resolves to the caller.
         val normalizedGrantEmail = principalId.trim().normalizeEmailOrNull()
         if (normalizedGrantEmail != null && callerAppUserId != null)
         {
@@ -112,11 +106,10 @@ class ExchangeAccessManagementService @Inject constructor(
             }
         }
 
-        val (kind, principalUuid) = resolvePrincipal(requestedKind, principalId)
+        val (kind, principalUuid) = resolvePrincipal(session, requestedKind, principalId)
         val actorId = callerAppUserId
             ?: throw ForbiddenException("A user account is required to manage access")
         enforceSharingPolicy(senderOrganizationId, actorId, kind, principalUuid)
-        // Reject malformed/contradictory constraints up front and store a canonical form.
         val normalizedConstraints = ShareConstraints.normalizeForStorage(constraintsJson)
 
         val directShare = shareService.grant(
@@ -149,11 +142,6 @@ class ExchangeAccessManagementService @Inject constructor(
         )
     }
 
-    /**
-     * Adds a verified Trusted Organization person or published group as an additional participant.
-     * The direct Share remains inactive until that participant independently accepts the attested
-     * invitation.
-     */
     @Transactional
     fun inviteTrustedParticipant(
         exchangeId: UUID,
@@ -197,7 +185,12 @@ class ExchangeAccessManagementService @Inject constructor(
                 ) {
                     "This trusted recipient has an incompatible Exchange binding"
                 }
-                exchangeRecipientService.deleteBinding(previousRecipient)
+                exchangeRecipientService.reopenBinding(
+                    previousRecipient,
+                    ExchangeRecipientPurpose.PARTICIPANT,
+                    resolved.selectionType,
+                    resolved.targetOrganizationId,
+                )
             }
         }
 
@@ -277,23 +270,15 @@ class ExchangeAccessManagementService @Inject constructor(
         )
     }
 
-    /**
-     * Replaces the pending primary recipient of a draft Exchange with a freshly resolved selection.
-     * This lets the Exchange owner recover an invitation whose trusted verification, membership,
-     * relationship, or policy is no longer valid. The old primary Share is revoked (cascading to any
-     * inherited group-member Shares) and its recipient binding and attestation are removed, then a
-     * new pending primary Share, binding, and attestation are created in the same transaction. A
-     * trusted selection revalidates through the recipient resolver and always requires sign-in and
-     * acceptance. Other recipient paths have separate invitation contracts and cannot use this
-     * trusted-recipient recovery operation.
-     */
     @Transactional
     fun replacePrimaryRecipient(
         exchangeId: UUID,
         selection: ExchangeRecipientSelectionRequest,
     ): List<SessionAccessEntryDto>
     {
-        val session = requireSessionOwnerAndReturn(exchangeId)
+        requireSessionOwnerAndReturn(exchangeId)
+        val session = exchangeRepository.findByIdForUpdate(exchangeId)
+            ?: throw ExchangeNotFoundException("Exchange not found")
         val senderOrganizationId = requireNotNull(
             manageAccessSenderOrganization(session, requireOrganization = true),
         )
@@ -313,7 +298,7 @@ class ExchangeAccessManagementService @Inject constructor(
             )
         }
 
-        val currentPrimary = exchangeRecipientService.findPrimary(exchangeId)
+        val currentPrimary = exchangeRecipientService.findPrimaryForUpdate(exchangeId)
             ?: throw IllegalArgumentException("The Exchange has no primary recipient to replace")
         require(currentPrimary.acceptanceStatus == ExchangeRecipientAcceptanceStatus.PENDING) {
             "Only a pending primary recipient can be replaced"
@@ -329,16 +314,19 @@ class ExchangeAccessManagementService @Inject constructor(
         val preservedRole = previousShare.exchangeRoleName()
         val preservedConstraints = previousShare.constraintsJson
 
-        // Remove the old binding and attestation first so the single-primary constraint is free,
-        // then revoke the old Share, which cascades to any inherited group-member Shares.
-        exchangeRecipientService.deleteBinding(currentPrimary)
+        exchangeRecipientService.releasePrimary(currentPrimary)
         shareService.revoke(previousShare.id, PrincipalRef.user(caller.id), resourceLabel = session.name)
 
-        // Trusted selections always require sign-in and hold their Share until the attested recipient accepts.
         if (!session.requireRecipientSignIn)
         {
             session.requireRecipientSignIn = true
             exchangeRepository.update(session)
+            requestParentLifecycle.enforceRecipientSignIn(
+                exchangeId,
+                InformationRequestAuditActor.of(
+                    RequestAccessContext(PrincipalRef.user(caller.id), authorizationContextFactory.currentContext()),
+                ),
+            )
         }
 
         val newShare = shareService.grant(
@@ -361,7 +349,12 @@ class ExchangeAccessManagementService @Inject constructor(
             ) {
                 "Replacement recipient has an incompatible Exchange binding"
             }
-            exchangeRecipientService.deleteBinding(existingBinding)
+            exchangeRecipientService.reopenBinding(
+                existingBinding,
+                ExchangeRecipientPurpose.PRIMARY,
+                resolved.selectionType,
+                resolved.targetOrganizationId,
+            )
         }
 
         val newPrimary = exchangeRecipientService.createBinding(
@@ -494,8 +487,6 @@ class ExchangeAccessManagementService @Inject constructor(
         requireSessionOwner(exchangeId)
     }
 
-    // -------------------------------------------------------------------------
-
     private fun scheduleAccessGrantedNotification(
         session: Exchange,
         kind: PrincipalKind,
@@ -518,7 +509,7 @@ class ExchangeAccessManagementService @Inject constructor(
         }
         val externalEmail: String? = when (kind)
         {
-            PrincipalKind.PARTICIPANT -> externalParticipantRepository.findById(principalUuid)?.email
+            PrincipalKind.PARTICIPANT -> participantHeldBy(session, principalUuid)?.email
             else -> null
         }
         val fallbackEmail = externalEmail ?: rawPrincipalId.normalizeEmailOrNull()
@@ -597,12 +588,6 @@ class ExchangeAccessManagementService @Inject constructor(
         )
     }
 
-    /**
-     * Authorize the caller to manage access on the session. When the v2 read path is enabled,
-     * this delegates to [AuthorizationService] (`EXCHANGE_MANAGE_ACCESS`, satisfied by the
-     * initiator's OWNER share or any future role/share granting `EXCHANGE_SHARE`). Otherwise it
-     * falls back to the legacy initiator-only check. Either way a missing session is a 404.
-     */
     private fun requireSessionOwner(exchangeId: UUID)
     {
         val session = loadSessionOrThrow(exchangeId)
@@ -622,7 +607,6 @@ class ExchangeAccessManagementService @Inject constructor(
         }
     }
 
-    /** Same as [requireSessionOwner] but also returns the loaded session for subsequent use. */
     private fun requireSessionOwnerAndReturn(exchangeId: UUID): Exchange
     {
         val session = loadSessionOrThrow(exchangeId)
@@ -677,7 +661,6 @@ class ExchangeAccessManagementService @Inject constructor(
         val share = requireShareBelongsToSession(shareId, exchangeId)
         val callerAppUserId = authTokenContext.authToken.appUser?.id
 
-        // Protect the session initiator's OWNER share, it's structural and must not be changed.
         val initiatorId = session.initiator?.id
         if (
             initiatorId != null &&
@@ -690,7 +673,6 @@ class ExchangeAccessManagementService @Inject constructor(
             throw ForbiddenException("Session owner access cannot be changed or revoked")
         }
 
-        // Prevent the caller from modifying/revoking their own access entry.
         if (callerAppUserId != null && share.principalKind == PrincipalKind.USER && share.principalId == callerAppUserId)
         {
             throw ForbiddenException("You cannot modify or revoke your own access")
@@ -772,12 +754,7 @@ class ExchangeAccessManagementService @Inject constructor(
         return resolved
     }
 
-    /**
-     * Resolve the effective principal for a manage-access grant. For USER kind the value can be
-     * a UUID or an email. If the email has no registered account yet, create a temporary inactive
-     * AppUser and grant against that user id so sign-up can upgrade the row in place.
-     */
-    private fun resolvePrincipal(kind: PrincipalKind, value: String): Pair<PrincipalKind, UUID>
+    private fun resolvePrincipal(exchange: Exchange, kind: PrincipalKind, value: String): Pair<PrincipalKind, UUID>
     {
         val trimmed = value.trim()
         if (kind == PrincipalKind.USER)
@@ -801,7 +778,7 @@ class ExchangeAccessManagementService @Inject constructor(
         val principalId = parseUuid(trimmed, "principalId")
         when (kind)
         {
-            PrincipalKind.PARTICIPANT -> if (externalParticipantRepository.findById(principalId) == null)
+            PrincipalKind.PARTICIPANT -> if (participantHeldBy(exchange, principalId) == null)
             {
                 throw IllegalArgumentException("Participant not found")
             }
@@ -815,6 +792,11 @@ class ExchangeAccessManagementService @Inject constructor(
         }
         return kind to principalId
     }
+
+    private fun participantHeldBy(exchange: Exchange, participantId: UUID): ExternalParticipant? =
+        (exchange.ownerOrganizationId?.let(ExternalParticipantOwner::Organization)
+            ?: exchange.ownerUserId?.let(ExternalParticipantOwner::Personal))
+            ?.let { owner -> externalParticipants.findOwned(participantId, owner) }
 
     private fun requireAssignableRole(roleName: ExchangeShareRoleName)
     {
@@ -856,19 +838,14 @@ class ExchangeAccessManagementService @Inject constructor(
         }
     }
 
-    private data class RecipientBinding(
-        val selectionType: ExchangeRecipientSelectionType,
-        val targetOrganizationId: UUID?,
-    )
-
     private fun recipientBinding(
         exchange: Exchange,
         principalKind: PrincipalKind,
         principalId: UUID,
-    ): RecipientBinding =
+    ): ExchangeRecipientBinding =
         when (principalKind)
         {
-            PrincipalKind.USER -> RecipientBinding(
+            PrincipalKind.USER -> ExchangeRecipientBinding(
                 selectionType = if (appUserService.getById(principalId)?.isTemporary == true)
                     ExchangeRecipientSelectionType.EXTERNAL_EMAIL
                 else
@@ -876,7 +853,7 @@ class ExchangeAccessManagementService @Inject constructor(
                 targetOrganizationId = null,
             )
 
-            PrincipalKind.PARTICIPANT -> RecipientBinding(
+            PrincipalKind.PARTICIPANT -> ExchangeRecipientBinding(
                 selectionType = ExchangeRecipientSelectionType.EXTERNAL_EMAIL,
                 targetOrganizationId = null,
             )
@@ -896,7 +873,7 @@ class ExchangeAccessManagementService @Inject constructor(
                     PrincipalGroupScope.SHARED_PROJECT ->
                         throw IllegalArgumentException("Shared project groups cannot be used as Exchange recipients")
                 }
-                RecipientBinding(
+                ExchangeRecipientBinding(
                     selectionType = selectionType,
                     targetOrganizationId = group.ownerOrganizationId,
                 )
@@ -905,12 +882,6 @@ class ExchangeAccessManagementService @Inject constructor(
             else -> throw IllegalArgumentException("Principal kind is not supported for Exchange access")
         }
 
-    /**
-     * Records denied `EXCHANGE_MANAGE_ACCESS` authorization as a
-     * genuinely sensitive authorization decision (someone tried to view or change who has access
-     * to an exchange without permission), so it gets its own AUTHORIZATION_DENIED ledger row.
-     * Failures are caught and logged, never propagated.
-     */
     private fun recordAuthorizationDenied(
         exchangeId: UUID,
         actorId: UUID,

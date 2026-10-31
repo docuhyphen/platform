@@ -1,23 +1,20 @@
 package com.docuhyphen.app.api.resource.informationrequest.noauth
 
+import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessLinkIssuedDto
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.model.entity.ShareLinkStatus
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestBootstrapShareLinkIssuance
-import com.docuhyphen.app.api.model.informationrequest.noauth.IssueInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.ReplaceInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RevokeInformationRequestBootstrapShareLinkCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.RotateInformationRequestBootstrapShareLinkCommand
+import com.docuhyphen.app.api.model.informationrequest.noauth.*
 import com.docuhyphen.app.api.resource.informationrequest.noauth.operations.InformationRequestAccessLinkResourceOperations
 import com.docuhyphen.app.api.resource.model.IssueInformationRequestAccessLinkRequest
 import com.docuhyphen.app.api.resource.model.ReplaceInformationRequestAccessLinkRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
@@ -34,11 +31,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * The owner-facing bootstrap access-link resource exposes issuance, rotation, replacement, and
- * revocation of a [ShareLinkMode.VERIFICATION_BOOTSTRAP] link. It is authenticated only; the
- * respondent-facing no-auth adapter for contact proof and session issuance is a separate resource.
- */
 class InformationRequestAccessLinkResourceContractTest
 {
     private val bootstrapShareLinkService = mock<InformationRequestBootstrapShareLinkService>()
@@ -82,8 +74,10 @@ class InformationRequestAccessLinkResourceContractTest
         val listed = resource.list(requestId.toString())
         val invalid = resource.list("not-a-request")
 
-        assertEquals(true, InformationRequestAccessLinkResourceOperations::class.java.declaredMethods.single { it.name == "list" }
-            .isAnnotationPresent(jakarta.ws.rs.GET::class.java))
+        assertEquals(
+            true,
+            InformationRequestAccessLinkResourceOperations::class.java.declaredMethods.single { it.name == "list" }
+                .isAnnotationPresent(jakarta.ws.rs.GET::class.java))
         assertEquals(Response.Status.OK.statusCode, listed.status)
         @Suppress("UNCHECKED_CAST")
         val link = (listed.entity as Array<InformationRequestAccessLinkDto>).single()
@@ -113,7 +107,7 @@ class InformationRequestAccessLinkResourceContractTest
     @Test
     fun `issue requires an idempotency key and returns the raw token only once`()
     {
-        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "raw-token-value")
+        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "raw-token-value", "\"v2\"")
         whenever(bootstrapShareLinkService.issue(any())).thenReturn(issuance)
         val body = IssueInformationRequestAccessLinkRequest(partyId = partyId)
 
@@ -127,6 +121,8 @@ class InformationRequestAccessLinkResourceContractTest
         val dto = issued.entity as InformationRequestAccessLinkIssuedDto
         assertEquals("raw-token-value", dto.accessToken)
         assertEquals(shareLinkId, dto.shareLinkId)
+        assertEquals("\"v2\"", dto.partyETag)
+        assertEquals("\"v2\"", issued.getHeaderString("ETag"))
         verify(bootstrapShareLinkService).issue(
             IssueInformationRequestBootstrapShareLinkCommand(
                 requestId = requestId,
@@ -143,7 +139,7 @@ class InformationRequestAccessLinkResourceContractTest
     @Test
     fun `rotate delegates to the bootstrap share link service and returns the new raw token`()
     {
-        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "rotated-token-value")
+        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "rotated-token-value", "\"v2\"")
         whenever(bootstrapShareLinkService.rotate(any())).thenReturn(issuance)
 
         val rotated = resource.rotate(requestId.toString(), shareLinkId.toString(), "\"v1\"", "idem-1")
@@ -151,6 +147,7 @@ class InformationRequestAccessLinkResourceContractTest
         assertEquals(Response.Status.OK.statusCode, rotated.status)
         val dto = rotated.entity as InformationRequestAccessLinkIssuedDto
         assertEquals("rotated-token-value", dto.accessToken)
+        assertEquals("\"v2\"", rotated.getHeaderString("ETag"))
         verify(bootstrapShareLinkService).rotate(
             RotateInformationRequestBootstrapShareLinkCommand(
                 requestId = requestId,
@@ -165,7 +162,7 @@ class InformationRequestAccessLinkResourceContractTest
     @Test
     fun `replace delegates to the bootstrap share link service with new constraints`()
     {
-        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "replaced-token-value")
+        val issuance = InformationRequestBootstrapShareLinkIssuance(shareLink(), "replaced-token-value", "\"v2\"")
         whenever(bootstrapShareLinkService.replace(any())).thenReturn(issuance)
         val body = ReplaceInformationRequestAccessLinkRequest(maxUses = 5)
 
@@ -174,6 +171,7 @@ class InformationRequestAccessLinkResourceContractTest
         assertEquals(Response.Status.CREATED.statusCode, replaced.status)
         val dto = replaced.entity as InformationRequestAccessLinkIssuedDto
         assertEquals("replaced-token-value", dto.accessToken)
+        assertEquals("\"v2\"", replaced.getHeaderString("ETag"))
         verify(bootstrapShareLinkService).replace(
             ReplaceInformationRequestBootstrapShareLinkCommand(
                 requestId = requestId,
@@ -188,15 +186,62 @@ class InformationRequestAccessLinkResourceContractTest
     }
 
     @Test
+    fun `every response that carries a raw access token forbids storing it`() {
+        whenever(bootstrapShareLinkService.issue(any())).thenReturn(
+            InformationRequestBootstrapShareLinkIssuance(
+                shareLink(),
+                "issued-token",
+                "\"v2\""
+            )
+        )
+        whenever(bootstrapShareLinkService.rotate(any())).thenReturn(
+            InformationRequestBootstrapShareLinkIssuance(
+                shareLink(),
+                "rotated-token",
+                "\"v2\""
+            )
+        )
+        whenever(bootstrapShareLinkService.replace(any())).thenReturn(
+            InformationRequestBootstrapShareLinkIssuance(
+                shareLink(),
+                "replaced-token",
+                "\"v2\""
+            )
+        )
+
+        val responses = listOf(
+            resource.issue(
+                requestId.toString(),
+                IssueInformationRequestAccessLinkRequest(partyId = partyId),
+                "\"v1\"",
+                "idem-issue"
+            ),
+            resource.rotate(requestId.toString(), shareLinkId.toString(), "\"v1\"", "idem-rotate"),
+            resource.replace(
+                requestId.toString(),
+                shareLinkId.toString(),
+                ReplaceInformationRequestAccessLinkRequest(maxUses = 5),
+                "\"v1\"",
+                "idem-replace"
+            ),
+        )
+
+        assertEquals(listOf("no-store", "no-store", "no-store"), responses.map { it.getHeaderString("Cache-Control") })
+    }
+
+    @Test
     fun `revoke delegates to the bootstrap share link service and never returns a token`()
     {
-        whenever(bootstrapShareLinkService.revoke(any())).thenReturn(shareLink(ShareLinkStatus.REVOKED))
+        whenever(bootstrapShareLinkService.revoke(any()))
+            .thenReturn(InformationRequestBootstrapShareLinkRevocation(shareLink(ShareLinkStatus.REVOKED), "\"v3\""))
 
         val revoked = resource.revoke(requestId.toString(), shareLinkId.toString(), "\"v1\"", "idem-1")
 
         assertEquals(Response.Status.OK.statusCode, revoked.status)
         val dto = revoked.entity as InformationRequestAccessLinkDto
         assertEquals(ShareLinkStatus.REVOKED, dto.status)
+        assertEquals("\"v3\"", dto.partyETag)
+        assertEquals("\"v3\"", revoked.getHeaderString("ETag"))
         verify(bootstrapShareLinkService).revoke(
             RevokeInformationRequestBootstrapShareLinkCommand(
                 requestId = requestId,
@@ -209,10 +254,38 @@ class InformationRequestAccessLinkResourceContractTest
     }
 
     @Test
+    fun `invalid link limits are bad requests with a stable reason`() {
+        whenever(bootstrapShareLinkService.issue(any())).thenThrow(
+            InformationRequestCommandRequestException(
+                "An access link must expire in the future and allow at least one use",
+                InformationRequestErrorCatalog.ACCESS_LINK_LIMITS_INVALID,
+            ),
+        )
+
+        val refused = resource.issue(
+            requestId.toString(),
+            IssueInformationRequestAccessLinkRequest(partyId = partyId, maxUses = 0),
+            "\"v1\"",
+            "idem-1"
+        )
+
+        assertEquals(Response.Status.BAD_REQUEST.statusCode, refused.status)
+        assertEquals(
+            InformationRequestErrorCatalog.ACCESS_LINK_LIMITS_INVALID,
+            (refused.entity as ResponseError).reasonCode
+        )
+    }
+
+    @Test
     fun `domain failures map to stable response statuses`()
     {
         whenever(bootstrapShareLinkService.issue(any()))
-            .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED, "Sign-in required"))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED,
+                    "Sign-in required"
+                )
+            )
             .thenThrow(IllegalArgumentException("Information Request not found"))
             .thenThrow(ForbiddenException("Denied"))
         val body = IssueInformationRequestAccessLinkRequest(partyId = partyId)

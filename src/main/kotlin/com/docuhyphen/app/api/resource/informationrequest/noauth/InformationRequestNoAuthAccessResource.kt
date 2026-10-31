@@ -1,12 +1,15 @@
 package com.docuhyphen.app.api.resource.informationrequest.noauth
 
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.InformationRequestAccessSessionDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAttempt
 import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.noauth.operations.InformationRequestNoAuthAccessResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.VerifyInformationRequestContactProofRequest
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestAccessSessionStepUpService
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestContactProofService
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthRateLimit
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestRateLimitedException
@@ -17,20 +20,11 @@ import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-/**
- * No-auth, respondent-facing adapter proving recipient contact ownership of a
- * [com.docuhyphen.app.api.model.entity.ShareLinkMode.VERIFICATION_BOOTSTRAP] access link and minting
- * the [com.docuhyphen.app.api.model.entity.RequestAccessSession] it authorizes. This resource stays
- * outside the global access-token filter (see the `/no-auth/information-requests/` allowlist entry in
- * `EndpointAuthorizationFilter`) and validates the bootstrap token presented in
- * [com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.ACCESS_LINK_TOKEN_HEADER] itself, the same way
- * [com.docuhyphen.app.api.resource.exchange.NoAuthExchangeResource] validates its own headers. The
- * authenticated, owner-facing issuance/rotation/replacement/revocation of the link itself is a
- * separate resource, [InformationRequestAccessLinkResource].
- */
 class InformationRequestNoAuthAccessResource @Inject constructor(
     private val contactProofService: InformationRequestContactProofService,
     private val rateLimit: InformationRequestNoAuthRateLimit,
+    private val stepUpService: InformationRequestAccessSessionStepUpService,
+    private val requestContext: AuthTokenContext,
 ) : InformationRequestNoAuthAccessResourceOperations
 {
     override fun issueContactProofChallenge(
@@ -40,7 +34,7 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         return ResourceEndpointDelayHelper.withFixedFloor(1000) {
             try
             {
-                rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE)
+                rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE, requestContext.clientIp)
                 val token = requiredToken(accessLinkToken)
                     ?: return@withFixedFloor missingTokenResponse()
                 contactProofService.issueChallenge(token)
@@ -60,7 +54,7 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
     {
         return try
         {
-            rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.SESSION)
+            rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.SESSION, requestContext.clientIp)
             val token = requiredToken(accessLinkToken)
                 ?: return missingTokenResponse()
             val session = contactProofService.verifyChallenge(token, request.otp)
@@ -72,6 +66,39 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         catch (exception: Exception)
         {
             handleException("Information Request contact-proof verification failed", exception)
+        }
+    }
+
+    override fun issueStepUpChallenge(accessLinkToken: String?, sessionToken: String?): Response {
+        return ResourceEndpointDelayHelper.withFixedFloor(1000) {
+            try {
+                rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE, requestContext.clientIp)
+                val token = requiredToken(accessLinkToken)
+                    ?: return@withFixedFloor missingTokenResponse()
+                stepUpService.issueChallenge(token, sessionToken)
+                Response.status(NO_CONTENT).build()
+            } catch (exception: Exception) {
+                handleException("Information Request access session step-up challenge issuance failed", exception)
+            }
+        }
+    }
+
+    override fun verifyStepUp(
+        accessLinkToken: String?,
+        sessionToken: String?,
+        request: VerifyInformationRequestContactProofRequest,
+    ): Response {
+        return try {
+            rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.SESSION, requestContext.clientIp)
+            val token = requiredToken(accessLinkToken)
+                ?: return missingTokenResponse()
+            val stepUp = stepUpService.verify(token, sessionToken, request.otp)
+            Response.status(CREATED)
+                .header("Cache-Control", "no-store")
+                .entity(InformationRequestAccessSessionDtoMapper.toDto(stepUp))
+                .build()
+        } catch (exception: Exception) {
+            handleException("Information Request access session step-up verification failed", exception)
         }
     }
 
@@ -87,25 +114,31 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         {
             is InformationRequestRateLimitedException -> Response.status(TOO_MANY_REQUESTS)
                 .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+                .entity(ResponseError(exception.message, exception.reasonCode, exception.retryAfterSeconds)).build()
 
-            is InformationRequestLifecycleException -> Response.status(CONFLICT)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
 
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
 
             is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                .entity(
+                    ResponseError(
+                        exception.message,
+                        com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog.FORBIDDEN
+                    )
+                ).build()
 
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
 
-            else ->
-            {
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
             }

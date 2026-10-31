@@ -1,17 +1,21 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.clock.*
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -37,21 +41,24 @@ class InformationRequestClockService @Inject constructor(
     @Transactional
     fun start(command: StartInformationRequestClockCommand): InformationRequestClockView
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val key = command.clockKey.trim().lowercase()
         val receipt = receipt(
             command.requestId, START_OPERATION, command.access, command.idempotencyKey,
-            listOf(key, command.policyVersionId, command.urgency, command.receivedAt ?: ""),
+            listOf(key, command.policyVersionId, command.urgency, command.receivedAt),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
-                gate.requireMutation(locked, InformationRequestMutation.START_CLOCK)
                 gate.authorizeRequest(
                     command.access,
                     listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
                     command.requestId
                 )
+                gate.requireMutation(locked, InformationRequestMutation.START_CLOCK)
+                gate.requireContinuation(locked, InformationRequestContinuationAction.SEND_REMINDER)
                 val view = availableVersion(locked, command.policyVersionId)
+                InformationRequestClockInputLimits.requireLength(key, 64, "A clock key")
                 if (!KEY.matches(key)) throw InformationRequestCommandRequestException("A clock key uses lowercase letters, digits, dots, dashes, or underscores")
                 if (clockRepository.findForRequest(command.requestId).any { it.clockKey == key })
                 {
@@ -61,7 +68,7 @@ class InformationRequestClockService @Inject constructor(
                     )
                 }
                 val now = clock.instant()
-                val received = command.receivedAt ?: locked.request.issuedAt?.toInstant() ?: now
+                val received = command.receivedAt ?: now
                 val minutes = when (command.urgency)
                 {
                     InformationRequestClockUrgency.STANDARD -> view.version.standardDurationMinutes
@@ -99,7 +106,10 @@ class InformationRequestClockService @Inject constructor(
                 )
                 recorder.save(started, view)
                 recorder.transition(
-                    locked.request, started, InformationRequestMutation.START_CLOCK, command.access.principal,
+                    locked.request,
+                    started,
+                    InformationRequestMutation.START_CLOCK,
+                    InformationRequestAuditActor.of(command.access),
                     "information_request.clock_start|${started.id}",
                 )
                 CommandMutationResult(
@@ -128,13 +138,19 @@ class InformationRequestClockService @Inject constructor(
     @Transactional
     fun change(command: ChangeInformationRequestClockCommand): InformationRequestClockView
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             command.requestId, CHANGE_OPERATION, command.access, command.idempotencyKey,
-            listOf(command.clockId, command.change, command.extensionMinutes ?: "", command.reasonCode.orEmpty()),
+            listOf(command.clockId, command.change, command.extensionMinutes, command.reasonCode.orEmpty()),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
+                    command.requestId
+                )
                 val mutation = when (command.change)
                 {
                     InformationRequestClockChange.PAUSE -> InformationRequestMutation.PAUSE_CLOCK
@@ -142,13 +158,18 @@ class InformationRequestClockService @Inject constructor(
                     InformationRequestClockChange.EXTEND -> InformationRequestMutation.EXTEND_CLOCK
                 }
                 gate.requireMutation(locked, mutation)
-                gate.authorizeRequest(
-                    command.access,
-                    listOf(Action.INFORMATION_REQUEST_MANAGE_CLOCKS),
-                    command.requestId
-                )
-                val reason = command.reasonCode?.trim()?.ifBlank { null }
-                    ?: throw InformationRequestCommandRequestException("A clock change states its reason")
+                when (command.change) {
+                    InformationRequestClockChange.RESUME ->
+                        gate.requireContinuation(locked, InformationRequestContinuationAction.SEND_REMINDER)
+
+                    InformationRequestClockChange.PAUSE, InformationRequestClockChange.EXTEND ->
+                        gate.requireOwnerRecovery(locked)
+                }
+                val reason =
+                    com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestReasonCodes.requireMachineCode(
+                        command.reasonCode
+                    )
+                        ?: InformationRequestClockInputLimits.refuse("A clock change states its reason code")
                 val target = clockRepository.findForUpdate(command.clockId)
                     ?.takeIf { it.informationRequestId == command.requestId }
                     ?: throw InformationRequestLifecycleException(
@@ -166,7 +187,7 @@ class InformationRequestClockService @Inject constructor(
                 }
                 recorder.save(target, view)
                 recorder.transition(
-                    locked.request, target, mutation, command.access.principal,
+                    locked.request, target, mutation, InformationRequestAuditActor.of(command.access),
                     "information_request.clock_change|${target.id}|${command.idempotencyKey}", reason,
                 )
                 CommandMutationResult(
@@ -225,7 +246,8 @@ class InformationRequestClockService @Inject constructor(
         val remaining = requireNotNull(target.remainingSeconds)
         target.state = InformationRequestClockState.RUNNING
         target.remainingSeconds = null
-        target.dueAt = Timestamp.from(InformationRequestClockCalculator.advance(view.calendar, now, remaining))
+        if (remaining > 0) target.dueAt =
+            Timestamp.from(InformationRequestClockCalculator.advance(view.calendar, now, remaining))
         recorder.append(
             target, InformationRequestClockEventKind.RESUMED, command.access.principal, now,
             mapOf("resumedAt" to now.toString(), "remainingSeconds" to remaining.toString()), reason,
@@ -240,7 +262,8 @@ class InformationRequestClockService @Inject constructor(
         now: java.time.Instant,
     )
     {
-        val minutes = command.extensionMinutes?.takeIf { it > 0 }
+        val minutes =
+            command.extensionMinutes?.takeIf { it in 1..InformationRequestClockInputLimits.MAXIMUM_DURATION_MINUTES }
             ?: throw InformationRequestCommandRequestException("A clock extension adds a positive number of minutes")
         if (target.state == InformationRequestClockState.STOPPED)
         {
@@ -305,18 +328,13 @@ class InformationRequestClockService @Inject constructor(
         operation: String,
         access: RequestAccessContext,
         idempotencyKey: String,
-        facts: List<Any>,
+        facts: List<Any?>,
     ) = CommandReceiptRequest(
         resource = ResourceRef.informationRequest(requestId),
         operation = operation,
         actor = CommandActorRef.principal(access.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex(
-            (listOf(
-                operation,
-                requestId
-            ) + facts).joinToString("|")
-        ),
+        requestFingerprint = CommandRequestFingerprint.of(operation, requestId, *facts.toTypedArray()),
     )
 
     private companion object

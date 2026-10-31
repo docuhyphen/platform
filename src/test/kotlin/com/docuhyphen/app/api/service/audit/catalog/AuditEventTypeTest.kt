@@ -4,10 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * Pins the runtime Information Request event vocabulary added alongside the Template
- * configuration events already in the catalog, and the resulting catalog version.
- */
 class AuditEventTypeTest
 {
     @Test
@@ -168,6 +164,20 @@ class AuditEventTypeTest
     }
 
     @Test
+    fun `each attempt and outcome of a connector exchange is its own Information Request event`() {
+        listOf(
+            AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_ATTEMPT to "information_request.external.attempt",
+            AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_RETRY to "information_request.external.retry",
+            AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_PENDING to "information_request.external.pending",
+            AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_COMPLETE to "information_request.external.complete",
+            AuditEventType.INFORMATION_REQUEST_EXTERNAL_SOURCE_FAIL to "information_request.external.fail",
+        ).forEach { (eventType, key) ->
+            assertEquals(eventType, AuditEventType.findByKey(key))
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType.category)
+        }
+    }
+
+    @Test
     fun `reading the Information Request health report is a platform event`()
     {
         val eventType = AuditEventType.findByKey("platform.information_request_health.view")
@@ -190,9 +200,56 @@ class AuditEventTypeTest
     }
 
     @Test
-    fun `catalog version reflects the added sign-up vocabulary`()
+    fun `an automatic access session cutoff is its own Information Request event`() {
+        val eventType = AuditEventType.findByKey("information_request.access_session.revoke")
+        assertEquals(AuditEventType.INFORMATION_REQUEST_ACCESS_SESSION_REVOKE, eventType)
+        assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+    }
+
+    @Test
+    fun `contact challenges, verified access sessions, and account links are their own Information Request events`() {
+        listOf(
+            "information_request.contact_challenge.issue",
+            "information_request.contact_challenge.refuse",
+            "information_request.access_session.issue",
+            "information_request.participant_account.link",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
+    fun `a renewed access session verification is its own Information Request event`() {
+        val eventType = AuditEventType.findByKey("information_request.access_session.step_up")
+        assertEquals("information_request.access_session.step_up", eventType?.key)
+        assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+    }
+
+    @Test
+    fun `lifting a subject restriction and reading notice history are their own Information Request events`() {
+        listOf(
+            "information_request.privacy.restriction_lift",
+            "information_request.notice.read",
+        ).forEach { key ->
+            val eventType = AuditEventType.findByKey(key)
+            assertEquals(key, eventType?.key)
+            assertEquals(AuditCategory.INFORMATION_REQUEST, eventType?.category)
+        }
+    }
+
+    @Test
+    fun `a failed disposal attempt is a governance event`()
     {
-        assertEquals(30, AuditEventType.CATALOG_VERSION)
+        val eventType = AuditEventType.findByKey("record.disposal.attempt_failed")
+        assertEquals("record.disposal.attempt_failed", eventType?.key)
+        assertEquals(AuditCategory.AUDIT_GOVERNANCE, eventType?.category)
+    }
+
+    @Test
+    fun `catalog version reflects the connector exchange attempt and outcome vocabulary`() {
+        assertEquals(37, AuditEventType.CATALOG_VERSION)
     }
 
     @Test

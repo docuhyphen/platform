@@ -35,17 +35,21 @@ class InformationRequestHealthRepository @Inject constructor(
             """,
         )
 
-    fun countNoticeIntentsWithoutNoticeBefore(cutoff: Instant): Long =
-        count(
+    fun countNoticeIntentsWithoutNoticeBefore(cutoff: Instant, maximumRenderAttempts: Int): Long =
+        entityManager.createNativeQuery(
             """
             SELECT COUNT(*) FROM information_request_notice_intent intent
             WHERE intent.created_at < :cutoff
               AND NOT EXISTS (
                   SELECT 1 FROM information_request_outbound_notice notice WHERE notice.notice_intent_id = intent.id
               )
-            """,
-            cutoff,
+              AND (SELECT COUNT(*) FROM information_request_notice_render_failure failure
+                   WHERE failure.notice_intent_id = intent.id) < :maximumRenderAttempts
+            """.trimIndent(),
         )
+            .setParameter("cutoff", java.sql.Timestamp.from(cutoff))
+            .setParameter("maximumRenderAttempts", maximumRenderAttempts)
+            .singleResult.let { (it as Number).toLong() }
 
     fun countConnectorExchangesFailedSince(cutoff: Instant, failureCodes: Collection<String>): Long =
         entityManager.createNativeQuery(

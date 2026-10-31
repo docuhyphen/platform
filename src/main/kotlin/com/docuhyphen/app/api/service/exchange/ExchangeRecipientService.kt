@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
@@ -22,6 +23,7 @@ class ExchangeRecipientService @Inject constructor(
     private val trustedRecipientValidationService: TrustedRecipientValidationService,
     private val externalEmailAcceptancePolicyService: ExternalEmailAcceptancePolicyService,
     private val trustedRecipientAuditService: TrustedRecipientAuditService,
+    private val referenceHolders: Instance<ExchangeRecipientReferenceHolder>,
 )
 {
     fun createBinding(
@@ -89,18 +91,54 @@ class ExchangeRecipientService @Inject constructor(
     fun findPrimary(exchangeId: UUID): ExchangeRecipient? =
         exchangeRecipientRepository.findPrimary(exchangeId)
 
+    fun findPrimaryForUpdate(exchangeId: UUID): ExchangeRecipient? =
+        exchangeRecipientRepository.findPrimaryForUpdate(exchangeId)
+
     fun findByExchangeId(exchangeId: UUID): List<ExchangeRecipient> =
         exchangeRecipientRepository.findByExchangeId(exchangeId)
 
-    /**
-     * Removes a recipient binding and its attestation, if any. Used when an Exchange owner replaces
-     * a pending primary recipient so the single-primary and Share-uniqueness constraints stay
-     * satisfied. The bound Share is revoked separately by the caller.
-     */
-    fun deleteBinding(recipient: ExchangeRecipient)
+    fun reopenBinding(
+        recipient: ExchangeRecipient,
+        purpose: ExchangeRecipientPurpose,
+        selectionType: ExchangeRecipientSelectionType,
+        targetOrganizationId: UUID?,
+    ): ExchangeRecipient
     {
+        require(
+            selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON ||
+                    selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP,
+        ) {
+            "Only a trusted invitation reopens a recipient binding"
+        }
+        val share = shareService.getById(recipient.directShareId)
+            ?: throw IllegalArgumentException("Exchange recipient Share was not found")
+        validateSelectionPrincipal(selectionType, share.principalKind)
         attestationService.deleteForRecipient(recipient.id)
-        exchangeRecipientRepository.delete(recipient)
+        recipient.purpose = purpose
+        recipient.selectionType = selectionType
+        recipient.targetOrganizationId = targetOrganizationId
+        recipient.acceptanceStatus = ExchangeRecipientAcceptanceStatus.PENDING
+        recipient.acceptedOrRejectedByAppUserId = null
+        recipient.acceptedOrRejectedAt = null
+        return exchangeRecipientRepository.updateAndFlush(recipient)
+    }
+
+    fun releasePrimary(recipient: ExchangeRecipient) {
+        require(recipient.purpose == ExchangeRecipientPurpose.PRIMARY) {
+            "Only the primary recipient binding can be released"
+        }
+        if (referenceHolders.none { it.references(recipient.id) }) {
+            attestationService.deleteForRecipient(recipient.id)
+            exchangeRecipientRepository.deleteAndFlush(recipient)
+            return
+        }
+        recipient.purpose = ExchangeRecipientPurpose.PARTICIPANT
+        if (!recipient.isTrusted()) {
+            recipient.acceptanceStatus = ExchangeRecipientAcceptanceStatus.NOT_REQUIRED
+            recipient.acceptedOrRejectedByAppUserId = null
+            recipient.acceptedOrRejectedAt = null
+        }
+        exchangeRecipientRepository.updateAndFlush(recipient)
     }
 
     fun findByDirectShareId(directShareId: UUID): ExchangeRecipient? =

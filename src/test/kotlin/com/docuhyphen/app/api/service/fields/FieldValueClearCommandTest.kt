@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.fields.FieldValueClearCommand
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import kotlinx.serialization.json.JsonNull
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

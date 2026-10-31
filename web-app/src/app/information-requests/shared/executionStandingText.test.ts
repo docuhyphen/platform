@@ -1,12 +1,11 @@
 import {describe, expect, it} from "vitest";
-import {
-    InformationRequestExecutionStandingKind,
-    InformationRequestStandingReason,
-} from "../../models/models.tsx";
+import {InformationRequestExecutionStandingKind, InformationRequestStandingReason,} from "../../models/models.tsx";
 import {
     executionStandingBadge,
     executionStandingNotice,
     mayChangeUnderStanding,
+    mayIssueUnderStanding,
+    mayRecoverAsOwnerUnderStanding,
     standingReasonSentence,
 } from "./executionStandingText.ts";
 
@@ -43,6 +42,28 @@ describe("execution standing text", () =>
         expect(mayChangeUnderStanding({kind: InformationRequestExecutionStandingKind.OPERATIONALLY_SUSPENDED})).toBe(false);
         expect(mayChangeUnderStanding({kind: InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED})).toBe(false);
         expect(mayChangeUnderStanding({kind: InformationRequestExecutionStandingKind.NEW_WORK_UNAVAILABLE})).toBe(false);
+    });
+
+    it("says a stopped request accepts no further changes without naming who stopped it", () => {
+        const stopped = executionStandingNotice({
+            kind: InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED,
+            reason: InformationRequestStandingReason.EXECUTION_GRANT_REVOKED,
+        });
+
+        expect(stopped?.text).toMatch(/accepts no further changes/i);
+        expect(stopped?.text).not.toMatch(/administrator/i);
+        expect(executionStandingBadge({kind: InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED})).toBe("Stopped");
+    });
+
+    it("lets only an active owner issue, and lets the owner recover a request unless it is read only or paused", () => {
+        const kinds = Object.values(InformationRequestExecutionStandingKind);
+
+        expect(kinds.filter(kind => mayIssueUnderStanding({kind}))).toEqual([InformationRequestExecutionStandingKind.ACTIVE]);
+        expect(kinds.filter(kind => mayRecoverAsOwnerUnderStanding({kind}))).toEqual([
+            InformationRequestExecutionStandingKind.ACTIVE,
+            InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+            InformationRequestExecutionStandingKind.EXECUTION_GRANT_REVOKED,
+        ]);
     });
 
     it("labels every standing but active", () =>

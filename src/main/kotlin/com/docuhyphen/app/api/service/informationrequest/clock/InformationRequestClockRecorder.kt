@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.clock
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPoint
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
@@ -58,7 +59,13 @@ class InformationRequestClockRecorder @Inject constructor(
         return clockRepository.update(clock)
     }
 
-    fun stop(clock: InformationRequestClock, actor: PrincipalRef, at: Instant, reasonCode: String)
+    fun stop(
+        clock: InformationRequestClock,
+        actor: PrincipalRef,
+        at: Instant,
+        reasonCode: String,
+        inputs: Map<String, String> = emptyMap(),
+    )
     {
         clock.state = InformationRequestClockState.STOPPED
         clock.remainingSeconds = null
@@ -69,7 +76,7 @@ class InformationRequestClockRecorder @Inject constructor(
             InformationRequestClockEventKind.STOPPED,
             actor,
             at,
-            mapOf("stoppedAt" to at.toString()),
+            mapOf("stoppedAt" to at.toString()) + inputs,
             reasonCode
         )
         clock.clockRevision += 1
@@ -81,7 +88,7 @@ class InformationRequestClockRecorder @Inject constructor(
         request: InformationRequest,
         clock: InformationRequestClock,
         mutation: InformationRequestMutation,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
         reasonCode: String? = null,
         extra: Map<String, String> = emptyMap(),
@@ -95,7 +102,7 @@ class InformationRequestClockRecorder @Inject constructor(
                 mutation = mutation,
                 actor = actor,
                 reasonCode = reasonCode,
-                idempotencyKey = idempotencyKey,
+                auditIdempotencyKey = idempotencyKey,
                 details = mapOf(
                     "clockId" to clock.id.toString(),
                     "clockKey" to clock.clockKey,
@@ -109,7 +116,7 @@ class InformationRequestClockRecorder @Inject constructor(
         request: InformationRequest,
         fromState: InformationRequestState,
         clock: InformationRequestClock,
-        actor: PrincipalRef
+        actor: InformationRequestAuditActor,
     )
     {
         transitionHistory.record(
@@ -120,7 +127,7 @@ class InformationRequestClockRecorder @Inject constructor(
                 mutation = InformationRequestMutation.EXPIRE,
                 actor = actor,
                 reasonCode = "CLOCK_DUE",
-                idempotencyKey = "information_request.clock_expiry|${clock.id}",
+                auditIdempotencyKey = "information_request.clock_expiry|${clock.id}",
                 details = mapOf(
                     "clockId" to clock.id.toString(),
                     "clockKey" to clock.clockKey,
@@ -136,7 +143,10 @@ class InformationRequestClockRecorder @Inject constructor(
     ): List<InformationRequestClockPoint>
     {
         if (clock.state != InformationRequestClockState.RUNNING) return emptyList()
-        val recorded = eventRepository.findForClock(clock.id)
+        val events = eventRepository.findForClock(clock.id)
+        val effectiveStart = events.filter { it.reasonCode in setOf("REQUEST_ISSUED", "EXCHANGE_ACCEPTED") }
+            .maxOfOrNull { it.occurredAt.toInstant() } ?: clock.receivedAt.toInstant()
+        val recorded = events
             .filter { it.dueCycle == clock.dueCycle }
             .map { it.eventKind to it.pointOrdinal }
             .toSet()
@@ -148,7 +158,7 @@ class InformationRequestClockRecorder @Inject constructor(
                 val ordinal = index + 1
                 if ((InformationRequestClockEventKind.REMINDED to ordinal) in recorded) return@forEachIndexed
                 val at = InformationRequestClockCalculator.retreat(view.calendar, due, minutes * SECONDS_PER_MINUTE)
-                if (!at.isBefore(clock.receivedAt.toInstant())) points += InformationRequestClockPoint(
+                if (!at.isBefore(effectiveStart)) points += InformationRequestClockPoint(
                     InformationRequestClockEventKind.REMINDED,
                     at,
                     ordinal

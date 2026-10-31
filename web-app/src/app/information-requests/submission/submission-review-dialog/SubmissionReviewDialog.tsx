@@ -7,11 +7,12 @@ interface Props
 {
     items: SubmissionReviewItem[];
     busy: boolean;
+    undisclosedItemCount: number;
     onConfirm: () => void;
     onDismiss: () => void;
 }
 
-const SubmissionReviewDialog = ({items, busy, onConfirm, onDismiss}: Props) =>
+const SubmissionReviewDialog = ({items, busy, undisclosedItemCount, onConfirm, onDismiss}: Props) =>
 {
     const styles = useSubmissionReviewDialogStyles();
 
@@ -27,14 +28,23 @@ const SubmissionReviewDialog = ({items, busy, onConfirm, onDismiss}: Props) =>
             <Text id={"information-request-submission-review-explanation"}>
                 Check your answers. After you submit, they are locked unless a reviewer asks for a correction.
             </Text>
+            {undisclosedItemCount > 0 && <Text id={"information-request-submission-review-undisclosed"}>
+                {`${undisclosedItemCount} answers are included but are not available to you.`}
+            </Text>}
             <ul id={"information-request-submission-review-items"}
                 className={styles.list}>
                 {items.map(item => (
                     <li key={item.requirementId}
                         id={`information-request-submission-review-${item.requirementId}`}
                         className={styles.item}>
-                        <Text weight={"semibold"}>{item.label}</Text>
-                        <Text className={styles.answer}>{item.answer}</Text>
+                        <Text id={`information-request-submission-review-${item.requirementId}-label`}
+                              weight={"semibold"}>
+                            {item.label}
+                        </Text>
+                        <Text id={`information-request-submission-review-${item.requirementId}-answer`}
+                              className={styles.answer}>
+                            {item.answer}
+                        </Text>
                     </li>
                 ))}
             </ul>

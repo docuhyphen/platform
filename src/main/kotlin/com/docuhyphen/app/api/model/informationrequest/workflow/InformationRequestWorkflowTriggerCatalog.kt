@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.model.informationrequest.workflow
 object InformationRequestWorkflowTriggerCatalog
 {
     const val SUBJECT_RESOURCE_TYPE = "INFORMATION_REQUEST"
-    const val SUBJECT_SCHEMA_VERSION = 1
 
     private val COMMON = listOf("requestId", "exchangeId", "templateVersionId", "orgId", "state", "transitionSequence")
 
@@ -23,12 +22,6 @@ object InformationRequestWorkflowTriggerCatalog
     )
 
     val eventNames: Set<String> = EVENT_FIELDS.keys
-
-    val packageScopedEventNames: Set<String> = setOf(
-        "information_request.request.submit",
-        "information_request.request.correction",
-        "information_request.request.close",
-    )
 
     fun fieldsOf(eventName: String): List<String> = EVENT_FIELDS[eventName].orEmpty()
 }

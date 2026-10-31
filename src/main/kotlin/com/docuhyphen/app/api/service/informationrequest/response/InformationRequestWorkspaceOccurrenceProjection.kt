@@ -6,6 +6,7 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import java.util.*
 
@@ -23,14 +24,28 @@ object InformationRequestWorkspaceOccurrenceProjection
         val disclosedPaths = disclosedRequirements.map { it.occurrencePath }.toSet()
         val occupiedPaths = activeRequirements.map { it.occurrencePath }.toSet()
         val groupsByKey = templateVersion.groups.associateBy { it.groupKey }
-        val creationGroupIds = creationGroupKeys.flatMap { key ->
-            generateSequence(groupsByKey[key]) { group -> groupsByKey[group.parentGroupKey] }.map { it.id }.toList()
+        val creationGroups = creationGroupKeys.mapNotNull { groupsByKey[it] }
+        val creationGroupIds = creationGroups.map { it.id }.toSet()
+        val enclosingGroupIds = creationGroups.flatMap { creation ->
+            generateSequence(groupsByKey[creation.parentGroupKey]) { group -> groupsByKey[group.parentGroupKey] }.map { it.id }
+                .toList()
         }.toSet()
         return occurrences.filter { occurrence ->
             occurrence.sourceTemplateGroupId in safeGroupIds && (
-                    disclosedPaths.any { path -> isWithin(path, occurrence.occurrencePath) } ||
+                    disclosedPaths.any { path ->
+                        InformationRequestOccurrencePath.isWithin(
+                            path,
+                            occurrence.occurrencePath
+                        )
+                    } ||
+                            occurrence.sourceTemplateGroupId in enclosingGroupIds ||
                             (occurrence.sourceTemplateGroupId in creationGroupIds &&
-                                    occupiedPaths.none { path -> isWithin(path, occurrence.occurrencePath) })
+                                    occupiedPaths.none { path ->
+                                        InformationRequestOccurrencePath.isWithin(
+                                            path,
+                                            occurrence.occurrencePath
+                                        )
+                                    })
                     )
         }
     }
@@ -46,7 +61,7 @@ object InformationRequestWorkspaceOccurrenceProjection
         val bindings = templateVersion.sections.flatMap { it.requirements }.associateBy { it.id }
         val disclosedIds = disclosedRequirements.map { it.id }.toSet()
         val disclosedEvaluations = disclosedRequirements.mapNotNull { requirement ->
-            val ruleKey = bindings[requirement.sourceTemplateBindingId]?.conditionalRuleKey
+            val ruleKey = InformationRequestGoverningCondition.ruleKeyOf(bindings[requirement.sourceTemplateBindingId])
                 ?.takeIf { it in safeRules } ?: return@mapNotNull null
             evaluations.firstOrNull { it.ruleKey == ruleKey && it.occurrencePath == requirement.occurrencePath }
                 ?: evaluations.firstOrNull {
@@ -69,7 +84,7 @@ object InformationRequestWorkspaceOccurrenceProjection
     ): Boolean = rule.predicates.all { predicate ->
         val sources = requirements.filter { requirement ->
             val binding = bindings[requirement.sourceTemplateBindingId]
-            (InformationRequestOccurrencePath.isRoot(requirement.occurrencePath) || isWithin(
+            (InformationRequestOccurrencePath.isRoot(requirement.occurrencePath) || InformationRequestOccurrencePath.isWithin(
                 scope,
                 requirement.occurrencePath
             )) &&
@@ -80,7 +95,4 @@ object InformationRequestWorkspaceOccurrenceProjection
         }
         sources.isNotEmpty() && sources.all { it.id in disclosedIds }
     }
-
-    private fun isWithin(path: String, ancestor: String): Boolean =
-        path == ancestor || path.startsWith("$ancestor/")
 }

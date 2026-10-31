@@ -35,6 +35,7 @@ data class InformationRequestRequirementAssignedPartyFact(
     val subjectIdentityRefId: UUID?,
     val exchangeRecipientId: UUID?,
     val shareId: UUID?,
+    val accountLinked: Boolean = false,
 )
 
 data class InformationRequestRequirementDelegatedAuthorityFact(
@@ -44,7 +45,11 @@ data class InformationRequestRequirementDelegatedAuthorityFact(
     val requestId: UUID,
     val requirementId: UUID?,
     val active: Boolean,
-)
+    val equivalentDelegatePrincipals: Set<PrincipalRef> = emptySet(),
+) {
+    fun admits(principal: PrincipalRef): Boolean =
+        delegatePrincipal == principal || principal in equivalentDelegatePrincipals
+}
 
 enum class InformationRequestRequirementCorrectionScope
 {

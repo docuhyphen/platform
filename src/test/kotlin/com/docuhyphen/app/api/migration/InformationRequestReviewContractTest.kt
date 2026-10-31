@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.migration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestReviewContractTest
 {
@@ -55,12 +55,22 @@ class InformationRequestReviewContractTest
             }
             settle(connection, first, "REJECTED")
             refusedBy(connection, "a settled review is immutable") {
-                execute(connection, "UPDATE information_request_review SET state = 'SATISFIED', review_revision = 4 WHERE id = ?", first)
+                execute(
+                    connection,
+                    "UPDATE information_request_review SET state = 'SATISFIED', review_revision = 4 WHERE id = ?",
+                    first
+                )
             }
             refusedBy(connection, "ck_information_request_review_reason") {
                 review.insertReview(UUID.randomUUID(), 2, kind = "APPEAL", priorReviewId = first)
             }
-            review.insertReview(UUID.randomUUID(), 2, kind = "APPEAL", priorReviewId = first, reason = "The record was complete")
+            review.insertReview(
+                UUID.randomUUID(),
+                2,
+                kind = "APPEAL",
+                priorReviewId = first,
+                reason = "The record was complete"
+            )
             refusedBy(connection, "information request history is append-only") {
                 execute(connection, "DELETE FROM information_request_review WHERE id = ?", first)
             }
@@ -85,7 +95,11 @@ class InformationRequestReviewContractTest
                 review.insertAssignment(UUID.randomUUID(), reviewId)
             }
             refusedBy(connection, "ck_information_request_review_assignment_change") {
-                execute(connection, "UPDATE information_request_review_assignment SET state = 'RECUSED' WHERE id = ?", assignment)
+                execute(
+                    connection,
+                    "UPDATE information_request_review_assignment SET state = 'RECUSED' WHERE id = ?",
+                    assignment
+                )
             }
             refusedBy(connection, "ck_information_request_review_assignment_recusal") {
                 execute(
@@ -109,7 +123,11 @@ class InformationRequestReviewContractTest
                 assignment,
             )
             refusedBy(connection, "an assignment that has left its stage does not change again") {
-                execute(connection, "UPDATE information_request_review_assignment SET draft_revision = 2 WHERE id = ?", assignment)
+                execute(
+                    connection,
+                    "UPDATE information_request_review_assignment SET draft_revision = 2 WHERE id = ?",
+                    assignment
+                )
             }
         }
     }
@@ -150,9 +168,20 @@ class InformationRequestReviewContractTest
                 review.insertDecision(UUID.randomUUID(), reviewId, 2, assignmentId = assignment)
             }
             refusedBy(connection, "information request history is append-only") {
-                execute(connection, "UPDATE information_request_review_decision SET outcome = 'REJECTED' WHERE id = ?", decision)
+                execute(
+                    connection,
+                    "UPDATE information_request_review_decision SET outcome = 'REJECTED' WHERE id = ?",
+                    decision
+                )
             }
-            review.insertDecision(UUID.randomUUID(), reviewId, 2, kind = "OVERRIDE", outcome = "SATISFIED_WITH_EXCEPTION", narrative = "Accepted as stated")
+            review.insertDecision(
+                UUID.randomUUID(),
+                reviewId,
+                2,
+                kind = "OVERRIDE",
+                outcome = "SATISFIED_WITH_EXCEPTION",
+                narrative = "Accepted as stated"
+            )
             settle(connection, reviewId, "SATISFIED_WITH_EXCEPTION")
             refusedBy(connection, "a settled review records no further decision") {
                 review.insertDecision(UUID.randomUUID(), reviewId, 3, kind = "OVERRIDE", narrative = "Too late")
@@ -184,12 +213,28 @@ class InformationRequestReviewContractTest
                 )
             }
             refusedBy(connection, "a finding retests a finding of the review its review follows") {
-                review.insertFinding(UUID.randomUUID(), reviewId, 1, retests = UUID.randomUUID(), retestResult = "RESOLVED")
+                review.insertFinding(
+                    UUID.randomUUID(),
+                    reviewId,
+                    1,
+                    retests = UUID.randomUUID(),
+                    retestResult = "RESOLVED"
+                )
             }
             val finding = UUID.randomUUID()
-            review.insertFinding(finding, reviewId, 1, evidenceVersionId = review.runtime.evidenceVersionId, scope = "EVIDENCE_VERSION")
+            review.insertFinding(
+                finding,
+                reviewId,
+                1,
+                evidenceVersionId = review.runtime.evidenceVersionId,
+                scope = "EVIDENCE_VERSION"
+            )
             refusedBy(connection, "information request history is append-only") {
-                execute(connection, "UPDATE information_request_review_finding SET severity = 'MINOR' WHERE id = ?", finding)
+                execute(
+                    connection,
+                    "UPDATE information_request_review_finding SET severity = 'MINOR' WHERE id = ?",
+                    finding
+                )
             }
         }
     }
@@ -236,7 +281,11 @@ class InformationRequestReviewContractTest
             review.insertCorrectionEvidence(correction, documentItem)
 
             refusedBy(connection, "ck_information_request_correction_resubmission") {
-                execute(connection, "UPDATE information_request_correction SET state = 'RESUBMITTED', closed_at = now() WHERE id = ?", correction)
+                execute(
+                    connection,
+                    "UPDATE information_request_correction SET state = 'RESUBMITTED', closed_at = now() WHERE id = ?",
+                    correction
+                )
             }
             execute(
                 connection,
@@ -245,7 +294,11 @@ class InformationRequestReviewContractTest
                 correction,
             )
             refusedBy(connection, "a closed correction is immutable") {
-                execute(connection, "UPDATE information_request_correction SET state = 'SUPERSEDED' WHERE id = ?", correction)
+                execute(
+                    connection,
+                    "UPDATE information_request_correction SET state = 'SUPERSEDED' WHERE id = ?",
+                    correction
+                )
             }
         }
     }
@@ -273,7 +326,14 @@ class InformationRequestReviewContractTest
             }
             val comment = UUID.randomUUID()
             review.insertComment(comment, reviewId, 1, findingId = finding)
-            review.insertComment(UUID.randomUUID(), reviewId, 2, role = "RESPONDENT", findingId = finding, replyTo = comment)
+            review.insertComment(
+                UUID.randomUUID(),
+                reviewId,
+                2,
+                role = "RESPONDENT",
+                findingId = finding,
+                replyTo = comment
+            )
             refusedBy(connection, "review comments number from one without a gap") {
                 review.insertComment(UUID.randomUUID(), reviewId, 4)
             }
@@ -293,7 +353,13 @@ class InformationRequestReviewContractTest
                 "DOCUMENT",
             )
             val foreignReview = UUID.randomUUID()
-            review.insertReview(foreignReview, 2, kind = "RESUBMISSION", priorReviewId = reviewId, forPackage = resubmitted)
+            review.insertReview(
+                foreignReview,
+                2,
+                kind = "RESUBMISSION",
+                priorReviewId = reviewId,
+                forPackage = resubmitted
+            )
             val foreignFinding = UUID.randomUUID()
             execute(
                 connection,
@@ -319,7 +385,11 @@ class InformationRequestReviewContractTest
             insertRemediation(connection, review, correction, finding, resubmitted, resubmittedItem)
             assertEquals(
                 1,
-                queryInt(connection, "SELECT COUNT(*) FROM information_request_review_remediation WHERE finding_id = ?", finding),
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_review_remediation WHERE finding_id = ?",
+                    finding
+                ),
             )
         }
     }
@@ -390,8 +460,8 @@ class InformationRequestReviewContractTest
             connection,
             """
             INSERT INTO information_request_transition
-                (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id)
-            VALUES (?, ?, ?, ?, ?, ?, 'USER', ?)
+                (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, idempotency_key)
+            VALUES (?, ?, ?, ?, ?, ?, 'USER', ?, 'transition-$sequence')
             """.trimIndent(),
             UUID.randomUUID(),
             requestId,

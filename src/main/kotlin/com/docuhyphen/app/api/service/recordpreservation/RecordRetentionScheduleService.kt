@@ -28,6 +28,9 @@ class RecordRetentionScheduleService @Inject constructor(
         {
             throw RecordPreservationRequestException("A retention schedule belongs to an organization or a personal owner")
         }
+        if (command.minimumRetentionDays > 365_000 || (command.disposalAfterDays ?: 0) > 365_000) {
+            throw RecordPreservationRequestException("Retention and disposal ages are at most 365000 days")
+        }
         if (command.minimumRetentionDays < 0)
         {
             throw RecordPreservationRequestException("A minimum retention is zero or more days")
@@ -36,6 +39,7 @@ class RecordRetentionScheduleService @Inject constructor(
         {
             throw RecordPreservationRequestException("A disposal age never precedes the minimum retention")
         }
+        scheduleRepository.lockSeries(command.owner, resourceType)
         val versions = scheduleRepository.findVersions(command.owner, resourceType)
         val schedule = scheduleRepository.save(
             RecordRetentionSchedule().apply {
@@ -51,14 +55,29 @@ class RecordRetentionScheduleService @Inject constructor(
             },
         )
         audit.schedule(schedule, command.principal)
-        return RecordRetentionScheduleView(schedule, listOf(schedule) + versions)
+        return RecordRetentionScheduleView(
+            schedule,
+            listOf(schedule) + versions,
+            RecordPreservationETag.scheduleOf(command.owner, resourceType, schedule.versionNumber),
+        )
+    }
+
+    fun lockSeries(owner: RecordOwnerRef, resourceType: String) {
+        scheduleRepository.lockSeries(owner, resourceTypeOf(resourceType))
     }
 
     fun schedule(owner: RecordOwnerRef, resourceType: String): RecordRetentionScheduleView
     {
-        if (owner.kind == RecordOwnerKind.PLATFORM) return RecordRetentionScheduleView(null, emptyList())
-        val versions = scheduleRepository.findVersions(owner, resourceTypeOf(resourceType))
-        return RecordRetentionScheduleView(versions.firstOrNull(), versions)
+        val type = resourceTypeOf(resourceType)
+        if (owner.kind == RecordOwnerKind.PLATFORM)
+            return RecordRetentionScheduleView(null, emptyList(), RecordPreservationETag.scheduleOf(owner, type, 0))
+        val versions = scheduleRepository.findVersions(owner, type)
+        val current = versions.firstOrNull()
+        return RecordRetentionScheduleView(
+            current,
+            versions,
+            RecordPreservationETag.scheduleOf(owner, type, current?.versionNumber ?: 0),
+        )
     }
 
     fun current(owner: RecordOwnerRef, resourceType: String): RecordRetentionSchedule? =

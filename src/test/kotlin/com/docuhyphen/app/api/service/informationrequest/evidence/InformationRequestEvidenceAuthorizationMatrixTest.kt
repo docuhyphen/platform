@@ -1,20 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
@@ -33,34 +22,27 @@ import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepo
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicyRegistry
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritanceResolver
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceContextResolution
-import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyEvaluatorRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAuthorizationContextProvider
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestPolicyEvaluator
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementPolicyEvaluator
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentGrantInheritancePolicy
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestRequirementParentGrantInheritancePolicy
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestDelegatedAuthorityFactSource
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
+import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceAuthorizationMatrixTest
 {
@@ -116,6 +98,22 @@ class InformationRequestEvidenceAuthorizationMatrixTest
     }
 
     @Test
+    fun `an Exchange participant who holds no party on the request is refused every evidence action`() {
+        val matrix = Matrix()
+
+        assertEquals(emptySet<Action>(), matrix.allowed(matrix.exchangeParticipant))
+        assertTrue(matrix.onRequest(matrix.exchangeParticipant, Action.INFORMATION_REQUEST_VIEW) is Decision.Deny)
+    }
+
+    @Test
+    fun `the Exchange owner reaches the request through its Exchange Share but never an occurrence's evidence`() {
+        val matrix = Matrix()
+
+        assertTrue(matrix.onRequest(matrix.exchangeOwner, Action.INFORMATION_REQUEST_VIEW) !is Decision.Deny)
+        assertEquals(emptySet<Action>(), matrix.allowed(matrix.exchangeOwner))
+    }
+
+    @Test
     fun `the assigned party acting through its verified request session reads its evidence`()
     {
         val matrix = Matrix()
@@ -159,6 +157,8 @@ class InformationRequestEvidenceAuthorizationMatrixTest
         val reviewer = PrincipalRef.user(UUID.randomUUID())
         val decisionMaker = PrincipalRef.user(UUID.randomUUID())
         val unrelated = PrincipalRef.user(UUID.randomUUID())
+        val exchangeParticipant = PrincipalRef.user(UUID.randomUUID())
+        val exchangeOwner = PrincipalRef.user(UUID.randomUUID())
         val userContext = AuthorizationContext(mfaSatisfied = true, sessionRef = "user-session")
         val sessionContext = AuthorizationContext(sessionRef = "verified-request-session")
 
@@ -204,7 +204,13 @@ class InformationRequestEvidenceAuthorizationMatrixTest
             party(reviewer, InformationRequestShareRoleKey.REVIEWER),
             party(decisionMaker, InformationRequestShareRoleKey.DECISION_MAKER),
         )
-        private val shares = parties.map { share(PrincipalRef(requireNotNull(it.principalKind), requireNotNull(it.principalId)), it.roleKey) }
+        private val shares = parties.map {
+            share(
+                PrincipalRef(requireNotNull(it.principalKind), requireNotNull(it.principalId)),
+                it.roleKey
+            )
+        } +
+                listOf(exchangeShare(exchangeParticipant, "PARTICIPANT"), exchangeShare(exchangeOwner, "OWNER"))
 
         private val requestRepository = mock<InformationRequestRepository>()
         private val requirementRepository = mock<InformationRequestRequirementRepository>()
@@ -256,19 +262,20 @@ class InformationRequestEvidenceAuthorizationMatrixTest
                 participantAccountLinkRepository = mock<ParticipantAccountLinkRepository>().also {
                     whenever(it.findByParticipantId(any())).thenReturn(null)
                 },
-                principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
-                    whenever(it.findActiveMembers(any())).thenReturn(emptyList())
+                principalGroups = mock<PrincipalGroupService>().also {
+                    whenever(it.activeMembers(any())).thenReturn(emptyList())
                 },
                 attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
                 lockService = mock<InformationRequestSubmissionLockService>().also {
                     whenever(it.correctionScopeOf(any(), any())).thenReturn(InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE)
                 },
+                shareService = mock<ShareService>(),
             )
             val requestProvider = InformationRequestAuthorizationContextProvider(requestRepository, parentState)
 
             whenever(requestRepository.findById(request.id)).thenReturn(request)
             whenever(requirementRepository.findById(requirement.id)).thenReturn(requirement)
-            whenever(revisionRepository.findForRequirement(requirement.id)).thenReturn(listOf(revision))
+            whenever(revisionRepository.findCurrentForRequirement(requirement.id)).thenReturn(revision)
             whenever(bindingRepository.findById(binding.id)).thenReturn(binding)
             whenever(partyRepository.findActiveForRequestRole(any(), any())).thenAnswer { invocation ->
                 parties.filter { it.informationRequestId == invocation.arguments[0] && it.roleKey == invocation.arguments[1] }
@@ -287,6 +294,7 @@ class InformationRequestEvidenceAuthorizationMatrixTest
             whenever(contextRegistry.kindOf(any())).thenAnswer {
                 when (it.getArgument<ResourceRef>(0).type)
                 {
+                    ResourceType.EXCHANGE -> ResourceKind.EXCHANGE
                     ResourceType.INFORMATION_REQUEST -> ResourceKind.INFORMATION_REQUEST
                     ResourceType.INFORMATION_REQUEST_REQUIREMENT -> ResourceKind.INFORMATION_REQUEST_REQUIREMENT
                     else -> null
@@ -295,6 +303,14 @@ class InformationRequestEvidenceAuthorizationMatrixTest
             whenever(contextRegistry.resolution(any())).thenAnswer {
                 when (val ref = it.getArgument<ResourceRef>(0))
                 {
+                    ResourceRef.exchange(request.exchangeId) ->
+                        ResourceContextResolution.Resolved(
+                            ResourceAuthorizationContext(
+                                ownerContext = OwnerContext.Organization(requireNotNull(request.ownerOrganizationId)),
+                                isArchived = false,
+                                isSuspended = false,
+                            ),
+                        )
                     ResourceRef.informationRequest(request.id) ->
                         ResourceContextResolution.Resolved(requestProvider.resolve(ref.id)!!)
                     ResourceRef.informationRequestRequirement(requirement.id) ->
@@ -302,8 +318,12 @@ class InformationRequestEvidenceAuthorizationMatrixTest
                     else -> ResourceContextResolution.Unresolved
                 }
             }
+            whenever(policyRegistry.policyFor(ResourceKind.INFORMATION_REQUEST))
+                .thenReturn(InformationRequestParentGrantInheritancePolicy())
             whenever(policyRegistry.policyFor(ResourceKind.INFORMATION_REQUEST_REQUIREMENT))
                 .thenReturn(InformationRequestRequirementParentGrantInheritancePolicy())
+            whenever(evaluatorRegistry.evaluatorFor(ResourceKind.INFORMATION_REQUEST))
+                .thenReturn(InformationRequestPolicyEvaluator())
             whenever(evaluatorRegistry.evaluatorFor(ResourceKind.INFORMATION_REQUEST_REQUIREMENT))
                 .thenReturn(InformationRequestRequirementPolicyEvaluator())
         }
@@ -314,6 +334,9 @@ class InformationRequestEvidenceAuthorizationMatrixTest
         fun denial(principal: PrincipalRef, action: Action, context: AuthorizationContext = userContext): String? =
             (decide(principal, action, context) as? Decision.Deny)?.reasonCode
 
+        fun onRequest(principal: PrincipalRef, action: Action): Decision =
+            authorization.authorize(principal, action, ResourceRef.informationRequest(request.id), userContext)
+
         private fun decide(principal: PrincipalRef, action: Action, context: AuthorizationContext): Decision =
             authorization.authorize(principal, action, ResourceRef.informationRequestRequirement(requirement.id), context)
 
@@ -323,6 +346,18 @@ class InformationRequestEvidenceAuthorizationMatrixTest
                 roleKey = role
                 principalKind = principal.kind
                 principalId = principal.id
+            }
+
+        private fun exchangeShare(principal: PrincipalRef, role: String): Share =
+            Share().apply {
+                id = UUID.randomUUID()
+                resourceType = ResourceType.EXCHANGE
+                resourceId = request.exchangeId
+                principalKind = principal.kind
+                principalId = principal.id
+                roleName = role
+                source = ShareSource.DIRECT
+                status = ShareStatus.ACTIVE
             }
 
         private fun share(principal: PrincipalRef, role: InformationRequestShareRoleKey): Share =

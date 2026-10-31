@@ -1,5 +1,5 @@
 import {useCallback, useState} from "react";
-import {Switch, Text} from "@fluentui/react-components";
+import {MessageBar, MessageBarBody, Switch, Text} from "@fluentui/react-components";
 import {useLoadedValue} from "../../../hooks/useLoadedValue.ts";
 import {getRecordPreservationHolds} from "../../../services/recordPreservationService.ts";
 import LoadedPanel from "../../information-requests/operations/loaded-panel/LoadedPanel.tsx";
@@ -14,17 +14,26 @@ interface RecordHoldListProps
     canManage: boolean;
 }
 
+const STALE_HOLD = "This hold changed after you opened it. The latest version is shown; try again.";
+
 const RecordHoldList = ({canManage}: RecordHoldListProps) =>
 {
     const styles = useRecordHoldListStyles();
     const [includeReleased, setIncludeReleased] = useState(false);
     const [releasing, setReleasing] = useState<RecordPreservationHoldDto | null>(null);
     const [rescoping, setRescoping] = useState<RecordPreservationHoldDto | null>(null);
+    const [notice, setNotice] = useState<string | null>(null);
     const load = useCallback(
         () => getRecordPreservationHolds(includeReleased ? undefined : RecordPreservationHoldStatus.ACTIVE),
         [includeReleased],
     );
     const holds = useLoadedValue(load, "The preservation holds could not be loaded.");
+    const refresh = (stale: boolean) => {
+        setRescoping(null);
+        setReleasing(null);
+        setNotice(stale ? STALE_HOLD : null);
+        holds.reload();
+    };
 
     return (
         <div id={"record-holds"}
@@ -40,6 +49,12 @@ const RecordHoldList = ({canManage}: RecordHoldListProps) =>
                         checked={includeReleased}
                         onChange={(_, data) => setIncludeReleased(data.checked)}/>
             </div>
+            {notice && (
+                <MessageBar id={"record-holds-notice"}
+                            intent={"warning"}>
+                    <MessageBarBody id={"record-holds-notice-body"}>{notice}</MessageBarBody>
+                </MessageBar>
+            )}
             <LoadedPanel idPrefix={"record-holds"}
                          loaded={holds}
                          loadingLabel={"Loading preservation holds"}
@@ -61,20 +76,14 @@ const RecordHoldList = ({canManage}: RecordHoldListProps) =>
             {rescoping && (
                 <ChangeHoldScopeDialog hold={rescoping}
                                        onDismiss={() => setRescoping(null)}
-                                       onChanged={() =>
-                                       {
-                                           setRescoping(null);
-                                           holds.reload();
-                                       }}/>
+                                       onStale={() => refresh(true)}
+                                       onChanged={() => refresh(false)}/>
             )}
             {releasing && (
                 <ReleaseHoldDialog hold={releasing}
                                    onDismiss={() => setReleasing(null)}
-                                   onReleased={() =>
-                                   {
-                                       setReleasing(null);
-                                       holds.reload();
-                                   }}/>
+                                   onStale={() => refresh(true)}
+                                   onReleased={() => refresh(false)}/>
             )}
         </div>
     );

@@ -4,20 +4,16 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.command.RevisionETag
 import java.util.*
 
-/**
- * Strong validators for request runtime rows. They are based only on persisted revision counters,
- * so serialization order and timestamps never decide whether a command is stale.
- */
 object InformationRequestETag
 {
     fun aggregateOf(request: InformationRequest): String =
-        RevisionETag.of(request.id, request.aggregateRevision)
+        familyOf(AGGREGATE, request.id, request.aggregateRevision)
 
     fun partiesOf(request: InformationRequest): String =
-        RevisionETag.of(request.id, request.partyRevision)
+        familyOf(PARTIES, request.id, request.partyRevision)
 
     fun responsesOf(request: InformationRequest): String =
-        RevisionETag.of(request.id, request.responseRevision)
+        familyOf(RESPONSES, request.id, request.responseRevision)
 
     fun partyOf(party: InformationRequestParty): String =
         RevisionETag.of(party.id, party.partyRevision)
@@ -37,5 +33,11 @@ object InformationRequestETag
     fun submissionOf(stageKey: String?, contentHash: String): String =
         "\"submission:${stageKey ?: WHOLE_REQUEST}:$contentHash\""
 
+    private fun familyOf(family: String, requestId: UUID, revision: Long): String =
+        "\"$family:$requestId:$revision\""
+
     private const val WHOLE_REQUEST = "whole"
+    private const val AGGREGATE = "aggregate"
+    private const val PARTIES = "parties"
+    private const val RESPONSES = "responses"
 }

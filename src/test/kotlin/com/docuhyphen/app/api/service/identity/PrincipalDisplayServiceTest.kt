@@ -9,17 +9,16 @@ import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
+import com.docuhyphen.app.api.service.organization.PrincipalGroupService
+import com.docuhyphen.app.api.service.user.AppUserLookupService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * How a canonical principal is shown to a person reading a record it is attributed to. The name is
- * the most readable label the platform holds for that principal, and the email is present only for
- * a principal that has one.
- */
 class PrincipalDisplayServiceTest
 {
     private val appUserRepository: AppUserRepository = mock()
@@ -27,9 +26,9 @@ class PrincipalDisplayServiceTest
     private val externalParticipantRepository: ExternalParticipantRepository = mock()
 
     private val service = PrincipalDisplayService(
-        appUserRepository,
-        principalGroupRepository,
-        externalParticipantRepository,
+        AppUserLookupService(appUserRepository),
+        PrincipalGroupService(principalGroupRepository, mock(), mock(), mock(), mock()),
+        ExternalParticipantService(externalParticipantRepository),
     )
 
     @Test
@@ -87,6 +86,35 @@ class PrincipalDisplayServiceTest
             PrincipalDisplay(name = "responder@process.test", email = "responder@process.test"),
             service.display(PrincipalRef.participant(participant.id)),
         )
+    }
+
+    @Test
+    fun `a registered user is labelled for audit by name and email`() {
+        val user = AppUser().apply {
+            email = "author@process.test"
+            person = Person().apply {
+                firstName = "Record"
+                lastName = "Author"
+            }
+        }
+        whenever(appUserRepository.findById(user.id)).thenReturn(user)
+
+        assertEquals("Record Author <author@process.test>", service.userLabel(user.id))
+    }
+
+    @Test
+    fun `a registered user without a name is labelled for audit by email`() {
+        val user = AppUser().apply { email = "author@process.test" }
+        whenever(appUserRepository.findById(user.id)).thenReturn(user)
+
+        assertEquals("author@process.test", service.userLabel(user.id))
+    }
+
+    @Test
+    fun `a user the platform cannot resolve has no audit label`() {
+        whenever(appUserRepository.findById(org.mockito.kotlin.any())).thenReturn(null)
+
+        assertNull(service.userLabel(UUID.randomUUID()))
     }
 
     @Test

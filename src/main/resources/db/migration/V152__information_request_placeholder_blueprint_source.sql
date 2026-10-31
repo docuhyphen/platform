@@ -1,0 +1,7 @@
+ALTER TABLE information_request_document_placeholder
+DROP
+CONSTRAINT information_request_document_placeholder_default_fkey;
+
+ALTER TABLE information_request_document_placeholder
+DROP
+COLUMN source_blueprint_document_default_id;

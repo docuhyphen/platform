@@ -4,7 +4,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.sql.Timestamp
+import java.time.Duration
+import java.time.Instant
+import java.util.*
 
 class InformationRequestExternalSourceContractTest
 {
@@ -26,24 +29,54 @@ class InformationRequestExternalSourceContractTest
                 fixture.insertImportedValue(sourceKind = "CONNECTOR", exchangeId = fixture.insertExchange("PENDING"))
             }
             val completed = fixture.insertExchange("COMPLETED")
-            fixture.insertImportedValue(sourceKind = "CONNECTOR", exchangeId = completed, confidence = "VERIFIED", verified = true)
+            fixture.insertImportedValue(
+                sourceKind = "CONNECTOR",
+                exchangeId = completed,
+                confidence = "VERIFIED",
+                verified = true
+            )
             refusedBy(connection, "information request history is append-only") {
-                execute(connection, "UPDATE information_request_imported_value SET canonical_value = '\"changed\"' WHERE id = ?", manual)
+                execute(
+                    connection,
+                    "UPDATE information_request_imported_value SET canonical_value = '\"changed\"' WHERE id = ?",
+                    manual
+                )
             }
             refusedBy(connection, "a finished connector exchange is immutable") {
-                execute(connection, "UPDATE information_request_connector_exchange SET state = 'PENDING', completed_at = NULL WHERE id = ?", completed)
+                execute(
+                    connection,
+                    "UPDATE information_request_connector_exchange SET state = 'PENDING', completed_at = NULL WHERE id = ?",
+                    completed
+                )
             }
             val pending = fixture.insertExchange("PENDING")
             refusedBy(connection, "a connector exchange keeps its identity and only moves forward") {
-                execute(connection, "UPDATE information_request_connector_exchange SET state = 'REQUESTED' WHERE id = ?", pending)
+                execute(
+                    connection,
+                    "UPDATE information_request_connector_exchange SET state = 'REQUESTED' WHERE id = ?",
+                    pending
+                )
             }
             refusedBy(connection, "a connector exchange keeps its identity and only moves forward") {
-                execute(connection, "UPDATE information_request_connector_exchange SET lookup_reference = 'changed' WHERE id = ?", pending)
+                execute(
+                    connection,
+                    "UPDATE information_request_connector_exchange SET lookup_reference = 'changed' WHERE id = ?",
+                    pending
+                )
             }
-            execute(connection, "UPDATE information_request_connector_exchange SET attempt_count = 2, external_reference = 'external-1' WHERE id = ?", pending)
+            execute(
+                connection,
+                "UPDATE information_request_connector_exchange SET attempt_count = 2, external_reference = 'external-1' WHERE id = ?",
+                pending
+            )
 
             fixture.insertDecision(manual, "ACCEPTED")
-            refusedBy(connection, "ux_information_request_imported_value_decision") { fixture.insertDecision(manual, "REJECTED") }
+            refusedBy(connection, "ux_information_request_imported_value_decision") {
+                fixture.insertDecision(
+                    manual,
+                    "REJECTED"
+                )
+            }
             refusedBy(connection, "ck_information_request_imported_value_discrepancy_differs") {
                 fixture.insertDiscrepancy(manual, imported = "\"same\"", response = "\"same\"")
             }
@@ -53,7 +86,11 @@ class InformationRequestExternalSourceContractTest
             val discrepancy = fixture.insertDiscrepancy(manual, imported = "\"imported\"", response = "\"answered\"")
             fixture.insertResolution(discrepancy)
             refusedBy(connection, "information request history is append-only") {
-                execute(connection, "DELETE FROM information_request_imported_value_discrepancy WHERE id = ?", discrepancy)
+                execute(
+                    connection,
+                    "DELETE FROM information_request_imported_value_discrepancy WHERE id = ?",
+                    discrepancy
+                )
             }
 
             fixture.insertGeneratedOutput(fixture.packageId)
@@ -67,8 +104,8 @@ class InformationRequestExternalSourceContractTest
                 connection,
                 """
                 INSERT INTO information_request_transition
-                    (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at)
-                VALUES (?, ?, 1, 'ISSUED', 'ISSUED', 'RECORD_EXTERNAL_VALUE', 'USER', ?, now())
+                    (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at, idempotency_key)
+                VALUES (?, ?, 1, 'ISSUED', 'ISSUED', 'RECORD_EXTERNAL_VALUE', 'USER', ?, now(), 'external-value-record')
                 """.trimIndent(),
                 UUID.randomUUID(),
                 fixture.runtime.requestId,
@@ -108,9 +145,17 @@ class InformationRequestExternalSourceContractTest
                 fixture.insertDecision(manual, "ACCEPTED", requestId = fixture.otherRequestId)
             }
             refusedBy(connection, "a discrepancy compares an imported value with a response of its own Requirement") {
-                fixture.insertDiscrepancy(manual, imported = "\"imported\"", response = "\"answered\"", requestId = fixture.otherRequestId)
+                fixture.insertDiscrepancy(
+                    manual,
+                    imported = "\"imported\"",
+                    response = "\"answered\"",
+                    requestId = fixture.otherRequestId
+                )
             }
-            val attestationValue = fixture.insertImportedValue(sourceKind = "MANUAL", requirementId = fixture.runtime.attestationRequirementId)
+            val attestationValue = fixture.insertImportedValue(
+                sourceKind = "MANUAL",
+                requirementId = fixture.runtime.attestationRequirementId
+            )
             refusedBy(connection, "a discrepancy compares an imported value with a response of its own Requirement") {
                 fixture.insertDiscrepancy(attestationValue, imported = "\"imported\"", response = "\"answered\"")
             }
@@ -123,26 +168,120 @@ class InformationRequestExternalSourceContractTest
     }
 
     @Test
+    fun `an imported value names the revision of its own Requirement it was recorded against`() {
+        withExternalSources { connection, fixture ->
+            assertEquals(
+                "NO",
+                queryString(
+                    connection,
+                    """
+                    SELECT is_nullable FROM information_schema.columns
+                    WHERE table_name = 'information_request_imported_value' AND column_name = 'requirement_revision_id'
+                    """.trimIndent(),
+                ),
+            )
+            val recorded = fixture.insertImportedValue(sourceKind = "MANUAL")
+            assertEquals(
+                fixture.runtime.documentRevisionId.toString(),
+                queryString(
+                    connection,
+                    "SELECT requirement_revision_id::text FROM information_request_imported_value WHERE id = ?",
+                    recorded,
+                ),
+            )
+            refusedBy(connection, "an imported value is recorded against a revision of its own Requirement") {
+                fixture.insertImportedValue(sourceKind = "MANUAL", revisionId = fixture.runtime.attestationRevisionId)
+            }
+            refusedBy(connection, "an imported value is recorded against a revision of its own Requirement") {
+                fixture.insertImportedValue(sourceKind = "MANUAL", revisionId = UUID.randomUUID())
+            }
+        }
+    }
+
+    @Test
+    fun `upgrading records the Requirement revision each earlier imported value was taken under`() {
+        withSubmissionPostgres { postgres ->
+            submissionFlyway(postgres, "178").migrate()
+            postgres.createConnection("").use { connection ->
+                val runtime = SubmissionRuntimeSqlFixture(connection)
+                val firstEffective = runtime.template.now.toInstant()
+                val revisedAt = firstEffective.plus(Duration.ofDays(1))
+                val laterRevisionId = insertLaterRevision(connection, runtime, revisedAt)
+                val beforeRevision = insertEarlierValue(connection, runtime, firstEffective.plus(Duration.ofHours(1)))
+                val afterRevision = insertEarlierValue(connection, runtime, revisedAt.plus(Duration.ofHours(1)))
+                val beforeAnyRevision =
+                    insertEarlierValue(connection, runtime, firstEffective.minus(Duration.ofHours(1)))
+
+                submissionFlyway(postgres).migrate()
+
+                val revisionOf = { valueId: UUID ->
+                    queryString(
+                        connection,
+                        "SELECT requirement_revision_id::text FROM information_request_imported_value WHERE id = ?",
+                        valueId,
+                    )
+                }
+                assertEquals(runtime.documentRevisionId.toString(), revisionOf(beforeRevision))
+                assertEquals(laterRevisionId.toString(), revisionOf(afterRevision))
+                assertEquals(runtime.documentRevisionId.toString(), revisionOf(beforeAnyRevision))
+                refusedBy(connection, "information request history is append-only") {
+                    execute(
+                        connection,
+                        "UPDATE information_request_imported_value SET requirement_revision_id = ? WHERE id = ?",
+                        laterRevisionId,
+                        beforeRevision,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
     fun `disposal removes and counts every external source record of the request`()
     {
         withExternalSources { connection, fixture ->
             val manual = fixture.insertImportedValue(sourceKind = "MANUAL")
             fixture.insertDecision(manual, "REJECTED")
-            fixture.insertResolution(fixture.insertDiscrepancy(manual, imported = "\"imported\"", response = "\"answered\""))
-            fixture.insertImportedValue(sourceKind = "CONNECTOR", exchangeId = fixture.insertExchange("COMPLETED"), confidence = "MATCHED", verified = true)
+            fixture.insertResolution(
+                fixture.insertDiscrepancy(
+                    manual,
+                    imported = "\"imported\"",
+                    response = "\"answered\""
+                )
+            )
+            fixture.insertImportedValue(
+                sourceKind = "CONNECTOR",
+                exchangeId = fixture.insertExchange("COMPLETED"),
+                confidence = "MATCHED",
+                verified = true
+            )
             fixture.insertGeneratedOutput(fixture.packageId)
 
-            execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", fixture.runtime.requestId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                fixture.runtime.requestId
+            )
             val preservation = PreservationSqlFixture(connection, fixture.runtime)
             val scheduleId = UUID.randomUUID()
             preservation.insertSchedule(scheduleId, 1, minimumDays = 0, disposalDays = 0)
             val claimId = UUID.randomUUID()
             preservation.insertClaim(claimId, scheduleId)
-            preservation.insertScope(claimId, "INFORMATION_REQUEST", fixture.runtime.requestId.toString(), direct = true)
+            preservation.insertScope(
+                claimId,
+                "INFORMATION_REQUEST",
+                fixture.runtime.requestId.toString(),
+                direct = true
+            )
             val objectId = preservation.insertObject(claimId, retained = false)
-            execute(connection, "UPDATE record_disposal_object SET deletion_outcome = 'ABSENT', deleted_at = now() WHERE id = ?", objectId)
+            execute(
+                connection,
+                "UPDATE record_disposal_object SET deletion_outcome = 'ABSENT', deleted_at = now() WHERE id = ?",
+                objectId
+            )
             preservation.advance(claimId)
-            val removed = requireNotNull(queryString(connection, "SELECT record_dispose_information_request(?)", claimId))
+            val removed =
+                requireNotNull(queryString(connection, "SELECT record_dispose_information_request(?)", claimId))
             mapOf(
                 "information_request_imported_value_discrepancy_resolution" to 1,
                 "information_request_imported_value_discrepancy" to 1,
@@ -151,8 +290,74 @@ class InformationRequestExternalSourceContractTest
                 "information_request_connector_exchange" to 1,
                 "information_request_generated_output" to 1,
             ).forEach { (table, count) -> assertTrue(removed.contains("\"$table\": $count"), "$table: $removed") }
-            assertEquals(0, queryInt(connection, "SELECT COUNT(*) FROM information_request_imported_value WHERE information_request_id = ?", fixture.runtime.requestId))
+            assertEquals(
+                0,
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_imported_value WHERE information_request_id = ?",
+                    fixture.runtime.requestId
+                )
+            )
         }
+    }
+
+    private fun insertLaterRevision(
+        connection: Connection,
+        runtime: SubmissionRuntimeSqlFixture,
+        effectiveFrom: Instant
+    ): UUID {
+        val id = UUID.randomUUID()
+        execute(
+            connection,
+            "UPDATE information_request_requirement_revision SET effective_to = ? WHERE id = ?",
+            Timestamp.from(effectiveFrom),
+            runtime.documentRevisionId,
+        )
+        execute(
+            connection,
+            """
+            INSERT INTO information_request_requirement_revision
+                (id, information_request_requirement_id, information_request_id, source_template_version_id,
+                 source_template_requirement_id, source_template_binding_id, revision_number, occurrence_path,
+                 effective_from, configuration_hash_sha256, optimistic_version, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 2, 'root', ?, ?, 1, ?)
+            """.trimIndent(),
+            id,
+            runtime.documentRequirementId,
+            runtime.requestId,
+            runtime.template.versionId,
+            runtime.documentTemplateRequirementId,
+            runtime.documentBindingId,
+            Timestamp.from(effectiveFrom),
+            "1".repeat(64),
+            Timestamp.from(effectiveFrom),
+        )
+        return id
+    }
+
+    private fun insertEarlierValue(
+        connection: Connection,
+        runtime: SubmissionRuntimeSqlFixture,
+        recordedAt: Instant
+    ): UUID {
+        val id = UUID.randomUUID()
+        execute(
+            connection,
+            """
+            INSERT INTO information_request_imported_value
+                (id, information_request_id, information_request_requirement_id, source_kind, source_reference,
+                 result_key, value_type, canonical_value, confidence, provenance_reference,
+                 recorded_by_principal_kind, recorded_by_principal_id, recorded_at)
+            VALUES (?, ?, ?, 'MANUAL', 'registry-extract', 'recorded-status', 'SHORT_TEXT', '"active"', 'ASSERTED',
+                    'extract-2026-09', 'USER', ?, ?)
+            """.trimIndent(),
+            id,
+            runtime.requestId,
+            runtime.documentRequirementId,
+            runtime.template.userId,
+            Timestamp.from(recordedAt),
+        )
+        return id
     }
 
     private fun withExternalSources(block: (Connection, ExternalSourceSqlFixture) -> Unit)
@@ -234,6 +439,7 @@ internal class ExternalSourceSqlFixture(
         verified: Boolean = false,
         valueType: String = "SHORT_TEXT",
         requirementId: UUID = runtime.documentRequirementId,
+        revisionId: UUID? = null,
     ): UUID
     {
         val id = UUID.randomUUID()
@@ -241,14 +447,19 @@ internal class ExternalSourceSqlFixture(
             connection,
             """
             INSERT INTO information_request_imported_value
-                (id, information_request_id, information_request_requirement_id, source_kind, connector_exchange_id, source_reference,
-                 result_key, value_type, canonical_value, confidence, verified_at, expires_at, provenance_reference,
-                 recorded_by_principal_kind, recorded_by_principal_id, recorded_at)
-            VALUES (?, ?, ?, ?, ?, 'registry-extract', 'recorded-status', ?, '"active"', ?,
+                (id, information_request_id, information_request_requirement_id, requirement_revision_id, source_kind,
+                 connector_exchange_id, source_reference, result_key, value_type, canonical_value, confidence, verified_at,
+                 expires_at, provenance_reference, recorded_by_principal_kind, recorded_by_principal_id, recorded_at)
+            VALUES (?, ?, ?,
+                    COALESCE(CAST(? AS uuid), (SELECT current_revision_id FROM information_request_requirement_current
+                                 WHERE information_request_requirement_id = ?)),
+                    ?, ?, 'registry-extract', 'recorded-status', ?, '"active"', ?,
                     CASE WHEN ? THEN now() END, CASE WHEN ? THEN now() + INTERVAL '30 days' END, 'extract-2026-09', 'USER', ?, now())
             """.trimIndent(),
             id,
             runtime.requestId,
+            requirementId,
+            revisionId,
             requirementId,
             sourceKind,
             exchangeId,
@@ -278,7 +489,12 @@ internal class ExternalSourceSqlFixture(
         )
     }
 
-    fun insertDiscrepancy(importedValueId: UUID, imported: String, response: String?, requestId: UUID = runtime.requestId): UUID
+    fun insertDiscrepancy(
+        importedValueId: UUID,
+        imported: String,
+        response: String?,
+        requestId: UUID = runtime.requestId
+    ): UUID
     {
         val id = UUID.randomUUID()
         execute(

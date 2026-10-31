@@ -162,12 +162,12 @@ export interface OrganizationRegistrationRequest
 }
 
 export type ExchangeRecipientSelection =
-    | {type: "REGISTERED_USER"; appUserId: string}
-    | {type: "EXTERNAL_EMAIL"; email: string; firstName: string; lastName: string}
-    | {type: "INTERNAL_GROUP"; groupId: string}
-    | {type: "PERSONAL_GROUP"; groupId: string}
-    | {type: "TRUSTED_GROUP"; organizationId: string; groupId: string}
-    | {type: "TRUSTED_PERSON"; resolutionId: string};
+    | { type: "REGISTERED_USER"; appUserId: string }
+    | { type: "EXTERNAL_EMAIL"; email: string; firstName: string; lastName: string }
+    | { type: "INTERNAL_GROUP"; groupId: string }
+    | { type: "PERSONAL_GROUP"; groupId: string }
+    | { type: "TRUSTED_GROUP"; organizationId: string; groupId: string }
+    | { type: "TRUSTED_PERSON"; resolutionId: string };
 
 export interface ExchangeInitiationRequest
 {
@@ -192,6 +192,7 @@ export interface ExchangeInitiationRequest
     schemaDefinitionId?: string;
     fieldValues?: { fieldContractId: string; value: unknown }[];
     schemaAssignmentSource?: SchemaAssignmentSource;
+    blueprintDefinitionId?: string;
 }
 
 export enum ExchangeStatus
@@ -419,7 +420,7 @@ export interface ExchangeDetailedDto
     participants?: ExchangeParticipantDetailedDto[];
     watermark?: boolean;
     requireMfa?: boolean;
-    allowedDownloadFormats?: string[];   // mirrors backend DTO
+    allowedDownloadFormats?: string[];
 }
 
 export interface ExchangeParticipantDetailedDto
@@ -470,10 +471,6 @@ export interface AppUserDetailedDto
     avatarUrl?: string | null
 }
 
-/**
- * Safe public view of another user returned by the API. Never includes private settings,
- * notification preferences, identification numbers, or contact details.
- */
 export interface PersonPublicDto
 {
     firstName?: string;
@@ -493,7 +490,10 @@ export interface AppUserPublicDto
 
 export enum Capability
 {
-    // Exchange lifecycle
+    FIELD_SCHEMA_READ = "FIELD_SCHEMA_READ",
+    FIELD_SCHEMA_WRITE = "FIELD_SCHEMA_WRITE",
+    FIELD_SCHEMA_PUBLISH = "FIELD_SCHEMA_PUBLISH",
+    AUDIT_ENGAGEMENT_MANAGE = "AUDIT_ENGAGEMENT_MANAGE",
     EXCHANGE_INITIATE = 'EXCHANGE_INITIATE',
     EXCHANGE_READ = 'EXCHANGE_READ',
     EXCHANGE_WRITE = 'EXCHANGE_WRITE',
@@ -503,7 +503,6 @@ export enum Capability
     EXCHANGE_SHARE = 'EXCHANGE_SHARE',
     EXCHANGE_RESCIND = 'EXCHANGE_RESCIND',
 
-    // Exchange document
     DOCUMENT_READ = 'DOCUMENT_READ',
     DOCUMENT_DOWNLOAD = 'DOCUMENT_DOWNLOAD',
     DOCUMENT_WRITE = 'DOCUMENT_WRITE',
@@ -511,7 +510,6 @@ export enum Capability
     DOCUMENT_COMMENT = 'DOCUMENT_COMMENT',
     DOCUMENT_SIGN = 'DOCUMENT_SIGN',
 
-    // Document Library
     DOC_LIBRARY_DISCOVER = 'DOC_LIBRARY_DISCOVER',
     DOC_LIBRARY_READ = 'DOC_LIBRARY_READ',
     DOC_LIBRARY_USE = 'DOC_LIBRARY_USE',
@@ -519,7 +517,6 @@ export enum Capability
     DOC_LIBRARY_DELETE = 'DOC_LIBRARY_DELETE',
     DOC_LIBRARY_ADMIN = 'DOC_LIBRARY_ADMIN',
 
-    // Blueprint
     BLUEPRINT_DISCOVER = 'BLUEPRINT_DISCOVER',
     BLUEPRINT_READ = 'BLUEPRINT_READ',
     BLUEPRINT_USE = 'BLUEPRINT_USE',
@@ -529,7 +526,6 @@ export enum Capability
     BLUEPRINT_PUBLISH = 'BLUEPRINT_PUBLISH',
     BLUEPRINT_ADMIN = 'BLUEPRINT_ADMIN',
 
-    // Workflow Definition
     WORKFLOW_DISCOVER = 'WORKFLOW_DISCOVER',
     WORKFLOW_READ = 'WORKFLOW_READ',
     WORKFLOW_USE = 'WORKFLOW_USE',
@@ -539,12 +535,10 @@ export enum Capability
     WORKFLOW_PUBLISH = 'WORKFLOW_PUBLISH',
     WORKFLOW_ADMIN = 'WORKFLOW_ADMIN',
 
-    // Workflow Webhook
     WEBHOOK_ADMIN = 'WEBHOOK_ADMIN',
     WEBHOOK_DELIVER = 'WEBHOOK_DELIVER',
     WEBHOOK_AUDIT_READ = 'WEBHOOK_AUDIT_READ',
 
-    // Sequence
     SEQUENCE_DISCOVER = 'SEQUENCE_DISCOVER',
     SEQUENCE_READ = 'SEQUENCE_READ',
     SEQUENCE_CONSUME = 'SEQUENCE_CONSUME',
@@ -552,7 +546,6 @@ export enum Capability
     SEQUENCE_DELETE = 'SEQUENCE_DELETE',
     SEQUENCE_ADMIN = 'SEQUENCE_ADMIN',
 
-    // Variable
     VARIABLE_DISCOVER = 'VARIABLE_DISCOVER',
     VARIABLE_READ = 'VARIABLE_READ',
     VARIABLE_USE = 'VARIABLE_USE',
@@ -560,7 +553,6 @@ export enum Capability
     VARIABLE_DELETE = 'VARIABLE_DELETE',
     VARIABLE_ADMIN = 'VARIABLE_ADMIN',
 
-    // Communication
     COMMUNICATION_DISCOVER = 'COMMUNICATION_DISCOVER',
     COMMUNICATION_READ = 'COMMUNICATION_READ',
     COMMUNICATION_USE = 'COMMUNICATION_USE',
@@ -569,13 +561,11 @@ export enum Capability
     COMMUNICATION_PUBLISH = 'COMMUNICATION_PUBLISH',
     COMMUNICATION_ADMIN = 'COMMUNICATION_ADMIN',
 
-    // Principal Group
     GROUP_READ = 'GROUP_READ',
     GROUP_EDIT = 'GROUP_EDIT',
     GROUP_ADMIN = 'GROUP_ADMIN',
     GROUP_DELETE = 'GROUP_DELETE',
 
-    // Organization (administrative)
     ORG_MEMBER_MANAGE = 'ORG_MEMBER_MANAGE',
     ORG_POLICY_MANAGE = 'ORG_POLICY_MANAGE',
     ORG_BILLING_MANAGE = 'ORG_BILLING_MANAGE',
@@ -591,35 +581,26 @@ export enum Capability
     EXTERNAL_GROUP_DISCOVER = 'EXTERNAL_GROUP_DISCOVER',
     EXCHANGE_ACCEPT = 'EXCHANGE_ACCEPT',
 
-    // Platform
     APP_ADMIN = 'APP_ADMIN',
     APP_AUDIT_READ = 'APP_AUDIT_READ',
     APP_AUDIT_EXPORT = 'APP_AUDIT_EXPORT',
     APP_SUPPORT = 'APP_SUPPORT',
 
-    // Audit governance (export approval, retention, legal hold, integrity verification)
     AUDIT_EXPORT_APPROVE = 'AUDIT_EXPORT_APPROVE',
     AUDIT_RETENTION_MANAGE = 'AUDIT_RETENTION_MANAGE',
     AUDIT_LEGAL_HOLD_MANAGE = 'AUDIT_LEGAL_HOLD_MANAGE',
     AUDIT_INTEGRITY_VERIFY = 'AUDIT_INTEGRITY_VERIFY',
 
-    // Information Request operations and privacy
     INFORMATION_REQUEST_TEMPLATE_READ = 'INFORMATION_REQUEST_TEMPLATE_READ',
     INFORMATION_REQUEST_TEMPLATE_WRITE = 'INFORMATION_REQUEST_TEMPLATE_WRITE',
     INFORMATION_REQUEST_OPERATIONS_READ = 'INFORMATION_REQUEST_OPERATIONS_READ',
     INFORMATION_REQUEST_OPERATIONS_MANAGE = 'INFORMATION_REQUEST_OPERATIONS_MANAGE',
     INFORMATION_REQUEST_PRIVACY_MANAGE = 'INFORMATION_REQUEST_PRIVACY_MANAGE',
 
-    // Application Registration
     APP_REG_READ = 'APP_REG_READ',
     APP_REG_ADMIN = 'APP_REG_ADMIN',
 }
 
-/**
- * One organization the caller can act within, surfaced on the session so the app can
- * auto-select (single membership) or present a picker (multiple memberships). isPrimary is
- * informational only and does not gate auto-selection.
- */
 export interface SessionOrganizationOptionDto
 {
     organizationId: string
@@ -628,10 +609,6 @@ export interface SessionOrganizationOptionDto
     roles: string[]
 }
 
-/**
- * The commercial plans DocuHyphen sells. FREE and PERSONAL belong to an individual registered
- * user. BUSINESS belongs to a registered organization and is priced per purchased seat.
- */
 export enum PlanCode
 {
     FREE = 'FREE',
@@ -639,20 +616,12 @@ export enum PlanCode
     BUSINESS = 'BUSINESS',
 }
 
-/**
- * Which kind of principal owns and pays for a subscription. No-account recipients are
- * deliberately absent: they never own a subscription and never consume a paid seat.
- */
 export enum SubscriptionOwnerType
 {
     USER = 'USER',
     ORGANIZATION = 'ORGANIZATION',
 }
 
-/**
- * Lifecycle state of a subscription. Every state keeps existing data readable; only the
- * ability to create or change resources is clamped.
- */
 export enum SubscriptionStatus
 {
     TRIALING = 'TRIALING',
@@ -662,18 +631,12 @@ export enum SubscriptionStatus
     CANCELED = 'CANCELED',
 }
 
-/** How often a paid subscription renews. Absent on plans that have never been billed. */
 export enum BillingFrequency
 {
     MONTHLY = 'MONTHLY',
     ANNUAL = 'ANNUAL',
 }
 
-/**
- * Commercial product features that a plan either includes or excludes. These answer whether the
- * paying subject owns a feature, which is separate from whether the caller is authorized to act.
- * Use Capability for authorization and PlanFeature for plan availability.
- */
 export enum PlanFeature
 {
     EXCHANGE_CREATE = 'EXCHANGE_CREATE',
@@ -686,11 +649,6 @@ export enum PlanFeature
     DOCUMENT_VERSION_HISTORY = 'DOCUMENT_VERSION_HISTORY',
     ADVANCED_ACCESS_CONTROLS = 'ADVANCED_ACCESS_CONTROLS',
     VARIABLES_AND_SEQUENCES = 'VARIABLES_AND_SEQUENCES',
-    /**
-     * Reminders exist only as addons on a workflow step, so no individual plan grants this.
-     * Only an organization plan carries it, alongside WORKFLOW_AUTOMATION. Never present it as
-     * an individual capability.
-     */
     PERSONAL_REMINDERS = 'PERSONAL_REMINDERS',
     BUSINESS_FIELDS_AND_SCHEMAS = 'BUSINESS_FIELDS_AND_SCHEMAS',
     WORKFLOW_AUTOMATION = 'WORKFLOW_AUTOMATION',
@@ -700,11 +658,6 @@ export enum PlanFeature
     INFORMATION_REQUESTS = 'INFORMATION_REQUESTS',
 }
 
-/**
- * How strictly the API applies commercial plan decisions. REPORT_ONLY evaluates every decision
- * and records what would have been refused without changing the outcome, so the app must not
- * present a plan refusal as final unless the mode is ENFORCE.
- */
 export enum SubscriptionEnforcementMode
 {
     OFF = 'OFF',
@@ -712,7 +665,6 @@ export enum SubscriptionEnforcementMode
     ENFORCE = 'ENFORCE',
 }
 
-/** Why a commercial plan check refused an operation. Distinct from an authorization failure. */
 export enum SubscriptionDenialReason
 {
     FEATURE_NOT_INCLUDED = 'FEATURE_NOT_INCLUDED',
@@ -725,10 +677,6 @@ export enum SubscriptionDenialReason
     ORGANIZATION_SUBSCRIPTION_REQUIRED = 'ORGANIZATION_SUBSCRIPTION_REQUIRED',
 }
 
-/**
- * Allowances in force for the resolved plan. A null value means the allowance is not capped
- * commercially; security rate limits and abuse controls still apply independently.
- */
 export interface SubscriptionLimitsDto
 {
     maxNewExchangesPerCalendarMonth?: number | null
@@ -743,10 +691,6 @@ export interface SubscriptionLimitsDto
     maxCommittedEvidenceBytes?: number | null
 }
 
-/**
- * How much of each capped allowance is currently consumed. A field is null when the resolved
- * plan does not cap that allowance.
- */
 export interface SubscriptionUsageDto
 {
     newExchangesThisPeriod?: number | null
@@ -756,16 +700,6 @@ export interface SubscriptionUsageDto
     usagePeriodEnd?: string | null
 }
 
-/**
- * The commercial position of the paying subject for the current context: the authenticated user
- * when acting personally, or the selected organization when one is active. Recomputed on every
- * session fetch, so switching organization changes it without reissuing a token.
- *
- * The API remains the authority. This contract exists to stop the app leading a customer into a
- * flow the API will refuse, not to replace the server-side check.
- *
- * Optional fields are omitted from the payload when they carry no value.
- */
 export interface EffectiveSubscriptionDto
 {
     planCode: PlanCode
@@ -784,11 +718,6 @@ export interface EffectiveSubscriptionDto
     upgradePlanCode?: PlanCode | null
 }
 
-/**
- * Structured body returned when a commercial plan check refuses an operation. errorMessage keeps
- * the shape existing error handling already reads, and the remaining fields let the app explain
- * the allowance and offer the plan that lifts it.
- */
 export interface SubscriptionDenialDto
 {
     errorMessage: string
@@ -800,14 +729,6 @@ export interface SubscriptionDenialDto
     upgradePlanCode?: PlanCode | null
 }
 
-/**
- * Current-session contract returned by GET /app-user/session.
- * The frontend derives menu visibility, action controls, and settings tab gates from
- * capabilities rather than from raw role strings.
- *
- * subscription is absent only when the API could not resolve the commercial position. Treat that
- * as unknown rather than as an absence of entitlement.
- */
 export interface CurrentSessionDto
 {
     userId: string
@@ -847,8 +768,6 @@ export interface AuthenticatorEnrollment
     otpauthUri: string;
     expiresAt: string;
 }
-
-// ── OAuth / Multi-IDP Types ──
 
 export enum IdentityProviderType
 {
@@ -948,7 +867,6 @@ export interface SetupPasswordRequest
 {
     password: string;
     confirmationPassword: string;
-    /** Required only when the account already has a password, so a change proves knowledge of it. */
     currentPassword?: string;
 }
 
@@ -990,7 +908,6 @@ export interface SignUpOtpRegenerationRequest
     email: string
 }
 
-/** Request body for POST /auth/sign-up/email-confirm,  opaque-token flow. */
 export interface SignUpEmailConfirmRequest
 {
     token: string;
@@ -1003,7 +920,6 @@ export interface SignUpEmailConfirmResponse
     message?: string;
 }
 
-/** Response from GET /auth/sign-up/email-confirm/{token},  token introspection. */
 export interface SignUpEmailConfirmCheckResponse
 {
     email: string;
@@ -1046,7 +962,6 @@ export enum NotificationType
     DOCUMENT_UPDATED = 'DOCUMENT_UPDATED',
     EXCHANGE_ENDED = 'EXCHANGE_ENDED',
     EXCHANGE_INITIATED = 'EXCHANGE_INITIATED',
-    // New types from Plans 01–05
     WORKFLOW_STEP_ASSIGNED = 'workflow.step_assigned',
     WORKFLOW_ESCALATED = 'workflow.escalated',
     EXCHANGE_ACTIVATED = 'session.activated',
@@ -1143,8 +1058,6 @@ export interface OrganizationGroupMemberDetailedDto
     permissions: OrganizationGroupMemberPermissionDto;
 }
 
-// ── Workflow DTOs ─────────────────────────────────────────────────────────────
-
 export interface WorkflowDefinitionSummaryDto
 {
     id: string;
@@ -1162,7 +1075,6 @@ export interface WorkflowDefinitionSummaryDto
     createdAt: string;
 }
 
-/** Full definition, including the raw stepsJson DSL blob. */
 export interface WorkflowDefinitionDto extends WorkflowDefinitionSummaryDto
 {
     description?: string;
@@ -1209,30 +1121,15 @@ export interface WorkflowInstanceSummaryDto
     completedAt?: string;
 }
 
-/** Full instance with decoded step timeline. Returned by GET /workflows/instances/{id}. */
 export interface WorkflowInstanceDetailDto extends WorkflowInstanceSummaryDto
 {
     steps: WorkflowStepInstanceDto[];
-    /** Definition version frozen at instance start; never changes on later definition edits. */
     definitionVersion: number;
-    /**
-     * Raw definition steps_json frozen at instance start. Reproduces the exact builder topology
-     * and labels (including step names) so the Exchange diagram matches the definition preview.
-     */
     definitionSnapshotJson: string;
-    /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
     transitions: WorkflowStepTransitionDto[];
-    /**
-     * Safe machine failure code when status is FAILED (e.g. 'SNAPSHOT_MISSING', 'SNAPSHOT_CORRUPT');
-     * absent otherwise. Never carries raw JSON or stack detail.
-     */
     failureCode?: string;
 }
 
-/**
- * One traversed edge in an instance's execution graph. `fromStepIndex` is null for the START edge
- * (entry into the first step); `toStepIndex` is null for a terminal edge (the instance ends).
- */
 export interface WorkflowStepTransitionDto
 {
     fromStepIndex: number | null;
@@ -1273,8 +1170,6 @@ export interface WorkflowDecisionEntryDto
     email?: string;
 }
 
-// ── Exchange clearance status ─────────────────────────────────────────────────
-
 export type ClearanceStatus = 'NONE' | 'RUNNING' | 'CLEARED' | 'BLOCKED';
 
 export interface PartyClearanceDto
@@ -1288,8 +1183,6 @@ export interface ExchangeClearanceStatusDto
     counterparties: PartyClearanceDto[];
 }
 
-// ── Workflow Designer DSL types (mirror of WorkflowSpec Kotlin DSL) ────────────
-
 export type WorkflowStepType = 'APPROVAL' | 'NOTIFICATION' | 'CONDITION' | 'ACTION' | 'WAIT_FOR_COUNTERPARTY_CLEARANCE';
 export type AssigneeKind = 'PRINCIPAL' | 'GROUP_ROLE' | 'APP_ROLE' | 'ORGANIZATION_ROLE';
 export type QuorumKind = 'ANY' | 'ALL' | 'N_OF_M';
@@ -1300,23 +1193,23 @@ export type WorkflowScopeType = 'APP' | 'ORG' | 'PERSONAL';
 export interface AssigneeSpecDraft
 {
     kind: AssigneeKind;
-    principalKind?: string;   // PRINCIPAL: USER | PARTICIPANT | PRINCIPAL_GROUP
-    principalId?: string;     // PRINCIPAL
-    groupIdRef?: string;      // GROUP_ROLE: UUID or $subject.<field>
-    groupRole?: string;       // GROUP_ROLE: OWNER | MANAGER | MEMBER | OBSERVER
-    roleName?: string;        // APP_ROLE | ORGANIZATION_ROLE
-    organizationIdRef?: string; // ORGANIZATION_ROLE: literal id or $subject.<field>
+    principalKind?: string;
+    principalId?: string;
+    groupIdRef?: string;
+    groupRole?: string;
+    roleName?: string;
+    organizationIdRef?: string;
 }
 
 export interface QuorumSpecDraft
 {
     kind: QuorumKind;
-    n?: number; // N_OF_M only
+    n?: number;
 }
 
 export interface StepOutcomeSpecDraft
 {
-    nextStep: string; // "END" or numeric step index as string
+    nextStep: string;
     emit?: string;
 }
 
@@ -1336,13 +1229,6 @@ export interface AddonSpecDraft
     repeatEveryMinutes?: number;
 }
 
-// ── Workflow applicability (field-condition gate) ─────────────────────────────
-
-/**
- * One typed field condition in a workflow's applicability gate. References the immutable
- * fieldDefinitionId; value is a canonical literal (string / number / boolean / string[]),
- * omitted for IS_EMPTY / IS_NOT_EMPTY.
- */
 export interface WorkflowFieldConditionDraft
 {
     fieldDefinitionId: string;
@@ -1398,8 +1284,6 @@ export interface WorkflowDesignerState
     applicability?: WorkflowApplicabilityDraft;
 }
 
-// ── Blueprint types ───────────────────────────────────────────────────────────
-
 export type BlueprintScope = 'APP' | 'ORG' | 'PERSONAL';
 
 export interface BlueprintDocumentConfig
@@ -1425,10 +1309,6 @@ export interface BlueprintParticipantConfig
     roleName: string;
 }
 
-/**
- * One default field value carried by a blueprint. Keyed by the stable fieldDefinitionId so it
- * survives schema re-publishing; value is the canonical form applied through the creation-time seam.
- */
 export interface BlueprintFieldDefaultConfig
 {
     fieldDefinitionId: string;
@@ -1437,8 +1317,6 @@ export interface BlueprintFieldDefaultConfig
     displayOrder?: number;
 }
 
-// Scalar form-prefill settings only. Document and participant defaults are typed arrays
-// on BlueprintDefinitionSummaryDto / the request types, not embedded in this JSON.
 export interface BlueprintConfig
 {
     name?: string;
@@ -1470,14 +1348,23 @@ export interface BlueprintDefinitionSummaryDto
     sourceTemplateId?: string;
     configJson: string;
     schemaDefinitionId?: string;
-    // The exact published Information Request Template Version future instantiations request
-    // against. Replacing it changes only what is created next.
     informationRequestTemplateVersionId?: string;
+    informationRequestTemplateVersion?: BlueprintInformationRequestTemplateVersionDto;
     exchangeDocuments: BlueprintDocumentConfig[];
     participants: BlueprintParticipantConfig[];
     fieldDefaults?: BlueprintFieldDefaultConfig[];
-    createdAt: string;
-    updatedAt: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface BlueprintInformationRequestTemplateVersionDto {
+    templateId: string;
+    templateDisplayName: string;
+    versionNumber: number;
+    status: InformationRequestTemplateStatus;
+    latest: boolean;
+    latestPublishedVersionNumber?: number | null;
+    retiredAt?: number | null;
 }
 
 export interface BlueprintDefinitionDto extends BlueprintDefinitionSummaryDto
@@ -1508,20 +1395,14 @@ export interface UpdateBlueprintRequest
     summary?: string;
     description?: string;
     configJson?: string;
-    // null/undefined = leave child collection unchanged; a list (incl. empty) replaces it.
     exchangeDocuments?: BlueprintDocumentConfig[];
     participants?: BlueprintParticipantConfig[];
-    // When fieldDefaults is provided the schema linkage is also (re)applied from schemaDefinitionId.
     schemaDefinitionId?: string;
     fieldDefaults?: BlueprintFieldDefaultConfig[];
-    // An omitted Version reference is left alone; removing it is stated separately so an omitted
-    // value and a cleared one stay distinguishable.
     informationRequestTemplateVersionId?: string;
     clearInformationRequestTemplateVersion?: boolean;
     generalTags?: string[];
 }
-
-// ── Variable / Sequence types ─────────────────────────────────────────────────
 
 export type VariableScope = 'ORG' | 'PERSONAL';
 export type SequenceResetPeriod = 'NEVER' | 'YEARLY' | 'MONTHLY';
@@ -1580,8 +1461,6 @@ export interface CreateSequenceRequest
     suffix?: string;
     resetPeriod?: SequenceResetPeriod;
 }
-
-// ── Communication types ───────────────────────────────────────────────────────
 
 export type CommunicationScope = 'PLATFORM' | 'ORG' | 'PERSONAL';
 
@@ -1661,8 +1540,6 @@ export interface UpdateVariableRequest
     isActive?: boolean;
 }
 
-// ── Document Library types ─────────────────────────────────────────────────────
-
 export type DocumentLibraryScope = 'APP' | 'ORG' | 'PERSONAL';
 
 export interface DocumentLibraryEntrySummaryDto
@@ -1714,15 +1591,16 @@ export interface UpdateDocumentLibraryEntryRequest
     required?: boolean;
 }
 
-// ── Configurable Fields and Business Schema engine ────────────────────────────
-
 export enum FieldScopeKind
 {
     PLATFORM = 'PLATFORM',
     ORGANIZATION = 'ORGANIZATION',
-    // Owned by one user rather than an organization. Storable, but not authorable yet: the server
-    // refuses a request that asks for it, so no screen offers it as a scope to create into.
     PERSONAL = 'PERSONAL',
+}
+
+export enum SchemaTargetResourceType {
+    EXCHANGE = 'EXCHANGE',
+    INFORMATION_REQUEST = 'INFORMATION_REQUEST',
 }
 
 export enum FieldLifecycleStatus
@@ -1745,7 +1623,6 @@ export enum FieldValueType
     MULTI_SELECT = 'MULTI_SELECT',
 }
 
-/** Type-aware operators for workflow field-applicability conditions. Mirrors the Kotlin FieldOperator. */
 export enum FieldOperator
 {
     EQUALS = 'EQUALS',
@@ -1762,8 +1639,8 @@ export enum FieldOperator
     IS_NOT_EMPTY = 'IS_NOT_EMPTY',
 }
 
-export enum FieldDataClassification
-{    PUBLIC = 'PUBLIC',
+export enum FieldDataClassification {
+    PUBLIC = 'PUBLIC',
     INTERNAL = 'INTERNAL',
     CONFIDENTIAL = 'CONFIDENTIAL',
     RESTRICTED = 'RESTRICTED',
@@ -1784,21 +1661,6 @@ export enum SchemaAssignmentSource
     MIGRATION = 'MIGRATION',
 }
 
-export enum FieldOperator
-{
-    EQUALS = 'EQUALS',
-    NOT_EQUALS = 'NOT_EQUALS',
-    LESS_THAN = 'LESS_THAN',
-    LESS_THAN_OR_EQUAL = 'LESS_THAN_OR_EQUAL',
-    GREATER_THAN = 'GREATER_THAN',
-    GREATER_THAN_OR_EQUAL = 'GREATER_THAN_OR_EQUAL',
-    CONTAINS = 'CONTAINS',
-    STARTS_WITH = 'STARTS_WITH',
-    IN = 'IN',
-    NOT_IN = 'NOT_IN',
-    IS_EMPTY = 'IS_EMPTY',
-    IS_NOT_EMPTY = 'IS_NOT_EMPTY',
-}
 
 export interface FieldConstraints
 {
@@ -1840,7 +1702,7 @@ export interface FieldContractDto
     isFilterable: boolean;
     isSortable: boolean;
     isReportable: boolean;
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface FieldDefinitionDto
@@ -1853,7 +1715,7 @@ export interface FieldDefinitionDto
     status: FieldLifecycleStatus;
     contractCount: number;
     latestContract?: FieldContractDto;
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface SchemaFieldBindingDto
@@ -1885,8 +1747,8 @@ export interface SchemaVersionDto
     status: FieldLifecycleStatus;
     compatibility?: SchemaCompatibility;
     bindings: SchemaFieldBindingDto[];
-    publishedAt?: string;
-    createdAt: string;
+    publishedAt?: number | null;
+    createdAt: number;
 }
 
 export interface SchemaDefinitionDto
@@ -1902,7 +1764,7 @@ export interface SchemaDefinitionDto
     status: FieldLifecycleStatus;
     draftVersion?: SchemaVersionDto;
     latestPublishedVersion?: SchemaVersionDto;
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface ResolvedSchemaViewDto
@@ -1954,23 +1816,17 @@ export interface SchemaAssignmentDto
     displayName: string;
     versionNumber: number;
     assignmentSource: SchemaAssignmentSource;
-    assignedAt: string;
-    /**
-     * The questions the assigned schema version asks of this caller, as an editor is built from them.
-     * Filtered by the same rule as fields and listed in the same order, so a question that was not
-     * shared with the caller appears in neither list.
-     */
+    assignedAt: number;
     bindings: SchemaFieldBindingDto[];
     fields: FieldValueDto[];
-    /**
-     * Strong entity tag for the state of the values in fields. Sent back on the next write so a save
-     * can be refused when the values moved on underneath the editor. Absent only where the resource
-     * has no set of values to validate.
-     */
     etag?: string;
 }
 
-// Information Request Template administration
+export interface SchemaAssignmentStateDto {
+    assignment?: SchemaAssignmentDto;
+    canManageSchema: boolean;
+    canEditValues: boolean;
+}
 
 export enum InformationRequestTemplateScopeKind
 {
@@ -2089,44 +1945,55 @@ export interface InformationRequestTemplateDto
 {
     id: string;
     scopeKind: InformationRequestTemplateScopeKind;
-    scopeOrgId?: string;
-    scopeUserId?: string;
+    scopeOrgId?: string | null;
+    scopeUserId?: string | null;
     namespace: string;
     templateKey: string;
     displayName: string;
-    description?: string;
+    description?: string | null;
     status: InformationRequestTemplateStatus;
-    draftVersion?: InformationRequestTemplateVersionDto;
-    latestPublishedVersion?: InformationRequestTemplateVersionDto;
-    createdAt: string;
-    updatedAt: string;
+    draftVersion?: InformationRequestTemplateVersionDto | null;
+    draftETag?: string | null;
+    latestPublishedVersion?: InformationRequestTemplateVersionDto | null;
+    createdAt: number;
+    updatedAt: number;
+    versions?: InformationRequestTemplateVersionStandingDto[];
+}
+
+export interface InformationRequestTemplateVersionStandingDto {
+    versionNumber: number;
+    status: InformationRequestTemplateStatus;
+    publishedAt?: number | null;
+    retiredAt?: number | null;
 }
 
 export interface InformationRequestTemplateRefusalDto
 {
     errorMessage: string;
     reasonCode: string;
-    sectionKey?: string;
-    requirementKey?: string;
-    groupKey?: string;
-    reviewStageKey?: string;
+    sectionKey?: string | null;
+    requirementKey?: string | null;
+    groupKey?: string | null;
+    conditionRuleKey?: string | null;
+    reviewStageKey?: string | null;
 }
 
 export interface InformationRequestTemplateSummaryDto
 {
     id: string;
     scopeKind: InformationRequestTemplateScopeKind;
-    scopeOrgId?: string;
-    scopeUserId?: string;
+    scopeOrgId?: string | null;
+    scopeUserId?: string | null;
     namespace: string;
     templateKey: string;
     displayName: string;
-    description?: string;
+    description?: string | null;
     status: InformationRequestTemplateStatus;
     hasEditableVersion: boolean;
-    latestPublishedVersionNumber?: number;
-    createdAt: string;
-    updatedAt: string;
+    latestPublishedVersionNumber?: number | null;
+    latestPublishedVersionId?: string | null;
+    createdAt: number;
+    updatedAt: number;
 }
 
 export interface InformationRequestTemplateVersionDto
@@ -2135,28 +2002,29 @@ export interface InformationRequestTemplateVersionDto
     templateDefinitionId: string;
     versionNumber: number;
     status: InformationRequestTemplateStatus;
-    schemaVersionId?: string;
+    schemaVersionId?: string | null;
     submissionMode?: InformationRequestSubmissionMode;
     submissionStageOrdering?: InformationRequestSubmissionStageOrdering;
     reviewStageOrdering?: InformationRequestReviewStageOrdering;
     reviewStages?: InformationRequestTemplateReviewStageDto[];
-    factReusePurposeKey?: string;
+    factReusePurposeKey?: string | null;
     sections: InformationRequestTemplateSectionDto[];
     groups: InformationRequestTemplateGroupDto[];
     conditionRules: InformationRequestTemplateConditionRuleDto[];
     requiredCapabilities: InformationRequestTemplateCapabilityDto[];
-    publishedAt?: string;
-    retiredAt?: string;
-    createdAt: string;
+    contentHashSha256?: string | null;
+    publishedAt?: number | null;
+    retiredAt?: number | null;
+    createdAt: number;
 }
 
 export interface InformationRequestTemplateGroupDto
 {
     id: string;
     groupKey: string;
-    parentGroupKey?: string;
+    parentGroupKey?: string | null;
     minOccurrences: number;
-    maxOccurrences?: number;
+    maxOccurrences?: number | null;
 }
 
 export interface InformationRequestTemplateConditionRuleDto
@@ -2171,12 +2039,12 @@ export interface InformationRequestTemplateConditionRuleDto
 export interface InformationRequestTemplateConditionPredicateDto
 {
     id: string;
-    sourceRequirementKey?: string;
-    fieldDefinitionId?: string;
-    valueType?: FieldValueType;
+    sourceRequirementKey?: string | null;
+    fieldDefinitionId?: string | null;
+    valueType?: FieldValueType | null;
     operator: FieldOperator;
-    value?: unknown;
-    expectedDisposition?: InformationRequestResponseDisposition;
+    value?: unknown | null;
+    expectedDisposition?: InformationRequestResponseDisposition | null;
 }
 
 export interface InformationRequestTemplateSectionDto
@@ -2184,8 +2052,8 @@ export interface InformationRequestTemplateSectionDto
     id: string;
     sectionKey: string;
     title: string;
-    helpText?: string;
-    submissionStageKey?: string;
+    helpText?: string | null;
+    submissionStageKey?: string | null;
     requirements: InformationRequestTemplateRequirementDto[];
 }
 
@@ -2196,20 +2064,20 @@ export interface InformationRequestTemplateRequirementDto
     requirementKey: string;
     requirementType: InformationRequestRequirementType;
     prompt: string;
-    helpText?: string;
+    helpText?: string | null;
     responseMode: InformationRequestResponseMode;
     requiredness: InformationRequestRequiredness;
     contributorRole: InformationRequestContributorRole;
     reviewPolicy: InformationRequestReviewPolicy;
-    confidentialityCompartmentKey?: string;
-    conditionalRuleKey?: string;
-    occurrenceAnchorKey?: string;
-    collectedFieldDefinitionId?: string;
+    confidentialityCompartmentKey?: string | null;
+    conditionalRuleKey?: string | null;
+    occurrenceAnchorKey?: string | null;
+    collectedFieldDefinitionId?: string | null;
     permittedDispositions: InformationRequestResponseDisposition[];
-    evidencePolicy?: InformationRequestTemplateEvidencePolicyDto;
+    evidencePolicy?: InformationRequestTemplateEvidencePolicyDto | null;
     substituteRequirementKeys: string[];
     supportingEvidenceRequirementKeys: string[];
-    attestationPolicy?: InformationRequestTemplateAttestationPolicyDto;
+    attestationPolicy?: InformationRequestTemplateAttestationPolicyDto | null;
 }
 
 export interface InformationRequestTemplateAttestationPolicyDto
@@ -2219,7 +2087,7 @@ export interface InformationRequestTemplateAttestationPolicyDto
     ordering: InformationRequestAttestationOrdering;
     minimumAssentCount: number;
     minimumAuthenticationStrength: InformationRequestAuthenticationStrength;
-    validityHours?: number;
+    validityHours?: number | null;
     externalSignatureReference: InformationRequestExternalSignatureReferencePolicy;
 }
 
@@ -2227,11 +2095,11 @@ export interface InformationRequestTemplateEvidencePolicyDto
 {
     id: string;
     minimumFileCount: number;
-    maximumFileCount?: number;
-    maximumFileSizeBytes?: number;
-    maximumTotalSizeBytes?: number;
-    minimumPageCount?: number;
-    maximumPageCount?: number;
+    maximumFileCount?: number | null;
+    maximumFileSizeBytes?: number | null;
+    maximumTotalSizeBytes?: number | null;
+    minimumPageCount?: number | null;
+    maximumPageCount?: number | null;
     issuerRequirement: InformationRequestEvidenceAttributeRequirement;
     jurisdictionRequirement: InformationRequestEvidenceAttributeRequirement;
     languageRequirement: InformationRequestEvidenceAttributeRequirement;
@@ -2240,9 +2108,9 @@ export interface InformationRequestTemplateEvidencePolicyDto
     coveragePeriodRequirement: InformationRequestEvidenceAttributeRequirement;
     certificationRequirement: InformationRequestEvidenceAttributeRequirement;
     signatureRequirement: InformationRequestEvidenceAttributeRequirement;
-    maximumIssueAgeDays?: number;
-    minimumRemainingValidityDays?: number;
-    minimumCoverageDays?: number;
+    maximumIssueAgeDays?: number | null;
+    minimumRemainingValidityDays?: number | null;
+    minimumCoverageDays?: number | null;
     coverageContinuityRequired: boolean;
     waiverPolicy: InformationRequestEvidenceWaiverPolicy;
     conformancePolicy: InformationRequestEvidenceConformancePolicy;
@@ -2441,21 +2309,22 @@ export interface InformationRequestDto
 {
     id: string;
     exchangeId: string;
-    templateVersionId: string;
+    templateVersionId?: string | null;
     ownerType: InformationRequestOwnerType;
-    ownerOrganizationId?: string;
-    ownerUserId?: string;
+    ownerOrganizationId?: string | null;
+    ownerUserId?: string | null;
     state: InformationRequestState;
     gatesExchangeClosure: boolean;
     aggregateRevision: number;
-    issuedAt?: string;
-    closedAt?: string;
-    cancelledAt?: string;
-    supersededAt?: string;
-    supersededByRequestId?: string;
-    createdAt: string;
-    updatedAt: string;
+    issuedAt?: number | null;
+    closedAt?: number | null;
+    cancelledAt?: number | null;
+    supersededAt?: number | null;
+    supersededByRequestId?: string | null;
+    createdAt: number;
+    updatedAt: number;
     requestETag: string;
+    executionStanding: InformationRequestExecutionStandingDto;
     conditionEvaluations: InformationRequestConditionEvaluationDto[];
 }
 
@@ -2464,11 +2333,11 @@ export interface InformationRequestGroupOccurrenceDto
     id: string;
     informationRequestId: string;
     sourceTemplateGroupId: string;
-    parentOccurrenceId?: string;
+    parentOccurrenceId?: string | null;
     occurrenceIndex: number;
     occurrencePath: string;
-    createdAt: string;
-    removedAt?: string;
+    createdAt: number;
+    removedAt?: number | null;
 }
 
 export interface InformationRequestResponseDto
@@ -2478,13 +2347,21 @@ export interface InformationRequestResponseDto
     sourceTemplateBindingId: string;
     occurrencePath: string;
     disposition: InformationRequestResponseDisposition;
-    narrative?: string;
-    fieldValueSetId?: string;
-    fieldValueSetETag?: string;
+    narrative?: string | null;
+    fieldValueSetId?: string | null;
+    fieldValueSetETag?: string | null;
     fieldValues: FieldValueDto[];
     responseRevision: number;
-    updatedAt: string;
+    updatedAt: number;
     reconfirmationRequired?: boolean;
+    editLock?: InformationRequestResponseEditLock | null;
+    evidenceFileCount?: number | null;
+}
+
+export enum InformationRequestResponseEditLock {
+    SUBMITTED = "SUBMITTED",
+    NOT_RETURNED_FOR_CORRECTION = "NOT_RETURNED_FOR_CORRECTION",
+    GIVEN_ONCE = "GIVEN_ONCE",
 }
 
 export enum RequestAccessSessionVerificationStrength
@@ -2497,23 +2374,64 @@ export interface InformationRequestAccessSessionDto
     sessionId: string;
     sessionToken: string;
     verificationStrength: RequestAccessSessionVerificationStrength;
-    issuedAt: string;
-    expiresAt: string;
+    issuedAt: number;
+    expiresAt: number;
+}
+
+export interface InformationRequestAccessSessionStepUpDto {
+    sessionId: string;
+    verifiedUntil: number;
+}
+
+export interface UpgradeInformationRequestParticipantAccountRequest {
+    sessionId: string;
+}
+
+export interface InformationRequestParticipantAccountUpgradeDto {
+    participantAccountLinkId: string;
+    participantId: string;
+    appUserId: string;
+    linkedAt: number;
+    grantedShareId: string;
+    grantedRoleName: string;
+    respondentKey: string;
 }
 
 export interface InformationRequestResponseWorkspaceDto
 {
     request: InformationRequestDto;
     title: string;
+    respondentKey: string;
     templateVersion: InformationRequestTemplateVersionDto;
     responseETag: string;
     occurrences: InformationRequestGroupOccurrenceDto[];
-    schemaAssignment?: SchemaAssignmentDto;
+    schemaAssignment?: SchemaAssignmentDto | null;
     responses: InformationRequestResponseDto[];
     supportingEvidenceLinks: InformationRequestSupportingEvidenceLinkDto[];
     evidenceUploadAvailable: boolean;
     evidenceMalwareScanning: boolean;
+    requirementsAwaitingStepUp: number;
     executionStanding: InformationRequestExecutionStandingDto;
+    canRequestSupplement?: boolean;
+    authorActions?: InformationRequestAuthorActionsDto | null;
+    creatableGroupKeys?: string[];
+    exchangeAccepted?: boolean;
+}
+
+export interface InformationRequestAuthorActionsDto {
+    issue: boolean;
+    cancel: boolean;
+    supersede: boolean;
+    changeCompletionGate: boolean;
+    manageParties: boolean;
+    previewRecipients: boolean;
+    manageClocks: boolean;
+    scheduleFollowUps: boolean;
+    createFollowUps: boolean;
+    promoteFacts: boolean;
+    revokeFacts: boolean;
+    recordDecisions: boolean;
+    issueAccessLinks?: boolean;
 }
 
 export interface InformationRequestSupportingEvidenceLinkDto
@@ -2525,7 +2443,6 @@ export interface InformationRequestSupportingEvidenceLinkDto
 export enum InformationRequestEvidenceSourceKind
 {
     DOCUMENT_VERSION = 'DOCUMENT_VERSION',
-    EXTERNAL_REFERENCE = 'EXTERNAL_REFERENCE',
 }
 
 export enum InformationRequestEvidenceCollectionState
@@ -2590,7 +2507,7 @@ export interface InformationRequestEvidenceFindingDto
 {
     code: InformationRequestEvidenceFindingCode;
     blocking: boolean;
-    detail?: string;
+    detail?: string | null;
 }
 
 export interface InformationRequestEvidenceVersionDto
@@ -2598,26 +2515,24 @@ export interface InformationRequestEvidenceVersionDto
     id: string;
     versionNumber: number;
     sourceKind: InformationRequestEvidenceSourceKind;
-    declaredFileName?: string;
-    declaredMediaType?: string;
-    contentLength?: number;
-    contentHashAlgorithm?: string;
-    contentHash?: string;
-    contentVerification?: string;
-    externalReferenceType?: string;
-    externalReferenceValue?: string;
-    issuer?: string;
-    jurisdiction?: string;
-    language?: string;
-    issuedOn?: string;
-    expiresOn?: string;
-    coverageStartsOn?: string;
-    coverageEndsOn?: string;
-    certificationReference?: string;
-    signatureReference?: string;
+    declaredFileName?: string | null;
+    declaredMediaType?: string | null;
+    contentLength?: number | null;
+    contentHashAlgorithm?: string | null;
+    contentHash?: string | null;
+    contentVerification?: string | null;
+    issuer?: string | null;
+    jurisdiction?: string | null;
+    language?: string | null;
+    issuedOn?: string | null;
+    expiresOn?: string | null;
+    coverageStartsOn?: string | null;
+    coverageEndsOn?: string | null;
+    certificationReference?: string | null;
+    signatureReference?: string | null;
     createdByCaller: boolean;
-    createdAt: string;
-    conformance?: InformationRequestEvidenceConformance;
+    createdAt: number;
+    conformance?: InformationRequestEvidenceConformance | null;
     findings: InformationRequestEvidenceFindingDto[];
 }
 
@@ -2630,10 +2545,11 @@ export interface InformationRequestEvidenceArtifactDto
     artifactRevision: number;
     etag: string;
     createdByCaller: boolean;
-    stateReason?: string;
-    stateChangedAt?: string;
-    createdAt: string;
-    updatedAt: string;
+    changeableByCaller: boolean;
+    stateReason?: string | null;
+    stateChangedAt?: number | null;
+    createdAt: number;
+    updatedAt: number;
     versions: InformationRequestEvidenceVersionDto[];
 }
 
@@ -2650,7 +2566,7 @@ export interface InformationRequestEvidenceListDto
     requirementId: string;
     evidenceETag: string;
     artifacts: InformationRequestEvidenceArtifactDto[];
-    evaluation?: InformationRequestEvidenceEvaluationDto;
+    evaluation?: InformationRequestEvidenceEvaluationDto | null;
 }
 
 export interface InformationRequestEvidenceCommandResultDto
@@ -2662,7 +2578,7 @@ export interface InformationRequestEvidenceCommandResultDto
 
 export interface InformationRequestResponseFieldValuesPatchRequest
 {
-    etag?: string;
+    etag?: string | null;
     values: FieldValueEntry[];
 }
 
@@ -2679,7 +2595,16 @@ export interface PatchInformationRequestResponsesRequest
 {
     patches: InformationRequestResponsePatchRequest[];
     confirmedHiddenResponseClearRequirementIds?: string[];
+    respondentKey?: string;
 }
+
+export interface HiddenResponseClearTargetDto {
+    requirementId: string;
+    sourceTemplateBindingId: string;
+    occurrencePath: string;
+}
+
+export const HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED = "INFORMATION_REQUEST_HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED";
 
 export interface CreateInformationRequestGroupOccurrenceRequest
 {
@@ -2746,6 +2671,23 @@ export enum InformationRequestSubmissionProblemCode
     ATTESTATION_MISSING = "ATTESTATION_MISSING",
     ATTESTATION_REFUSED = "ATTESTATION_REFUSED",
     RECONFIRMATION_REQUIRED = "RECONFIRMATION_REQUIRED",
+    STRUCTURED_VALIDATION_FAILED = "STRUCTURED_VALIDATION_FAILED",
+}
+
+export interface InformationRequestItemProblemDto {
+    code: string;
+    message: string;
+    requirementId?: string | null;
+    occurrencePath?: string | null;
+    fieldContractId?: string | null;
+    validationKind?: string | null;
+}
+
+export interface InformationRequestItemRefusalDto {
+    errorMessage: string;
+    reasonCode: string;
+    problems: InformationRequestItemProblemDto[];
+    undisclosedProblemCount: number;
 }
 
 export enum InformationRequestCompletenessItemState
@@ -2762,11 +2704,12 @@ export interface InformationRequestSubmissionEvidenceDto
     artifactId: string;
     evidenceVersionId: string;
     versionNumber: number;
-    documentVersionId?: string;
-    contentHashAlgorithm?: string;
-    contentHash?: string;
-    contentLength?: number;
+    documentVersionId?: string | null;
+    contentHashAlgorithm?: string | null;
+    contentHash?: string | null;
+    contentLength?: number | null;
     conformance: string;
+    declaredFileName?: string | null;
 }
 
 export interface InformationRequestSubmissionItemDto
@@ -2778,11 +2721,11 @@ export interface InformationRequestSubmissionItemDto
     occurrencePath: string;
     completenessState: InformationRequestCompletenessItemState;
     disposition: InformationRequestResponseDisposition;
-    narrative?: string;
-    fieldValue?: unknown;
+    narrative?: string | null;
+    fieldValue?: unknown | null;
     fieldValueCleared: boolean;
-    evidenceState?: string;
-    attestationState?: string;
+    evidenceState?: string | null;
+    attestationState?: string | null;
     evidence: InformationRequestSubmissionEvidenceDto[];
 }
 
@@ -2790,14 +2733,14 @@ export interface InformationRequestSubmissionAttestationDto
 {
     id: string;
     requirementId: string;
-    stageKey?: string;
+    stageKey?: string | null;
     partyRole: InformationRequestContributorRole;
     decision: InformationRequestAttestationDecision;
-    refusalReason?: string;
+    refusalReason?: string | null;
     authenticationStrength: InformationRequestAuthenticationStrength;
-    externalSignatureReference?: string;
-    attestedAt: string;
-    expiresAt?: string;
+    externalSignatureReference?: string | null;
+    attestedAt: number;
+    expiresAt?: number | null;
     attestedByCaller: boolean;
     madeUnderDelegatedAuthority: boolean;
 }
@@ -2807,23 +2750,25 @@ export interface InformationRequestSubmissionPackageDto
     id: string;
     informationRequestId: string;
     packageNumber: number;
-    stageKey?: string;
+    stageKey?: string | null;
     templateVersionId: string;
-    schemaVersionId?: string;
+    schemaVersionId?: string | null;
     contentHash: string;
     manifestHash: string;
     reviewRequired: boolean;
     completesRequest: boolean;
-    previousPackageId?: string;
-    submittedAt: string;
+    previousPackageId?: string | null;
+    submittedAt: number;
     submittedByCaller: boolean;
     withdrawn: boolean;
-    withdrawnAt?: string;
-    withdrawalReasonCode?: string;
+    withdrawnAt?: number | null;
+    withdrawalReasonCode?: string | null;
     items: InformationRequestSubmissionItemDto[];
     attestations: InformationRequestSubmissionAttestationDto[];
     supportingEvidenceLinks: InformationRequestSupportingEvidenceLinkDto[];
     undisclosedItemCount: number;
+    current: boolean;
+    withdrawable: boolean;
 }
 
 export interface InformationRequestSubmissionProblemDto
@@ -2832,6 +2777,14 @@ export interface InformationRequestSubmissionProblemDto
     requirementKey: string;
     occurrencePath: string;
     code: InformationRequestSubmissionProblemCode;
+}
+
+export interface InformationRequestSubmissionGroupProblemDto {
+    groupKey: string;
+    parentOccurrencePath?: string | null;
+    minOccurrences: number;
+    maxOccurrences?: number | null;
+    occurrenceCount: number;
 }
 
 export interface InformationRequestAttestationStatusDto
@@ -2847,33 +2800,62 @@ export interface InformationRequestAttestationStatusDto
     requiredAssentCount: number;
     minimumAuthenticationStrength: InformationRequestAuthenticationStrength;
     externalSignatureReference: InformationRequestExternalSignatureReferencePolicy;
-    validityHours?: number;
+    validityHours?: number | null;
     callerCanAttest: boolean;
-    callerDecision?: InformationRequestAttestationDecision;
+    waitingForRoles: InformationRequestContributorRole[];
+    callerDecision?: InformationRequestAttestationDecision | null;
     attestations: InformationRequestSubmissionAttestationDto[];
+    attestingParties?: InformationRequestAttestingPartyDto[];
+}
+
+export interface InformationRequestAttestingPartyDto {
+    partyId: string;
+    role: InformationRequestContributorRole;
+    throughGroup: boolean;
+    delegated: boolean;
 }
 
 export interface InformationRequestSubmissionStageDto
 {
     stageKey: string;
-    submittedPackageId?: string;
-    submittedPackageNumber?: number;
+    submittedPackageId?: string | null;
+    submittedPackageNumber?: number | null;
     submitted: boolean;
+    correctionOpen: boolean;
 }
 
+export interface InformationRequestSubmissionScopeItemDto {
+    requirementId: string;
+    templateBindingId: string;
+    requirementKey: string;
+    requirementType: InformationRequestRequirementType;
+    prompt: string;
+    occurrencePath: string;
+    disposition: InformationRequestResponseDisposition;
+    narrative?: string | null;
+    fieldContractId?: string | null;
+    fieldValueType?: FieldValueType | null;
+    fieldValue?: unknown;
+    fieldValueCleared: boolean;
+    evidenceFileCount: number;
+}
 export interface InformationRequestSubmissionPreviewDto
 {
     informationRequestId: string;
-    stageKey?: string;
+    stageKey?: string | null;
     submissionMode: InformationRequestSubmissionMode;
     submissionStageOrdering: InformationRequestSubmissionStageOrdering;
     submissionETag: string;
+    scopeItems: InformationRequestSubmissionScopeItemDto[];
+    undisclosedScopeItemCount?: number;
     ready: boolean;
     problems: InformationRequestSubmissionProblemDto[];
     undisclosedProblemCount: number;
+    groupProblems: InformationRequestSubmissionGroupProblemDto[];
     attestations: InformationRequestAttestationStatusDto[];
     stages: InformationRequestSubmissionStageDto[];
     canSubmit: boolean;
+    correctionOpen: boolean;
     packages: InformationRequestSubmissionPackageDto[];
 }
 
@@ -2883,12 +2865,13 @@ export interface InformationRequestSubmissionRefusalDto
     reasonCode: string;
     problems: InformationRequestSubmissionProblemDto[];
     undisclosedProblemCount: number;
+    groupProblems: InformationRequestSubmissionGroupProblemDto[];
 }
 
 export interface InformationRequestSubmissionAttestationResultDto
 {
     attestation: InformationRequestSubmissionAttestationDto;
-    state?: InformationRequestAttestationState;
+    state?: InformationRequestAttestationState | null;
     submissionETag: string;
 }
 
@@ -2957,7 +2940,7 @@ export interface InformationRequestNoticeIntentDto
     partyId: string;
     noticeKind: InformationRequestNoticeKind;
     deliveryState: InformationRequestNoticeDeliveryState;
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface InformationRequestAmendmentDto
@@ -2966,8 +2949,8 @@ export interface InformationRequestAmendmentDto
     amendmentNumber: number;
     fromTemplateVersionId: string;
     toTemplateVersionId: string;
-    reasonCode?: string;
-    amendedAt: string;
+    reasonCode?: string | null;
+    amendedAt: number;
     amendedByCaller: boolean;
     changes: InformationRequestAmendmentChangeDto[];
     undisclosedChangeCount: number;
@@ -2994,12 +2977,12 @@ export interface InformationRequestLineageDto
     lineageKind: InformationRequestLineageKind;
     sourceRequestId: string;
     successorRequestId: string;
-    sourcePackageId?: string;
-    recurrenceId?: string;
-    recurrenceSequence?: number;
-    refreshRuleId?: string;
-    reasonCode?: string;
-    createdAt: string;
+    sourcePackageId?: string | null;
+    recurrenceId?: string | null;
+    recurrenceSequence?: number | null;
+    refreshRuleId?: string | null;
+    reasonCode?: string | null;
+    createdAt: number;
 }
 
 export enum InformationRequestRecurrenceUnit
@@ -3016,9 +2999,9 @@ export interface InformationRequestRecurrenceDto
     originRequestId: string;
     intervalUnit: InformationRequestRecurrenceUnit;
     intervalCount: number;
-    firstDueAt: string;
-    maximumOccurrences?: number;
-    createdAt: string;
+    firstDueAt: number;
+    maximumOccurrences?: number | null;
+    createdAt: number;
 }
 
 export interface DefineInformationRequestRecurrenceRequest
@@ -3032,21 +3015,41 @@ export interface DefineInformationRequestRecurrenceRequest
 export interface InformationRequestLineageViewDto
 {
     informationRequestId: string;
-    source?: InformationRequestLineageDto;
+    source?: InformationRequestLineageDto | null;
     successors: InformationRequestLineageDto[];
-    recurrence?: InformationRequestRecurrenceDto;
-    nextOccurrenceDueAt?: string;
+    recurrence?: InformationRequestRecurrenceDto | null;
+    series?: InformationRequestRecurrenceDto | null;
+    nextOccurrenceDueAt?: number | null;
+    everyOccurrenceCreated?: boolean;
+    nextOccurrenceCreatable?: boolean;
+    refreshRules?: InformationRequestRefreshRuleDto[];
+}
+
+export interface InformationRequestRefreshRuleDto {
+    id: string;
+    informationRequestId: string;
+    requirementKey: string;
+    leadDays: number;
+    createdAt: number;
+    refreshDueOn?: string | null;
+    refreshDue?: boolean;
+    refreshed?: boolean;
+}
+
+export interface DefineInformationRequestRefreshRuleRequest {
+    requirementKey: string;
+    leadDays: number;
 }
 
 export interface InformationRequestCarryForwardDto
 {
     requirementId: string;
     decision: InformationRequestCarryForwardDecision;
-    reasonCode?: string;
+    reasonCode?: string | null;
     sourcePackageId: string;
-    priorDisposition?: InformationRequestResponseDisposition;
-    priorNarrative?: string;
-    priorFieldValue?: unknown;
+    priorDisposition?: InformationRequestResponseDisposition | null;
+    priorNarrative?: string | null;
+    priorFieldValue?: unknown | null;
 }
 
 export interface InformationRequestSuccessorResultDto
@@ -3096,17 +3099,18 @@ export interface InformationRequestOperationsRowDto
     templateVersionId: string;
     state: InformationRequestState;
     gatesExchangeClosure: boolean;
-    createdAt: string;
-    issuedAt?: string;
-    firstViewedAt?: string;
-    startedAt?: string;
+    createdAt: number;
+    issuedAt?: number | null;
+    firstViewedAt?: number | null;
+    startedAt?: number | null;
     ageSeconds: number;
     slaStatus: InformationRequestSlaStatus;
-    nearestDueAt?: string;
+    nearestDueAt?: number | null;
     clockCount: number;
     reminderCount: number;
     noticeCounts: Partial<Record<InformationRequestNoticeDeliveryState, number>>;
     exceptionCounts: Partial<Record<InformationRequestOperationsException, number>>;
+    executionStanding: InformationRequestExecutionStandingDto;
 }
 
 export interface InformationRequestOperationsPageDto
@@ -3119,9 +3123,12 @@ export interface InformationRequestOperationsPageDto
 
 export interface InformationRequestOperationsFilter
 {
+    states: InformationRequestState[];
+    exchangeId?: string;
     search?: string;
     assigneeId?: string;
     slaStatus?: InformationRequestSlaStatus;
+    exceptions: InformationRequestOperationsException[];
     exceptionsOnly: boolean;
     limit: number;
     offset: number;
@@ -3152,10 +3159,10 @@ export interface InformationRequestClockEventDto
     eventNumber: number;
     eventKind: InformationRequestClockEventKind;
     dueCycle: number;
-    pointOrdinal?: number;
-    reasonCode?: string;
-    dueAt?: string;
-    occurredAt: string;
+    pointOrdinal?: number | null;
+    reasonCode?: string | null;
+    dueAt?: number | null;
+    occurredAt: number;
 }
 
 export interface InformationRequestClockDto
@@ -3166,13 +3173,13 @@ export interface InformationRequestClockDto
     policyVersionNumber: number;
     clockType: "CALENDAR" | "BUSINESS";
     urgency: "STANDARD" | "URGENT";
-    receivedAt: string;
+    receivedAt: number;
     state: InformationRequestClockState;
-    dueAt: string;
+    dueAt: number;
     dueCycle: number;
-    remainingSeconds?: number;
-    overdueAt?: string;
-    stoppedAt?: string;
+    remainingSeconds?: number | null;
+    overdueAt?: number | null;
+    stoppedAt?: number | null;
     clockETag: string;
     events: InformationRequestClockEventDto[];
 }
@@ -3181,8 +3188,8 @@ export interface InformationRequestNoticeAttemptDto
 {
     attemptNumber: number;
     outcome: "DELIVERED" | "FAILED" | "SKIPPED";
-    failureCode?: string;
-    attemptedAt: string;
+    failureCode?: string | null;
+    attemptedAt: number;
 }
 
 export interface InformationRequestNoticeSequenceAllocationDto
@@ -3197,18 +3204,19 @@ export interface InformationRequestNoticeHistoryDto
     noticeKind: InformationRequestNoticeKind;
     partyId: string;
     deliveryState: InformationRequestNoticeDeliveryState;
-    owedAt: string;
-    noticeId?: string;
-    channel?: "EMAIL";
-    maskedEndpoint?: string;
-    endpointState?: "RESOLVED" | "MISSING";
-    renderedSubject?: string;
-    renderedBody?: string;
-    renderedContentHash?: string;
-    sourceKind?: "COMMUNICATION" | "PLATFORM_DEFAULT";
-    sourceCommunicationId?: string;
-    sourceContentHash?: string;
-    renderedAt?: string;
+    owedAt: number;
+    noticeId?: string | null;
+    channel?: "EMAIL" | null;
+    maskedEndpoint?: string | null;
+    recipientWithheld?: boolean;
+    endpointState?: "RESOLVED" | "MISSING" | null;
+    renderedSubject?: string | null;
+    renderedBody?: string | null;
+    renderedContentHash?: string | null;
+    sourceKind?: "COMMUNICATION" | "PLATFORM_DEFAULT" | null;
+    sourceCommunicationId?: string | null;
+    sourceContentHash?: string | null;
+    renderedAt?: number | null;
     attempts: InformationRequestNoticeAttemptDto[];
     sequenceAllocations: InformationRequestNoticeSequenceAllocationDto[];
 }
@@ -3220,15 +3228,17 @@ export interface InformationRequestAuditEventDto
     eventClass: string;
     category: string;
     outcome: string;
-    occurredAt: string;
-    recordedAt: string;
-    actorKind?: string;
-    actorId?: string;
-    requestId?: string;
-    businessTransactionId?: string;
+    occurredAt: number;
+    recordedAt: number;
+    actorKind?: string | null;
+    actorId?: string | null;
+    requestId?: string | null;
+    targetType?: string | null;
+    targetId?: string | null;
+    businessTransactionId?: string | null;
     sealed: boolean;
-    eventHash?: string;
-    streamSequence?: number;
+    eventHash?: string | null;
+    streamSequence?: number | null;
     payload: Record<string, string>;
     withheldKeyCount: number;
 }
@@ -3253,7 +3263,7 @@ export interface InformationRequestReconciliationStrayDto
 {
     eventId: string;
     eventTypeKey: string;
-    businessTransactionId?: string;
+    businessTransactionId?: string | null;
 }
 
 export interface InformationRequestAuditReconciliationDto
@@ -3271,21 +3281,23 @@ export interface InformationRequestRecordExportDto
 {
     id: string;
     exportKind: "REQUEST_RECORD" | "SUBJECT_RECORD";
-    requestId?: string;
-    subjectIdentityRefId?: string;
+    requestId?: string | null;
+    subjectIdentityRefId?: string | null;
     sourceRequestIds: string[];
     schemaVersion: number;
     contentHashAlgorithm: string;
     contentHash: string;
     contentLength: number;
     storageLocation: string;
-    transferRegion?: string;
+    transferRegion?: string | null;
     transferDecision: "NOT_REQUESTED" | "PERMITTED";
     requestedByPrincipalKind: string;
     requestedByPrincipalId: string;
-    requestedAt: string;
+    requestedAt: number;
     verified: boolean;
-    content?: unknown;
+    containsConfidentialContent: boolean;
+    withheldRelatedRequestCount: number;
+    content?: unknown | null;
 }
 
 export enum RecordPreservationScope
@@ -3308,29 +3320,37 @@ export interface RecordPreservationHoldEventDto
     reason: string;
     principalKind: string;
     principalId: string;
-    occurredAt: string;
+    occurredAt: number;
+}
+
+export interface RecordPreservationHoldSummaryDto {
+    resourceType: string;
+    scope: RecordPreservationScope;
+    status: RecordPreservationHoldStatus;
+    effectiveFrom: number;
 }
 
 export interface RecordPreservationHoldDto
 {
     id: string;
     ownerKind: "PLATFORM" | "ORGANIZATION" | "USER";
-    ownerId?: string;
+    ownerId?: string | null;
     resourceType: string;
     resourceId: string;
     scope: RecordPreservationScope;
     status: RecordPreservationHoldStatus;
     reason: string;
-    caseReference?: string;
-    effectiveFrom: string;
+    caseReference?: string | null;
+    effectiveFrom: number;
     placedByPrincipalKind: string;
     placedByPrincipalId: string;
-    placedAt: string;
-    releasedByPrincipalKind?: string;
-    releasedByPrincipalId?: string;
-    releasedAt?: string;
-    releaseReason?: string;
+    placedAt: number;
+    releasedByPrincipalKind?: string | null;
+    releasedByPrincipalId?: string | null;
+    releasedAt?: number | null;
+    releaseReason?: string | null;
     holdRevision: number;
+    holdETag: string;
     events: RecordPreservationHoldEventDto[];
 }
 
@@ -3348,17 +3368,18 @@ export interface RecordRetentionScheduleVersionDto
     id: string;
     versionNumber: number;
     minimumRetentionDays: number;
-    disposalAfterDays?: number;
+    disposalAfterDays?: number | null;
     recordedByPrincipalKind: string;
     recordedByPrincipalId: string;
-    recordedAt: string;
+    recordedAt: number;
 }
 
 export interface RecordRetentionScheduleDto
 {
     resourceType: string;
-    current?: RecordRetentionScheduleVersionDto;
+    current?: RecordRetentionScheduleVersionDto | null;
     versions: RecordRetentionScheduleVersionDto[];
+    scheduleETag: string;
 }
 
 export interface PublishRecordRetentionScheduleRequest
@@ -3379,9 +3400,9 @@ export interface RecordDisposalObjectDto
     documentId: string;
     documentVersionId: string;
     retained: boolean;
-    retainedReason?: string;
-    deletionOutcome?: "DELETED" | "ABSENT";
-    deletedAt?: string;
+    retainedReason?: string | null;
+    deletionOutcome?: "DELETED" | "ABSENT" | null;
+    deletedAt?: number | null;
 }
 
 export interface RecordDisposalTombstoneDto
@@ -3389,7 +3410,7 @@ export interface RecordDisposalTombstoneDto
     removedRowCounts: Record<string, number>;
     deletedObjectCount: number;
     retainedObjectCount: number;
-    disposedAt: string;
+    disposedAt: number;
 }
 
 export interface RecordDisposalDto
@@ -3399,26 +3420,27 @@ export interface RecordDisposalDto
     resourceId: string;
     basis: "RETENTION_SCHEDULE" | "PRIVACY_DELETION";
     state: RecordDisposalState;
-    claimedAt: string;
-    objectsDeletedAt?: string;
-    finalizedAt?: string;
+    claimedAt: number;
+    objectsDeletedAt?: number | null;
+    finalizedAt?: number | null;
     attemptCount: number;
-    lastErrorCode?: string;
+    lastErrorCode?: string | null;
     objects: RecordDisposalObjectDto[];
-    tombstone?: RecordDisposalTombstoneDto;
+    tombstone?: RecordDisposalTombstoneDto | null;
 }
 
 export interface InformationRequestDisposalStandingDto
 {
     requestId: string;
     eligible: boolean;
-    reasonCode?: string;
-    detail?: string;
-    eligibleFrom?: string;
-    schedule?: RecordRetentionScheduleVersionDto;
+    reasonCode?: string | null;
+    detail?: string | null;
+    eligibleFrom?: number | null;
+    schedule?: RecordRetentionScheduleVersionDto | null;
     holds: RecordPreservationHoldDto[];
+    withheldHolds: RecordPreservationHoldSummaryDto[];
     retainedObjectCount: number;
-    disposal?: RecordDisposalDto;
+    disposal?: RecordDisposalDto | null;
 }
 
 export interface InformationRequestExchangeCompletionRefusalDto
@@ -3454,7 +3476,7 @@ export interface InformationRequestTemplateReviewStageDto
     stageKey: string;
     title: string;
     aggregation: InformationRequestReviewAggregation;
-    quorumCount?: number;
+    quorumCount?: number | null;
     minimumReviewerCount: number;
     tieResolution: InformationRequestReviewTieResolution;
     overridePermitted: boolean;
@@ -3569,14 +3591,14 @@ export interface InformationRequestReviewSummaryDto
     informationRequestId: string;
     packageId: string;
     packageNumber: number;
-    stageKey?: string;
+    stageKey?: string | null;
     reviewNumber: number;
     kind: InformationRequestReviewKind;
-    priorReviewId?: string;
+    priorReviewId?: string | null;
     state: InformationRequestReviewState;
-    openingReason?: string;
-    openedAt: string;
-    settledAt?: string;
+    openingReason?: string | null;
+    openedAt: number;
+    settledAt?: number | null;
     reviewETag: string;
 }
 
@@ -3584,7 +3606,7 @@ export interface InformationRequestReviewItemStandingDto
 {
     submissionItemId: string;
     standing: InformationRequestReviewItemStanding;
-    outcome?: InformationRequestReviewOutcome;
+    outcome?: InformationRequestReviewOutcome | null;
 }
 
 export interface InformationRequestReviewStageStandingDto
@@ -3593,7 +3615,7 @@ export interface InformationRequestReviewStageStandingDto
     title: string;
     position: number;
     aggregation: InformationRequestReviewAggregation;
-    quorumCount?: number;
+    quorumCount?: number | null;
     minimumReviewerCount: number;
     tieResolution: InformationRequestReviewTieResolution;
     overridePermitted: boolean;
@@ -3608,14 +3630,16 @@ export interface InformationRequestReviewItemDto
     submissionItemId: string;
     requirementId: string;
     requirementKey: string;
+    prompt?: string | null;
     requirementType: InformationRequestRequirementType;
     occurrencePath: string;
     reviewed: boolean;
-    finalOutcome?: InformationRequestReviewOutcome;
+    finalOutcome?: InformationRequestReviewOutcome | null;
     contentVisible: boolean;
-    disposition?: InformationRequestResponseDisposition;
-    narrative?: string;
-    fieldValue?: unknown;
+    waiverPermitted: boolean;
+    disposition?: InformationRequestResponseDisposition | null;
+    narrative?: string | null;
+    fieldValue?: unknown | null;
     evidence: InformationRequestSubmissionEvidenceDto[];
 }
 
@@ -3625,13 +3649,20 @@ export interface InformationRequestReviewAssignmentDto
     stageKey: string;
     reviewerPartyId: string;
     state: InformationRequestReviewAssignmentState;
-    dueAt?: string;
-    delegatedFromAssignmentId?: string;
-    assignedAt: string;
-    changeReasonCode?: string;
-    changedAt?: string;
-    decidedAt?: string;
+    dueAt?: number | null;
+    delegatedFromAssignmentId?: string | null;
+    assignedAt: number;
+    changeReasonCode?: string | null;
+    changeNarrative?: string | null;
+    changedAt?: number | null;
+    decidedAt?: number | null;
     callerIsReviewer: boolean;
+    delegationCandidates: InformationRequestReviewDelegationCandidateDto[];
+}
+
+export interface InformationRequestReviewDelegationCandidateDto {
+    partyId: string;
+    label: string;
 }
 
 export interface InformationRequestReviewDecisionDto
@@ -3640,11 +3671,11 @@ export interface InformationRequestReviewDecisionDto
     stageKey: string;
     submissionItemId: string;
     kind: InformationRequestReviewDecisionKind;
-    assignmentId?: string;
-    carriedFromDecisionId?: string;
+    assignmentId?: string | null;
+    carriedFromDecisionId?: string | null;
     outcome: InformationRequestReviewOutcome;
-    narrative?: string;
-    decidedAt: string;
+    narrative?: string | null;
+    decidedAt: number;
     decidedByCaller: boolean;
 }
 
@@ -3653,16 +3684,18 @@ export interface InformationRequestReviewFindingDto
     id: string;
     submissionItemId: string;
     requirementId: string;
-    evidenceVersionId?: string;
+    evidenceVersionId?: string | null;
     reasonCode: string;
     narrative: string;
     severity: InformationRequestFindingSeverity;
     visibility: InformationRequestReviewVisibility;
     correctionScope: InformationRequestFindingCorrectionScope;
-    retestsFindingId?: string;
-    retestResult?: InformationRequestRetestResult;
-    recordedAt: string;
+    retestsFindingId?: string | null;
+    retestResult?: InformationRequestRetestResult | null;
+    recordedAt: number;
     recordedByCaller: boolean;
+    reviewId: string;
+    assignmentId?: string | null;
 }
 
 export interface InformationRequestReviewCommentDto
@@ -3670,12 +3703,12 @@ export interface InformationRequestReviewCommentDto
     id: string;
     submissionItemId: string;
     requirementId: string;
-    findingId?: string;
-    replyToCommentId?: string;
+    findingId?: string | null;
+    replyToCommentId?: string | null;
     authorRole: InformationRequestReviewCommentRole;
     visibility: InformationRequestReviewVisibility;
     body: string;
-    createdAt: string;
+    createdAt: number;
     authoredByCaller: boolean;
 }
 
@@ -3685,12 +3718,19 @@ export interface InformationRequestCorrectionDto
     reviewId: string;
     packageId: string;
     state: InformationRequestCorrectionState;
-    openedAt: string;
-    closedAt?: string;
-    resubmittedPackageId?: string;
+    openedAt: number;
+    closedAt?: number | null;
+    resubmittedPackageId?: string | null;
     requirementIds: string[];
-    evidenceVersionIds: string[];
+    evidence: InformationRequestCorrectionEvidenceDto[];
     undisclosedItemCount: number;
+}
+
+export interface InformationRequestCorrectionEvidenceDto {
+    artifactId: string;
+    evidenceVersionId: string;
+    versionNumber: number;
+    declaredFileName?: string | null;
 }
 
 export interface InformationRequestRemediationDto
@@ -3698,20 +3738,21 @@ export interface InformationRequestRemediationDto
     findingId: string;
     remediatedByPackageId: string;
     remediatedByItemId: string;
-    recordedAt: string;
+    recordedAt: number;
 }
 
 export interface InformationRequestReviewWorksheetEntryDto
 {
     submissionItemId: string;
     outcome: InformationRequestReviewOutcome;
-    narrative?: string;
+    narrative?: string | null;
 }
 
 export interface InformationRequestReviewWorksheetDto
 {
     assignmentId: string;
     draftETag: string;
+    draftRevision: number;
     entries: InformationRequestReviewWorksheetEntryDto[];
 }
 
@@ -3725,10 +3766,22 @@ export interface InformationRequestReviewDto
     decisions: InformationRequestReviewDecisionDto[];
     findings: InformationRequestReviewFindingDto[];
     comments: InformationRequestReviewCommentDto[];
-    correction?: InformationRequestCorrectionDto;
+    correction?: InformationRequestCorrectionDto | null;
     remediations: InformationRequestRemediationDto[];
     worksheets: InformationRequestReviewWorksheetDto[];
     canManage: boolean;
+    earlierFindings: InformationRequestReviewFindingDto[];
+    earlierRemediations: InformationRequestRemediationDto[];
+    canReconsider: boolean;
+    canComment: boolean;
+    itemsAwaitingStepUp: number;
+    canRequestSupplement?: boolean;
+    requestETag?: string;
+}
+
+export interface InformationRequestReviewResultItemDto {
+    submissionItemId: string;
+    requirementId: string;
 }
 
 export interface InformationRequestRespondentReviewDto
@@ -3736,7 +3789,8 @@ export interface InformationRequestRespondentReviewDto
     review: InformationRequestReviewSummaryDto;
     findings: InformationRequestReviewFindingDto[];
     comments: InformationRequestReviewCommentDto[];
-    correction?: InformationRequestCorrectionDto;
+    items?: InformationRequestReviewResultItemDto[];
+    correction?: InformationRequestCorrectionDto | null;
     remediations: InformationRequestRemediationDto[];
     canAppeal: boolean;
     canComment: boolean;
@@ -3749,12 +3803,16 @@ export interface InformationRequestReviewQueueEntryDto
     informationRequestId: string;
     exchangeId: string;
     reviewStageKey: string;
+    requestTitle: string;
+    exchangeName?: string | null;
+    reviewStageTitle: string;
     packageNumber: number;
-    submissionStageKey?: string;
+    submissionStageKey?: string | null;
     reviewState: InformationRequestReviewState;
     itemCount: number;
-    dueAt?: string;
-    assignedAt: string;
+    dueAt?: number | null;
+    assignedAt: number;
+    executionStanding: InformationRequestExecutionStandingDto;
 }
 
 export interface InformationRequestReviewCommandResultDto
@@ -3762,17 +3820,17 @@ export interface InformationRequestReviewCommandResultDto
     requestState: InformationRequestState;
     responseETag: string;
     review: InformationRequestReviewSummaryDto;
-    assignmentId?: string;
-    draftETag?: string;
-    findingId?: string;
-    commentId?: string;
+    assignmentId?: string | null;
+    draftETag?: string | null;
+    findingId?: string | null;
+    commentId?: string | null;
 }
 
 export interface AssignInformationRequestReviewerRequest
 {
     stageKey: string;
     reviewerPartyId: string;
-    dueAt?: string;
+    dueAt?: number;
 }
 
 export interface ChangeInformationRequestReviewAssignmentRequest
@@ -3814,6 +3872,7 @@ export interface RecordInformationRequestReviewFindingRequest
     correctionScope?: InformationRequestFindingCorrectionScope;
     retestsFindingId?: string;
     retestResult?: InformationRequestRetestResult;
+    assignmentId?: string;
 }
 
 export interface RecordInformationRequestReviewCommentRequest
@@ -3876,20 +3935,20 @@ export interface InformationRequestAcceptedFactDto
     sourcePackageId: string;
     sourceSubmissionItemId: string;
     sourceRequirementId: string;
-    sourceReviewId?: string;
+    sourceReviewId?: string | null;
     visibility: InformationRequestAcceptedFactVisibility;
     confidence: InformationRequestAcceptedFactConfidence;
-    validFrom: string;
-    validTo?: string;
-    expiresAt?: string;
-    supersedesFactId?: string;
-    supersededByFactId?: string;
+    validFrom: number;
+    validTo?: number | null;
+    expiresAt?: number | null;
+    supersedesFactId?: string | null;
+    supersededByFactId?: string | null;
     conflictState: InformationRequestAcceptedFactConflictState;
-    conflictingFactId?: string;
-    promotedAt: string;
+    conflictingFactId?: string | null;
+    promotedAt: number;
     revoked: boolean;
-    revokedAt?: string;
-    revocationReasonCode?: string;
+    revokedAt?: number | null;
+    revocationReasonCode?: string | null;
     freshness: InformationRequestAcceptedFactFreshness;
 }
 
@@ -3909,9 +3968,9 @@ export interface InformationRequestReusableFactDto
     valueType: FieldValueType;
     value: unknown;
     confidence: InformationRequestAcceptedFactConfidence;
-    validFrom: string;
-    validTo?: string;
-    expiresAt?: string;
+    validFrom: number;
+    validTo?: number | null;
+    expiresAt?: number | null;
     freshness: InformationRequestAcceptedFactFreshness;
 }
 
@@ -3919,6 +3978,7 @@ export interface RecertifyInformationRequestAcceptedFactRequest
 {
     requirementId: string;
     assented: boolean;
+    confirmedHiddenResponseClearRequirementIds?: string[];
 }
 
 export interface InformationRequestFactRecertificationDto
@@ -3930,7 +3990,7 @@ export interface InformationRequestFactRecertificationDto
     responseRevision: number;
     valueType: FieldValueType;
     value: unknown;
-    assentedAt: string;
+    assentedAt: number;
 }
 
 export interface InformationRequestBusinessDecisionDto
@@ -3939,13 +3999,13 @@ export interface InformationRequestBusinessDecisionDto
     informationRequestId: string;
     owningProcessKey: string;
     outcomeCode: string;
-    reasonReference?: string;
-    externalReference?: string;
+    reasonReference?: string | null;
+    externalReference?: string | null;
     kind: InformationRequestBusinessDecisionKind;
-    priorDecisionId?: string;
+    priorDecisionId?: string | null;
     decisionRevision: number;
-    decidedAt: string;
-    recordedAt: string;
+    decidedAt: number;
+    recordedAt: number;
     recordedByCaller: boolean;
 }
 
@@ -3957,9 +4017,9 @@ export interface PromoteInformationRequestAcceptedFactRequest
     policyBasisKey: string;
     evidenceVersionIds?: string[];
     visibility?: InformationRequestAcceptedFactVisibility;
-    validFrom?: string;
-    validTo?: string;
-    expiresAt?: string;
+    validFrom?: number;
+    validTo?: number;
+    expiresAt?: number;
     supersedesFactId?: string;
 }
 
@@ -3977,11 +4037,8 @@ export interface RecordInformationRequestBusinessDecisionRequest
     externalReference?: string;
     kind?: InformationRequestBusinessDecisionKind;
     priorDecisionId?: string;
-    decidedAt: string;
+    decidedAt: number;
 }
-
-// ── Audit projection, exports, and integrity ──────────────────────────────────
-// Mirrors com.docuhyphen.app.api.model.dto.AuditProjectionDtos / AuditExportDtos exactly.
 
 export interface AuditEventCursorDto
 {
@@ -4086,6 +4143,7 @@ export interface AuditOrganizationIntegrityDto
 
 export enum InformationRequestShareRoleKey
 {
+    RECORD_OWNER = "RECORD_OWNER",
     SUBJECT = "SUBJECT",
     CONTRIBUTOR = "CONTRIBUTOR",
     PREPARER = "PREPARER",
@@ -4120,12 +4178,13 @@ export enum InformationRequestStandingReason
     SUBSCRIPTION_CANCELED = "SUBSCRIPTION_CANCELED",
     SUBSCRIPTION_SUSPENDED = "SUBSCRIPTION_SUSPENDED",
     EXECUTION_GRANT_REVOKED = "EXECUTION_GRANT_REVOKED",
+    OPEN_REQUEST_LIMIT_REACHED = "OPEN_REQUEST_LIMIT_REACHED",
 }
 
 export interface InformationRequestExecutionStandingDto
 {
     kind: InformationRequestExecutionStandingKind;
-    reason?: InformationRequestStandingReason;
+    reason?: InformationRequestStandingReason | null;
 }
 
 export interface InformationRequestCapabilitiesDto
@@ -4136,12 +4195,23 @@ export interface InformationRequestCapabilitiesDto
     enforcementMode: SubscriptionEnforcementMode;
     featureIncluded: boolean;
     newWorkAvailable: boolean;
-    newWorkUnavailableReason?: InformationRequestStandingReason;
+    newWorkUnavailableReason?: InformationRequestStandingReason | null;
     operationallySuspended: boolean;
     typedAnswersAvailable: boolean;
     personalTemplatesAvailable: boolean;
     assignedWork: boolean;
     holdsRequests: boolean;
+    quotas: InformationRequestPlanQuotasDto;
+}
+
+export interface InformationRequestPlanQuotasDto {
+    maxOpenRequests?: number | null;
+    openRequests: number;
+    maxActingPartiesPerRequest?: number | null;
+    maxEvidenceFilesPerRequest?: number | null;
+    maxEvidenceBytesPerRequest?: number | null;
+    maxCommittedEvidenceBytes?: number | null;
+    committedEvidenceBytes: number;
 }
 
 export interface InformationRequestSummaryPermissionsDto
@@ -4157,8 +4227,8 @@ export interface InformationRequestSummaryDto
     exchangeId: string;
     title: string;
     state: InformationRequestState;
-    issuedAt?: string;
-    nextDueAt?: string;
+    issuedAt?: number | null;
+    nextDueAt?: number | null;
     completedCount: number;
     requiredCount: number;
     callerRoles: InformationRequestShareRoleKey[];
@@ -4167,11 +4237,23 @@ export interface InformationRequestSummaryDto
     executionStanding: InformationRequestExecutionStandingDto;
 }
 
+export interface InformationRequestAssignedWorkDto {
+    request: InformationRequestSummaryDto;
+    exchangeName?: string | null;
+}
+
+export interface InformationRequestOwnerDto {
+    ownerType: InformationRequestOwnerType;
+    ownerOrganizationId?: string | null;
+    ownerUserId?: string | null;
+}
+
 export interface InformationRequestExchangeListingDto
 {
     requests: InformationRequestSummaryDto[];
     canCreate: boolean;
-    creationUnavailableReason?: InformationRequestStandingReason;
+    creationUnavailableReason?: InformationRequestStandingReason | null;
+    creationOwner?: InformationRequestOwnerDto | null;
 }
 
 export interface CreateInformationRequestRequest
@@ -4185,6 +4267,10 @@ export interface CreateInformationRequestRequest
     gatesExchangeClosure?: boolean;
 }
 
+export interface ChangeInformationRequestCompletionGateRequest {
+    gatesExchangeClosure: boolean;
+}
+
 export type InformationRequestPartyPrincipalKind = "USER" | "PARTICIPANT" | "PRINCIPAL_GROUP";
 
 export interface InformationRequestPartyDto
@@ -4193,22 +4279,41 @@ export interface InformationRequestPartyDto
     informationRequestId: string;
     roleKey: InformationRequestShareRoleKey;
     active: boolean;
-    principalId?: string;
-    principalKind?: InformationRequestPartyPrincipalKind;
-    subjectIdentityRefId?: string;
-    exchangeRecipientId?: string;
-    assignedAt: string;
-    revokedAt?: string;
+    principalId?: string | null;
+    principalKind?: InformationRequestPartyPrincipalKind | null;
+    subjectIdentityRefId?: string | null;
+    exchangeRecipientId?: string | null;
+    assignedAt: number;
+    revokedAt?: number | null;
     partyRevision: number;
     partyETag: string;
-    label?: string;
+    label?: string | null;
     trustSuspended?: boolean;
+    accountLinked?: boolean;
+    processingRestricted?: boolean;
 }
 
 export interface InformationRequestPartyListingDto
 {
     parties: InformationRequestPartyDto[];
     partiesETag: string;
+}
+
+export interface InformationRequestRecipientPreviewDto {
+    partyId: string;
+    roleKey: InformationRequestShareRoleKey;
+    templateVersion: InformationRequestTemplateVersionDto;
+}
+
+export interface InformationRequestTrustedRecipientCandidateDto {
+    exchangeRecipientId: string;
+    selectionType: TrustedParticipantSelectionType;
+    principalKind: InformationRequestPartyPrincipalKind;
+    principalId: string;
+    label: string;
+    targetOrganizationId?: string | null;
+    targetOrganizationName?: string | null;
+    trustSuspended: boolean;
 }
 
 export interface AssignInformationRequestPartyRequest
@@ -4250,7 +4355,7 @@ export interface InformationRequestSubjectDto
     id: string;
     subjectKind: InformationRequestSubjectKind;
     references: InformationRequestSubjectReferenceDto[];
-    createdAt: string;
+    createdAt: number;
 }
 
 export interface AssignInformationRequestSubjectRequest
@@ -4268,29 +4373,46 @@ export enum InformationRequestAccessLinkStatus
 
 export interface InformationRequestAccessLinkDto
 {
+    partyETag?: string | null;
     shareLinkId: string;
     status: InformationRequestAccessLinkStatus;
-    expiresAt?: string;
-    maxUses?: number;
+    expiresAt?: number | null;
+    maxUses?: number | null;
     rotationCount: number;
-    partyId?: string;
-    createdAt?: string;
+    partyId?: string | null;
+    createdAt?: number | null;
+}
+
+export interface InformationRequestDocumentPlaceholderDto {
+    id: string;
+    title: string;
+    required: boolean;
+    restrictType: boolean;
+    restrictedType?: string | null;
+    libraryDocumentId?: string | null;
+    libraryTitle?: string | null;
+    libraryDescription?: string | null;
+    libraryDocumentType?: string | null;
+    libraryFileName?: string | null;
+    libraryFileSizeBytes?: number | null;
+    displayOrder: number;
 }
 
 export interface InformationRequestAccessLinkIssuedDto
 {
+    partyETag?: string | null;
     shareLinkId: string;
     accessToken: string;
     status: InformationRequestAccessLinkStatus;
-    expiresAt?: string;
-    maxUses?: number;
+    expiresAt?: number | null;
+    maxUses?: number | null;
     rotationCount: number;
 }
 
 export interface IssueInformationRequestAccessLinkRequest
 {
     partyId: string;
-    expiresAt?: string;
+    expiresAt?: number;
     maxUses?: number;
 }
 
@@ -4299,14 +4421,14 @@ export interface InformationRequestOperationsAssigneeDto
     roleKey: InformationRequestShareRoleKey;
     principalKind: InformationRequestPartyPrincipalKind;
     principalId: string;
-    label?: string;
+    label?: string | null;
 }
 
 export interface InformationRequestReminderResultDto
 {
     requestId: string;
     noticeCount: number;
-    cooldownUntil?: string;
+    cooldownUntil?: string | null;
 }
 
 export enum InformationRequestClockType
@@ -4342,14 +4464,14 @@ export interface InformationRequestClockPolicyVersionDto
     businessTimezone: string;
     standardDurationMinutes: number;
     urgentDurationMinutes: number;
-    escalationAfterMinutes?: number;
+    escalationAfterMinutes?: number | null;
     dueEffect: InformationRequestClockDueEffect;
     workingPeriods: InformationRequestWorkingPeriodDto[];
     holidays: string[];
     reminderMinutesBeforeDue: number[];
-    reminderCommunicationId?: string;
-    overdueCommunicationId?: string;
-    publishedAt: string;
+    reminderCommunicationId?: string | null;
+    overdueCommunicationId?: string | null;
+    publishedAt: number;
 }
 
 export interface InformationRequestClockPolicyDto
@@ -4388,7 +4510,7 @@ export interface StartInformationRequestClockRequest
     clockKey: string;
     policyVersionId: string;
     urgency: InformationRequestClockUrgency;
-    receivedAt?: string;
+    receivedAt?: number;
 }
 
 export interface ChangeInformationRequestClockRequest
@@ -4420,14 +4542,15 @@ export enum InformationRequestPrivacyTargetOutcome
     RESTRICTED = "RESTRICTED",
     DISPOSAL_CLAIMED = "DISPOSAL_CLAIMED",
     REFUSED = "REFUSED",
+    SKIPPED_OPEN = "SKIPPED_OPEN",
 }
 
 export interface InformationRequestPrivacyTargetDto
 {
     requestId: string;
     outcome: InformationRequestPrivacyTargetOutcome;
-    reasonCode?: string;
-    disposalClaimId?: string;
+    reasonCode?: string | null;
+    disposalClaimId?: string | null;
 }
 
 export interface InformationRequestSubjectRestrictionDto
@@ -4435,9 +4558,9 @@ export interface InformationRequestSubjectRestrictionDto
     id: string;
     subjectIdentityRefId: string;
     privacyRequestId: string;
-    restrictedAt: string;
-    liftedAt?: string;
-    liftReasonCode?: string;
+    restrictedAt: number;
+    liftedAt?: number | null;
+    liftReasonCode?: string | null;
 }
 
 export interface InformationRequestItemCorrectionDto
@@ -4447,7 +4570,7 @@ export interface InformationRequestItemCorrectionDto
     packageId: string;
     submissionItemId: string;
     reasonCode: string;
-    recordedAt: string;
+    recordedAt: number;
 }
 
 export interface InformationRequestPrivacyRequestDto
@@ -4458,16 +4581,17 @@ export interface InformationRequestPrivacyRequestDto
     purposeKey: string;
     policyBasisKey: string;
     state: InformationRequestPrivacyRequestState;
-    refusalCode?: string;
-    refusalDetail?: string;
-    recordExportId?: string;
+    refusalCode?: string | null;
+    refusalDetail?: string | null;
+    recordExportId?: string | null;
+    recordExportAvailable?: boolean;
     recordedByPrincipalKind: string;
     recordedByPrincipalId: string;
-    recordedAt: string;
-    completedAt?: string;
+    recordedAt: number;
+    completedAt?: number | null;
     targets: InformationRequestPrivacyTargetDto[];
-    restriction?: InformationRequestSubjectRestrictionDto;
-    correction?: InformationRequestItemCorrectionDto;
+    restriction?: InformationRequestSubjectRestrictionDto | null;
+    correction?: InformationRequestItemCorrectionDto | null;
 }
 
 export interface InformationRequestItemCorrectionRequest

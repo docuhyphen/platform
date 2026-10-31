@@ -4,7 +4,7 @@ import {InformationRequestLineageViewDto} from "../../../models/models.tsx";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {informationRequestManagePath} from "../../shared/informationRequestWorkspacePaths.ts";
 import {lineageLabel} from "../follow-up-panel/followUpLabels.ts";
-import {useFollowUpPanelStyles} from "../follow-up-panel/FollowUpPanelStyles.tsx";
+import {useLineageListStyles} from "./LineageListStyles.tsx";
 
 interface Props
 {
@@ -13,16 +13,21 @@ interface Props
 
 const LineageList = ({lineage}: Props) =>
 {
-    const styles = useFollowUpPanelStyles();
+    const styles = useLineageListStyles();
     const navigate = useNavigate();
     const source = lineage.source;
 
     return (
         <>
+            {!source && lineage.successors.length === 0 && !lineage.recurrence && !lineage.refreshRules?.length && (
+                <Text id={"information-request-lineage-empty"}>No earlier or follow-up requests are recorded.</Text>
+            )}
             {source && (
                 <div id={"information-request-lineage-source"}
                      className={styles.row}>
-                    <Text>{`This request is a ${lineageLabel(source).toLowerCase()} of an earlier request.`}</Text>
+                    <Text id={"information-request-lineage-source-text"}>
+                        {`This request is a ${lineageLabel(source).toLowerCase()} of an earlier request.`}
+                    </Text>
                     <Button id={"information-request-lineage-source-open"}
                             size={"small"}
                             shape={"circular"}
@@ -41,8 +46,12 @@ const LineageList = ({lineage}: Props) =>
                             className={styles.row}>
                             <div id={`information-request-lineage-${successor.id}-text`}
                                  className={styles.text}>
-                                <Text weight={"semibold"}>{lineageLabel(successor)}</Text>
-                                <Text size={200}
+                                <Text id={`information-request-lineage-${successor.id}-label`}
+                                      weight={"semibold"}>
+                                    {lineageLabel(successor)}
+                                </Text>
+                                <Text id={`information-request-lineage-${successor.id}-created`}
+                                      size={200}
                                       className={styles.muted}>
                                     {`Created ${formatInformationRequestTime(successor.createdAt)}`}
                                 </Text>

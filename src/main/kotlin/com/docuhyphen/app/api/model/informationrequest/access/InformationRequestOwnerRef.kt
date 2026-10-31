@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.informationrequest.access
 
+import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
@@ -32,5 +33,13 @@ data class InformationRequestOwnerRef(
             InformationRequestOwnerType.USER ->
                 InformationRequestOwnerRef(request.ownerType, requireNotNull(request.ownerUserId))
         }
+
+        fun of(exchange: Exchange): InformationRequestOwnerRef =
+            exchange.ownerOrganizationId
+                ?.let { InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, it) }
+                ?: InformationRequestOwnerRef(
+                    InformationRequestOwnerType.USER,
+                    requireNotNull(exchange.ownerUserId) { "Exchange has no owner" },
+                )
     }
 }

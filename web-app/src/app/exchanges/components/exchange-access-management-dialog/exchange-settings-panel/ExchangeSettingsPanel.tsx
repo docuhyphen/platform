@@ -1,17 +1,9 @@
-import {
-    Button,
-    Divider,
-    Field,
-    Input,
-    MessageBar,
-    MessageBarBody,
-    Spinner,
-    Switch,
-    Text,
-} from "@fluentui/react-components";
+import {Button, Divider, Field, Input, Spinner, Switch, Text,} from "@fluentui/react-components";
 import {Dispatch, SetStateAction} from "react";
 import {MailEditIcon, RegenerateOTPIcon} from "../../../../components/IconBundles.tsx";
+import ExchangeSettingsStatusMessages from "./ExchangeSettingsStatusMessages.tsx";
 import {useExchangeSettingsPanelStyles} from "./ExchangeSettingsPanelStyles.tsx";
+import RecipientSignInRequestNotice from "./RecipientSignInRequestNotice.tsx";
 
 interface ExchangeSettingsPanelProps
 {
@@ -42,9 +34,11 @@ const ExchangeSettingsPanel = (props: ExchangeSettingsPanelProps) =>
             id={"access-mgmt-exchange-settings"}
             className={styles.root}
         >
-            <Divider alignContent={"start"}>Exchange options</Divider>
-            <div className={styles.requireSignIn}>
-                <Field>
+            <Divider id={"exchange-settings-panel-root-divider"}
+                     alignContent={"start"}>Exchange options</Divider>
+            <div id={"exchange-settings-panel-require-sign-in"}
+                 className={styles.requireSignIn}>
+                <Field id={"exchange-settings-panel-require-sign-in-field"}>
                     <Switch
                         id={"switch-require-recipient-sign-in"}
                         label={"Require recipient sign in"}
@@ -88,16 +82,20 @@ const ExchangeSettingsPanel = (props: ExchangeSettingsPanelProps) =>
                             || props.resendCooldownRemaining > 0}
                         onClick={props.onSendAccessCode}
                     >
-                        {props.sendingAccessCode && <Spinner size={"tiny"}/>}
+                        {props.sendingAccessCode && <Spinner id={"exchange-settings-panel-action-group-spinner"}
+                                                             size={"tiny"}/>}
                         {props.resendCooldownRemaining > 0
                             ? `Send access code (${props.resendCooldownRemaining}s)`
                             : "Send access code"}
                     </Button>
                 </div>
             </div>
-            <Text size={200}>{accessModeLabel}</Text>
+            <Text id={"exchange-settings-panel-access-mode-label-text"}
+                  size={200}>{accessModeLabel}</Text>
+            {props.requireRecipientSignIn && <RecipientSignInRequestNotice/>}
             {!props.requireRecipientSignIn && (
-                <Field label={"No-auth access expires after (days)"}>
+                <Field id={"exchange-settings-panel-no-auth-access-expires-field"}
+                       label={"No-auth access expires after (days)"}>
                     <Input
                         id={"input-noauth-access-validity-days"}
                         type={"number"}
@@ -109,36 +107,10 @@ const ExchangeSettingsPanel = (props: ExchangeSettingsPanelProps) =>
                     />
                 </Field>
             )}
-            {props.accessCodeStatus && (
-                <MessageBar intent={"success"}>
-                    <MessageBarBody>{props.accessCodeStatus}</MessageBarBody>
-                </MessageBar>
-            )}
-            {props.invitationStatus && (
-                <MessageBar
-                    id={"access-mgmt-invitation-status"}
-                    intent={"success"}
-                >
-                    <MessageBarBody id={"access-mgmt-invitation-status-body"}>
-                        {props.invitationStatus}
-                    </MessageBarBody>
-                </MessageBar>
-            )}
-            {props.accessCodeError && (
-                <MessageBar intent={"error"}>
-                    <MessageBarBody>{props.accessCodeError}</MessageBarBody>
-                </MessageBar>
-            )}
-            {props.invitationError && (
-                <MessageBar
-                    id={"access-mgmt-invitation-error"}
-                    intent={"error"}
-                >
-                    <MessageBarBody id={"access-mgmt-invitation-error-body"}>
-                        {props.invitationError}
-                    </MessageBarBody>
-                </MessageBar>
-            )}
+            <ExchangeSettingsStatusMessages accessCodeStatus={props.accessCodeStatus}
+                                            invitationStatus={props.invitationStatus}
+                                            accessCodeError={props.accessCodeError}
+                                            invitationError={props.invitationError}/>
         </section>
     );
 };

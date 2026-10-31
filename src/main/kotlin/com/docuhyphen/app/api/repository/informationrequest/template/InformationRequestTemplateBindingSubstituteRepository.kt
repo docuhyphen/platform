@@ -5,12 +5,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for [InformationRequestTemplateBindingSubstitute]. Alternatives are read from the
- * replaced end when rendering one requirement, from the substituting end when a requested Document
- * needs to report what it can stand in for, and for a whole version when projecting the
- * configuration.
- */
 @ApplicationScoped
 class InformationRequestTemplateBindingSubstituteRepository :
     BaseRepository<InformationRequestTemplateBindingSubstitute>(
@@ -30,21 +24,6 @@ class InformationRequestTemplateBindingSubstituteRepository :
             .setParameter("bindingId", templateBindingId)
             .resultList
 
-    fun findSubstitutedBy(
-        substituteTemplateBindingId: UUID,
-    ): List<InformationRequestTemplateBindingSubstitute> =
-        entityManager.createQuery(
-            """
-            SELECT alternative
-            FROM InformationRequestTemplateBindingSubstitute alternative
-            WHERE alternative.substituteTemplateBindingId = :substituteBindingId
-            ORDER BY alternative.templateBindingId
-            """.trimIndent(),
-            InformationRequestTemplateBindingSubstitute::class.java,
-        )
-            .setParameter("substituteBindingId", substituteTemplateBindingId)
-            .resultList
-
     fun findForVersion(templateVersionId: UUID): List<InformationRequestTemplateBindingSubstitute> =
         entityManager.createQuery(
             """
@@ -58,11 +37,6 @@ class InformationRequestTemplateBindingSubstituteRepository :
             .setParameter("versionId", templateVersionId)
             .resultList
 
-    /**
-     * Clears this part of one draft version's configuration so the whole document can be rewritten.
-     * The stored freeze rule refuses the same statement against a version that is no longer a
-     * draft, so a frozen version cannot lose configuration this way.
-     */
     fun deleteForVersion(templateVersionId: UUID): Int =
         entityManager.createQuery(
             """

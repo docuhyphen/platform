@@ -28,7 +28,7 @@ class InformationRequestReminderResource @Inject constructor(
                 ),
             )
             Response.status(Response.Status.CREATED)
-                .entity(results.map(InformationRequestReminderDtoMapper::toDto))
+                .entity(results.map(InformationRequestReminderDtoMapper::toDto).toTypedArray())
                 .build()
         }
         catch (exception: Exception)

@@ -1,10 +1,11 @@
 import {useState} from "react";
-import {Button} from "@fluentui/react-components";
+import {Button, Text} from "@fluentui/react-components";
 import {InformationRequestClockUrgency} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import TextField from "../../shared/text-field/TextField.tsx";
 import {ClockPolicyChoice} from "../useRequestClocks.ts";
 import {useClockStartFormStyles} from "./ClockStartFormStyles.tsx";
+import {isMachineKey, MACHINE_KEY_MESSAGE} from "../../shared/machineKey.ts";
 
 interface Props
 {
@@ -18,15 +19,13 @@ const URGENCIES = [
     {value: InformationRequestClockUrgency.URGENT, label: "Urgent"},
 ];
 
-const KEY_PATTERN = /^[a-z0-9._-]+$/;
-
 const ClockStartForm = ({choices, busy, onStart}: Props) =>
 {
     const styles = useClockStartFormStyles();
     const [versionId, setVersionId] = useState("");
     const [urgency, setUrgency] = useState(InformationRequestClockUrgency.STANDARD);
     const [clockKey, setClockKey] = useState("response");
-    const keyValid = KEY_PATTERN.test(clockKey.trim());
+    const keyValid = isMachineKey(clockKey) && clockKey.trim().length <= 64;
 
     return (
         <div id={"information-request-clock-start"}
@@ -52,8 +51,11 @@ const ClockStartForm = ({choices, busy, onStart}: Props) =>
                        value={clockKey}
                        disabled={busy}
                        maxLength={64}
-                       validationMessage={keyValid ? undefined : "Use lowercase letters, digits, dots, dashes, or underscores."}
+                       validationMessage={keyValid ? undefined : clockKey.trim().length > 64 ? "Use at most 64 characters." : MACHINE_KEY_MESSAGE}
                        onChange={setClockKey}/>
+            <Text id={"information-request-clock-start-time"}>
+                Time starts when you select Start clock. The saved clock shows its due time.
+            </Text>
             <Button id={"information-request-clock-start-submit"}
                     appearance={"secondary"}
                     shape={"circular"}

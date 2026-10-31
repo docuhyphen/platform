@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.service.auth.authz
 
-import com.docuhyphen.app.api.model.entity.OrganizationMembership
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroup
-import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.Grant
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -13,15 +13,13 @@ import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberReposi
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
 import jakarta.enterprise.inject.Instance
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertInstanceOf
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * A resource whose type declares that it carries its own authorization facts is refused when

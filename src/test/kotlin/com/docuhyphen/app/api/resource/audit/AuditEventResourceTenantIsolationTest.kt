@@ -1,30 +1,15 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.resource.audit.AuditExchangeDocumentEventsResource
-import com.docuhyphen.app.api.resource.audit.AuditExchangeEventsResource
-
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoMoreInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class AuditEventResourceTenantIsolationTest
 {

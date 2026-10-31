@@ -1,9 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.record
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.*
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
@@ -15,6 +12,7 @@ import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestExternalSourceRecordAssembler
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeQueryService
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestItemCorrectionService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.json.*
@@ -45,24 +43,34 @@ class InformationRequestRecordAssembler @Inject constructor(
     private val recertificationRepository: InformationRequestFactRecertificationRepository,
     private val recertificationEvidenceRepository: InformationRequestFactRecertificationEvidenceRepository,
     private val externalSources: InformationRequestExternalSourceRecordAssembler,
+    private val itemCorrections: InformationRequestItemCorrectionService,
 )
 {
-    fun assemble(request: InformationRequest): JsonObject = buildJsonObject {
-        put("schemaVersion", SCHEMA_VERSION)
-        put("request", requestOf(request))
-        put("history", historyOf(request.id))
-        put("parties", partiesOf(request.id))
-        put("packages", packagesOf(request.id))
-        put("attestations", attestationsOf(request.id))
-        put("withdrawals", withdrawalsOf(request.id))
-        put("reviews", reviewsOf(request.id))
-        put("corrections", correctionsOf(request.id))
-        put("acceptedFacts", factsOf(request.id))
-        put("recertifications", recertificationsOf(request.id))
-        put("businessDecisions", businessDecisionsOf(request.id))
-        put("externalSources", externalSources.assemble(request.id))
-        put("clocks", clocksOf(request.id))
-        put("notices", noticesOf(request.id))
+    fun assemble(request: InformationRequest, disclosesRequirement: (UUID) -> Boolean): JsonObject {
+        val decisions = mutableMapOf<UUID, Boolean>()
+        val discloses =
+            { requirementId: UUID -> decisions.getOrPut(requirementId) { disclosesRequirement(requirementId) } }
+        val packages =
+            packageRepository.findForRequest(request.id).sortedWith(compareBy({ it.submittedAt }, { it.packageNumber }))
+        val items = itemRepository.findForPackages(packages.map { it.id })
+        return buildJsonObject {
+            put("schemaVersion", SCHEMA_VERSION)
+            put("request", requestOf(request))
+            put("history", historyOf(request.id))
+            put("parties", partiesOf(request.id))
+            put("packages", packagesOf(packages, items, discloses))
+            put("attestations", attestationsOf(request.id, discloses))
+            put("withdrawals", withdrawalsOf(request.id))
+            put("reviews", reviewsOf(request.id, discloses))
+            put("corrections", correctionsOf(request.id))
+            put("itemCorrections", itemCorrectionsOf(request.id, items, discloses))
+            put("acceptedFacts", factsOf(request.id, discloses))
+            put("recertifications", recertificationsOf(request.id, discloses))
+            put("businessDecisions", businessDecisionsOf(request.id))
+            put("externalSources", externalSources.assemble(request.id, discloses))
+            put("clocks", clocksOf(request.id))
+            put("notices", noticesOf(request.id))
+        }
     }
 
     private fun requestOf(request: InformationRequest) = buildJsonObject {
@@ -73,7 +81,8 @@ class InformationRequestRecordAssembler @Inject constructor(
         put("ownerId", (request.ownerOrganizationId ?: request.ownerUserId)?.toString())
         put("state", request.state.name)
         put("gatesExchangeClosure", request.gatesExchangeClosure)
-        put("createdByAppUserId", request.createdByAppUserId?.toString())
+        put("createdByPrincipalKind", request.createdByPrincipalKind?.name)
+        put("createdByPrincipalId", request.createdByPrincipalId?.toString())
         put("createdAt", instant(request.createdAt))
         put("issuedAt", instant(request.issuedAt))
         put("firstViewedAt", instant(request.firstViewedAt))
@@ -116,6 +125,8 @@ class InformationRequestRecordAssembler @Inject constructor(
                     put("principalId", party.principalId?.toString())
                     put("subjectIdentityRefId", party.subjectIdentityRefId?.toString())
                     put("active", party.active)
+                    put("assignedByPrincipalKind", party.assignedByPrincipalKind?.name)
+                    put("assignedByPrincipalId", party.assignedByPrincipalId?.toString())
                     put("assignedAt", instant(party.assignedAt))
                     put("revokedAt", instant(party.revokedAt))
                 },
@@ -123,15 +134,18 @@ class InformationRequestRecordAssembler @Inject constructor(
         }
     }
 
-    private fun packagesOf(requestId: UUID): JsonArray
+    private fun packagesOf(
+        packages: List<InformationRequestSubmissionPackage>,
+        items: List<InformationRequestSubmissionItem>,
+        discloses: (UUID) -> Boolean,
+    ): JsonArray
     {
-        val packages =
-            packageRepository.findForRequest(requestId).sortedWith(compareBy({ it.submittedAt }, { it.packageNumber }))
-        val ids = packages.map { it.id }
-        val items = itemRepository.findForPackages(ids).groupBy { it.packageId }
-        val evidence = evidenceRepository.findForPackages(ids).groupBy { it.itemId }
+        val itemsByPackage = items.groupBy { it.packageId }
+        val evidence = evidenceRepository.findForPackages(packages.map { it.id }).groupBy { it.itemId }
         return buildJsonArray {
-            packages.forEach { submission -> add(packageOf(submission, items[submission.id].orEmpty(), evidence)) }
+            packages.forEach { submission ->
+                add(packageOf(submission, itemsByPackage[submission.id].orEmpty(), evidence, discloses))
+            }
         }
     }
 
@@ -139,6 +153,7 @@ class InformationRequestRecordAssembler @Inject constructor(
         submission: InformationRequestSubmissionPackage,
         items: List<InformationRequestSubmissionItem>,
         evidence: Map<UUID, List<InformationRequestSubmissionEvidence>>,
+        discloses: (UUID) -> Boolean,
     ) = buildJsonObject {
         put("packageId", submission.id.toString())
         put("packageNumber", submission.packageNumber)
@@ -156,7 +171,10 @@ class InformationRequestRecordAssembler @Inject constructor(
             "items",
             buildJsonArray {
                 items.sortedWith(compareBy({ it.requirementKey }, { it.occurrencePath }, { it.id })).forEach { item ->
-                    add(itemOf(item, evidence[item.id].orEmpty()))
+                    add(
+                        if (discloses(item.informationRequestRequirementId)) itemOf(item, evidence[item.id].orEmpty())
+                        else withheldItemOf(item),
+                    )
                 }
             },
         )
@@ -204,9 +222,25 @@ class InformationRequestRecordAssembler @Inject constructor(
             )
         }
 
-    private fun attestationsOf(requestId: UUID): JsonArray = buildJsonArray {
+    private fun withheldItemOf(item: InformationRequestSubmissionItem) = buildJsonObject {
+        put("itemId", item.id.toString())
+        put("requirementId", item.informationRequestRequirementId.toString())
+        put("redacted", true)
+    }
+
+    private fun attestationsOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray = buildJsonArray {
         attestationRepository.findForRequest(requestId).sortedWith(compareBy({ it.attestedAt }, { it.id }))
             .forEach { attestation ->
+                if (!discloses(attestation.attestationRequirementId)) {
+                    add(
+                        buildJsonObject {
+                            put("attestationId", attestation.id.toString())
+                            put("requirementId", attestation.attestationRequirementId.toString())
+                            put("redacted", true)
+                        },
+                    )
+                    return@forEach
+                }
                 add(
                     buildJsonObject {
                         put("attestationId", attestation.id.toString())
@@ -242,7 +276,7 @@ class InformationRequestRecordAssembler @Inject constructor(
             }
     }
 
-    private fun reviewsOf(requestId: UUID): JsonArray
+    private fun reviewsOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray
     {
         val reviews = reviewRepository.findForRequest(requestId).sortedBy { it.reviewNumber }
         val ids = reviews.map { it.id }
@@ -267,6 +301,16 @@ class InformationRequestRecordAssembler @Inject constructor(
                             "decisions",
                             buildJsonArray {
                                 decisions[review.id].orEmpty().sortedBy { it.sequenceNumber }.forEach { decision ->
+                                    if (!discloses(decision.requirementId)) {
+                                        add(
+                                            buildJsonObject {
+                                                put("submissionItemId", decision.submissionItemId.toString())
+                                                put("stageKey", decision.stageKey)
+                                                put("redacted", true)
+                                            },
+                                        )
+                                        return@forEach
+                                    }
                                     add(
                                         buildJsonObject {
                                             put("submissionItemId", decision.submissionItemId.toString())
@@ -285,6 +329,16 @@ class InformationRequestRecordAssembler @Inject constructor(
                             "findings",
                             buildJsonArray {
                                 findings[review.id].orEmpty().sortedBy { it.sequenceNumber }.forEach { finding ->
+                                    if (!discloses(finding.requirementId)) {
+                                        add(
+                                            buildJsonObject {
+                                                put("findingId", finding.id.toString())
+                                                put("submissionItemId", finding.submissionItemId.toString())
+                                                put("redacted", true)
+                                            },
+                                        )
+                                        return@forEach
+                                    }
                                     add(
                                         buildJsonObject {
                                             put("findingId", finding.id.toString())
@@ -336,12 +390,63 @@ class InformationRequestRecordAssembler @Inject constructor(
         }
     }
 
-    private fun factsOf(requestId: UUID): JsonArray
+    private fun itemCorrectionsOf(
+        requestId: UUID,
+        items: List<InformationRequestSubmissionItem>,
+        discloses: (UUID) -> Boolean,
+    ): JsonArray {
+        val requirements = items.associate { it.id to it.informationRequestRequirementId }
+        return buildJsonArray {
+            itemCorrections.correctionsFor(requestId).sortedWith(compareBy({ it.recordedAt }, { it.id }))
+                .forEach { correction ->
+                    val requirementId = requirements[correction.submissionItemId]
+                    add(
+                        if (requirementId != null && discloses(requirementId)) itemCorrectionOf(
+                            correction,
+                            requirementId
+                        )
+                        else withheldItemCorrectionOf(correction, requirementId),
+                    )
+                }
+        }
+    }
+
+    private fun itemCorrectionOf(correction: InformationRequestItemCorrection, requirementId: UUID) = buildJsonObject {
+        put("correctionId", correction.id.toString())
+        put("packageId", correction.packageId.toString())
+        put("submissionItemId", correction.submissionItemId.toString())
+        put("requirementId", requirementId.toString())
+        put("privacyRequestId", correction.privacyRequestId?.toString())
+        put("correctedValue", correction.correctedValueJson?.let(Json::parseToJsonElement) ?: JsonNull)
+        put("correctedNarrative", correction.correctedNarrative)
+        put("reasonCode", correction.reasonCode)
+        put("recordedByPrincipalKind", correction.recordedByPrincipalKind.name)
+        put("recordedByPrincipalId", correction.recordedByPrincipalId.toString())
+        put("recordedAt", instant(correction.recordedAt))
+    }
+
+    private fun withheldItemCorrectionOf(correction: InformationRequestItemCorrection, requirementId: UUID?) =
+        buildJsonObject {
+            put("correctionId", correction.id.toString())
+            put("submissionItemId", correction.submissionItemId.toString())
+            put("requirementId", requirementId?.toString())
+            put("redacted", true)
+        }
+
+    private fun factsOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray
     {
         val facts = factRepository.findFromRequest(requestId).sortedWith(compareBy({ it.promotedAt }, { it.id }))
         val revocations = revocationRepository.findForFacts(facts.map { it.id }).groupBy { it.factId }
         return buildJsonArray {
             facts.forEach { fact ->
+                if (!discloses(fact.sourceRequirementId)) {
+                    add(buildJsonObject {
+                        put("acceptedFactId", fact.id.toString())
+                        put("requirementId", fact.sourceRequirementId.toString())
+                        put("redacted", true)
+                    })
+                    return@forEach
+                }
                 add(
                     buildJsonObject {
                         put("acceptedFactId", fact.id.toString())
@@ -360,7 +465,7 @@ class InformationRequestRecordAssembler @Inject constructor(
         }
     }
 
-    private fun recertificationsOf(requestId: UUID): JsonArray
+    private fun recertificationsOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray
     {
         val recertifications =
             recertificationRepository.findForRequest(requestId).sortedWith(compareBy({ it.assentedAt }, { it.id }))
@@ -368,6 +473,14 @@ class InformationRequestRecordAssembler @Inject constructor(
             .groupBy { it.recertificationId }
         return buildJsonArray {
             recertifications.forEach { recertification ->
+                if (!discloses(recertification.informationRequestRequirementId)) {
+                    add(buildJsonObject {
+                        put("recertificationId", recertification.id.toString())
+                        put("requirementId", recertification.informationRequestRequirementId.toString())
+                        put("redacted", true)
+                    })
+                    return@forEach
+                }
                 add(
                     buildJsonObject {
                         put("recertificationId", recertification.id.toString())
@@ -468,7 +581,9 @@ class InformationRequestRecordAssembler @Inject constructor(
                     put("deliveryState", view.deliveryState.name)
                     put(
                         "maskedEndpoint",
-                        InformationRequestNoticeQueryService.maskedEndpoint(view.notice?.recipientEndpoint)
+                        InformationRequestNoticeQueryService.maskedEndpoint(
+                            view.notice?.recipientEndpoint?.takeUnless { view.recipientWithheld },
+                        ),
                     )
                     put("renderedContentHash", view.notice?.renderedContentHash)
                     put("renderedAt", instant(view.notice?.renderedAt))
@@ -495,6 +610,6 @@ class InformationRequestRecordAssembler @Inject constructor(
 
     companion object
     {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 4
     }
 }

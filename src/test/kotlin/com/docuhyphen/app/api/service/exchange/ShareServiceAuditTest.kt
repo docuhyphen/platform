@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
@@ -7,19 +8,12 @@ import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.*
-import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Verifies that [ShareService.revoke] calls
- * [AuditRecorder.record] exactly once with SHARE_REVOKE/EXCHANGE/HUMAN (when an acting app user
- * id is known), targeting the resource being shared rather than the Share row itself, and must
- * never let an [AuditRecorder] failure break the actual revoke.
- */
 class ShareServiceAuditTest
 {
     private val exchangeId = UUID.randomUUID()
@@ -47,8 +41,7 @@ class ShareServiceAuditTest
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = auditRecorder,
         resourceAuthorizationContextRegistry = contextRegistry,
-        exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
-        trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
+        groupShareExpansionPolicy = GroupShareExpansionPolicy.UNRESTRICTED,
         exchangeRecipientServiceProvider = mock<Provider<ExchangeRecipientService>>(),
     )
 
@@ -211,7 +204,6 @@ class ShareServiceAuditTest
 
         val service = service(auditRecorder, shareRepository)
 
-        // Must not throw despite the AuditRecorder failure.
         service.revoke(shareId, PrincipalRef.user(revokerId))
 
         verify(auditRecorder).record(any())

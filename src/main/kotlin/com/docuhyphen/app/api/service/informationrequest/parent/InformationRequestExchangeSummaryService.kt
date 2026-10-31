@@ -1,27 +1,20 @@
 package com.docuhyphen.app.api.service.informationrequest.parent
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestExchangeListing
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestSummary
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestTitleReader
-import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestCallerStandingService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCompletenessProgressService
-import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -29,13 +22,8 @@ import java.util.*
 @ApplicationScoped
 class InformationRequestExchangeSummaryService @Inject constructor(
     private val queryService: InformationRequestQueryService,
-    private val exchangeRepository: ExchangeRepository,
-    private val titleReader: InformationRequestTitleReader,
-    private val clockRepository: InformationRequestClockRepository,
-    private val progressService: InformationRequestCompletenessProgressService,
-    private val callerStanding: InformationRequestCallerStandingService,
-    private val reviewQueryService: InformationRequestReviewQueryService,
-    private val gate: InformationRequestMutationGate,
+    private val exchangeLookup: ExchangeLookupService,
+    private val summaries: InformationRequestSummaryAssembler,
     private val authorizationService: AuthorizationService,
     private val standingService: InformationRequestExecutionStandingService,
 )
@@ -43,38 +31,19 @@ class InformationRequestExchangeSummaryService @Inject constructor(
     fun listForExchange(exchangeId: UUID, access: RequestAccessContext): InformationRequestExchangeListing
     {
         val requests = queryService.listForExchange(exchangeId, access)
-        val exchange = exchangeRepository.findById(exchangeId)
+        val exchange = exchangeLookup.findExchange(exchangeId)
             ?: throw IllegalArgumentException("Exchange not found")
-        val titles = titleReader.titlesOf(requests)
-        val dueByRequest = clockRepository.findForRequests(requests.map { it.id })
-            .filter { it.state == InformationRequestClockState.RUNNING }
-            .groupBy { it.informationRequestId }
-            .mapValues { entry -> entry.value.minOf { it.dueAt.toInstant() } }
-        val reviewAwaited = if (requests.isEmpty()) emptySet()
-        else reviewQueryService.queue(access).map { it.request.id }.toSet()
         val owner = standingService.ownerStanding(exchange)
-        val creationPermitted = creationPermitted(exchange, access)
+        val creation = if (creationPermitted(exchange, access)) standingService.creationStanding(exchange) else null
         return InformationRequestExchangeListing(
-            requests = requests.map { request ->
-                val visibleItems = progressService.evaluate(request.id).items.filter { item ->
-                    item.requirementId?.let {
-                        gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, it)
-                    } ?: true
-                }
-                val caller = callerStanding.standingOf(request, access, reviewAwaited)
-                val execution = standingService.standingOf(request, owner)
-                InformationRequestSummary(
-                    request = request,
-                    title = titles.getValue(request.id),
-                    nextDueAt = dueByRequest[request.id],
-                    completedCount = visibleItems.count { it.contributesToNumerator },
-                    requiredCount = visibleItems.count { it.contributesToDenominator },
-                    standing = caller,
-                    executionStanding = if (caller.permissions.canManage) execution else execution.forParticipant(),
-                )
-            },
-            canCreate = creationPermitted && owner.newWorkAvailable,
-            creationUnavailableReason = owner.newWorkUnavailableReason.takeIf { creationPermitted },
+            requests = summaries.summarize(
+                requests,
+                access,
+                requests.associate { it.id to standingService.standingOf(it, owner) },
+            ),
+            canCreate = creation?.available == true,
+            creationUnavailableReason = creation?.unavailableReason,
+            creationOwner = creation?.let { InformationRequestOwnerRef.of(exchange) },
         )
     }
 

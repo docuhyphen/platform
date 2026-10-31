@@ -21,22 +21,34 @@ class InformationRequestNoticeWorker @Inject constructor(
 {
     fun dispatchPending(limit: Int = BATCH_SIZE): InformationRequestNoticeDispatchResult =
         dispatch(
-            QuarkusTransaction.requiringNew().call { intentRepository.findUnclaimedIds(limit) },
+            QuarkusTransaction.requiringNew().call {
+                intentRepository.findUnclaimedIds(limit, InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS)
+            },
         ) {
             QuarkusTransaction.requiringNew().call {
-                noticeRepository.findAwaitingDeliveryIds(InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS, limit)
+                noticeRepository.findAwaitingDeliveryIds(
+                    InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS,
+                    limit,
+                    now = clock.instant()
+                )
             }
         }
 
     fun dispatchForRequest(requestId: UUID): InformationRequestNoticeDispatchResult =
         dispatch(
-            QuarkusTransaction.requiringNew().call { intentRepository.findUnclaimedIdsForRequest(requestId) },
+            QuarkusTransaction.requiringNew().call {
+                intentRepository.findUnclaimedIdsForRequest(
+                    requestId,
+                    InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS
+                )
+            },
         ) {
             QuarkusTransaction.requiringNew().call {
                 noticeRepository.findAwaitingDeliveryIds(
                     InformationRequestNoticeStateReader.MAXIMUM_ATTEMPTS,
                     BATCH_SIZE,
-                    requestId
+                    requestId,
+                    clock.instant(),
                 )
             }
         }
@@ -48,11 +60,15 @@ class InformationRequestNoticeWorker @Inject constructor(
             runCatching { dispatcher.claimAndRender(intentId, clock.instant()) }
                 .onSuccess { if (it != null) rendered++ }
                 .onFailure {
-                    logger.warn(
-                        "Information Request notice intent {} could not be rendered; it will be retried",
-                        intentId,
-                        it
-                    )
+                    logger.warn("Information Request notice intent {} could not be rendered", intentId, it)
+                    runCatching { dispatcher.recordRenderFailure(intentId, clock.instant()) }
+                        .onFailure { recording ->
+                            logger.warn(
+                                "Information Request notice intent {} render failure could not be recorded",
+                                intentId,
+                                recording
+                            )
+                        }
                 }
         }
         var delivered = 0

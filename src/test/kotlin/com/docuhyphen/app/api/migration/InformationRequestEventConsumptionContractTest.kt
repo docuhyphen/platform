@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEventConsumptionContractTest
 {
@@ -32,9 +32,18 @@ class InformationRequestEventConsumptionContractTest
                 assertEquals(REQUEST_TRIGGERS.sorted(), requestTriggers.map { it[0] })
                 requestTriggers.forEach { row ->
                     assertEquals("1", row[1])
-                    val fields = Json.parseToJsonElement(row[2]!!).jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content }
-                    assertTrue(fields.containsAll(listOf("requestId", "exchangeId", "templateVersionId", "state")), "${row[0]}: $fields")
-                    assertTrue(fields.none { it.contains("email", ignoreCase = true) || it.contains("name", ignoreCase = true) })
+                    val fields =
+                        Json.parseToJsonElement(row[2]!!).jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content }
+                    assertTrue(
+                        fields.containsAll(listOf("requestId", "exchangeId", "templateVersionId", "state")),
+                        "${row[0]}: $fields"
+                    )
+                    assertTrue(fields.none {
+                        it.contains("email", ignoreCase = true) || it.contains(
+                            "name",
+                            ignoreCase = true
+                        )
+                    })
                 }
                 assertEquals(
                     7,
@@ -69,8 +78,16 @@ class InformationRequestEventConsumptionContractTest
                 val second = UUID.randomUUID()
                 insertEvent(connection, first, "information_request:${UUID.randomUUID()}")
                 insertEvent(connection, second, "information_request:${UUID.randomUUID()}")
-                val firstSequence = queryString(connection, "SELECT sequence_number FROM workflow_event_outbox WHERE event_id = ?", first)!!.toLong()
-                val secondSequence = queryString(connection, "SELECT sequence_number FROM workflow_event_outbox WHERE event_id = ?", second)!!.toLong()
+                val firstSequence = queryString(
+                    connection,
+                    "SELECT sequence_number FROM workflow_event_outbox WHERE event_id = ?",
+                    first
+                )!!.toLong()
+                val secondSequence = queryString(
+                    connection,
+                    "SELECT sequence_number FROM workflow_event_outbox WHERE event_id = ?",
+                    second
+                )!!.toLong()
                 assertTrue(secondSequence > firstSequence)
                 refusedBy(connection, "ck_workflow_event_outbox_ordering_key") {
                     insertEvent(connection, UUID.randomUUID(), " ")
@@ -109,7 +126,11 @@ class InformationRequestEventConsumptionContractTest
                     insertReceipt(connection, "workflow-trigger", UUID.randomUUID(), "RETRIED")
                 }
                 refusedBy(connection, "domain event consumption is append-only") {
-                    execute(connection, "UPDATE domain_event_consumption SET outcome = 'SKIPPED' WHERE event_id = ?", eventId)
+                    execute(
+                        connection,
+                        "UPDATE domain_event_consumption SET outcome = 'SKIPPED' WHERE event_id = ?",
+                        eventId
+                    )
                 }
             }
         }
@@ -123,7 +144,11 @@ class InformationRequestEventConsumptionContractTest
             postgres.createConnection("").use { connection ->
                 val runtime = SubmissionRuntimeSqlFixture(connection)
                 refusedBy(connection, "ck_information_request_terminal_dates") {
-                    execute(connection, "UPDATE information_request SET state = 'IN_PROGRESS' WHERE id = ?", runtime.requestId)
+                    execute(
+                        connection,
+                        "UPDATE information_request SET state = 'IN_PROGRESS' WHERE id = ?",
+                        runtime.requestId
+                    )
                 }
                 execute(
                     connection,
@@ -131,7 +156,11 @@ class InformationRequestEventConsumptionContractTest
                     runtime.requestId,
                 )
                 refusedBy(connection, "ck_information_request_terminal_dates") {
-                    execute(connection, "UPDATE information_request SET state = 'EXPIRED' WHERE id = ?", runtime.requestId)
+                    execute(
+                        connection,
+                        "UPDATE information_request SET state = 'EXPIRED' WHERE id = ?",
+                        runtime.requestId
+                    )
                 }
                 insertTransition(connection, runtime, 1, "RECORD_FIRST_VIEW")
                 refusedBy(connection, "ux_information_request_transition_first_view") {
@@ -141,7 +170,7 @@ class InformationRequestEventConsumptionContractTest
                 refusedBy(connection, "ux_information_request_transition_start") {
                     insertTransition(connection, runtime, 3, "START_RESPONSE")
                 }
-                PHASE_NINE_MUTATIONS.forEachIndexed { index, mutation ->
+                CLOCK_AND_GATE_MUTATIONS.forEachIndexed { index, mutation ->
                     insertTransition(connection, runtime, 3 + index, mutation)
                 }
                 execute(
@@ -160,9 +189,9 @@ class InformationRequestEventConsumptionContractTest
             connection,
             """
             INSERT INTO workflow_event_outbox
-                (id, event_id, idempotency_key, event_type, owner_kind, owner_id, organization_id, ordering_key,
+                (id, event_id, idempotency_key, event_type, owner_kind, owner_id, ordering_key,
                  envelope_json, status, attempt_count, created_at, next_attempt_at)
-            VALUES (?, ?, ?, 'information_request.request.issue', 'PLATFORM', NULL, NULL, ?, '{}', 'PENDING', 0, ?, ?)
+            VALUES (?, ?, ?, 'information_request.request.issue', 'PLATFORM', NULL, ?, '{}', 'PENDING', 0, ?, ?)
             """.trimIndent(),
             UUID.randomUUID(),
             eventId,
@@ -184,14 +213,19 @@ class InformationRequestEventConsumptionContractTest
         )
     }
 
-    private fun insertTransition(connection: Connection, runtime: SubmissionRuntimeSqlFixture, sequence: Int, mutation: String)
+    private fun insertTransition(
+        connection: Connection,
+        runtime: SubmissionRuntimeSqlFixture,
+        sequence: Int,
+        mutation: String
+    )
     {
         execute(
             connection,
             """
             INSERT INTO information_request_transition
-                (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at)
-            VALUES (?, ?, ?, 'IN_PROGRESS', 'IN_PROGRESS', ?, 'USER', ?, now())
+                (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id, occurred_at, idempotency_key)
+            VALUES (?, ?, ?, 'IN_PROGRESS', 'IN_PROGRESS', ?, 'USER', ?, now(), 'transition-$sequence')
             """.trimIndent(),
             UUID.randomUUID(),
             runtime.requestId,
@@ -229,7 +263,7 @@ class InformationRequestEventConsumptionContractTest
             "information_request.request.overdue",
         )
 
-        val PHASE_NINE_MUTATIONS = listOf(
+        val CLOCK_AND_GATE_MUTATIONS = listOf(
             "CHANGE_COMPLETION_GATE",
             "START_CLOCK",
             "PAUSE_CLOCK",

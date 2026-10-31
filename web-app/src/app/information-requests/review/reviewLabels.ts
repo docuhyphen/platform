@@ -1,21 +1,37 @@
 import {BadgeProps} from "@fluentui/react-components";
 import {
+    InformationRequestCorrectionEvidenceDto,
     InformationRequestCorrectionState,
     InformationRequestFindingCorrectionScope,
     InformationRequestFindingSeverity,
+    InformationRequestRetestResult,
     InformationRequestReviewAggregation,
+    InformationRequestReviewCommentDto,
+    InformationRequestReviewCommentRole,
+    InformationRequestReviewItemDto,
     InformationRequestReviewItemStanding,
     InformationRequestReviewKind,
     InformationRequestReviewOutcome,
-    InformationRequestReviewStageState,
     InformationRequestReviewStageStandingDto,
+    InformationRequestReviewStageState,
     InformationRequestReviewState,
     InformationRequestReviewVisibility,
 } from "../../models/models.tsx";
+import {humanizedKey} from "../submission/submissionLabels.ts";
 
 type BadgeColor = NonNullable<BadgeProps["color"]>;
 
-export const reviewStatePresentation: Record<InformationRequestReviewState, {label: string; color: BadgeColor}> = {
+export const commentAuthorLabel = (comment: InformationRequestReviewCommentDto): string => {
+    if (comment.authoredByCaller) return "You";
+    if (comment.authorRole === InformationRequestReviewCommentRole.REVIEWER) return "Reviewer";
+    if (comment.authorRole === InformationRequestReviewCommentRole.ADMINISTRATOR) return "Administrator";
+    return "Respondent";
+};
+
+export const reviewItemLabel = (item: Pick<InformationRequestReviewItemDto, "prompt" | "requirementKey">): string =>
+    item.prompt ?? humanizedKey(item.requirementKey);
+
+export const reviewStatePresentation: Record<InformationRequestReviewState, { label: string; color: BadgeColor }> = {
     [InformationRequestReviewState.PENDING]: {label: "Waiting for a reviewer", color: "informative"},
     [InformationRequestReviewState.IN_REVIEW]: {label: "In review", color: "brand"},
     [InformationRequestReviewState.CHANGES_REQUESTED]: {label: "Changes requested", color: "warning"},
@@ -105,4 +121,14 @@ export const reviewValueText = (value: unknown): string =>
     if (Array.isArray(value)) return value.map(reviewValueText).join(", ");
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);
+};
+
+export const returnedFilesText = (evidence: InformationRequestCorrectionEvidenceDto[]): string =>
+    "Returned files you can replace or withdraw: "
+    + evidence.map(file => `${file.declaredFileName ?? "unnamed file"} (version ${file.versionNumber})`).join(", ")
+    + ".";
+
+export const retestResultLabels: Record<InformationRequestRetestResult, string> = {
+    [InformationRequestRetestResult.RESOLVED]: "Resolved",
+    [InformationRequestRetestResult.UNRESOLVED]: "Still unresolved",
 };

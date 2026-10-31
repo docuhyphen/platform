@@ -1,35 +1,23 @@
 package com.docuhyphen.app.api.service.documentlibrary
 
-import com.docuhyphen.app.api.model.dto.CloneDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.CreateDocumentLibraryEntryRequest
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchDocumentLibraryStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateDocumentLibraryEntryRequest
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.documentlibrary.model.DocumentLibraryTenantFixture
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 class DocumentLibraryTenantBoundaryTest
 {
@@ -66,24 +54,17 @@ class DocumentLibraryTenantBoundaryTest
             }
         }
 
-    private data class ServiceFixture(
-        val service: DocumentLibraryService,
-        val repository: DocumentLibraryRepository,
-        val storage: FileStorageService,
-        val auditRecorder: AuditRecorder,
-    )
-
     private fun fixture(
         appAdmin: Boolean = true,
         orgAdmin: Boolean = false,
         allowedActions: Array<out Action> = emptyArray(),
         context: AuthorizationContext = authorizationContext(),
-    ): ServiceFixture
+    ): DocumentLibraryTenantFixture
     {
         val repository = mock<DocumentLibraryRepository>()
         val storage = mock<FileStorageService>()
         val auditRecorder = mock<AuditRecorder>()
-        return ServiceFixture(
+        return DocumentLibraryTenantFixture(
             service = DocumentLibraryService(
                 repository = repository,
                 fileStorageService = storage,

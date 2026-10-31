@@ -1,5 +1,9 @@
 import {Text} from "@fluentui/react-components";
-import {InformationRequestSubmissionMode, InformationRequestSubmissionStageOrdering} from "../../../models/models.tsx";
+import {
+    FieldLifecycleStatus,
+    InformationRequestSubmissionMode,
+    InformationRequestSubmissionStageOrdering,
+} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import {ChoiceOption, optionsFrom} from "../../shared/choice-select/choiceOptions.ts";
 import TextField from "../../shared/text-field/TextField.tsx";
@@ -16,11 +20,12 @@ const TemplateSettingsPanel = () =>
     const {document, readOnly, schemas, problems, update} = useTemplateDocument();
     const requestSchemas = requestSchemasOf(schemas);
     const chosen = requestSchemas.find(schema => schema.latestPublishedVersion?.id === document.schemaVersionId);
+    const offered = requestSchemas.filter(schema => schema.status !== FieldLifecycleStatus.RETIRED || schema.id === chosen?.id);
     const schemaValue = chosen?.id ?? (document.schemaVersionId ? KEPT_VERSION : NO_SCHEMA);
     const schemaOptions: ChoiceOption<string>[] = [
         {value: NO_SCHEMA, label: "No typed answers"},
         ...(schemaValue === KEPT_VERSION ? [{value: KEPT_VERSION, label: "The Schema Version this Template already uses"}] : []),
-        ...requestSchemas.map(schema => ({
+        ...offered.map(schema => ({
             value: schema.id,
             label: `${schema.displayName} (version ${schema.latestPublishedVersion?.versionNumber ?? 1})`,
         })),
@@ -46,7 +51,7 @@ const TemplateSettingsPanel = () =>
                           onChange={value =>
                           {
                               if (value === KEPT_VERSION) return;
-                              const schemaVersionId = requestSchemas.find(schema => schema.id === value)?.latestPublishedVersion?.id;
+                              const schemaVersionId = offered.find(schema => schema.id === value)?.latestPublishedVersion?.id;
                               update(current => ({...current, schemaVersionId}));
                           }}/>
             <ChoiceSelect id={"template-settings-submission-select"}

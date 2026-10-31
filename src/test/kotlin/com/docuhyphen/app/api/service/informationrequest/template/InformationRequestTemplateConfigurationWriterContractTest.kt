@@ -1,69 +1,25 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateConfigurationMapper
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.RequestTemplatePostgreSQLResource
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
-/**
- * A draft is authored as one document, so writing it has to leave exactly that document behind and
- * reading it back has to return the same thing.
- *
- * The pieces of a configuration live in eight tables with composite keys, freeze triggers, and
- * one-way relations between them, and a partial write would leave a version that renders as
- * something the author never stated. These tests exercise the whole document against the released
- * schema: what a write leaves behind, what a rewrite removes, what survives a rewrite because it is
- * a stable identity rather than a statement about one version, and what the stored rules refuse.
- */
 @QuarkusTest
 @QuarkusTestResource(RequestTemplatePostgreSQLResource::class)
 class InformationRequestTemplateConfigurationWriterContractTest
@@ -178,6 +134,30 @@ class InformationRequestTemplateConfigurationWriterContractTest
     }
 
     @Test
+    fun `groups, rules and related documents read back in key order so equal content always hashes alike`() {
+        val first = draftTemplate()
+        val second = draftTemplate()
+        QuarkusTransaction.requiringNew().run {
+            writer.replaceConfiguration(first, orderedDocument(reversed = false))
+            writer.replaceConfiguration(second, orderedDocument(reversed = true))
+        }
+
+        val (one, two) = QuarkusTransaction.requiringNew().call {
+            listOf(first, second).map { projectionLoader.loadVersion(versionRepository.findById(it.id)!!) }
+        }
+
+        listOf(one, two).forEach { version ->
+            assertEquals(listOf("alpha-group", "zeta-group"), version.groups.map { it.groupKey })
+            assertEquals(listOf("alpha-rule", "zeta-rule"), version.conditionRules.map { it.ruleKey })
+            val primary = version.sections.single().requirements.single { it.requirementKey == "primary-record" }
+            assertEquals(listOf("alpha-record", "zeta-record"), primary.substituteRequirementKeys)
+            val note = version.sections.single().requirements.single { it.requirementKey == "recorded-note" }
+            assertEquals(listOf("alpha-record", "zeta-record"), note.supportingEvidenceRequirementKeys)
+        }
+        assertEquals(one.contentHashSha256, two.contentHashSha256)
+    }
+
+    @Test
     fun `a rewrite leaves only what the second document states`()
     {
         val draft = draftTemplate()
@@ -205,22 +185,16 @@ class InformationRequestTemplateConfigurationWriterContractTest
         }
 
         assertEquals(listOf("collected-data"), version.sections.map { it.sectionKey })
-        // The second document defines no groups or condition rules, so the first document's groups
-        // and rules do not survive either, the same way its supporting evidence relation does not.
         assertEquals(emptyList<String>(), version.groups.map { it.groupKey })
         assertEquals(emptyList<String>(), version.conditionRules.map { it.ruleKey })
         val note = version.sections.single().requirements.single()
         assertEquals("recorded-note", note.requirementKey)
         assertEquals(emptyList<String>(), note.supportingEvidenceRequirementKeys)
-        // The second document states no permitted answers, which is the plain provided answer and
-        // nothing else rather than every answer.
         assertEquals(
             listOf(InformationRequestResponseDisposition.PROVIDED),
             note.permittedDispositions,
         )
         assertNull(note.evidencePolicy)
-        // The requirement identity is not a statement about one version, so dropping the binding
-        // that placed it leaves the identity behind for a later version to ask about again.
         assertEquals(
             listOf("alternate-record", "recorded-assertion", "recorded-note", "supporting-record"),
             QuarkusTransaction.requiringNew()
@@ -248,7 +222,6 @@ class InformationRequestTemplateConfigurationWriterContractTest
 
         assertEquals(firstIdentity.requirementKey, secondIdentity.requirementKey)
         assertEquals(firstIdentity.templateRequirementId, secondIdentity.templateRequirementId)
-        // The binding is this version's statement about it, so rewriting the document restates it.
         assertNotEquals(firstIdentity.id, secondIdentity.id)
     }
 
@@ -290,10 +263,6 @@ class InformationRequestTemplateConfigurationWriterContractTest
         val draft = draftTemplate()
         QuarkusTransaction.requiringNew().run { writer.replaceConfiguration(draft, richDocument()) }
 
-        // The frozen version is inserted rather than transitioned into. Transitioning one is the
-        // publishing service's work and carries its own completeness rules, and neither is what this
-        // is about: the question here is only whether configuration can reach a version that has
-        // stopped being a draft.
         val frozen = QuarkusTransaction.requiringNew().call {
             versionRepository.save(
                 InformationRequestTemplateVersion().apply {
@@ -531,14 +500,6 @@ class InformationRequestTemplateConfigurationWriterContractTest
         assertEquals(emptyList<String>(), version.sections.map { it.sectionKey })
     }
 
-    // ── Fixtures ──────────────────────────────────────────────────────────────
-
-    /**
-     * One version asking for typed data conditionally, per occurrence, in a compartment, reviewed
-     * and supported by a requested document, plus two requested documents where one may stand in
-     * for the other. Every optional policy a binding or an evidence policy can state is exercised,
-     * so a mismapped column cannot pass unnoticed.
-     */
     private fun richDocument() = InformationRequestTemplateConfigurationRequest(
         conditionRules = listOf(
             InformationRequestTemplateConditionRuleRequest(
@@ -588,7 +549,7 @@ class InformationRequestTemplateConfigurationWriterContractTest
                     requirement(
                         "recorded-assertion",
                         InformationRequestRequirementType.RESPONSE_ATTESTATION,
-                    ),
+                    ).copy(occurrenceAnchorKey = "per-recorded-detail"),
                 ),
             ),
             InformationRequestTemplateSectionRequest(
@@ -596,6 +557,7 @@ class InformationRequestTemplateConfigurationWriterContractTest
                 title = "Supporting data",
                 requirements = listOf(
                     requirement("supporting-record", InformationRequestRequirementType.DOCUMENT).copy(
+                        contributorRole = InformationRequestContributorRole.PREPARER,
                         permittedDispositions = listOf(InformationRequestResponseDisposition.WAIVED),
                         evidencePolicy = strictPolicy(),
                         substituteRequirementKeys = listOf("alternate-record"),
@@ -607,6 +569,57 @@ class InformationRequestTemplateConfigurationWriterContractTest
             ),
         ),
     )
+
+    private fun orderedDocument(reversed: Boolean): InformationRequestTemplateConfigurationRequest {
+        fun ordered(vararg items: String): List<String> = if (reversed) items.reversed() else items.toList()
+        fun document(key: String) = requirement(key, InformationRequestRequirementType.DOCUMENT).copy(
+            evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(),
+        )
+        return InformationRequestTemplateConfigurationRequest(
+            conditionRules = ordered("zeta-rule", "alpha-rule").map { key ->
+                InformationRequestTemplateConditionRuleRequest(
+                    ruleKey = key,
+                    predicates = listOf(
+                        InformationRequestTemplateConditionPredicateRequest(
+                            sourceRequirementKey = "primary-record",
+                            operator = FieldOperator.EQUALS,
+                            expectedDisposition = InformationRequestResponseDisposition.PROVIDED,
+                        ),
+                    ),
+                )
+            },
+            groups = ordered("zeta-group", "alpha-group").map { InformationRequestTemplateGroupRequest(groupKey = it) },
+            sections = listOf(
+                InformationRequestTemplateSectionRequest(
+                    sectionKey = "collected-data",
+                    title = "Collected data",
+                    requirements = listOf(
+                        document("primary-record").copy(
+                            substituteRequirementKeys = ordered(
+                                "zeta-record",
+                                "alpha-record"
+                            )
+                        ),
+                        document("zeta-record"),
+                        document("alpha-record"),
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            supportingEvidenceRequirementKeys = ordered("zeta-record", "alpha-record"),
+                        ),
+                        document("zeta-entry").copy(
+                            requiredness = InformationRequestRequiredness.CONDITIONAL,
+                            conditionalRuleKey = "zeta-rule",
+                            occurrenceAnchorKey = "zeta-group",
+                        ),
+                        document("alpha-entry").copy(
+                            requiredness = InformationRequestRequiredness.CONDITIONAL,
+                            conditionalRuleKey = "alpha-rule",
+                            occurrenceAnchorKey = "alpha-group",
+                        ),
+                    ),
+                ),
+            ),
+        )
+    }
 
     private fun strictPolicy() = InformationRequestTemplateEvidencePolicyRequest(
         minimumFileCount = 2,
@@ -650,11 +663,6 @@ class InformationRequestTemplateConfigurationWriterContractTest
                 if (type == InformationRequestRequirementType.FIELD) collectedField else null,
         )
 
-    /**
-     * The one stable field every typed requirement in these fixtures collects. It is created once
-     * per test class because the reference is a foreign key, and a version that collects the same
-     * field twice is refused, which is a rule of its own rather than something these tests exercise.
-     */
     private val collectedField: UUID by lazy { insertFieldDefinition() }
 
     private fun insertFieldDefinition(): UUID

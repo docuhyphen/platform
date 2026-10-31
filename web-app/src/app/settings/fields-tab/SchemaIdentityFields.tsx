@@ -1,5 +1,7 @@
-import {Field, InfoLabel, Input, Textarea} from '@fluentui/react-components';
+import {Field, InfoLabel, Input, Radio, RadioGroup, Textarea} from '@fluentui/react-components';
+import {SchemaTargetResourceType} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
+import {schemaTargetOf} from './schemaTarget';
 
 export interface SchemaIdentity
 {
@@ -7,6 +9,7 @@ export interface SchemaIdentity
     schemaKey: string;
     displayName: string;
     description: string;
+    targetResourceType: SchemaTargetResourceType;
 }
 
 interface Props
@@ -61,6 +64,21 @@ const SchemaIdentityFields = ({identity, update}: Props) =>
                           value={identity.description}
                           rows={2}
                           onChange={(_, d) => update({description: d.value})}/>
+            </Field>
+            <Field id="schema-target-field"
+                   label="Used for"
+                   hint="Exchanges offer Exchange schemas; Information Request Templates record typed answers against Information Request schemas. This cannot change after creation.">
+                <RadioGroup id="schema-target"
+                            layout="horizontal"
+                            value={identity.targetResourceType}
+                            onChange={(_, d) => update({targetResourceType: schemaTargetOf(d.value)})}>
+                    <Radio id="schema-target-exchange"
+                           value={SchemaTargetResourceType.EXCHANGE}
+                           label="Exchanges"/>
+                    <Radio id="schema-target-information-request"
+                           value={SchemaTargetResourceType.INFORMATION_REQUEST}
+                           label="Information Requests"/>
+                </RadioGroup>
             </Field>
         </>
     );

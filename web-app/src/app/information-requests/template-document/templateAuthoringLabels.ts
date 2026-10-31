@@ -29,7 +29,7 @@ export const requirementTypeLabels: Record<InformationRequestRequirementType, st
 
 export const responseModeLabels: Record<InformationRequestResponseMode, string> = {
     [InformationRequestResponseMode.PROVIDE]: "The party answers and may change the answer",
-    [InformationRequestResponseMode.PROVIDE_ONCE]: "The party answers once",
+    [InformationRequestResponseMode.PROVIDE_ONCE]: "The party answers once; the answer is fixed once it is submitted",
     [InformationRequestResponseMode.VIEW_ONLY]: "The party only sees it",
     [InformationRequestResponseMode.NOT_DISCLOSED]: "Hidden from the party",
 };
@@ -40,11 +40,10 @@ export const requirednessLabels: Record<InformationRequestRequiredness, string> 
     [InformationRequestRequiredness.CONDITIONAL]: "Only when a condition is true",
 };
 
-export const contributorRoleLabels: Record<InformationRequestContributorRole, string> = {
+export const contributorRoleLabels: Record<Exclude<InformationRequestContributorRole, InformationRequestContributorRole.SUBJECT>, string> = {
     [InformationRequestContributorRole.CONTRIBUTOR]: "Contributor",
     [InformationRequestContributorRole.PREPARER]: "Preparer",
     [InformationRequestContributorRole.ATTESTOR]: "Attestor",
-    [InformationRequestContributorRole.SUBJECT]: "Subject",
 };
 
 export const reviewPolicyLabels: Record<InformationRequestReviewPolicy, string> = {

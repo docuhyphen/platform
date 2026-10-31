@@ -1,8 +1,12 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.model.ExchangeDocumentAuditDtoMapper
 import com.docuhyphen.app.api.model.dto.DocumentAuditDetailedDto
-import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.entity.AppUser
+import com.docuhyphen.app.api.model.entity.Document
+import com.docuhyphen.app.api.model.entity.DocumentAuditAction
+import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.*
@@ -10,9 +14,6 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -41,8 +42,6 @@ class ExchangeDocumentAuditService @Inject constructor(
 
         private val EVENT_TYPE_KEY_TO_ACTION: Map<String, String> =
             ACTION_TO_EVENT_TYPE.entries.associate { (action, eventType) -> eventType.key to action.name }
-
-        private val payloadSerializer = MapSerializer(String.serializer(), String.serializer())
     }
 
     fun logAction(document: Document, action: DocumentAuditAction, performedBy: AppUser)
@@ -55,12 +54,6 @@ class ExchangeDocumentAuditService @Inject constructor(
         recordOnRecorder(document, action, actorId = null, actorEmail = performedByEmail)
     }
 
-    /**
-     * Backs the Exchange "Audit" tab with a single
-     * ledger query across every document in the Exchange, instead of a separate
-     * one query per document. Reads
-     * [AuditLedgerEventRepository.findByTargetTypeAndTargetIds].
-     */
     fun getExchangeAuditEvents(exchangeId: String): List<DocumentAuditDetailedDto>
     {
         val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
@@ -75,36 +68,15 @@ class ExchangeDocumentAuditService @Inject constructor(
         val ledgerEvents =
             auditLedgerEventRepository.findByTargetTypeAndTargetIds("Document", documentsById.keys.toList())
 
-        return ledgerEvents.map { toDocumentAuditDetailedDto(it, documentsById) }
+        return ledgerEvents.map { event ->
+            ExchangeDocumentAuditDtoMapper.toDto(
+                event,
+                documentsById,
+                EVENT_TYPE_KEY_TO_ACTION[event.eventTypeKey] ?: event.eventTypeKey,
+            )
+        }
     }
 
-    private fun toDocumentAuditDetailedDto(
-        event: AuditLedgerEvent,
-        documentsById: Map<String, Document>,
-    ): DocumentAuditDetailedDto
-    {
-        val payload = runCatching { Json.decodeFromString(payloadSerializer, event.payloadJson) }
-            .getOrDefault(emptyMap())
-        val documentId = event.targetId
-        val document = documentId?.let { documentsById[it] }
-
-        return DocumentAuditDetailedDto(
-            id = event.id,
-            timestamp = event.occurredAt,
-            action = EVENT_TYPE_KEY_TO_ACTION[event.eventTypeKey] ?: event.eventTypeKey,
-            performedBy = null,
-            performedByEmail = payload["actor_email"],
-            documentId = documentId,
-            documentTitle = document?.title ?: payload["document_title"],
-        )
-    }
-
-    /**
-     * Writes document actions to [AuditRecorder]. An actor performing
-     * this action without an app account (e.g. a public-link
-     * recipient) has no [actorId], so actor kind is distinguished by [actorEmail] presence instead
-     * of guessing.
-     */
     private fun recordOnRecorder(document: Document, action: DocumentAuditAction, actorId: UUID?, actorEmail: String?)
     {
         val eventType = ACTION_TO_EVENT_TYPE[action]
@@ -120,7 +92,7 @@ class ExchangeDocumentAuditService @Inject constructor(
             auditRecorder.record(
                 AuditEventDraft(
                     owner = owningExchange?.let { auditOwnerScopeResolver.resolve(ResourceType.EXCHANGE, it.id) }
-                        ?: AuditOwnerScope.Platform,
+                        ?: auditOwnerScopeResolver.resolve(ResourceType.DOCUMENT, document.id),
                     eventTypeKey = eventType.key,
                     outcome = AuditOutcome.SUCCESS,
                     actorId = actorId,

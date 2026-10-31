@@ -1,6 +1,4 @@
-import React, {useEffect, useState} from 'react';
 import {
-    Badge,
     Button,
     Dialog,
     DialogActions,
@@ -13,10 +11,11 @@ import {
     Tab,
     TabList,
     Text,
-} from '@fluentui/react-components';
-import {SearchRegular} from '@fluentui/react-icons';
-import {CommunicationSummaryDto} from '../../models/models';
-import {listCommunications} from '../../../services/communicationService';
+} from "@fluentui/react-components";
+import {SearchRegular} from "@fluentui/react-icons";
+import {CommunicationScope, CommunicationSummaryDto} from "../../models/models.tsx";
+import CommunicationPickerItem from "./communication-picker-item/CommunicationPickerItem.tsx";
+import {useCommunicationChoices} from "./useCommunicationChoices.ts";
 import {useCommunicationPickerDialogStyles} from "./CommunicationPickerDialogStyles.tsx";
 
 interface Props
@@ -25,164 +24,100 @@ interface Props
     onClose: () => void;
     onSelect: (communication: CommunicationSummaryDto) => void;
     selectedId?: string;
-    fixedScope?: ScopeTab;
+    fixedScope?: CommunicationScope;
+    allowedScopes?: CommunicationScope[];
 }
 
-type ScopeTab = 'PERSONAL' | 'ORG' | 'PLATFORM';
+const ALL_SCOPES: CommunicationScope[] = ["PERSONAL", "ORG", "PLATFORM"];
 
-const scopeLabels: Record<ScopeTab, string> = {
-    PERSONAL: 'My Communications',
-    ORG: 'Organization',
-    PLATFORM: 'Platform',
+const scopeLabels: Record<CommunicationScope, string> = {
+    PERSONAL: "My Communications",
+    ORG: "Organization",
+    PLATFORM: "Platform",
 };
 
-const scopeColor: Record<ScopeTab, 'brand' | 'success' | 'informative'> = {
-    PERSONAL: 'brand',
-    ORG: 'success',
-    PLATFORM: 'informative',
+const scopeTabIds: Record<CommunicationScope, string> = {
+    PERSONAL: "communication-picker-personal-tab",
+    ORG: "communication-picker-organization-tab",
+    PLATFORM: "communication-picker-platform-tab",
 };
 
-const CommunicationPickerDialog: React.FC<Props> = ({open, onClose, onSelect, selectedId, fixedScope}) =>
+const CommunicationPickerDialog = ({open, onClose, onSelect, selectedId, fixedScope, allowedScopes}: Props) =>
 {
     const styles = useCommunicationPickerDialogStyles();
-    const [activeTab, setActiveTab] = useState<ScopeTab>(fixedScope ?? 'PERSONAL');
-    const [communications, setCommunications] = useState<CommunicationSummaryDto[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [search, setSearch] = useState('');
-    const [pending, setPending] = useState<CommunicationSummaryDto | null>(null);
+    const scopes = fixedScope ? [fixedScope] : allowedScopes ?? ALL_SCOPES;
+    const choices = useCommunicationChoices(open, scopes);
+    const {pending} = choices;
 
-    useEffect(() =>
+    const confirm = () =>
     {
-        if (!open) return;
-        setActiveTab(fixedScope ?? 'PERSONAL');
-        setSearch('');
-        setPending(null);
-    }, [fixedScope, open]);
-
-    useEffect(() =>
-    {
-        if (open) loadCommunications(activeTab);
-    }, [activeTab]);
-
-    const loadCommunications = (scope: ScopeTab) =>
-    {
-        setLoading(true);
-        listCommunications({scope})
-            .then(list => setCommunications(list.filter(t => t.isActive)))
-            .catch(() => setCommunications([]))
-            .finally(() => setLoading(false));
-    };
-
-    const filtered = communications.filter(t =>
-        t.name.toLowerCase().includes(search.toLowerCase()) ||
-        t.subject.toLowerCase().includes(search.toLowerCase()) ||
-        (t.summary ?? '').toLowerCase().includes(search.toLowerCase())
-    );
-
-    const handleConfirm = () =>
-    {
-        if (pending) { onSelect(pending); onClose(); }
+        if (!pending) return;
+        onSelect(pending);
+        onClose();
     };
 
     return (
-        <Dialog open={open} onOpenChange={(_, {open: isOpen}) => { if (!isOpen) onClose(); }}>
-            <DialogSurface className={styles.dialogSurface}>
-                <DialogBody>
-                    <DialogTitle>Select Communication</DialogTitle>
-                    <DialogContent>
-                        <div className={styles.contentContainer}>
-                            {!fixedScope && (
-                                <TabList
-                                    id={"communication-picker-scope-tabs"}
-                                    selectedValue={activeTab}
-                                    onTabSelect={(_, d) =>
-                                    {
-                                        setActiveTab(d.value as ScopeTab);
-                                        setCommunications([]);
-                                        setPending(null);
-                                    }}
-                                >
-                                    <Tab
-                                        id={"communication-picker-personal-tab"}
-                                        value="PERSONAL">
-                                        {scopeLabels.PERSONAL}
+        <Dialog open={open}
+                onOpenChange={(_, data) => !data.open && onClose()}>
+            <DialogSurface id={"communication-picker-surface"}
+                           aria-labelledby={"communication-picker-title"}
+                           className={styles.dialogSurface}>
+                <DialogBody id={"communication-picker-body"}>
+                    <DialogTitle id={"communication-picker-title"}>Select Communication</DialogTitle>
+                    <DialogContent id={"communication-picker-content"}
+                                   className={styles.contentContainer}>
+                        {scopes.length > 1 && (
+                            <TabList id={"communication-picker-scope-tabs"}
+                                     selectedValue={choices.activeTab}
+                                     onTabSelect={(_, data) => choices.chooseScope(data.value)}>
+                                {scopes.map(scope => (
+                                    <Tab key={scope}
+                                         id={scopeTabIds[scope]}
+                                         value={scope}>
+                                        {scopeLabels[scope]}
                                     </Tab>
-                                    <Tab
-                                        id={"communication-picker-organization-tab"}
-                                        value="ORG">
-                                        {scopeLabels.ORG}
-                                    </Tab>
-                                    <Tab
-                                        id={"communication-picker-platform-tab"}
-                                        value="PLATFORM">
-                                        {scopeLabels.PLATFORM}
-                                    </Tab>
-                                </TabList>
-                            )}
-
-                            <Input
-                                id={"communication-picker-search-input"}
-                                contentBefore={<SearchRegular/>}
-                                placeholder="Search communications"
-                                value={search}
-                                onChange={(_, d) => setSearch(d.value)}
-                            />
-
-                            {loading && <Spinner size="small"/>}
-                            {!loading && filtered.length === 0 && (
-                                <Text className={styles.noResults}>No communications found.</Text>
-                            )}
-                            <div className={styles.itemList}>
-                                {!loading && filtered.map(t =>
-                                {
-                                    const isSelected = pending?.id === t.id || (!pending && selectedId === t.id);
-                                    return (
-                                        <div
-                                            key={t.id}
-                                            onClick={() => setPending(t)}
-                                            className={`${styles.itemCard} ${isSelected ? styles.itemCardSelected : ''}`}
-                                        >
-                                            <div className={styles.itemHeader}>
-                                                <Text weight="semibold" size={300}>{t.name}</Text>
-                                                <Badge
-                                                    appearance="tint"
-                                                    color={scopeColor[t.scope as ScopeTab] ?? 'informative'}
-                                                    size="small"
-                                                >
-                                                    {t.scope}
-                                                </Badge>
-                                            </div>
-                                            <Text
-                                                size={200}
-                                                className={styles.itemSubject}
-                                            >
-                                                {t.subject}
-                                            </Text>
-                                            {t.summary && (
-                                                <Text size={200} className={styles.itemSummary}>
-                                                    {t.summary}
-                                                </Text>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                ))}
+                            </TabList>
+                        )}
+                        <Input id={"communication-picker-search-input"}
+                               aria-label={"Search communications"}
+                               contentBefore={<SearchRegular/>}
+                               placeholder={"Search communications"}
+                               value={choices.search}
+                               onChange={(_, data) => choices.setSearch(data.value)}/>
+                        {choices.loading && (
+                            <Spinner id={"communication-picker-loading"}
+                                     size={"small"}
+                                     label={"Loading communications"}/>
+                        )}
+                        {!choices.loading && choices.filtered.length === 0 && (
+                            <Text id={"communication-picker-empty"}
+                                  className={styles.noResults}>
+                                No communications found.
+                            </Text>
+                        )}
+                        <div id={"communication-picker-items"}
+                             className={styles.itemList}>
+                            {!choices.loading && choices.filtered.map(communication => (
+                                <CommunicationPickerItem key={communication.id}
+                                                         communication={communication}
+                                                         selected={pending ? pending.id === communication.id : selectedId === communication.id}
+                                                         onSelect={() => choices.setPending(communication)}/>
+                            ))}
                         </div>
                     </DialogContent>
-                    <DialogActions>
-                        <Button
-                            id={"communication-picker-confirm-btn"}
-                            appearance="primary"
-                            shape="circular"
-                            onClick={handleConfirm}
-                            disabled={!pending}
-                        >
+                    <DialogActions id={"communication-picker-actions"}>
+                        <Button id={"communication-picker-confirm-btn"}
+                                appearance={"primary"}
+                                shape={"circular"}
+                                disabled={!pending}
+                                onClick={confirm}>
                             Select Communication
                         </Button>
-                        <Button
-                            id={"communication-picker-cancel-btn"}
-                            shape="circular"
-                            onClick={onClose}>
+                        <Button id={"communication-picker-cancel-btn"}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                onClick={onClose}>
                             Cancel
                         </Button>
                     </DialogActions>

@@ -1,40 +1,19 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepAssignee
-import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
-import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.QuorumSpec
+import com.docuhyphen.app.api.model.workflow.StepOutcomeSpec
+import com.docuhyphen.app.api.model.workflow.WorkflowSpec
+import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
+import com.docuhyphen.app.api.repository.workflow.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.atLeastOnce
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Verifies that the runtime engine fails an instance through the controlled failure path when a
- * route target cannot resolve to a real step, or when an N_OF_M quorum can never be met by the
- * resolved assignees, instead of auto-completing and firing a lifecycle event.
- */
 class WorkflowRuntimeFailureTest
 {
     private val definitionRepository: WorkflowDefinitionRepository = mock()
@@ -85,8 +64,6 @@ class WorkflowRuntimeFailureTest
         assertTrue(publishedEventTypes().contains("workflow.failed"))
     }
 
-    // ── harness ────────────────────────────────────────────────────────────────────
-
     private fun failAfterApprovingFirstStep(
         vararg steps: WorkflowStepSpec,
         triggerEvent: String = "custom.event",
@@ -134,7 +111,7 @@ class WorkflowRuntimeFailureTest
     private fun publishedEventTypes(): List<String>
     {
         val captor = argumentCaptor<DomainEvent>()
-        verify(eventPublisher, atLeastOnce()).publish(captor.capture())
+        verify(eventPublisher, atLeastOnce()).publish(captor.capture(), any())
         return captor.allValues.map { it.type }
     }
 

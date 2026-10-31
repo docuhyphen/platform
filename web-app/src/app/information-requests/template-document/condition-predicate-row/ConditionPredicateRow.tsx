@@ -2,16 +2,17 @@ import {Button} from "@fluentui/react-components";
 import {DeleteIcon} from "../../../components/IconBundles.tsx";
 import {
     FieldOperator,
+    FieldOption,
     FieldValueType,
     InformationRequestResponseDisposition,
     InformationRequestTemplateConditionPredicateRequest,
 } from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import {ChoiceOption, optionsFrom} from "../../shared/choice-select/choiceOptions.ts";
-import TextField from "../../shared/text-field/TextField.tsx";
+import ConditionValueField from "../condition-value-field/ConditionValueField.tsx";
 import {dispositionLabels, operatorLabels} from "../templateAuthoringLabels.ts";
 import {VALUELESS_OPERATORS} from "../templatePlanValidation.ts";
-import {isListOperator, literalFrom, literalText, operatorsFor, sourceValueOf} from "./conditionOperators.ts";
+import {operatorsFor, sourceValueOf} from "./conditionOperators.ts";
 import {useConditionPredicateRowStyles} from "./ConditionPredicateRowStyles.tsx";
 
 export interface PredicateSource
@@ -19,6 +20,7 @@ export interface PredicateSource
     value: string;
     label: string;
     valueType?: FieldValueType;
+    options?: FieldOption[];
 }
 
 interface ConditionPredicateRowProps
@@ -38,6 +40,7 @@ const ConditionPredicateRow = ({id, predicate, sources, readOnly, onChange, onRe
     const operators: ChoiceOption<FieldOperator>[] = operatorsFor(predicate.valueType)
         .map(operator => ({value: operator, label: operatorLabels[operator]}));
     const needsValue = !VALUELESS_OPERATORS.has(predicate.operator);
+    const source = sources.find(candidate => candidate.value === sourceValueOf(predicate));
 
     const chooseSource = (value: string) =>
     {
@@ -65,13 +68,14 @@ const ConditionPredicateRow = ({id, predicate, sources, readOnly, onChange, onRe
                           options={operators}
                           disabled={readOnly}
                           onChange={operator => onChange({...predicate, operator, value: undefined})}/>
-            {needsValue && readsField && (
-                <TextField id={`${id}-value-input`}
-                           label={isListOperator(predicate.operator) ? "Values (comma separated)" : "Value"}
-                           value={literalText(predicate.value)}
-                           hint={predicate.valueType === FieldValueType.BOOLEAN ? "Enter true or false" : undefined}
-                           disabled={readOnly}
-                           onChange={raw => onChange({...predicate, value: literalFrom(raw, predicate.valueType, predicate.operator)})}/>
+            {needsValue && readsField && predicate.valueType && (
+                <ConditionValueField id={id}
+                                     valueType={predicate.valueType}
+                                     operator={predicate.operator}
+                                     value={predicate.value}
+                                     options={source?.options ?? []}
+                                     disabled={readOnly}
+                                     onChange={value => onChange({...predicate, value})}/>
             )}
             {needsValue && !readsField && predicate.sourceRequirementKey && (
                 <ChoiceSelect id={`${id}-answer-select`}

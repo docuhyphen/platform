@@ -1,16 +1,14 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 
 /**
  * A Schema is written for one kind of resource, and for as long as there was only one kind to write

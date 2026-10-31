@@ -16,9 +16,10 @@ object InformationRequestAccessLinkDtoMapper
             expiresAt = issuance.shareLink.expiresAt,
             maxUses = issuance.shareLink.maxUses,
             rotationCount = issuance.shareLink.rotationCount,
+            partyETag = issuance.partyETag,
         )
 
-    fun toDto(shareLink: ShareLink, partyId: UUID? = null): InformationRequestAccessLinkDto =
+    fun toDto(shareLink: ShareLink, partyId: UUID? = null, partyETag: String? = null): InformationRequestAccessLinkDto =
         InformationRequestAccessLinkDto(
             shareLinkId = shareLink.id,
             status = shareLink.status,
@@ -27,5 +28,6 @@ object InformationRequestAccessLinkDtoMapper
             rotationCount = shareLink.rotationCount,
             partyId = partyId,
             createdAt = shareLink.createdAt,
+            partyETag = partyETag,
         )
 }

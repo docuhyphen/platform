@@ -2,46 +2,30 @@ package com.docuhyphen.app.api.service.informationrequest.condition
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleDto
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.fields.FieldOperator
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestDocumentFileCompletion
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStore
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateProjectionLoader
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.math.BigDecimal
-import java.util.UUID
+import java.util.*
 
 class InformationRequestConditionEvaluationServiceTest
 {
@@ -109,7 +93,7 @@ class InformationRequestConditionEvaluationServiceTest
 
         assertEquals(emptyList<InformationRequestConditionEvaluationProjection>(), projections)
         verifyNoInteractions(fixture.responseStore)
-        verifyNoInteractions(fixture.fieldValueRepository)
+        verify(fixture.fieldsReader, never()).valuesIn(any())
     }
 
     @Test
@@ -281,9 +265,150 @@ class InformationRequestConditionEvaluationServiceTest
         assertEquals(InformationRequestConditionEvaluationState.TRUE, projections.single().state)
     }
 
+    @Test
+    fun `a Field kept on a hidden Requirement is treated as absent by a downstream condition`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.priorAnswerProvided(), fixture.firstAmountIsLarge())
+        fixture.withRootConditionalRequirement(PRIOR_ANSWER_PROVIDED, fixture.fieldDefinitionId)
+        fixture.withRootConditionalRequirement(FIRST_AMOUNT_IS_LARGE, null)
+        fixture.withRootFieldValues(fixture.fieldContract to BigDecimal("25.00"))
+
+        val projections = fixture.service.evaluate(fixture.request.id)
+
+        assertEquals(InformationRequestConditionEvaluationState.FALSE, projections.state(PRIOR_ANSWER_PROVIDED))
+        assertEquals(InformationRequestConditionEvaluationState.FALSE, projections.state(FIRST_AMOUNT_IS_LARGE))
+    }
+
+    @Test
+    fun `hiding cascades through a chain of conditions that read Fields collected by hidden Requirements`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(
+            fixture.priorAnswerProvided(),
+            fixture.firstAmountIsLarge(),
+            fixture.secondAmountIsEmpty()
+        )
+        fixture.withRootConditionalRequirement(PRIOR_ANSWER_PROVIDED, fixture.fieldDefinitionId)
+        fixture.withRootConditionalRequirement(FIRST_AMOUNT_IS_LARGE, fixture.secondFieldDefinitionId)
+        fixture.withRootConditionalRequirement(SECOND_AMOUNT_IS_EMPTY, null)
+        fixture.withRootFieldValues(
+            fixture.fieldContract to BigDecimal("25.00"),
+            fixture.secondFieldContract to BigDecimal("5.00"),
+        )
+
+        val snapshot = fixture.service.snapshot(fixture.request.id)
+
+        assertEquals(
+            InformationRequestConditionEvaluationState.FALSE,
+            snapshot.evaluations.state(PRIOR_ANSWER_PROVIDED)
+        )
+        assertEquals(
+            InformationRequestConditionEvaluationState.FALSE,
+            snapshot.evaluations.state(FIRST_AMOUNT_IS_LARGE)
+        )
+        assertEquals(
+            InformationRequestConditionEvaluationState.TRUE,
+            snapshot.evaluations.state(SECOND_AMOUNT_IS_EMPTY)
+        )
+        assertEquals(2, snapshot.inactiveRequirementIds.size)
+    }
+
+    @Test
+    fun `a disposition is read only from a Requirement that is still active`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.firstAmountIsLarge(), fixture.priorAnswerProvided())
+        fixture.governRequirement(fixture.requirement, FIRST_AMOUNT_IS_LARGE)
+        fixture.withRootConditionalRequirement(PRIOR_ANSWER_PROVIDED, null)
+        fixture.withResponse(fixture.requirement, InformationRequestResponseDisposition.PROVIDED)
+
+        val projections = fixture.service.evaluate(fixture.request.id)
+
+        assertEquals(InformationRequestConditionEvaluationState.UNKNOWN, projections.state(FIRST_AMOUNT_IS_LARGE))
+        assertEquals(InformationRequestConditionEvaluationState.FALSE, projections.state(PRIOR_ANSWER_PROVIDED))
+    }
+
+    @Test
+    fun `a Requirement whose response is hidden keeps its retained Field out of later conditions`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.priorAnswerProvided(), fixture.firstAmountIsLarge())
+        val collecting = fixture.withRootConditionalRequirement(PRIOR_ANSWER_PROVIDED, fixture.fieldDefinitionId)
+        fixture.withRootConditionalRequirement(FIRST_AMOUNT_IS_LARGE, null)
+        fixture.withResponse(fixture.requirement, InformationRequestResponseDisposition.PROVIDED)
+        fixture.withResponse(collecting, InformationRequestResponseDisposition.PROVIDED, active = false)
+        fixture.withRootFieldValues(fixture.fieldContract to BigDecimal("25.00"))
+
+        val snapshot = fixture.service.snapshot(fixture.request.id)
+
+        assertEquals(InformationRequestConditionEvaluationState.TRUE, snapshot.evaluations.state(PRIOR_ANSWER_PROVIDED))
+        assertEquals(
+            InformationRequestConditionEvaluationState.FALSE,
+            snapshot.evaluations.state(FIRST_AMOUNT_IS_LARGE)
+        )
+        assertTrue(collecting.id in snapshot.inactiveRequirementIds)
+    }
+
+    @Test
+    fun `a rule kept on a Requirement that is not conditional never hides that Requirement's Field`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.priorAnswerProvided(), fixture.firstAmountIsLarge())
+        fixture.withRootConditionalRequirement(
+            PRIOR_ANSWER_PROVIDED,
+            fixture.fieldDefinitionId,
+            InformationRequestRequiredness.REQUIRED,
+        )
+        fixture.withRootConditionalRequirement(FIRST_AMOUNT_IS_LARGE, null)
+        fixture.withRootFieldValues(fixture.fieldContract to BigDecimal("25.00"))
+
+        val projections = fixture.service.evaluate(fixture.request.id)
+
+        assertEquals(InformationRequestConditionEvaluationState.TRUE, projections.state(FIRST_AMOUNT_IS_LARGE))
+    }
+
+    @Test
+    fun `a Field an active Requirement collects but nobody answered is empty, so an is-empty condition asks its Requirement`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.secondAmountIsEmpty(), fixture.firstAmountIsLarge())
+        fixture.withRootConditionalRequirement(
+            "unused-rule",
+            fixture.secondFieldDefinitionId,
+            InformationRequestRequiredness.OPTIONAL
+        )
+        fixture.withRootConditionalRequirement(
+            "unused-rule",
+            fixture.fieldDefinitionId,
+            InformationRequestRequiredness.OPTIONAL
+        )
+        val explanation = fixture.withRootConditionalRequirement(SECOND_AMOUNT_IS_EMPTY, null)
+
+        val snapshot = fixture.service.snapshot(fixture.request.id)
+
+        assertEquals(
+            InformationRequestConditionEvaluationState.TRUE,
+            snapshot.evaluations.state(SECOND_AMOUNT_IS_EMPTY)
+        )
+        assertEquals(
+            InformationRequestConditionEvaluationState.FALSE,
+            snapshot.evaluations.state(FIRST_AMOUNT_IS_LARGE)
+        )
+        assertTrue(explanation.id !in snapshot.inactiveRequirementIds)
+    }
+
+    @Test
+    fun `a Field no Requirement of the request collects stays unknown`() {
+        val fixture = Fixture()
+        fixture.withConditionRules(fixture.secondAmountIsEmpty())
+
+        val projections = fixture.service.evaluate(fixture.request.id)
+
+        assertEquals(InformationRequestConditionEvaluationState.UNKNOWN, projections.state(SECOND_AMOUNT_IS_EMPTY))
+    }
+
+    private fun List<InformationRequestConditionEvaluationProjection>.state(ruleKey: String) =
+        single { it.ruleKey == ruleKey }.state
+
     private class Fixture
     {
         val fieldDefinitionId: UUID = UUID.randomUUID()
+        val secondFieldDefinitionId: UUID = UUID.randomUUID()
         val request = InformationRequest().apply {
             templateVersionId = UUID.randomUUID()
         }
@@ -294,6 +419,7 @@ class InformationRequestConditionEvaluationServiceTest
         val templateRequirement = InformationRequestTemplateRequirement().apply {
             templateDefinitionId = this@Fixture.templateVersion.templateDefinitionId
             requirementKey = "prior-answer"
+            requirementType = InformationRequestRequirementType.FIELD
         }
         val requirement = InformationRequestRequirement().apply {
             informationRequestId = request.id
@@ -316,6 +442,11 @@ class InformationRequestConditionEvaluationServiceTest
             valueType = FieldValueType.DECIMAL
             label = "Amount"
         }
+        val secondFieldContract = FieldContract().apply {
+            this.fieldDefinitionId = this@Fixture.secondFieldDefinitionId
+            valueType = FieldValueType.DECIMAL
+            label = "Second amount"
+        }
 
         val requestRepository = mock<InformationRequestRepository>()
         val templateVersionRepository = mock<InformationRequestTemplateVersionRepository>()
@@ -324,12 +455,9 @@ class InformationRequestConditionEvaluationServiceTest
         val occurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>()
         val bindingRepository = mock<InformationRequestTemplateRequirementBindingRepository>()
         val responseStore = mock<InformationRequestResponseStore>()
-        val schemaAssignmentRepository = mock<SchemaAssignmentRepository>()
-        val fieldValueSetRepository = mock<FieldValueSetRepository>()
-        val fieldValueRepository = mock<FieldValueRepository>()
-        val fieldValueSelectionRepository = mock<FieldValueSelectionRepository>()
-        val fieldContractRepository = mock<FieldContractRepository>()
+        val fieldsReader = mock<FieldsReadFacade>()
         val templateProjectionLoader = mock<InformationRequestTemplateProjectionLoader>()
+        val documentFiles = mock<InformationRequestDocumentFileCompletion>()
 
         val service = InformationRequestConditionEvaluationService(
             requestRepository = requestRepository,
@@ -339,16 +467,14 @@ class InformationRequestConditionEvaluationServiceTest
             occurrenceRepository = occurrenceRepository,
             bindingRepository = bindingRepository,
             responseStore = responseStore,
-            schemaAssignmentRepository = schemaAssignmentRepository,
-            fieldValueSetRepository = fieldValueSetRepository,
-            fieldValueRepository = fieldValueRepository,
-            fieldValueSelectionRepository = fieldValueSelectionRepository,
-            fieldContractRepository = fieldContractRepository,
+            fieldValueReader = InformationRequestCanonicalFieldValueReader(fieldsReader = fieldsReader),
             templateProjectionLoader = templateProjectionLoader,
             evaluator = InformationRequestConditionEvaluator(),
+            documentFiles = documentFiles,
         )
 
         private val runtimeRequirements = mutableListOf(requirement)
+        private val templateRequirements = mutableListOf(templateRequirement)
         private val bindings = mutableListOf<InformationRequestTemplateRequirementBinding>()
         private val responses = mutableListOf<InformationRequestResponse>()
 
@@ -357,7 +483,7 @@ class InformationRequestConditionEvaluationServiceTest
             whenever(requestRepository.findById(request.id)).thenReturn(request)
             whenever(templateVersionRepository.findById(templateVersion.id)).thenReturn(templateVersion)
             whenever(templateRequirementRepository.findAllByDefinition(templateVersion.templateDefinitionId))
-                .thenReturn(listOf(templateRequirement))
+                .thenReturn(templateRequirements)
             whenever(requirementRepository.findForRequest(request.id)).thenReturn(runtimeRequirements)
             whenever(occurrenceRepository.findForRequest(request.id)).thenAnswer {
                 runtimeRequirements.map { it.occurrencePath }
@@ -371,11 +497,12 @@ class InformationRequestConditionEvaluationServiceTest
                     }
             }
             whenever(bindingRepository.findOrdered(templateVersion.id)).thenReturn(bindings)
-            whenever(schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, request.id))
+            whenever(fieldsReader.assignmentFor(FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id)))
                 .thenReturn(schemaAssignment)
-            whenever(fieldValueSetRepository.findRoot(schemaAssignment.id)).thenReturn(rootValueSet)
-            whenever(fieldValueRepository.findByValueSet(rootValueSet.id)).thenReturn(emptyList())
-            whenever(responseStore.findCurrentForRequest(request.id)).thenReturn(responses)
+            whenever(fieldsReader.valueSetOf(schemaAssignment.id, FieldValueSetRef.Root)).thenReturn(rootValueSet)
+            whenever(fieldsReader.valuesIn(rootValueSet.id)).thenReturn(emptyList())
+            whenever(responseStore.findCurrentForRequest(request.id)).thenAnswer { responses.filter { it.activeInResponse } }
+            whenever(responseStore.findAllForRequest(request.id)).thenAnswer { responses.toList() }
         }
 
         fun withConditionRules(vararg rules: InformationRequestTemplateConditionRuleDto)
@@ -383,11 +510,60 @@ class InformationRequestConditionEvaluationServiceTest
             whenever(templateProjectionLoader.loadConditionRules(templateVersion.id)).thenReturn(rules.toList())
         }
 
+        fun priorAnswerProvided() = InformationRequestTemplateConditionRuleDto(
+            id = UUID.randomUUID(),
+            ruleKey = PRIOR_ANSWER_PROVIDED,
+            expressionVersion = 1,
+            predicates = listOf(
+                InformationRequestTemplateConditionPredicateDto(
+                    id = UUID.randomUUID(),
+                    sourceRequirementKey = templateRequirement.requirementKey,
+                    operator = FieldOperator.EQUALS,
+                    expectedDisposition = InformationRequestResponseDisposition.PROVIDED,
+                ),
+            ),
+        )
+
+        fun firstAmountIsLarge() = InformationRequestTemplateConditionRuleDto(
+            id = UUID.randomUUID(),
+            ruleKey = FIRST_AMOUNT_IS_LARGE,
+            expressionVersion = 1,
+            predicates = listOf(
+                InformationRequestTemplateConditionPredicateDto(
+                    id = UUID.randomUUID(),
+                    fieldDefinitionId = fieldDefinitionId,
+                    valueType = FieldValueType.DECIMAL,
+                    operator = FieldOperator.GREATER_THAN_OR_EQUAL,
+                    value = JsonPrimitive("10"),
+                ),
+            ),
+        )
+
+        fun secondAmountIsEmpty() = InformationRequestTemplateConditionRuleDto(
+            id = UUID.randomUUID(),
+            ruleKey = SECOND_AMOUNT_IS_EMPTY,
+            expressionVersion = 1,
+            predicates = listOf(
+                InformationRequestTemplateConditionPredicateDto(
+                    id = UUID.randomUUID(),
+                    fieldDefinitionId = secondFieldDefinitionId,
+                    valueType = FieldValueType.DECIMAL,
+                    operator = FieldOperator.IS_EMPTY,
+                ),
+            ),
+        )
+
         fun withRootFieldValue(amount: BigDecimal)
         {
-            whenever(fieldValueRepository.findByValueSet(rootValueSet.id))
+            whenever(fieldsReader.valuesIn(rootValueSet.id))
                 .thenReturn(listOf(fieldValue(rootValueSet.id, amount)))
-            whenever(fieldContractRepository.findByIds(listOf(fieldContract.id))).thenReturn(listOf(fieldContract))
+            whenever(fieldsReader.contracts(listOf(fieldContract.id))).thenReturn(listOf(fieldContract))
+        }
+
+        fun withRootFieldValues(vararg values: Pair<FieldContract, BigDecimal>) {
+            whenever(fieldsReader.valuesIn(rootValueSet.id))
+                .thenReturn(values.map { (contract, amount) -> fieldValue(rootValueSet.id, amount, contract) })
+            whenever(fieldsReader.contracts(any())).thenReturn(listOf(fieldContract, secondFieldContract))
         }
 
         fun withConditionalBindingAnchoredTo(groupKey: String, ruleKey: String, vararg occurrencePaths: String)
@@ -399,6 +575,7 @@ class InformationRequestConditionEvaluationServiceTest
                 templateSectionId = UUID.randomUUID()
                 displayOrder = bindings.size
                 prompt = "Provide the conditional answer"
+                requiredness = InformationRequestRequiredness.CONDITIONAL
                 conditionalRuleKey = ruleKey
                 occurrenceAnchorKey = groupKey
             }
@@ -411,6 +588,52 @@ class InformationRequestConditionEvaluationServiceTest
                     sourceTemplateBindingId = binding.id
                     occurrencePath = path
                 }
+            }
+        }
+
+        fun withRootConditionalRequirement(
+            ruleKey: String,
+            collectedFieldDefinitionId: UUID?,
+            requiredness: InformationRequestRequiredness = InformationRequestRequiredness.CONDITIONAL,
+        ): InformationRequestRequirement {
+            val authored = InformationRequestTemplateRequirement().apply {
+                templateDefinitionId = templateVersion.templateDefinitionId
+                requirementKey = "conditional-answer-${templateRequirements.size}"
+                requirementType = InformationRequestRequirementType.FIELD
+            }
+            templateRequirements += authored
+            val binding = InformationRequestTemplateRequirementBinding().apply {
+                templateVersionId = templateVersion.id
+                templateDefinitionId = templateVersion.templateDefinitionId
+                templateRequirementId = authored.id
+                templateSectionId = UUID.randomUUID()
+                displayOrder = bindings.size
+                prompt = "Provide the conditional answer"
+                this.requiredness = requiredness
+                conditionalRuleKey = ruleKey
+                this.collectedFieldDefinitionId = collectedFieldDefinitionId
+            }
+            bindings += binding
+            return InformationRequestRequirement().apply {
+                informationRequestId = request.id
+                sourceTemplateVersionId = request.templateVersionId
+                sourceTemplateRequirementId = authored.id
+                sourceTemplateBindingId = binding.id
+                occurrencePath = "root"
+            }.also { runtimeRequirements += it }
+        }
+
+        fun governRequirement(governed: InformationRequestRequirement, ruleKey: String) {
+            bindings += InformationRequestTemplateRequirementBinding().apply {
+                id = governed.sourceTemplateBindingId
+                templateVersionId = templateVersion.id
+                templateDefinitionId = templateVersion.templateDefinitionId
+                templateRequirementId = governed.sourceTemplateRequirementId
+                templateSectionId = UUID.randomUUID()
+                displayOrder = bindings.size
+                prompt = "Provide the governed answer"
+                requiredness = InformationRequestRequiredness.CONDITIONAL
+                conditionalRuleKey = ruleKey
             }
         }
 
@@ -430,6 +653,7 @@ class InformationRequestConditionEvaluationServiceTest
         fun withResponse(
             requirement: InformationRequestRequirement,
             disposition: InformationRequestResponseDisposition,
+            active: Boolean = true,
         )
         {
             responses += InformationRequestResponse().apply {
@@ -437,6 +661,12 @@ class InformationRequestConditionEvaluationServiceTest
                 informationRequestRequirementId = requirement.id
                 occurrencePath = requirement.occurrencePath
                 this.disposition = disposition
+                activeInResponse = active
+                if (!active) {
+                    hiddenByConditionRuleKey = "previously-hidden"
+                    hiddenDataPolicy = InformationRequestConditionHiddenDataPolicy.RETAIN_SECURELY
+                    hiddenAt = java.sql.Timestamp.from(java.time.Instant.now())
+                }
             }
         }
 
@@ -447,21 +677,28 @@ class InformationRequestConditionEvaluationServiceTest
                 setKind = FieldValueSetKind.OCCURRENCE
                 this.occurrencePath = occurrencePath
             }
-            whenever(fieldValueSetRepository.findOccurrence(schemaAssignment.id, occurrencePath))
+            whenever(fieldsReader.valueSetOf(schemaAssignment.id, FieldValueSetRef.Occurrence(occurrencePath)))
                 .thenReturn(occurrenceSet)
-            whenever(fieldValueRepository.findByValueSet(occurrenceSet.id))
+            whenever(fieldsReader.valuesIn(occurrenceSet.id))
                 .thenReturn(listOf(fieldValue(occurrenceSet.id, amount)))
-            whenever(fieldContractRepository.findByIds(listOf(fieldContract.id))).thenReturn(listOf(fieldContract))
+            whenever(fieldsReader.contracts(listOf(fieldContract.id))).thenReturn(listOf(fieldContract))
         }
 
-        private fun fieldValue(valueSetId: UUID, amount: BigDecimal) = FieldValue().apply {
+        private fun fieldValue(valueSetId: UUID, amount: BigDecimal, contract: FieldContract = fieldContract) =
+            FieldValue().apply {
             fieldValueSetId = valueSetId
             schemaAssignmentId = schemaAssignment.id
-            fieldContractId = fieldContract.id
+                fieldContractId = contract.id
             resourceType = ResourceType.INFORMATION_REQUEST.name
             resourceId = request.id
             valueType = FieldValueType.DECIMAL
             numberValue = amount
         }
+    }
+
+    private companion object {
+        const val PRIOR_ANSWER_PROVIDED = "when-prior-answer-provided"
+        const val FIRST_AMOUNT_IS_LARGE = "when-first-amount-is-large"
+        const val SECOND_AMOUNT_IS_EMPTY = "when-second-amount-is-empty"
     }
 }

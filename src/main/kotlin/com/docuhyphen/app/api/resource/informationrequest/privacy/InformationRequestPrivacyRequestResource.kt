@@ -1,12 +1,14 @@
 package com.docuhyphen.app.api.resource.informationrequest.privacy
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.InformationRequestAuditDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestPrivacyDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.privacy.InformationRequestItemCorrectionInput
 import com.docuhyphen.app.api.model.informationrequest.privacy.RecordInformationRequestPrivacyRequestCommand
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.privacy.operations.InformationRequestPrivacyRequestResourceOperations
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestPrivacyRequestRequest
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.privacy.InformationRequestPrivacyService
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
@@ -14,14 +16,16 @@ import org.slf4j.LoggerFactory
 
 class InformationRequestPrivacyRequestResource @Inject constructor(
     private val privacy: InformationRequestPrivacyService,
+    private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestPrivacyRequestResourceOperations
 {
-    override fun record(request: RecordInformationRequestPrivacyRequestRequest?): Response
+    override fun record(request: RecordInformationRequestPrivacyRequestRequest?, idempotencyKey: String?): Response
     {
         return try
         {
             val body = request
                 ?: throw InformationRequestCommandRequestException("A privacy request names its subject, kind, purpose, and policy basis")
+            val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val view = privacy.submit(
                 RecordInformationRequestPrivacyRequestCommand(
                     subjectIdentityRefId = InformationRequestCommandHttp.uuid(
@@ -31,6 +35,8 @@ class InformationRequestPrivacyRequestResource @Inject constructor(
                     requestKind = body.requestKind,
                     purposeKey = body.purposeKey,
                     policyBasisKey = body.policyBasisKey,
+                    idempotencyKey = key,
+                    authorization = accessContextFactory.currentAuthenticated().authorization,
                     transferRegion = body.transferRegion,
                     correction = body.correction?.let {
                         InformationRequestItemCorrectionInput(
@@ -79,6 +85,19 @@ class InformationRequestPrivacyRequestResource @Inject constructor(
         catch (exception: Exception)
         {
             InformationRequestCommandHttp.refused(logger, "Information Request privacy request read failed", exception)
+        }
+    }
+
+    override fun recordExport(privacyRequestId: String): Response {
+        return try {
+            val view = privacy.subjectExport(InformationRequestCommandHttp.uuid(privacyRequestId, "privacy request id"))
+            Response.ok(InformationRequestAuditDtoMapper.toDto(view)).build()
+        } catch (exception: Exception) {
+            InformationRequestCommandHttp.refused(
+                logger,
+                "Information Request privacy record export read failed",
+                exception
+            )
         }
     }
 

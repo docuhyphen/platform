@@ -2,17 +2,15 @@ package com.docuhyphen.app.api.resource.informationrequest.parent
 
 import com.docuhyphen.app.api.model.dto.InformationRequestExchangeListingDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestCallerStanding
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestExchangeListing
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestNextAction
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestSummary
-import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestSummaryPermissions
+import com.docuhyphen.app.api.model.informationrequest.parent.*
 import com.docuhyphen.app.api.resource.informationrequest.parent.operations.InformationRequestExchangeListingResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
@@ -32,7 +30,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestExchangeListingResourceContractTest
 {
@@ -41,6 +39,7 @@ class InformationRequestExchangeListingResourceContractTest
     private val resource = InformationRequestExchangeListingResource(summaryService, accessContextFactory)
     private val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
     private val exchangeId = UUID.randomUUID()
+    private val ownerOrganizationId = UUID.randomUUID()
 
     init
     {
@@ -78,6 +77,10 @@ class InformationRequestExchangeListingResourceContractTest
                 ),
                 canCreate = false,
                 creationUnavailableReason = InformationRequestStandingReason.TRIAL_ENDED,
+                creationOwner = InformationRequestOwnerRef(
+                    InformationRequestOwnerType.ORGANIZATION,
+                    ownerOrganizationId
+                ),
             ),
         )
 
@@ -90,6 +93,9 @@ class InformationRequestExchangeListingResourceContractTest
         val body = listed.entity as InformationRequestExchangeListingDto
         assertEquals(false, body.canCreate)
         assertEquals(InformationRequestStandingReason.TRIAL_ENDED, body.creationUnavailableReason)
+        assertEquals(InformationRequestOwnerType.ORGANIZATION, body.creationOwner?.ownerType)
+        assertEquals(ownerOrganizationId, body.creationOwner?.ownerOrganizationId)
+        assertEquals(null, body.creationOwner?.ownerUserId)
         val summary = body.requests.single()
         assertEquals(request.id, summary.id)
         assertEquals("Periodic records request", summary.title)

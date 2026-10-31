@@ -3,7 +3,11 @@ package com.docuhyphen.app.api.service.informationrequest.conformance
 import com.docuhyphen.app.api.migration.FieldAnswerSqlFixture
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
+import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
@@ -14,26 +18,17 @@ import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformat
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.ConformanceRequest
+import com.docuhyphen.app.api.service.informationrequest.execution.everyContinuationAction
+import com.docuhyphen.app.api.service.informationrequest.execution.typedAnswerGrantFeatures
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import io.quarkus.narayana.jta.QuarkusTransaction
 import kotlinx.serialization.json.JsonPrimitive
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
-
-internal data class ConformanceRequest(
-    val runtime: SubmissionRuntimeSqlFixture,
-    val answers: FieldAnswerSqlFixture,
-)
-{
-    val requestId: UUID get() = runtime.requestId
-}
 
 internal class ConformanceRequestSupport(
     private val dataSource: DataSource,
@@ -44,6 +39,8 @@ internal class ConformanceRequestSupport(
     fun fieldRequest(
         staged: Boolean = false,
         reviewed: Boolean = false,
+        grantedFeatures: List<String> = typedAnswerGrantFeatures,
+        continuationActions: List<String> = everyContinuationAction,
         beforePublish: (Connection, SubmissionRuntimeSqlFixture, FieldAnswerSqlFixture) -> Unit = { _, _, _ -> },
         prepare: (Connection, ConformanceRequest) -> Unit = { _, _ -> },
     ): ConformanceRequest =
@@ -62,12 +59,14 @@ internal class ConformanceRequestSupport(
                 """
                 INSERT INTO request_execution_grant
                     (id, request_id, owner_type, owner_organization_id, plan_code, subscription_status,
-                     enforcement_mode, acting_party_cap, issued_at, created_at)
-                VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', 5, now(), now())
+                     enforcement_mode, acting_party_cap, granted_features, continuation_actions, issued_at, created_at)
+                VALUES (?, ?, 'ORGANIZATION', ?, 'BUSINESS', 'ACTIVE', 'ENFORCE', 5, ?, ?, now(), now())
                 """.trimIndent(),
                 UUID.randomUUID(),
                 request.requestId,
                 request.template.organizationId,
+                connection.createArrayOf("varchar", grantedFeatures.toTypedArray()),
+                connection.createArrayOf("varchar", continuationActions.toTypedArray()),
             )
             ConformanceRequest(request, answers).also { prepare(connection, it) }
         }

@@ -1,19 +1,23 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromTemplateVersionCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateHolder
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
@@ -32,7 +36,7 @@ import java.time.Instant
 
 @ApplicationScoped
 class InformationRequestTemplateInstantiationService @Inject constructor(
-    private val exchangeRepository: ExchangeRepository,
+    private val exchangeLookup: ExchangeLookupService,
     private val requestRepository: InformationRequestRepository,
     private val templateReferenceService: InformationRequestTemplateReferenceService,
     private val materializer: InformationRequestTemplateMaterializer,
@@ -50,13 +54,11 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
             operation = CREATE_FROM_TEMPLATE_VERSION_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    CREATE_FROM_TEMPLATE_VERSION_OPERATION,
-                    command.templateVersionId.toString(),
-                    command.exchangeId.toString(),
-                    command.gatesExchangeClosure.toString(),
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                CREATE_FROM_TEMPLATE_VERSION_OPERATION,
+                command.templateVersionId,
+                command.exchangeId,
+                command.gatesExchangeClosure,
             ),
         )
         return when (
@@ -81,7 +83,8 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
 
     private fun createMutation(command: CreateInformationRequestFromTemplateVersionCommand): InformationRequestCreationResult
     {
-        val exchange = exchangeRepository.findByIdForUpdate(command.exchangeId)
+        authorize(command)
+        val exchange = exchangeLookup.lockExchangeForUpdate(command.exchangeId)
             ?: throw IllegalArgumentException("Exchange not found")
         if (exchange.isDeleted)
         {
@@ -89,9 +92,11 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
         }
         requireDraftCreationAllowed(exchange)
         entitlementGuard.requireRequestCreation(exchange)
-        authorize(command)
-        val reference = templateReferenceService.requireInstantiableVersion(command.templateVersionId)
-        requireHeldForOwner(reference, exchange)
+        val reference = templateReferenceService.requireInstantiableVersion(
+            command.templateVersionId,
+            InformationRequestTemplateHolder.of(exchange),
+        )
+        requireOwnerCopy(reference)
 
         val now = Timestamp.from(Instant.now())
         val request = requestRepository.save(
@@ -106,9 +111,8 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
                 ownerUserId = exchange.ownerUserId
                 state = InformationRequestState.DRAFT
                 gatesExchangeClosure = command.gatesExchangeClosure
-                createdByAppUserId = command.access.principal.id.takeIf {
-                    command.access.principal.kind == PrincipalKind.USER
-                }
+                createdByPrincipalKind = command.access.principal.kind
+                createdByPrincipalId = command.access.principal.id
                 createdAt = now
                 updatedAt = now
             },
@@ -119,8 +123,8 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
                 fromState = null,
                 toState = InformationRequestState.DRAFT,
                 mutation = InformationRequestMutation.CREATE_DRAFT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.draft.create|$CREATE_FROM_TEMPLATE_VERSION_OPERATION|" +
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.draft.create|$CREATE_FROM_TEMPLATE_VERSION_OPERATION|" +
                         "${request.id}|${command.idempotencyKey}",
             ),
         )
@@ -135,29 +139,13 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
         )
     }
 
-    private fun requireHeldForOwner(reference: InformationRequestTemplateVersionReference, exchange: Exchange)
+    private fun requireOwnerCopy(reference: InformationRequestTemplateVersionReference)
     {
         if (reference.ownerScopeKind == InformationRequestTemplateScopeKind.PLATFORM)
         {
             throw InformationRequestTemplateVersionUnavailableException(
                 InformationRequestTemplateVersionUnavailableException.PLATFORM_COPY_REQUIRED,
                 "A platform Template is copied into the owner's Templates before a request uses it",
-            )
-        }
-        val held = when (reference.ownerScopeKind)
-        {
-            InformationRequestTemplateScopeKind.PLATFORM -> false
-            InformationRequestTemplateScopeKind.ORGANIZATION ->
-                exchange.ownerOrganizationId != null && reference.ownerOrganizationId == exchange.ownerOrganizationId
-
-            InformationRequestTemplateScopeKind.PERSONAL ->
-                exchange.ownerOrganizationId == null && reference.ownerUserId == exchange.ownerUserId
-        }
-        if (!held)
-        {
-            throw InformationRequestTemplateVersionUnavailableException(
-                InformationRequestTemplateVersionUnavailableException.NOT_FOUND,
-                "Information request template version not found: ${reference.templateVersionId}",
             )
         }
     }
@@ -206,7 +194,7 @@ class InformationRequestTemplateInstantiationService @Inject constructor(
         InformationRequestReadAuthorization.requireView(authorizationService, request.id, access)
         return InformationRequestCreationResult(
             request = request,
-            requestETag = requireNotNull(result.etag) { "Creation receipt did not record an aggregate ETag" },
+            requestETag = InformationRequestETag.aggregateOf(request),
             requirementCount = requireNotNull(result.revision) { "Creation receipt did not record Requirements" }.toInt(),
         )
     }

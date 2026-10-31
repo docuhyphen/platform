@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck:app": "node scripts/typecheck-app-baseline.mjs",
+    "typecheck:null-safety": "node scripts/typecheck-null-safety.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

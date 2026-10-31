@@ -1,30 +1,32 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.command.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
+import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewSnapshot
 import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewFindingCommand
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementDisclosure
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
 
@@ -38,11 +40,13 @@ class InformationRequestReviewFindingService @Inject constructor(
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
+    private val disclosure: InformationRequestRequirementDisclosure,
 )
 {
     @Transactional
     fun record(command: RecordInformationRequestReviewFindingCommand): InformationRequestReviewCommandResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val reasonCode = command.reasonCode.trim().lowercase()
         val narrative = command.narrative.trim()
@@ -51,20 +55,19 @@ class InformationRequestReviewFindingService @Inject constructor(
             operation = OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    OPERATION,
-                    command.reviewId,
-                    command.submissionItemId,
-                    command.evidenceVersionId ?: "",
-                    reasonCode,
-                    sha256Hex(narrative),
-                    command.severity,
-                    command.visibility,
-                    command.correctionScope,
-                    command.retestsFindingId ?: "",
-                    command.retestResult ?: "",
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                OPERATION,
+                command.reviewId,
+                command.submissionItemId,
+                command.assignmentId,
+                command.evidenceVersionId,
+                reasonCode,
+                narrative,
+                command.severity,
+                command.visibility,
+                command.correctionScope,
+                command.retestsFindingId,
+                command.retestResult,
             ),
         )
         return when (
@@ -85,11 +88,7 @@ class InformationRequestReviewFindingService @Inject constructor(
             is CommandReceiptDecision.Recorded -> decision.response
             is CommandReceiptDecision.Replayed ->
             {
-                gate.authorizeRequest(
-                    command.access,
-                    listOf(Action.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_MANAGE_REVIEWS),
-                    command.requestId,
-                )
+                access.requireReviewReader(command.access, command.requestId)
                 val finding = findingRepository.findById(decision.result.resourceId)
                     ?: throw InformationRequestLifecycleException(
                         InformationRequestErrorCatalog.NOT_FOUND,
@@ -101,6 +100,7 @@ class InformationRequestReviewFindingService @Inject constructor(
                     review = review,
                     reviewETag = loader.reviewETag(review),
                     responseETag = InformationRequestETag.responsesOf(locked.request),
+                    assignment = finding.assignmentId?.let { access.requireAssignment(review, it) },
                     finding = finding,
                 )
             }
@@ -114,20 +114,20 @@ class InformationRequestReviewFindingService @Inject constructor(
         narrative: String,
     ): InformationRequestReviewCommandResult
     {
+        gate.authorizeRequest(
+            command.access,
+            listOf(Action.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_MANAGE_REVIEWS),
+            command.requestId,
+        )
         gate.requireMutation(locked, InformationRequestMutation.RECORD_FINDING)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
         val review = loader.requireReview(command.requestId, command.reviewId)
         access.requireOpen(review)
-        val assignment = access.callerAssignments(review, command.access).firstOrNull()
-        val reviewing = assignment != null && access.permitsReview(command.access, command.requestId)
-        if (!reviewing && !access.permitsManage(command.access, command.requestId))
-        {
-            throw ForbiddenException("Only an assigned reviewer or a request administrator may record a finding")
-        }
         if (!REASON_CODE.matches(reasonCode))
         {
             throw InformationRequestCommandRequestException("A finding reason code is a lowercase machine code")
         }
+        InformationRequestReviewInputLimits.requireText(narrative, "A finding narrative")
         if (narrative.isEmpty()) throw InformationRequestCommandRequestException("A finding states what was found")
         val snapshot = loader.snapshot(review)
         val item = snapshot.item(command.submissionItemId)
@@ -135,8 +135,25 @@ class InformationRequestReviewFindingService @Inject constructor(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Submission item not found"
             )
-        if (reviewing && !access.permitsItemReview(command.access, item.informationRequestRequirementId))
-        {
+        val assignment = assignmentFor(command, snapshot, item)
+        if (assignment == null) {
+            if (snapshot.coverage.values.none { item.id in it }) {
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.REVIEW_ITEM_NOT_COVERED,
+                    "No stage of this review reviews that item",
+                )
+            }
+            disclosure.requireRecentVerification(
+                command.access,
+                command.requestId,
+                item.informationRequestRequirementId
+            )
+        } else if (!access.permitsItemReview(command.access, item.informationRequestRequirementId)) {
+            disclosure.requireRecentVerification(
+                command.access,
+                command.requestId,
+                item.informationRequestRequirementId
+            )
             throw ForbiddenException("Access denied to review this Information Request Requirement")
         }
         if (command.correctionScope == InformationRequestFindingCorrectionScope.EVIDENCE_VERSION && command.evidenceVersionId == null)
@@ -158,11 +175,11 @@ class InformationRequestReviewFindingService @Inject constructor(
         }
         command.retestsFindingId?.let { retested ->
             val prior = review.priorReviewId?.let { findingRepository.findForReview(it) }.orEmpty()
-            if (prior.none { it.id == retested })
+            if (prior.none { it.id == retested && it.requirementId == item.informationRequestRequirementId })
             {
                 throw InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.REVIEW_RETEST_INVALID,
-                    "A retest names a finding of the review this review follows",
+                    "A retest names a finding of the review this review follows about the same Requirement",
                 )
             }
         }
@@ -175,7 +192,7 @@ class InformationRequestReviewFindingService @Inject constructor(
                 submissionItemId = item.id
                 requirementId = item.informationRequestRequirementId
                 evidenceVersionId = command.evidenceVersionId
-                assignmentId = assignment?.id?.takeIf { reviewing }
+                assignmentId = assignment?.id
                 this.reasonCode = reasonCode
                 this.narrative = narrative
                 severity = command.severity
@@ -198,9 +215,9 @@ class InformationRequestReviewFindingService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.RECORD_FINDING,
-                actor = command.access.principal,
+                actor = InformationRequestAuditActor.of(command.access),
                 reasonCode = reasonCode,
-                idempotencyKey = "information_request.review_finding|${finding.id}|${command.idempotencyKey}",
+                auditIdempotencyKey = "information_request.review_finding|${finding.id}|${command.idempotencyKey}",
                 details = mapOf(
                     "reviewId" to review.id.toString(),
                     "findingId" to finding.id.toString(),
@@ -221,10 +238,36 @@ class InformationRequestReviewFindingService @Inject constructor(
         )
     }
 
-    private fun sha256Hex(material: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(material.toByteArray(StandardCharsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+    private fun assignmentFor(
+        command: RecordInformationRequestReviewFindingCommand,
+        snapshot: InformationRequestReviewSnapshot,
+        item: InformationRequestSubmissionItem,
+    ): InformationRequestReviewAssignment? {
+        val reviewing = access.permitsReview(command.access, command.requestId)
+        command.assignmentId?.let { assignmentId ->
+            if (!reviewing) {
+                throw ForbiddenException("Only an assigned reviewer records a finding through a review assignment")
+            }
+            val named = access.requireAssignment(snapshot.review, assignmentId)
+            access.requireActsAs(named, command.access)
+            access.requireReviewsItem(snapshot, named, item.id)
+            return named
+        }
+        val eligible = if (reviewing)
+            access.callerAssignments(snapshot.review, command.access)
+                .filter { access.reviewsItem(snapshot, it, item.id) }
+        else emptyList()
+        return when {
+            eligible.size == 1 -> eligible.single()
+            eligible.size > 1 -> throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.REVIEW_ASSIGNMENT_AMBIGUOUS,
+                "More than one of this reviewer's open assignments reviews that item; name the assignment the finding belongs to",
+            )
+
+            access.permitsManage(command.access, command.requestId) -> null
+            else -> throw ForbiddenException("Only an assigned reviewer or a request administrator may record a finding")
+        }
+    }
 
     private companion object
     {

@@ -18,16 +18,4 @@ export const useInformationRequestSubmissionPanelStyles = makeStyles({
         gap: tokens.spacingHorizontalM,
         flexWrap: "wrap",
     },
-    stageField: {
-        minWidth: "min(260px, 100%)",
-    },
-    actions: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalM,
-        flexWrap: "wrap",
-    },
-    detail: {
-        color: tokens.colorNeutralForeground3,
-    },
 });

@@ -1,9 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -11,7 +9,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class DomainEventOutboxPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<DomainEventOutboxPostgreSQLContainer>(imageName)
@@ -53,7 +51,7 @@ class DomainEventOutboxOwnerContractTest
 
             postgres.createConnection("").use { connection ->
                 val refusal = assertThrows<SQLException> {
-                    insertLegacyEvent(connection, UUID.randomUUID(), UUID.randomUUID())
+                    insertUnownedEvent(connection, UUID.randomUUID())
                 }
                 assertTrue(refusal.message.orEmpty().contains("owner_kind"), refusal.message)
             }
@@ -61,27 +59,31 @@ class DomainEventOutboxOwnerContractTest
     }
 
     @Test
-    fun `personal domain event rows name exactly one user owner`()
+    fun `domain event rows name exactly one owner and keep no separate organization column`()
     {
         withPostgres { postgres ->
             flyway(postgres).migrate()
             val ownerUserId = UUID.randomUUID()
-            val eventId = UUID.randomUUID()
+            val organizationId = UUID.randomUUID()
+            val personalEventId = UUID.randomUUID()
+            val organizationEventId = UUID.randomUUID()
 
             postgres.createConnection("").use { connection ->
-                insertOwnedEvent(connection, eventId, "USER", ownerUserId, null)
-                assertEquals("USER", ownerKind(connection, eventId))
-                assertEquals(ownerUserId, ownerId(connection, eventId))
-                assertNull(organizationId(connection, eventId))
+                insertOwnedEvent(connection, personalEventId, "USER", ownerUserId)
+                insertOwnedEvent(connection, organizationEventId, "ORGANIZATION", organizationId)
+                assertEquals("USER", ownerKind(connection, personalEventId))
+                assertEquals(ownerUserId, ownerId(connection, personalEventId))
+                assertEquals(organizationId, ownerId(connection, organizationEventId))
+                assertFalse(hasOrganizationColumn(connection))
 
                 refused(connection) {
-                    insertOwnedEvent(connection, UUID.randomUUID(), "USER", null, null)
+                    insertOwnedEvent(connection, UUID.randomUUID(), "USER", null)
                 }
                 refused(connection) {
-                    insertOwnedEvent(connection, UUID.randomUUID(), "USER", ownerUserId, UUID.randomUUID())
+                    insertOwnedEvent(connection, UUID.randomUUID(), "ORGANIZATION", null)
                 }
                 refused(connection) {
-                    insertOwnedEvent(connection, UUID.randomUUID(), "PLATFORM", ownerUserId, null)
+                    insertOwnedEvent(connection, UUID.randomUUID(), "PLATFORM", ownerUserId)
                 }
             }
         }
@@ -134,21 +136,33 @@ class DomainEventOutboxOwnerContractTest
         }
     }
 
-    private fun insertOwnedEvent(
-        connection: Connection,
-        eventId: UUID,
-        ownerKind: String,
-        ownerId: UUID?,
-        organizationId: UUID?,
-    )
+    private fun insertUnownedEvent(connection: Connection, eventId: UUID) {
+        val now = Timestamp.from(Instant.now())
+        connection.prepareStatement(
+            """
+            INSERT INTO workflow_event_outbox
+                (id, event_id, idempotency_key, event_type, envelope_json, status, attempt_count, created_at, next_attempt_at)
+            VALUES (?, ?, ?, 'workflow.test', '{}', 'PENDING', 0, ?, ?)
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setObject(1, UUID.randomUUID())
+            statement.setObject(2, eventId)
+            statement.setString(3, "workflow:$eventId")
+            statement.setTimestamp(4, now)
+            statement.setTimestamp(5, now)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun insertOwnedEvent(connection: Connection, eventId: UUID, ownerKind: String, ownerId: UUID?)
     {
         val now = Timestamp.from(Instant.now())
         connection.prepareStatement(
             """
             INSERT INTO workflow_event_outbox
-                (id, event_id, idempotency_key, event_type, owner_kind, owner_id, organization_id,
+                (id, event_id, idempotency_key, event_type, owner_kind, owner_id,
                  envelope_json, status, attempt_count, created_at, next_attempt_at)
-            VALUES (?, ?, ?, 'information_request.request.create', ?, ?, ?, '{}', 'PENDING', 0, ?, ?)
+            VALUES (?, ?, ?, 'information_request.request.create', ?, ?, '{}', 'PENDING', 0, ?, ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, UUID.randomUUID())
@@ -156,9 +170,8 @@ class DomainEventOutboxOwnerContractTest
             statement.setString(3, "information_request:$eventId")
             statement.setString(4, ownerKind)
             statement.setObject(5, ownerId)
-            statement.setObject(6, organizationId)
+            statement.setTimestamp(6, now)
             statement.setTimestamp(7, now)
-            statement.setTimestamp(8, now)
             statement.executeUpdate()
         }
     }
@@ -184,8 +197,8 @@ class DomainEventOutboxOwnerContractTest
     private fun ownerId(connection: Connection, eventId: UUID): UUID? =
         value(connection, "owner_id", eventId) as? UUID
 
-    private fun organizationId(connection: Connection, eventId: UUID): UUID? =
-        value(connection, "organization_id", eventId) as? UUID
+    private fun hasOrganizationColumn(connection: Connection): Boolean =
+        connection.metaData.getColumns(null, null, "workflow_event_outbox", "organization_id").use { it.next() }
 
     private fun value(connection: Connection, column: String, eventId: UUID): Any?
     {

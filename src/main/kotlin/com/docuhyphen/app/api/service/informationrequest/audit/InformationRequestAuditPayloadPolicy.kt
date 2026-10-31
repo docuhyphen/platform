@@ -1,18 +1,26 @@
 package com.docuhyphen.app.api.service.informationrequest.audit
 
+import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditPayloadProjection
+import java.util.*
+
 object InformationRequestAuditPayloadPolicy
 {
     private val ALLOWED_KEYS = setOf(
+        "verified",
         "acceptedFactId",
+        "accessSessionId",
         "amendmentId",
         "amendmentNumber",
         "assignmentChange",
         "assignmentId",
+        "attemptCount",
         "attemptNumber",
+        "authorityId",
         "basis",
         "budgetMinutes",
         "businessDecisionId",
         "businessTimezone",
+        "challengeCount",
         "changeCount",
         "claimId",
         "clockId",
@@ -21,6 +29,8 @@ object InformationRequestAuditPayloadPolicy
         "commentId",
         "commentRole",
         "commentVisibility",
+        "conditionEffectCount",
+        "conditionEffects",
         "conflictState",
         "connectorExchangeId",
         "connectorKey",
@@ -33,6 +43,8 @@ object InformationRequestAuditPayloadPolicy
         "deletedObjectCount",
         "deletionOutcome",
         "discrepancyCount",
+        "reconciliationId",
+        "comparisonCount",
         "discrepancyId",
         "discrepancyResolution",
         "documentVersionId",
@@ -40,14 +52,17 @@ object InformationRequestAuditPayloadPolicy
         "dueEffect",
         "endpointState",
         "engine",
+        "errorCode",
         "evidenceAction",
         "evidenceArtifactId",
         "evidenceVersionNumber",
         "exchangeId",
         "expiredAt",
+        "expiresAt",
         "exportId",
         "extensionMinutes",
         "factConfidence",
+        "failedAttempt",
         "failureCode",
         "findingId",
         "findingSeverity",
@@ -60,11 +75,16 @@ object InformationRequestAuditPayloadPolicy
         "importedValueDecision",
         "importedValueId",
         "lineageKind",
+        "lockedUntil",
+        "maxUses",
         "mutation",
         "namespace",
+        "nextAttemptAt",
+        "noticeCount",
         "noticeId",
         "noticeIntentCount",
         "noticeIntentId",
+        "noticeIntentIds",
         "noticeKind",
         "objectCount",
         "orgId",
@@ -74,10 +94,13 @@ object InformationRequestAuditPayloadPolicy
         "override",
         "owningProcessKey",
         "packageNumber",
+        "participantAccountLinkId",
+        "partiesNotCopied",
         "partyId",
         "pausedAt",
         "pendingNoticeCount",
         "pointAt",
+        "policyBasisKey",
         "policyKey",
         "policyVersionId",
         "previousDueAt",
@@ -94,9 +117,11 @@ object InformationRequestAuditPayloadPolicy
         "reminderOrdinal",
         "remainingSeconds",
         "renderedContentHash",
+        "replacesShareLinkId",
         "requestId",
         "requestKind",
         "requirementId",
+        "restrictionId",
         "resultKey",
         "resumedAt",
         "retainedObjectCount",
@@ -105,15 +130,22 @@ object InformationRequestAuditPayloadPolicy
         "reviewId",
         "reviewKind",
         "reviewOutcome",
+        "reviewPlanChanged",
+        "rotationCount",
         "satisfiedByPackageId",
         "scanOutcome",
         "schemaVersion",
         "scopeKind",
         "sequenceAllocationCount",
         "sequenceNumber",
+        "shareLinkId",
         "signatureVersion",
         "sourceKind",
         "sourcePackageId",
+        "sourceTemplateDefinitionId",
+        "sourceTemplateVersionId",
+        "sourceVersionNumber",
+        "stage",
         "stageKey",
         "state",
         "stoppedAt",
@@ -132,13 +164,31 @@ object InformationRequestAuditPayloadPolicy
         "transitionId",
         "transitionSequence",
         "urgency",
+        "usedCount",
+        "verificationStrength",
+        "verifiedUntil",
         "versionNumber",
+        "versionRevision",
         "worksheetEntryCount",
     )
 
-    fun allowedPayload(payload: Map<String, String>): Map<String, String> = payload.filterKeys { it in ALLOWED_KEYS }
+    private val RELATED_REQUEST_KEYS = setOf(
+        "successorRequestId",
+        "supersededByRequestId",
+    )
 
-    fun withheldKeyCount(payload: Map<String, String>): Int = payload.keys.count { it !in ALLOWED_KEYS }
+    fun projectionOf(
+        payload: Map<String, String>,
+        relatedRequestShown: (UUID) -> Boolean,
+    ): InformationRequestAuditPayloadProjection {
+        val shown = payload.filter { (key, value) ->
+            key in ALLOWED_KEYS && (key !in RELATED_REQUEST_KEYS || namesShownRequest(value, relatedRequestShown))
+        }
+        return InformationRequestAuditPayloadProjection(shown, payload.size - shown.size)
+    }
+
+    private fun namesShownRequest(value: String, relatedRequestShown: (UUID) -> Boolean): Boolean =
+        runCatching { UUID.fromString(value) }.getOrNull()?.let(relatedRequestShown) == true
 
     fun eventClassOf(eventTypeKey: String): String
     {

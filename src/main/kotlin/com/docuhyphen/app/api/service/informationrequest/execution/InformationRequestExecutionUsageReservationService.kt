@@ -13,29 +13,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The capacity ledger against a single [RequestExecutionGrant]: how much of its frozen recipient,
- * upload, or storage allowance is actually spoken for right now.
- *
- * A reservation is provisional until [consume] finalizes it, or [release] gives it back before
- * that happens. [rollback] gives capacity back after it was already consumed, for the rarer case
- * where finalized usage is later undone (a party removed, an upload deleted) without disturbing
- * anyone else's reservation. Concurrent [reserve] calls against the same grant are serialized by
- * locking the grant row itself, the same pattern [com.docuhyphen.app.api.service.organization.OrganizationSeatGuard]
- * uses to serialize seat activations, so two callers racing for the last unit of capacity cannot
- * both succeed.
- */
 @ApplicationScoped
 class InformationRequestExecutionUsageReservationService @Inject constructor(
     private val grantRepository: RequestExecutionGrantRepository,
     private val reservationRepository: RequestExecutionUsageReservationRepository,
 )
 {
-    /**
-     * Idempotent by [reservationKey]: a retry of the same logical reservation returns the row
-     * already created for it, whatever its current status, rather than reserving twice or
-     * re-checking capacity that was already granted.
-     */
     @Transactional
     fun reserve(
         grantId: UUID,
@@ -81,7 +64,6 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
         return reservationRepository.insertNow(reservation)
     }
 
-    /** Idempotent: consuming an already-consumed reservation returns it unchanged. */
     @Transactional
     fun consume(reservationId: UUID): RequestExecutionUsageReservation
     {
@@ -100,7 +82,6 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
         }
     }
 
-    /** Idempotent: releasing an already-released reservation returns it unchanged. */
     @Transactional
     fun release(reservationId: UUID): RequestExecutionUsageReservation
     {
@@ -119,7 +100,6 @@ class InformationRequestExecutionUsageReservationService @Inject constructor(
         }
     }
 
-    /** Idempotent: rolling back an already-rolled-back reservation returns it unchanged. */
     @Transactional
     fun rollback(reservationId: UUID): RequestExecutionUsageReservation
     {

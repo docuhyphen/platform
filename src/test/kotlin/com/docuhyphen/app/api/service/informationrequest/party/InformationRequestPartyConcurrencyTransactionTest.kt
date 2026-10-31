@@ -1,23 +1,16 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.Share
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
@@ -29,33 +22,33 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.RequestTemplatePostgreSQLResource
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
 import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceCollectionService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionUsageReservationService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestBootstrapShareLinkService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.RequestAccessSessionService
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStore
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationService
+import com.docuhyphen.app.api.service.informationrequest.party.model.PartyConcurrencyFixture
+import com.docuhyphen.app.api.service.informationrequest.response.*
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
@@ -70,12 +63,8 @@ import org.mockito.kotlin.whenever
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.*
+import java.util.concurrent.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -91,12 +80,15 @@ class InformationRequestPartyConcurrencyTransactionTest
     @Inject
     lateinit var exchangeRepository: ExchangeRepository
 
+    @Inject
+    lateinit var exchangeLookup: ExchangeLookupService
+
     @Test
     fun `reassignment lets an opposing response save finish before taking the parent lock`()
     {
         val fixture = createFixture()
-        val gate = ReassignmentParentLockGate(exchangeRepository)
-        val services = services(fixture, gate.repository)
+        val gate = ReassignmentParentLockGate(exchangeLookup)
+        val services = services(fixture, gate.lookup)
         val pool = Executors.newFixedThreadPool(2) { task -> Thread(task, "information-request-concurrency") }
         try
         {
@@ -126,8 +118,8 @@ class InformationRequestPartyConcurrencyTransactionTest
     fun `reassignment observes parent termination after waiting for the parent lock`()
     {
         val fixture = createFixture()
-        val gate = ReassignmentParentLockGate(exchangeRepository)
-        val services = services(fixture, gate.repository)
+        val gate = ReassignmentParentLockGate(exchangeLookup)
+        val services = services(fixture, gate.lookup)
         val pool = Executors.newFixedThreadPool(2) { task -> Thread(task, "information-request-concurrency") }
         try
         {
@@ -157,7 +149,7 @@ class InformationRequestPartyConcurrencyTransactionTest
     fun `reassignment preserves response content and original principal provenance`()
     {
         val fixture = createFixture()
-        val services = services(fixture, exchangeRepository)
+        val services = services(fixture, exchangeLookup)
 
         assertEquals(2L, services.saveResponse())
         val before = services.responseSnapshot()
@@ -176,8 +168,8 @@ class InformationRequestPartyConcurrencyTransactionTest
     }
 
     private fun services(
-        fixture: Fixture,
-        gatedExchangeRepository: ExchangeRepository,
+        fixture: PartyConcurrencyFixture,
+        gatedExchangeLookup: ExchangeLookupService,
     ): ConcurrentServices
     {
         val authorizationService = mock<AuthorizationService>()
@@ -196,40 +188,45 @@ class InformationRequestPartyConcurrencyTransactionTest
 
         val shareService = mock<ShareService>()
         whenever(
-            shareService.grantRoleKeyWithPrincipalProvenance(
+            shareService.grantAdditionalRoleKeyWithPrincipalProvenance(
                 any(),
                 any(),
                 any(),
                 any(),
                 any(),
                 anyOrNull(),
-                any(),
-                anyOrNull(),
-                anyOrNull(),
-                any(),
                 anyOrNull(),
             ),
         ).thenReturn(Share())
 
         val history = mock<InformationRequestTransitionHistoryService>()
-        val receipts = CommandReceiptService(ConcurrentCommandReceiptStore())
-        val partyService = InformationRequestPartyService(
+        val receipts = CommandReceiptService(ConcurrentCommandReceiptStore(), CommandReceiptScope())
+        val partySupport = InformationRequestPartyCommandSupport(
             requestRepository,
             partyRepository,
             mock<SubjectIdentityRefRepository>(),
-            mock<ExternalParticipantService>(),
-            mock<AppUserService>(),
             mock<ExchangeRecipientService>(),
-            mock<ExchangeRecipientSelectionResolver>(),
             shareService,
-            mock<InformationRequestBootstrapShareLinkService>(),
             authorizationService,
             receipts,
-            gatedExchangeRepository,
+            gatedExchangeLookup,
             history,
-            mock<InformationRequestExecutionGrantService>(),
-            mock<InformationRequestExecutionUsageReservationService>(),
+            mock(),
+        )
+        val partyService = InformationRequestPartyRevocationService(
+            partyRepository,
+            partySupport,
+            InformationRequestPartyCapacity(
+                mock<InformationRequestExecutionGrantService>(),
+                mock<InformationRequestExecutionUsageReservationService>(),
+            ),
             mock<InformationRequestMutationGate>(),
+            mock<InformationRequestPartyEligibilityService>(),
+            mock<InformationRequestTrustedRecipientEligibilityService>(),
+            mock<InformationRequestDelegatedAuthorityService>(),
+            mock<InformationRequestBootstrapShareLinkService>(),
+            history,
+            mock(),
         )
 
         val requirement = InformationRequestRequirement().apply {
@@ -265,40 +262,78 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
         val conditionEvaluationService = mock<InformationRequestConditionEvaluationService>()
         whenever(conditionEvaluationService.evaluate(fixture.requestId)).thenReturn(emptyList())
+        val bindingRepository = mock<InformationRequestTemplateRequirementBindingRepository>()
+        val activeResponses = InformationRequestActiveResponseReader(
+            requirementRepository,
+            occurrenceRepository,
+            bindingRepository,
+            responseStore,
+            conditionEvaluationService,
+        )
         val responseService = InformationRequestResponseDraftService(
             requestRepository,
-            exchangeRepository,
             requirementRepository,
             occurrenceRepository,
             revisionRepository,
-            mock<InformationRequestTemplateBindingDispositionRepository>(),
-            mock<InformationRequestTemplateRequirementBindingRepository>(),
             responseStore,
-            mock<SchemaAssignmentService>(),
-            mock<SchemaAssignmentRepository>(),
-            mock<FieldValueSetRepository>(),
-            mock<FieldContractRepository>(),
+            InformationRequestResponseMutationGuard(
+                requestRepository,
+                exchangeLookup,
+                InformationRequestContinuationGuard(
+                    mock<InformationRequestExecutionGrantService>(),
+                    mock<InformationRequestEntitlementGuard>(),
+                ),
+            ),
+            InformationRequestResponsePatchValidator(
+                mock<InformationRequestTemplateBindingDispositionRepository>(),
+                responseStore
+            ),
+            InformationRequestResponseFieldWriter(
+                mock<SchemaAssignmentService>(),
+                mock<FieldsReadFacade>(),
+                bindingRepository,
+                activeResponses
+            ),
+            activeResponses,
             authorizationService,
             receipts,
-            mock<InformationRequestEntitlementGuard>(),
-            mock<InformationRequestExecutionGrantService>(),
             history,
-            conditionEvaluationService,
             mock<InformationRequestStructuredResponseValidationService>(),
+            mock<InformationRequestStructuredResponseValidationContextLoader>(),
             mock<InformationRequestSubmissionLockService>(),
+            InformationRequestHiddenResponsePolicyEnforcer(
+                conditionEvaluationService,
+                mock<InformationRequestTemplateRequirementBindingRepository>(),
+                revisionRepository,
+                responseStore,
+                mock<SchemaAssignmentService>(),
+                authorizationService,
+                mock<InformationRequestHiddenResponseArchiver>(),
+                mock<FieldsReadFacade>(),
+                mock<InformationRequestHiddenResponseFiles>(),
+                mock<InformationRequestEvidenceCollectionService>(),
+                mock<InformationRequestSubmissionLockService>(),
+                InformationRequestConditionVisibility(mock(), mock()),
+            ),
+            mock<InformationRequestConditionEffectRecorder>(),
+            InformationRequestNoAuthAccessDoubles.current(),
         )
         val parentLifecycle = InformationRequestParentLifecycleService(
             requestRepository,
             mock<RequestAccessSessionService>(),
             history,
             shareService,
+            mock(),
+            mock(),
+            mock(),
+            mock(),
         )
         return ConcurrentServices(fixture, partyService, responseService, parentLifecycle, responses)
     }
 
     private inner class ConcurrentServices(
-        private val fixture: Fixture,
-        private val partyService: InformationRequestPartyService,
+        private val fixture: PartyConcurrencyFixture,
+        private val partyService: InformationRequestPartyRevocationService,
         private val responseService: InformationRequestResponseDraftService,
         private val parentLifecycle: InformationRequestParentLifecycleService,
         private val responses: List<InformationRequestResponse>,
@@ -353,30 +388,35 @@ class InformationRequestPartyConcurrencyTransactionTest
             exchangeRepository.findByIdForUpdate(fixture.exchangeId)
                 ?: error("Exchange not found")
             exchangeRepository.updateStatus(fixture.exchangeId, ExchangeStatus.RESCINDED)
-            parentLifecycle.apply(fixture.exchangeId, ExchangeStatus.RESCINDED, false, actor)
+            parentLifecycle.apply(
+                fixture.exchangeId,
+                ExchangeStatus.RESCINDED,
+                false,
+                InformationRequestAuditActor.of(access)
+            )
             "terminated"
         }
     }
 
-    private class ReassignmentParentLockGate(realRepository: ExchangeRepository)
+    private class ReassignmentParentLockGate(realLookup: ExchangeLookupService)
     {
         val reassignmentReachedParent = CountDownLatch(1)
         val releaseReassignment = CountDownLatch(1)
-        val repository = mock<ExchangeRepository>()
+        val lookup = mock<ExchangeLookupService>()
 
         init
         {
-            whenever(repository.findByIdForUpdate(any())).thenAnswer { invocation ->
+            whenever(lookup.lockExchangeForUpdate(any())).thenAnswer { invocation ->
                 reassignmentReachedParent.countDown()
                 check(releaseReassignment.await(20, TimeUnit.SECONDS)) { "Reassignment parent lock was not released" }
-                realRepository.findByIdForUpdate(invocation.getArgument(0))
+                realLookup.lockExchangeForUpdate(invocation.getArgument(0))
             }
         }
     }
 
-    private fun createFixture(): Fixture
+    private fun createFixture(): PartyConcurrencyFixture
     {
-        val fixture = Fixture()
+        val fixture = PartyConcurrencyFixture()
         dataSource.connection.use { connection ->
             insertOrganization(connection, fixture)
             insertUser(connection, fixture)
@@ -388,7 +428,7 @@ class InformationRequestPartyConcurrencyTransactionTest
         return fixture
     }
 
-    private fun insertOrganization(connection: Connection, fixture: Fixture)
+    private fun insertOrganization(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         connection.prepareStatement(
             """
@@ -404,7 +444,7 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
     }
 
-    private fun insertUser(connection: Connection, fixture: Fixture)
+    private fun insertUser(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         connection.prepareStatement(
             """
@@ -422,7 +462,7 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
     }
 
-    private fun insertExchange(connection: Connection, fixture: Fixture)
+    private fun insertExchange(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         val now = Timestamp.from(Instant.now())
         connection.prepareStatement(
@@ -443,7 +483,7 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
     }
 
-    private fun insertDefinition(connection: Connection, fixture: Fixture)
+    private fun insertDefinition(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         val now = Timestamp.from(Instant.now())
         connection.prepareStatement(
@@ -464,15 +504,15 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
     }
 
-    private fun insertVersion(connection: Connection, fixture: Fixture)
+    private fun insertVersion(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         val now = Timestamp.from(Instant.now())
         connection.prepareStatement(
             """
             INSERT INTO information_request_template_version
                 (id, template_definition_id, version_number, status, created_at,
-                 published_at, published_by_app_user_id)
-            VALUES (?, ?, 1, 'PUBLISHED', ?, ?, ?)
+                 published_at, published_by_principal_kind, published_by_principal_id)
+            VALUES (?, ?, 1, 'PUBLISHED', ?, ?, 'USER', ?)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, fixture.versionId)
@@ -484,7 +524,7 @@ class InformationRequestPartyConcurrencyTransactionTest
         }
     }
 
-    private fun insertRequest(connection: Connection, fixture: Fixture)
+    private fun insertRequest(connection: Connection, fixture: PartyConcurrencyFixture)
     {
         val now = Timestamp.from(Instant.now())
         connection.prepareStatement(
@@ -506,22 +546,13 @@ class InformationRequestPartyConcurrencyTransactionTest
             statement.executeUpdate()
         }
     }
-
-    private data class Fixture(
-        val organizationId: UUID = UUID.randomUUID(),
-        val userId: UUID = UUID.randomUUID(),
-        val exchangeId: UUID = UUID.randomUUID(),
-        val definitionId: UUID = UUID.randomUUID(),
-        val versionId: UUID = UUID.randomUUID(),
-        val requestId: UUID = UUID.randomUUID(),
-        val partyId: UUID = UUID.randomUUID(),
-        val requirementId: UUID = UUID.randomUUID(),
-    )
 }
 
 private class ConcurrentCommandReceiptStore : CommandReceiptStore
 {
     private val receipts = ConcurrentHashMap<String, CommandReceipt>()
+
+    override fun lockCommand(request: CommandReceiptRequest) = Unit
 
     override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? = receipts[key(request)]
 
@@ -533,9 +564,9 @@ private class ConcurrentCommandReceiptStore : CommandReceiptStore
 
     private fun key(request: CommandReceiptRequest): String =
         "${request.resource.type}|${request.resource.id}|${request.operation}|${request.actor.kind}|" +
-            "${request.actor.id}|${request.idempotencyKey}"
+                "${request.actor.id}|${request.idempotencyKey}"
 
     private fun key(receipt: CommandReceipt): String =
         "${receipt.resourceType}|${receipt.resourceId}|${receipt.operationName}|${receipt.actorKind}|" +
-            "${receipt.actorId}|${receipt.idempotencyKey}"
+                "${receipt.actorId}|${receipt.idempotencyKey}"
 }

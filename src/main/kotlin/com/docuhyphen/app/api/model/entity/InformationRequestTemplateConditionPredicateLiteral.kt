@@ -6,10 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * One literal an `IN` / `NOT_IN` [InformationRequestTemplateConditionPredicate] compares a
- * SINGLE_SELECT or MULTI_SELECT answer against. Ordered the way it was authored.
- */
 @Entity
 @Table(name = "information_request_template_condition_predicate_literal")
 class InformationRequestTemplateConditionPredicateLiteral

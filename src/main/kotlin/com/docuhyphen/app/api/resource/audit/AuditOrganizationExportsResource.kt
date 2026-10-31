@@ -1,16 +1,21 @@
 package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditExportApprovalRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.export.AuditExportAccessException
 import com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.inject.Inject
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType
@@ -100,8 +105,8 @@ class AuditOrganizationExportsResource @Inject constructor(
             .build()
     }
 
-    private fun toRequest(organizationId: UUID?, body: AuditExportCreateRequestDto): AuditExportService.ExportRequest =
-        AuditExportService.ExportRequest(
+    private fun toRequest(organizationId: UUID?, body: AuditExportCreateRequestDto): AuditExportRequest =
+        AuditExportRequest(
             organizationId = organizationId,
             categories = body.categories.map { AuditCategory.valueOf(it.uppercase()) }.toSet(),
             occurredAfter = parseAuditInstant(body.occurredAfter, "occurredAfter"),

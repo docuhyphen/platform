@@ -10,21 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class EvidencePolicyPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<EvidencePolicyPostgreSQLContainer>(imageName)
 
-/**
- * A version that asks for a document also states the policy the files it collects are judged by.
- *
- * The policy is held per binding, so a later version can restate how strictly the same stable
- * requirement is judged without becoming a different requirement. It belongs only to a requested
- * document, because counts, sizes, pages, issuance, coverage, and conformance describe files and
- * nothing else. Restrictions that name accepted values are a set rather than a column, so a new
- * restrictable attribute needs no further table, and substitute evidence is a flat set of
- * alternatives that cannot be chained.
- */
 class InformationRequestTemplateEvidencePolicyContractTest
 {
     private val policyVersion = "87"
@@ -49,21 +39,15 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     policyValue(connection, fixture.policyId, "conformance_policy"),
                 )
 
-                // Counts, sizes, pages, issuance, and coverage describe files, so nothing but a
-                // requested document is judged by them.
                 refused(connection, "an evidence policy belongs to a requested document") {
                     insertPolicy(connection, UUID.randomUUID(), fixture.bindingId, fixture.versionId)
                 }
                 refused(connection, "an evidence policy belongs to a requested document") {
                     insertPolicy(connection, UUID.randomUUID(), fixture.attestationBindingId, fixture.versionId)
                 }
-                // One document is judged by one policy, otherwise two answers to the same question
-                // are both in force.
                 refused(connection, "ux_request_template_evidence_policy_binding") {
                     insertPolicy(connection, UUID.randomUUID(), fixture.documentBindingId, fixture.versionId)
                 }
-                // The policy belongs to the version its binding is in, so one naming another
-                // version reaches no binding at all.
                 fixture.withDocumentOnlyVersion(connection)
                 refused(connection, "request_template_evidence_policy_binding_fkey") {
                     insertPolicy(connection, UUID.randomUUID(), fixture.otherVersionBindingId, fixture.versionId)
@@ -91,7 +75,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 refused(connection, "ck_request_template_evidence_file_size") {
                     fixture.insertPolicyWith(connection, maximumFileSizeBytes = 0)
                 }
-                // A collection cannot be allowed less room in total than one of its files.
                 refused(connection, "ck_request_template_evidence_file_size") {
                     fixture.insertPolicyWith(
                         connection,
@@ -145,9 +128,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     fixture.insertPolicyWith(connection, conformancePolicy = "IGNORED")
                 }
 
-                // An age is measured from a date, a remaining validity from an expiry, and a covered
-                // span from a coverage period. Bounding any of them without capturing the date they
-                // are measured against leaves a rule nothing can ever evaluate.
                 refused(connection, "ck_request_template_evidence_freshness") {
                     fixture.insertPolicyWith(connection, maximumIssueAgeDays = 90)
                 }
@@ -222,7 +202,14 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     "JURISDICTION" to "region-a",
                     "LANGUAGE" to "en",
                 ).forEach { (attribute, value) ->
-                    insertAcceptedValue(connection, UUID.randomUUID(), fixture.policyId, fixture.versionId, attribute, value)
+                    insertAcceptedValue(
+                        connection,
+                        UUID.randomUUID(),
+                        fixture.policyId,
+                        fixture.versionId,
+                        attribute,
+                        value
+                    )
                 }
                 assertEquals(5, acceptedValueCount(connection, fixture.policyId))
                 assertEquals(2, acceptedValueCount(connection, fixture.policyId, "CONTENT_TYPE"))
@@ -257,7 +244,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                         "en",
                     )
                 }
-                // The same value under another attribute is a different restriction.
                 insertAcceptedValue(
                     connection,
                     UUID.randomUUID(),
@@ -266,7 +252,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     "ISSUER",
                     "en",
                 )
-                // A restriction belongs to the version of the policy it restricts.
                 fixture.withDocumentOnlyVersion(connection)
                 refused(connection, "request_template_evidence_accepted_policy_fkey") {
                     insertAcceptedValue(
@@ -294,8 +279,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 fixture.withAlternateDocumentRequirementBound(connection)
                 fixture.withFieldRequirementBound(connection)
 
-                // Nothing stands in for itself. This is checked before anything is stored, because
-                // once a document has an alternative the flatness rule below already refuses it.
                 refused(connection, "ck_request_template_substitute_distinct") {
                     insertSubstitute(
                         connection,
@@ -324,8 +307,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // Substitution replaces one requested document with another, so neither end of it
-                // can be something that is not a document.
                 refused(connection, "only a requested document declares substitute evidence") {
                     insertSubstitute(
                         connection,
@@ -344,8 +325,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // Alternatives are a flat set. Both directions of a chain are refused, so no
-                // resolution of what may stand in for what has to walk a graph or detect a cycle.
                 fixture.withThirdDocumentRequirementBound(connection)
                 refused(connection, "substitute evidence cannot itself declare substitutes") {
                     insertSubstitute(
@@ -365,7 +344,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // One document may have several alternatives.
                 insertSubstitute(
                     connection,
                     UUID.randomUUID(),
@@ -400,11 +378,11 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 fixture.withDocumentRequirementBound(connection)
 
                 refused(connection, "must state the evidence policy it is judged by") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 insertPolicy(connection, fixture.policyId, fixture.documentBindingId, fixture.versionId)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
             }
         }
@@ -421,8 +399,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 fixture.withDocumentRequirementBound(connection)
                 insertPolicy(connection, fixture.policyId, fixture.documentBindingId, fixture.versionId)
 
-                // Nothing states the language, so restricting which languages are accepted is a
-                // rule that can never be evaluated.
                 insertAcceptedValue(
                     connection,
                     UUID.randomUUID(),
@@ -432,10 +408,10 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     "en",
                 )
                 refused(connection, "cannot restrict which values are accepted") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
                 setPolicyColumn(connection, fixture.policyId, "language_requirement", "REQUIRED")
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
             }
         }
@@ -448,10 +424,9 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 fixture.withDocumentRequirementBound(connection)
                 insertPolicy(connection, fixture.policyId, fixture.documentBindingId, fixture.versionId)
 
-                // A waiver rule that no permitted answer reaches can never take effect.
                 setPolicyColumn(connection, fixture.policyId, "waiver_policy", "RESPONDENT_DECLARED")
                 refused(connection, "requires the requirement to permit a waived answer") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 insertDisposition(
@@ -461,7 +436,7 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     fixture.versionId,
                     "WAIVED",
                 )
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
             }
         }
@@ -474,8 +449,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
                 fixture.withDocumentRequirementBound(connection)
                 insertPolicy(connection, fixture.policyId, fixture.documentBindingId, fixture.versionId)
 
-                // The permitted answer reaches a waiver the evidence policy forbids, so nothing
-                // governs how it may be given.
                 insertDisposition(
                     connection,
                     UUID.randomUUID(),
@@ -484,7 +457,7 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     "WAIVED",
                 )
                 refused(connection, "must state the evidence waiver rule that reaches it") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
             }
         }
@@ -526,13 +499,13 @@ class InformationRequestTemplateEvidencePolicyContractTest
                     fixture.versionId,
                 )
 
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
 
                 refused(connection, "immutable") {
                     updateStatement(
                         connection,
                         "UPDATE information_request_template_evidence_policy SET minimum_file_count = 3 " +
-                            "WHERE id = ?",
+                                "WHERE id = ?",
                         fixture.policyId,
                     )
                 }
@@ -578,22 +551,19 @@ class InformationRequestTemplateEvidencePolicyContractTest
             postgres.createConnection("").use { connection ->
                 fixture = Fixture(connection)
                 fixture.withDocumentRequirementBound(connection)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 fixture.withDocumentOnlyVersion(connection)
             }
 
             flyway(postgres).migrate()
 
             postgres.createConnection("").use { connection ->
-                // A version published before the rule existed keeps its published state. The rule
-                // decides publications from here on, not history it was never applied to.
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
                 assertEquals(0, policyCount(connection, fixture.documentBindingId))
 
                 refused(connection, "must state the evidence policy it is judged by") {
-                    publish(connection, fixture.otherVersionId, fixture.userId)
+                    publish(connection, fixture.otherVersionId)
                 }
-                // The frozen version stays frozen, so the policy it never had cannot be added now.
                 refused(connection, "immutable") {
                     insertPolicy(connection, UUID.randomUUID(), fixture.documentBindingId, fixture.versionId)
                 }
@@ -645,7 +615,14 @@ class InformationRequestTemplateEvidencePolicyContractTest
         fun withAlternateDocumentRequirementBound(connection: Connection)
         {
             insertRequirement(connection, alternateDocumentRequirementId, definitionId, "alternate-record", "DOCUMENT")
-            insertBinding(connection, alternateDocumentBindingId, versionId, alternateDocumentRequirementId, sectionId, 2)
+            insertBinding(
+                connection,
+                alternateDocumentBindingId,
+                versionId,
+                alternateDocumentRequirementId,
+                sectionId,
+                2
+            )
         }
 
         fun withThirdDocumentRequirementBound(connection: Connection)
@@ -676,7 +653,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
             insertBinding(connection, attestationBindingId, versionId, attestationRequirementId, sectionId, 6)
         }
 
-        /** A second version of the same definition that asks for its own copy of the document. */
         fun withDocumentOnlyVersion(connection: Connection)
         {
             insertSection(connection, otherSectionId, otherVersionId, "supporting-data", 1)
@@ -923,8 +899,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
         collectedFieldDefinitionId: UUID? = null,
     )
     {
-        // The collected field arrived after this baseline, so a version of the schema that predates
-        // it inserts the same row without naming one.
         val collectable = collectedFieldColumnExists(connection)
         val column = if (collectable) ", collected_field_definition_id" else ""
         val value = if (collectable) ", ?" else ""
@@ -972,7 +946,6 @@ class InformationRequestTemplateEvidencePolicyContractTest
             }
         }
 
-    /** The stable field a typed requirement in this fixture collects. */
     private fun insertFieldDefinition(connection: Connection, id: UUID, namespace: String)
     {
         val now = Timestamp.from(Instant.now())
@@ -1131,32 +1104,24 @@ class InformationRequestTemplateEvidencePolicyContractTest
         }
     }
 
-    /**
-     * Publication requires the version to have recorded the runtime capabilities its configuration
-     * needs, which is not what these tests are about, so the set is derived and recorded here.
-     * Nothing is recorded once the version has left draft, so a refused publication still refuses
-     * for its own reason.
-     */
-    private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publish(connection: Connection, versionId: UUID)
     {
         recordRequiredCapabilities(connection, versionId)
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }
 
     private fun recordRequiredCapabilities(connection: Connection, versionId: UUID)
     {
-        // A baseline that predates the rule has neither the table nor anything to record in it.
         if (!capabilityTableExists(connection))
         {
             return
@@ -1243,14 +1208,14 @@ class InformationRequestTemplateEvidencePolicyContractTest
         countOf(
             connection,
             "SELECT COUNT(*) FROM information_request_template_evidence_accepted_value " +
-                "WHERE evidence_policy_id = ?",
+                    "WHERE evidence_policy_id = ?",
             policyId,
         )
 
     private fun acceptedValueCount(connection: Connection, policyId: UUID, attribute: String): Int =
         connection.prepareStatement(
             "SELECT COUNT(*) FROM information_request_template_evidence_accepted_value " +
-                "WHERE evidence_policy_id = ? AND attribute = ?",
+                    "WHERE evidence_policy_id = ? AND attribute = ?",
         ).use { statement ->
             statement.setObject(1, policyId)
             statement.setString(2, attribute)

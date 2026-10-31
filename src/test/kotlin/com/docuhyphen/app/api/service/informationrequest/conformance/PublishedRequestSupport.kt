@@ -2,8 +2,12 @@ package com.docuhyphen.app.api.service.informationrequest.conformance
 
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryStrings
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
+import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
@@ -13,39 +17,16 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestTemplateWalkingSkeletonStore
-import com.docuhyphen.app.api.service.informationrequest.capability.WalkingSkeletonField
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.PublishedRequest
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
 import io.quarkus.narayana.jta.QuarkusTransaction
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
-
-internal data class PublishedRequest(
-    val requestId: UUID,
-    val exchangeId: UUID,
-    val definitionId: UUID,
-    val templateVersionId: UUID,
-    val ownerId: UUID,
-    val users: Map<String, UUID>,
-    val parties: Map<String, UUID>,
-    val fields: Map<String, WalkingSkeletonField>,
-    val participants: Set<String> = emptySet(),
-)
-{
-    fun access(party: String): RequestAccessContext =
-        RequestAccessContext(principal(party), AuthorizationContext(sessionRef = "${party.lowercase()}-session"))
-
-    fun principal(party: String): PrincipalRef =
-        if (party in participants) PrincipalRef.participant(users.getValue(party)) else PrincipalRef.user(users.getValue(party))
-
-    val owner: RequestAccessContext get() = RequestAccessContext(PrincipalRef.user(ownerId), AuthorizationContext(sessionRef = "owner-session"))
-}
 
 internal class PublishedRequestSupport(
     private val dataSource: DataSource,
@@ -67,11 +48,12 @@ internal class PublishedRequestSupport(
         fieldKeys: List<String>,
         partyRoles: List<String>,
         participants: Set<String> = emptySet(),
+        fieldTypes: Map<String, FieldValueType> = emptyMap(),
         configuration: (UUID, Map<String, WalkingSkeletonField>) -> InformationRequestTemplateConfigurationRequest,
     ): PublishedRequest
     {
         val owner = store.insertOwner()
-        val fields = fieldKeys.associateWith { store.insertTextField(it) }
+        val fields = fieldKeys.associateWith { store.insertField(it, fieldTypes[it] ?: FieldValueType.SHORT_TEXT) }
         val schemaVersionId = store.insertSchemaVersion(owner, fields.values.toList())
         dataSource.connection.use { connection ->
             execute(connection, "UPDATE schema_field_binding SET visibility = 'PUBLIC', is_required = FALSE WHERE schema_version_id = ?", schemaVersionId)
@@ -115,10 +97,21 @@ internal class PublishedRequestSupport(
                 FieldsAccessContext(PrincipalRef.user(owner), AuthorizationContext(sessionRef = "owner-session")),
             )
         }
-        val users = partyRoles.associateWith { party -> if (party in participants) UUID.randomUUID() else store.insertOwner() }
+        val subjects = partyRoles.filter { it.substringBefore('#') == SUBJECT_ROLE }.associateWith { UUID.randomUUID() }
+        val users =
+            (partyRoles - subjects.keys).associateWith { party -> if (party in participants) UUID.randomUUID() else store.insertOwner() }
         val parties = partyRoles.associateWith { UUID.randomUUID() }
         dataSource.connection.use { connection ->
             execute(connection, "UPDATE information_request SET state = 'ISSUED', issued_at = now() WHERE id = ?", requestId)
+            subjects.forEach { (party, subjectId) ->
+                insertSubjectParty(
+                    connection,
+                    requestId,
+                    parties.getValue(party),
+                    subjectId,
+                    owner
+                )
+            }
             users.forEach { (party, principalId) ->
                 val role = party.substringBefore('#')
                 val kind = if (party in participants) "PARTICIPANT" else "USER"
@@ -145,16 +138,43 @@ internal class PublishedRequestSupport(
                 """
                 INSERT INTO request_execution_grant
                     (id, request_id, owner_type, owner_user_id, plan_code, subscription_status,
-                     enforcement_mode, acting_party_cap, issued_at, created_at)
-                VALUES (?, ?, 'USER', ?, 'PERSONAL', 'ACTIVE', 'ENFORCE', 5, now(), now())
+                     enforcement_mode, acting_party_cap, granted_features, issued_at, created_at)
+                VALUES (?, ?, 'USER', ?, 'PERSONAL', 'ACTIVE', 'ENFORCE', 5, ARRAY ['BUSINESS_FIELDS_AND_SCHEMAS', 'INFORMATION_REQUESTS'], now(), now())
                 """.trimIndent(),
                 UUID.randomUUID(),
                 requestId,
                 owner,
             )
         }
-        return PublishedRequest(requestId, exchangeId, draft.definitionId, draft.versionId, owner, users, parties, fields, participants)
+        return PublishedRequest(
+            requestId,
+            exchangeId,
+            draft.definitionId,
+            draft.versionId,
+            owner,
+            users,
+            parties,
+            fields,
+            participants,
+            subjects
+        )
     }
+
+    fun shareHolder(request: PublishedRequest, role: String): UUID {
+        val userId = store.insertOwner()
+        dataSource.connection.use { connection ->
+            share(
+                connection,
+                "INFORMATION_REQUEST",
+                request.requestId,
+                userId,
+                role
+            )
+        }
+        return userId
+    }
+
+    fun outsider(): UUID = store.insertOwner()
 
     fun requirement(request: PublishedRequest, key: String, path: String = "root"): InformationRequestRequirement =
         QuarkusTransaction.requiringNew().call {
@@ -227,6 +247,32 @@ internal class PublishedRequestSupport(
         return id
     }
 
+    private fun insertSubjectParty(
+        connection: java.sql.Connection,
+        requestId: UUID,
+        partyId: UUID,
+        subjectId: UUID,
+        ownerId: UUID
+    ) {
+        execute(
+            connection,
+            "INSERT INTO subject_identity_ref (id, owner_type, owner_user_id, subject_kind, created_at) VALUES (?, 'USER', ?, 'RECORD', now())",
+            subjectId,
+            ownerId,
+        )
+        execute(
+            connection,
+            """
+            INSERT INTO information_request_party
+                (id, information_request_id, role_key, subject_identity_ref_id, active, party_revision, assigned_at, created_at, updated_at)
+            VALUES (?, ?, 'SUBJECT', ?, TRUE, 1, now(), now(), now())
+            """.trimIndent(),
+            partyId,
+            requestId,
+            subjectId,
+        )
+    }
+
     private fun insertParticipant(connection: java.sql.Connection, participantId: UUID, ownerId: UUID)
     {
         val email = "participant-${participantId.toString().take(8)}@process.test"
@@ -241,5 +287,9 @@ internal class PublishedRequestSupport(
             email,
             email,
         )
+    }
+
+    private companion object {
+        const val SUBJECT_ROLE = "SUBJECT"
     }
 }

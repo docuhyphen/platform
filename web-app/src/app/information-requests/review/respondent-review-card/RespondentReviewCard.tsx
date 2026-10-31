@@ -3,9 +3,11 @@ import {
     InformationRequestCorrectionState,
     InformationRequestRespondentReviewDto,
     InformationRequestReviewFindingDto,
+    InformationRequestReviewResultItemDto,
 } from "../../../models/models.tsx";
 import RespondentFinding from "../respondent-finding/RespondentFinding.tsx";
-import {reviewKindLabels, reviewStatePresentation} from "../reviewLabels.ts";
+import RespondentItemThread from "../respondent-item-thread/RespondentItemThread.tsx";
+import {returnedFilesText, reviewKindLabels, reviewStatePresentation} from "../reviewLabels.ts";
 import {useRespondentReviewCardStyles} from "./RespondentReviewCardStyles.tsx";
 
 interface Props
@@ -14,13 +16,18 @@ interface Props
     requirementLabels: Record<string, string>;
     busy: boolean;
     onAppeal: () => void;
-    onReply: (finding: InformationRequestReviewFindingDto, body: string) => void;
+    onReply: (finding: InformationRequestReviewFindingDto, body: string) => Promise<boolean>;
+    onComment: (item: InformationRequestReviewResultItemDto, body: string) => Promise<boolean>;
 }
 
-const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onReply}: Props) =>
+const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onReply, onComment}: Props) =>
 {
     const styles = useRespondentReviewCardStyles();
     const {review, findings, correction} = result;
+    const itemComments = result.comments.filter(comment => !comment.findingId);
+    const commentsOn = (item: InformationRequestReviewResultItemDto) =>
+        itemComments.filter(comment => comment.submissionItemId === item.submissionItemId);
+    const threads = (result.items ?? []).filter(item => result.canComment || commentsOn(item).length > 0);
     const state = reviewStatePresentation[review.state];
     const id = `information-request-review-result-${review.id}`;
     const labelOf = (requirementId: string) => requirementLabels[requirementId] ?? "Requested item";
@@ -40,6 +47,12 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onRepl
                     {state.label}
                 </Badge>
             </div>
+            {review.openingReason && (
+                <Text id={`${id}-reason`}
+                      className={styles.reason}>
+                    {`Reason given: ${review.openingReason}`}
+                </Text>
+            )}
             {findings.length > 0 && (
                 <ul id={`${id}-findings`}
                     className={styles.list}>
@@ -52,6 +65,21 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onRepl
                                            canReply={result.canComment}
                                            busy={busy}
                                            onReply={onReply}/>
+                    ))}
+                </ul>
+            )}
+            {threads.length > 0 && (
+                <ul id={`${id}-items`}
+                    className={styles.list}>
+                    {threads.map(item => (
+                        <RespondentItemThread key={item.submissionItemId}
+                                              idPrefix={id}
+                                              item={item}
+                                              label={labelOf(item.requirementId)}
+                                              comments={commentsOn(item)}
+                                              canComment={result.canComment}
+                                              busy={busy}
+                                              onComment={onComment}/>
                     ))}
                 </ul>
             )}
@@ -68,12 +96,10 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onRepl
                             </li>
                         ))}
                     </ul>
-                    {correction.evidenceVersionIds.length > 0 && (
+                    {correction.evidence.length > 0 && (
                         <Text id={`${id}-correction-files`}
                               className={styles.detail}>
-                            {correction.evidenceVersionIds.length === 1
-                                ? "1 returned file can be replaced or withdrawn."
-                                : `${correction.evidenceVersionIds.length} returned files can be replaced or withdrawn.`}
+                            {returnedFilesText(correction.evidence)}
                         </Text>
                     )}
                     {correction.undisclosedItemCount > 0 && (
@@ -94,6 +120,7 @@ const RespondentReviewCard = ({result, requirementLabels, busy, onAppeal, onRepl
                 <div id={`${id}-actions`}
                      className={styles.actions}>
                     <Button id={`${id}-appeal`}
+                            aria-labelledby={`${id}-appeal ${id}-title`}
                             appearance={"secondary"}
                             shape={"circular"}
                             disabled={busy}

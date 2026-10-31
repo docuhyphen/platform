@@ -1,36 +1,17 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.WorkflowDefinition
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepAssignee
-import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepTransition
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.model.entity.WorkflowTransitionOutcome
-import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.StepOutcomeSpec
+import com.docuhyphen.app.api.model.workflow.TriggerRequest
+import com.docuhyphen.app.api.model.workflow.WorkflowSpec
+import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
+import com.docuhyphen.app.api.repository.workflow.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 /**
  * Verifies the Phase 4 frozen-instance-graph contract: the engine freezes the raw definition

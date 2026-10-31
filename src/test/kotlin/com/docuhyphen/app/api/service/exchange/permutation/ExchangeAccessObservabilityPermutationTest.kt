@@ -1,43 +1,23 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientPurpose
-import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.Organization
-import com.docuhyphen.app.api.model.entity.OrganizationSettings
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.ShareStatus
-import com.docuhyphen.app.api.repository.user.AppUserRepository
-import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.contactdetails.UserContactRepository
-import com.docuhyphen.app.api.service.contactdetails.UserContactService
+import com.docuhyphen.app.api.repository.exchange.ShareRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
+import com.docuhyphen.app.api.service.contactdetails.UserContactService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.exchange.ShareQueryService
-import com.docuhyphen.app.api.service.notification.InAppNotificationService
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.organization.OrganizationTrustExchangePolicyService
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
-import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
+import org.mockito.kotlin.*
+import java.util.*
 
 class ExchangeAccessObservabilityPermutationTest
 {
@@ -214,11 +194,7 @@ class ExchangeAccessObservabilityPermutationTest
         )
         val service = ShareQueryService(
             shareRepository,
-            PrincipalDisplayService(
-                mock<AppUserRepository>(),
-                mock<PrincipalGroupRepository>(),
-                mock<ExternalParticipantRepository>(),
-            ),
+            PrincipalDisplayService(mock(), mock(), mock()),
             provider,
         )
         val purposes = service.getSessionAccessView(exchangeId).mapNotNull { it.recipientPurpose }.toSet()

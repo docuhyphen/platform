@@ -1,9 +1,11 @@
-import {Text} from "@fluentui/react-components";
+import {Button, Text} from "@fluentui/react-components";
+import {DownloadIcon} from "../../../components/IconBundles.tsx";
 import {InformationRequestPrivacyRequestDto} from "../../../models/models.tsx";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {usePrivacyPanelStyles} from "../privacy/PrivacyPanelStyles.tsx";
 import {privacyKindLabels, privacyStateLabels, targetSummary} from "../privacy/privacyLabels.ts";
 import {formattedTime} from "../operationsLabels.ts";
+import {usePrivacyRequestListStyles} from "./PrivacyRequestListStyles.tsx";
+import {usePrivacyRecordDownload} from "./usePrivacyRecordDownload.ts";
 
 interface PrivacyRequestListProps
 {
@@ -13,7 +15,8 @@ interface PrivacyRequestListProps
 
 const PrivacyRequestList = ({requests, labelOf}: PrivacyRequestListProps) =>
 {
-    const styles = usePrivacyPanelStyles();
+    const styles = usePrivacyRequestListStyles();
+    const records = usePrivacyRecordDownload();
 
     return (
         <div id={"information-request-privacy-requests"}
@@ -27,6 +30,13 @@ const PrivacyRequestList = ({requests, labelOf}: PrivacyRequestListProps) =>
             </Text>
             {requests.length === 0 && (
                 <Text id={"information-request-privacy-requests-empty"}>No privacy request has been recorded.</Text>
+            )}
+            {records.error && (
+                <Text id={"information-request-privacy-record-error"}
+                      role={"alert"}
+                      className={styles.error}>
+                    {records.error}
+                </Text>
             )}
             {requests.length > 0 && (
                 <ul id={"information-request-privacy-requests-list"}
@@ -64,6 +74,23 @@ const PrivacyRequestList = ({requests, labelOf}: PrivacyRequestListProps) =>
                                         </Text>
                                     )}
                                 </div>
+                                {request.recordExportId && !request.recordExportAvailable && (
+                                    <Text id={`${id}-record-disposed`}
+                                          size={200}>
+                                        Its record was disposed with a request it covered.
+                                    </Text>
+                                )}
+                                {request.recordExportId && request.recordExportAvailable && (
+                                    <Button id={`${id}-download-record`}
+                                            appearance={"secondary"}
+                                            shape={"circular"}
+                                            size={"small"}
+                                            icon={<DownloadIcon/>}
+                                            disabled={records.downloading === request.id}
+                                            onClick={() => records.download(request.id)}>
+                                        Download record
+                                    </Button>
+                                )}
                             </li>
                         );
                     })}

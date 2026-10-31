@@ -54,8 +54,13 @@ object InformationRequestTransitionMatrix
 
     private val EXTERNAL_SOURCE_MUTATIONS = setOf(
         InformationRequestMutation.REQUEST_EXTERNAL_SOURCE,
+        InformationRequestMutation.START_EXTERNAL_SOURCE_ATTEMPT,
+        InformationRequestMutation.SCHEDULE_EXTERNAL_SOURCE_RETRY,
+        InformationRequestMutation.RECORD_EXTERNAL_SOURCE_PENDING,
+        InformationRequestMutation.COMPLETE_EXTERNAL_SOURCE,
         InformationRequestMutation.RECORD_EXTERNAL_VALUE,
         InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+        InformationRequestMutation.RECONCILE_IMPORTED_VALUES,
         InformationRequestMutation.RECORD_GENERATED_OUTPUT,
     )
 
@@ -73,9 +78,8 @@ object InformationRequestTransitionMatrix
                 ownerRead = true,
                 partyRead = false,
                 externalSessionRead = false,
-                recoveryRead = true,
                 externalSessionEffect = InformationRequestExternalSessionEffect.REVOKE_ALL,
-                nonTerminalRequestEffect = InformationRequestNonTerminalEffect.READ_ONLY,
+                nonTerminalRequestEffect = InformationRequestNonTerminalEffect.CANCEL,
             )
         }
 
@@ -88,7 +92,6 @@ object InformationRequestTransitionMatrix
                     ownerRead = true,
                     partyRead = true,
                     externalSessionRead = true,
-                    recoveryRead = false,
                     externalSessionEffect = InformationRequestExternalSessionEffect.PRESERVE,
                     nonTerminalRequestEffect = InformationRequestNonTerminalEffect.NONE,
                 )
@@ -98,7 +101,6 @@ object InformationRequestTransitionMatrix
                     ownerRead = true,
                     partyRead = true,
                     externalSessionRead = true,
-                    recoveryRead = false,
                     externalSessionEffect = InformationRequestExternalSessionEffect.EXPIRE_NATURALLY,
                     nonTerminalRequestEffect = InformationRequestNonTerminalEffect.READ_ONLY,
                 )
@@ -110,7 +112,6 @@ object InformationRequestTransitionMatrix
                     ownerRead = true,
                     partyRead = false,
                     externalSessionRead = false,
-                    recoveryRead = false,
                     externalSessionEffect = InformationRequestExternalSessionEffect.REVOKE_NON_OWNER,
                     nonTerminalRequestEffect = InformationRequestNonTerminalEffect.CANCEL,
                 )
@@ -128,10 +129,15 @@ object InformationRequestTransitionMatrix
             InformationRequestReadActor.OWNER -> effects.ownerRead
             InformationRequestReadActor.PARTY -> effects.partyRead
             InformationRequestReadActor.EXTERNAL_SESSION -> effects.externalSessionRead
-            InformationRequestReadActor.RECOVERY -> effects.recoveryRead
         }
         return if (allowed) allow() else deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
     }
+
+    fun followsFrom(state: InformationRequestState): Boolean = state in SUCCESSOR_SOURCE_STATES
+
+    fun successorSourceStates(): Set<InformationRequestState> = SUCCESSOR_SOURCE_STATES
+
+    fun mutableParentStatuses(): Set<ExchangeStatus> = MUTABLE_PARENT_STATUSES
 
     fun canMutate(
         parent: InformationRequestParentSnapshot,
@@ -142,6 +148,21 @@ object InformationRequestTransitionMatrix
         if (!parent.lockedForUpdate)
         {
             return deny(InformationRequestErrorCatalog.PARENT_LOCK_REQUIRED)
+        }
+        if (mutation == InformationRequestMutation.FAIL_EXTERNAL_SOURCE) {
+            return if (currentState == null || currentState == InformationRequestState.DRAFT)
+                deny(InformationRequestErrorCatalog.STATE_INVALID)
+            else allow()
+        }
+        if (mutation == InformationRequestMutation.REVOKE_FACT) {
+            return when {
+                parent.deleted || parent.status == ExchangeStatus.INITIATED -> deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
+                currentState == null || currentState == InformationRequestState.DRAFT -> deny(
+                    InformationRequestErrorCatalog.STATE_INVALID
+                )
+
+                else -> allow()
+            }
         }
         if (!parentAllowsMutation(parent))
         {
@@ -154,9 +175,7 @@ object InformationRequestTransitionMatrix
         {
             return deny(InformationRequestErrorCatalog.PARENT_STATE_INVALID)
         }
-        if (mutation == InformationRequestMutation.PROMOTE_FACT || mutation == InformationRequestMutation.REVOKE_FACT ||
-            mutation in EXTERNAL_SOURCE_MUTATIONS
-        )
+        if (mutation == InformationRequestMutation.PROMOTE_FACT || mutation in EXTERNAL_SOURCE_MUTATIONS)
         {
             return if (currentState != null && currentState in FACT_STATES) allow()
             else deny(InformationRequestErrorCatalog.STATE_INVALID)
@@ -247,8 +266,14 @@ object InformationRequestTransitionMatrix
             InformationRequestMutation.REVOKE_FACT,
             InformationRequestMutation.RECORD_BUSINESS_DECISION,
             InformationRequestMutation.REQUEST_EXTERNAL_SOURCE,
+            InformationRequestMutation.START_EXTERNAL_SOURCE_ATTEMPT,
+            InformationRequestMutation.SCHEDULE_EXTERNAL_SOURCE_RETRY,
+            InformationRequestMutation.RECORD_EXTERNAL_SOURCE_PENDING,
+            InformationRequestMutation.COMPLETE_EXTERNAL_SOURCE,
+            InformationRequestMutation.FAIL_EXTERNAL_SOURCE,
             InformationRequestMutation.RECORD_EXTERNAL_VALUE,
             InformationRequestMutation.DECIDE_EXTERNAL_VALUE,
+            InformationRequestMutation.RECONCILE_IMPORTED_VALUES,
             InformationRequestMutation.RECORD_GENERATED_OUTPUT,
                 -> deny(InformationRequestErrorCatalog.STATE_INVALID)
 
@@ -266,6 +291,18 @@ object InformationRequestTransitionMatrix
 
             InformationRequestMutation.ASSIGN_PARTY,
             InformationRequestMutation.REVOKE_PARTY,
+            InformationRequestMutation.GRANT_DELEGATED_AUTHORITY,
+            InformationRequestMutation.REVOKE_DELEGATED_AUTHORITY,
+            InformationRequestMutation.ISSUE_ACCESS_LINK,
+            InformationRequestMutation.ROTATE_ACCESS_LINK,
+            InformationRequestMutation.REPLACE_ACCESS_LINK,
+            InformationRequestMutation.REVOKE_ACCESS_LINK,
+            InformationRequestMutation.REVOKE_ACCESS_SESSION,
+            InformationRequestMutation.ISSUE_CONTACT_CHALLENGE,
+            InformationRequestMutation.REFUSE_CONTACT_CHALLENGE,
+            InformationRequestMutation.ISSUE_ACCESS_SESSION,
+            InformationRequestMutation.LINK_PARTICIPANT_ACCOUNT,
+            InformationRequestMutation.STEP_UP_ACCESS_SESSION,
                 -> allowSameFrom(currentState, nonTerminalStates())
 
             InformationRequestMutation.SEND_REMINDER -> allowSameFrom(currentState, ACTIVE_RESPONSE_STATES)
@@ -296,8 +333,10 @@ object InformationRequestTransitionMatrix
         return allow()
     }
 
+    private val MUTABLE_PARENT_STATUSES = setOf(ExchangeStatus.INITIATED, ExchangeStatus.ACCEPTED_STARTED)
+
     private fun parentAllowsMutation(parent: InformationRequestParentSnapshot): Boolean =
-        !parent.deleted && parent.status in setOf(ExchangeStatus.INITIATED, ExchangeStatus.ACCEPTED_STARTED)
+        !parent.deleted && parent.status in MUTABLE_PARENT_STATUSES
 
     private fun allowFrom(
         currentState: InformationRequestState,

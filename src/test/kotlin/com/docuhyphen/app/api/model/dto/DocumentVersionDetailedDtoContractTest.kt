@@ -11,11 +11,6 @@ import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
 
-/**
- * The version payload a client receives. Where the platform stores a version's bytes is server
- * state, so no storage path, provider, or object key is ever part of it, and its creator is shown
- * the way the platform names the principal that created the version.
- */
 class DocumentVersionDetailedDtoContractTest
 {
     @Test
@@ -40,7 +35,7 @@ class DocumentVersionDetailedDtoContractTest
         )
 
         assertEquals(version.id, payload.id)
-        assertEquals(version.document.id.toString(), payload.documentId)
+        assertEquals(requireNotNull(version.document).id.toString(), payload.documentId)
         assertEquals("2", payload.version)
         assertEquals("Record Author", payload.createdBy)
         assertEquals("author@process.test", payload.createdByEmail)

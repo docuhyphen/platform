@@ -80,7 +80,6 @@ enum class InformationRequestEvidenceMalwareOutcome(val settled: Boolean)
     UNAVAILABLE(false),
     STALE_SIGNATURES(false),
     SKIPPED(false),
-    INDETERMINATE(false),
 }
 
 enum class InformationRequestEvidenceRequirementState(val completesWork: Boolean)
@@ -112,10 +111,10 @@ data class InformationRequestEvidenceVersionFacts(
     val artifactId: UUID,
     val versionNumber: Int,
     val standing: InformationRequestEvidenceStanding,
-    val fileBacked: Boolean,
     val contentVerification: DocumentVersionContentVerification?,
     val contentLength: Long?,
     val declaredMediaType: String?,
+    val declaredFileName: String?,
     val attributes: InformationRequestEvidenceAttributes,
     val inspection: InformationRequestEvidenceInspectionFacts?,
     val malware: InformationRequestEvidenceMalwareFacts?,

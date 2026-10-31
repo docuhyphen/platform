@@ -1,6 +1,7 @@
 import React from "react";
-import {MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {Spinner, Text} from "@fluentui/react-components";
 import {LoadedValue} from "../../../../hooks/useLoadedValue.ts";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 
 interface LoadedPanelProps<T>
 {
@@ -17,10 +18,9 @@ const LoadedPanel = <T, >({idPrefix, loaded, loadingLabel, emptyText, isEmpty, c
     if (loaded.error)
     {
         return (
-            <MessageBar id={`${idPrefix}-error`}
-                        intent={"error"}>
-                <MessageBarBody>{loaded.error}</MessageBarBody>
-            </MessageBar>
+            <InformationRequestLoadError id={`${idPrefix}-error`}
+                                         message={loaded.error}
+                                         onRetry={loaded.reload}/>
         );
     }
     if (loaded.value === null)

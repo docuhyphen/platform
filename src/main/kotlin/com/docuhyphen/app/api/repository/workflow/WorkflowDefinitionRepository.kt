@@ -9,12 +9,6 @@ import java.util.*
 class WorkflowDefinitionRepository :
     BaseRepository<WorkflowDefinition>(WorkflowDefinition::class.java)
 {
-    /**
-     * All active definitions that should fire for a given trigger event. Resolution order:
-     *   1. All ORG-scoped definitions for [organizationId] (if any exist, APP tier is skipped).
-     *   2. All APP-scoped definitions (fallback when no ORG definitions match).
-     * Within each tier all matching definitions are returned so every configured workflow fires.
-     */
     fun findAllActiveForTrigger(triggerEvent: String, organizationId: UUID?): List<WorkflowDefinition>
     {
         if (organizationId != null)
@@ -45,6 +39,23 @@ class WorkflowDefinitionRepository :
             .resultList
     }
 
+    fun findAllActiveForPersonalTrigger(triggerEvent: String, ownerAppUserId: UUID): List<WorkflowDefinition> {
+        val personal = entityManager.createQuery(
+            """SELECT d FROM WorkflowDefinition d
+               WHERE d.triggerEvent = :ev
+                 AND d.isActive = true
+                 AND d.isDeleted = false
+                 AND d.scope = com.docuhyphen.app.api.model.entity.WorkflowScope.PERSONAL
+                 AND d.createdByAppUserId = :uid
+               ORDER BY d.version DESC""",
+            WorkflowDefinition::class.java,
+        )
+            .setParameter("ev", triggerEvent)
+            .setParameter("uid", ownerAppUserId)
+            .resultList
+        return personal.ifEmpty { findAllActiveForTrigger(triggerEvent, null) }
+    }
+
     fun findByNameAndVersion(name: String, version: Int): WorkflowDefinition? =
         entityManager.createQuery(
             "SELECT d FROM WorkflowDefinition d WHERE d.name = :n AND d.version = :v AND d.isDeleted = false",
@@ -67,12 +78,6 @@ class WorkflowDefinitionRepository :
             .resultList
             .firstOrNull()
 
-    /**
-     * All definitions accessible to the caller:
-     *   - APP templates for authenticated users and every APP definition for app admins
-     *   - ORG definitions owned by [organizationId], published-only unless [isOrgAdmin]
-     *   - PERSONAL definitions owned by [callerUserId]
-     */
     fun findAllAccessibleForCaller(
         callerUserId: UUID,
         organizationId: UUID?,

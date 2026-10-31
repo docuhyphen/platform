@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContentItem
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -11,8 +12,9 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateSectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
@@ -38,6 +40,7 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
     private val evidenceEvaluationService: InformationRequestEvidenceEvaluationService,
     private val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
     private val stages: InformationRequestSubmissionStages,
+    private val conditionEvaluationService: InformationRequestConditionEvaluationService,
 )
 {
     fun collect(request: InformationRequest, stageKey: String?): InformationRequestSubmissionContent
@@ -59,6 +62,7 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
             .filter { it.activeInResponse }
             .associateBy { it.informationRequestRequirementId }
 
+        val conditions = InformationRequestGoverningCondition.byScope(conditionEvaluationService.evaluate(request.id))
         val items = requirementRepository.findForRequest(request.id)
             .filter { InformationRequestOccurrencePath.isActiveOccurrence(it.occurrencePath, activePaths) }
             .mapNotNull { requirement ->
@@ -78,7 +82,9 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
                     requirementType = templateRequirement.requirementType,
                     response = response,
                     fieldValueRevisionId = fieldRevisionOf(request.id, binding, response?.fieldValueSetId),
-                    evidence = if (templateRequirement.requirementType == InformationRequestRequirementType.DOCUMENT)
+                    evidence = if (templateRequirement.requirementType == InformationRequestRequirementType.DOCUMENT &&
+                        !InformationRequestGoverningCondition.hides(binding, requirement.occurrencePath, conditions)
+                    )
                         evidenceEvaluationService.submissionFacts(requirement, response?.disposition)
                     else null,
                 )
@@ -149,8 +155,7 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
             "schemaVersion:${version.schemaVersionId ?: ""}",
             "scope:${stageKey ?: ""}",
         )
-        items.filter { it.requirementType != InformationRequestRequirementType.RESPONSE_ATTESTATION }
-            .sortedBy { it.requirement.id }
+        items.sortedBy { it.requirement.id }
             .forEach { item ->
                 val response = item.response
                 material += listOf(
@@ -163,7 +168,8 @@ class InformationRequestSubmissionContentCollector @Inject constructor(
                     "narrative:${response?.narrative?.let(::sha256Hex) ?: ""}",
                     "fieldRevision:${item.fieldValueRevisionId ?: ""}",
                     "evidence:" + item.evidence?.members.orEmpty().joinToString(",") {
-                        "${it.versionId}:${it.documentVersionId ?: ""}:${it.contentHash ?: ""}"
+                        "${it.versionId}:${it.documentVersionId ?: ""}:${it.contentHash ?: ""}:" +
+                                "${it.inspectionAssessmentId ?: ""}:${it.malwareAssessmentId ?: ""}"
                     },
                 ).joinToString("|")
             }

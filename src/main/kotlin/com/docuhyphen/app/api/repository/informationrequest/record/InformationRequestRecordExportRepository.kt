@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.repository.informationrequest.record
 
 import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
-import com.docuhyphen.app.api.model.entity.InformationRequestRecordExportKind
 import com.docuhyphen.app.api.model.entity.RecordOwnerKind
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestExportWindow
 import com.docuhyphen.app.api.repository.BaseRepository
@@ -13,20 +12,24 @@ import java.util.*
 class InformationRequestRecordExportRepository :
     BaseRepository<InformationRequestRecordExport>(InformationRequestRecordExport::class.java)
 {
+    fun lockOwnerAllowance(ownerKind: RecordOwnerKind, ownerId: UUID) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:allowanceKey, 0))")
+            .setParameter("allowanceKey", "information_request_record_export_allowance:$ownerKind:$ownerId")
+            .singleResult
+    }
+
     fun windowSince(ownerKind: RecordOwnerKind, ownerId: UUID, since: Timestamp): InformationRequestExportWindow
     {
         val row = entityManager.createQuery(
             """
             SELECT COUNT(export), MIN(export.requestedAt)
             FROM InformationRequestRecordExport export
-            WHERE export.exportKind = :exportKind
-              AND export.ownerKind = :ownerKind
+            WHERE export.ownerKind = :ownerKind
               AND export.ownerId = :ownerId
               AND export.requestedAt >= :since
             """.trimIndent(),
             Array<Any?>::class.java,
         )
-            .setParameter("exportKind", InformationRequestRecordExportKind.REQUEST_RECORD)
             .setParameter("ownerKind", ownerKind)
             .setParameter("ownerId", ownerId)
             .setParameter("since", since)
@@ -54,19 +57,6 @@ class InformationRequestRecordExportRepository :
             .resultList
             .map { it as InformationRequestRecordExport }
 
-    fun findForSubject(subjectIdentityRefId: UUID): List<InformationRequestRecordExport> =
-        entityManager.createQuery(
-            """
-            SELECT export
-            FROM InformationRequestRecordExport export
-            WHERE export.subjectIdentityRefId = :subject
-            ORDER BY export.requestedAt, export.id
-            """.trimIndent(),
-            InformationRequestRecordExport::class.java,
-        )
-            .setParameter("subject", subjectIdentityRefId)
-            .resultList
-
     fun insertSource(exportId: UUID, requestId: UUID)
     {
         entityManager.flush()
@@ -77,6 +67,16 @@ class InformationRequestRecordExportRepository :
             .setParameter("request", requestId)
             .executeUpdate()
     }
+
+    fun existing(exportIds: Collection<UUID>): Set<UUID> =
+        if (exportIds.isEmpty()) emptySet()
+        else entityManager.createQuery(
+            "SELECT export.id FROM InformationRequestRecordExport export WHERE export.id IN :ids",
+            UUID::class.java,
+        )
+            .setParameter("ids", exportIds.distinct())
+            .resultList
+            .toSet()
 
     fun sourcesOf(exportId: UUID): List<UUID> =
         entityManager.createNativeQuery(

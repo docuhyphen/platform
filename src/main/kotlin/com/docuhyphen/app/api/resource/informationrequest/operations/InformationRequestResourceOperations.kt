@@ -15,15 +15,15 @@ import jakarta.ws.rs.core.Response
 interface InformationRequestResourceOperations
 {
     @GET
-    fun list(@QueryParam("exchangeId") exchangeIdParam: String?): Response
-
-    @GET
     @Path("/{id}")
     fun get(@PathParam("id") id: String): Response
 
     @GET
     @Path("/{id}/response-workspace")
-    fun responseWorkspace(@PathParam("id") id: String): Response
+    fun responseWorkspace(
+        @PathParam("id") id: String,
+        @QueryParam("purpose") purpose: String?,
+    ): Response
 
     @POST
     fun create(

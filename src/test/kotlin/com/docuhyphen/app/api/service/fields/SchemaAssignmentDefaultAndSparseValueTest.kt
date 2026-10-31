@@ -1,60 +1,26 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueProvenance
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.fields.model.DefaultAndSparseValueFixture
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Value semantics for a resource's assigned Schema: configured binding defaults become stored
- * values when the Schema is assigned, a client may not write a read-only binding, and an update
- * remains sparse so an omitted binding keeps whatever it already held.
- *
- * The resource adapter is stubbed here because these rules belong to the Fields engine rather than
- * to any one resource domain; audience filtering and capability rules are covered separately.
- */
 class SchemaAssignmentDefaultAndSparseValueTest
 {
     private val resourceType = "EXCHANGE"
     private val resourceId = UUID.randomUUID()
 
-    /** The caller every command in this test acts for. */
     private val access = FieldsAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
     private val resource by lazy { FieldsResourceRef(resourceType, resourceId) }
     private val organizationId = UUID.randomUUID()
@@ -71,23 +37,12 @@ class SchemaAssignmentDefaultAndSparseValueTest
     private val readOnlyDefaultText = "Reference copy"
     private val editableDefaultText = "Starting note"
 
-    private data class Fixture(
-        val service: SchemaAssignmentService,
-        val stored: MutableMap<UUID, FieldValue>,
-        val saved: MutableList<FieldValue>,
-        val updated: MutableList<FieldValue>,
-        val valueRepository: FieldValueRepository,
-    )
+    private fun DefaultAndSparseValueFixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
 
-    /** Reads the answers the resource gives as itself. */
-    private fun Fixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
-
-    /** Saves answers into the set the resource answers with as itself. */
-    private fun Fixture.save(entries: List<FieldValueEntry>) =
+    private fun DefaultAndSparseValueFixture.save(entries: List<FieldValueEntry>) =
         service.setValues(FieldValueWriteCommand(resource, access, entries))
 
-    /** Chooses the published Schema for the resource. */
-    private fun Fixture.assign() = requireNotNull(
+    private fun DefaultAndSparseValueFixture.assign() = requireNotNull(
         service.applySchemaAssignment(
             SchemaAssignmentCommand(
                 resource, access, SchemaAssignmentOperation.ASSIGN, schemaDefinitionId,
@@ -95,25 +50,18 @@ class SchemaAssignmentDefaultAndSparseValueTest
         ),
     )
 
-    /** Removes the Schema governing the resource. */
-    private fun Fixture.unassign()
+    private fun DefaultAndSparseValueFixture.unassign()
     {
         service.applySchemaAssignment(
             SchemaAssignmentCommand(resource, access, SchemaAssignmentOperation.UNASSIGN),
         )
     }
 
-    /**
-     * @param assigned whether a Schema Assignment already exists for the resource.
-     * @param existingValues values already stored against the assignment, keyed by field contract.
-     * @param malformedDefault when set, replaces the read-only binding's configured default with
-     *   text that cannot be canonicalized against the field's contract.
-     */
     private fun fixture(
         assigned: Boolean = true,
         existingValues: Map<UUID, String> = emptyMap(),
         malformedDefault: String? = null,
-    ): Fixture
+    ): DefaultAndSparseValueFixture
     {
         val adapter = mock<FieldResourceAdapter>()
         whenever(adapter.resourceType).thenReturn(resourceType)
@@ -238,13 +186,14 @@ class SchemaAssignmentDefaultAndSparseValueTest
         }
         val valueSetRepository = mock<FieldValueSetRepository>()
         whenever(valueSetRepository.findRoot(assignmentId)).thenReturn(rootValueSet)
+        whenever(valueSetRepository.findRootForUpdate(assignmentId)).thenReturn(rootValueSet)
         whenever(valueSetRepository.findByAssignment(assignmentId)).thenReturn(listOf(rootValueSet))
         whenever(valueSetRepository.save(any())).thenAnswer { it.getArgument<FieldValueSet>(0) }
 
         val selectionRepository = mock<FieldValueSelectionRepository>()
         whenever(selectionRepository.findByValue(any())).thenReturn(emptyList())
 
-        return Fixture(
+        return DefaultAndSparseValueFixture(
             SchemaAssignmentService(
                 adapterRegistry = registry,
                 assignmentRepository = assignmentRepository,
@@ -311,8 +260,6 @@ class SchemaAssignmentDefaultAndSparseValueTest
     private fun entry(contractId: UUID, text: String?) =
         FieldValueEntry(contractId, if (text == null) JsonNull else JsonPrimitive(text))
 
-    // ── Configured defaults ───────────────────────────────────────────────────
-
     @Test
     fun `assigning a schema stores the configured defaults including read-only bindings`()
     {
@@ -377,7 +324,7 @@ class SchemaAssignmentDefaultAndSparseValueTest
         val fixture = SchemaAssignmentFieldsFixture()
         val unrelatedFieldDefinitionId = UUID.randomUUID()
 
-        fixture.service.applyBlueprintFieldDefaults(
+        fixture.service.applyBlueprintFieldDefaultsForCreation(
             BlueprintFieldDefaultsCommand(
                 resource = fixture.resource,
                 access = fixture.access,
@@ -402,7 +349,56 @@ class SchemaAssignmentDefaultAndSparseValueTest
         assertNull(fixture.rootAnswer(fixture.secondNoteContractId))
     }
 
-    // ── Read-only bindings ────────────────────────────────────────────────────
+    @Test
+    fun `a blueprint default its Field cannot hold, or one naming a read-only Field, is skipped and the others are stored`() {
+        val fixture =
+            SchemaAssignmentFieldsFixture(readOnlyQuestions = setOf(SchemaAssignmentFieldsFixture.Question.SECOND_NOTE))
+
+        fixture.service.applyBlueprintFieldDefaultsForCreation(
+            BlueprintFieldDefaultsCommand(
+                resource = fixture.resource,
+                access = fixture.access,
+                defaults = listOf(
+                    BlueprintFieldDefaultEntry(
+                        fieldDefinitionId = fixture.optionsDefinitionId,
+                        value = JsonArray(listOf(JsonPrimitive("withdrawn-option"))),
+                    ),
+                    BlueprintFieldDefaultEntry(
+                        fieldDefinitionId = fixture.secondNoteDefinitionId,
+                        value = JsonPrimitive("Blueprint second note"),
+                    ),
+                    BlueprintFieldDefaultEntry(
+                        fieldDefinitionId = fixture.noteDefinitionId,
+                        value = JsonPrimitive("Blueprint note"),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals("Blueprint note", requireNotNull(fixture.rootAnswer(fixture.noteContractId)).textValue)
+        assertNull(fixture.rootAnswer(fixture.secondNoteContractId))
+        assertNull(fixture.rootAnswer(fixture.optionsContractId))
+    }
+
+    @Test
+    fun `blueprint defaults copied while a resource is created need no permission to edit its fields`() {
+        val fixture = SchemaAssignmentFieldsFixture(manageFieldsAllowed = false)
+
+        fixture.service.applyBlueprintFieldDefaultsForCreation(
+            BlueprintFieldDefaultsCommand(
+                resource = fixture.resource,
+                access = fixture.access,
+                defaults = listOf(
+                    BlueprintFieldDefaultEntry(
+                        fieldDefinitionId = fixture.noteDefinitionId,
+                        value = JsonPrimitive("Blueprint note"),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals("Blueprint note", requireNotNull(fixture.rootAnswer(fixture.noteContractId)).textValue)
+    }
 
     @Test
     fun `a client value for a read-only binding is refused`()
@@ -410,19 +406,18 @@ class SchemaAssignmentDefaultAndSparseValueTest
         val fixture = fixture()
 
         val error = assertThrows<FieldValidationException> {
-            fixture.save(listOf(entry(readOnlyDefaultContractId, "Client supplied")),
+            fixture.save(
+                listOf(entry(readOnlyDefaultContractId, "Client supplied")),
             )
         }
 
         assertTrue(
-            error.message?.contains("read-only") == true,
+            error.message.contains("read-only") == true,
             "A read-only binding must be refused by name: ${error.message}",
         )
         verify(fixture.valueRepository, never()).save(any())
         verify(fixture.valueRepository, never()).update(any())
     }
-
-    // ── Sparse updates ────────────────────────────────────────────────────────
 
     @Test
     fun `an omitted binding keeps the value it already held`()
@@ -449,7 +444,8 @@ class SchemaAssignmentDefaultAndSparseValueTest
     {
         val fixture = fixture(existingValues = mapOf(optionalContractId to "Kept"))
 
-        val result = fixture.save(listOf(entry(optionalContractId, "Replaced")),
+        val result = fixture.save(
+            listOf(entry(optionalContractId, "Replaced")),
         )
 
         assertEquals("Replaced", fixture.stored[optionalContractId]?.textValue)
@@ -466,7 +462,7 @@ class SchemaAssignmentDefaultAndSparseValueTest
         }
 
         assertTrue(
-            error.message?.contains("is required") == true,
+            error.message.contains("is required") == true,
             "Clearing a required binding must say so: ${error.message}",
         )
         assertEquals("Answered", fixture.stored[requiredContractId]?.textValue)

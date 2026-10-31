@@ -1,44 +1,28 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
+import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
 import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
 import com.docuhyphen.app.api.model.document.DocumentVersionStorageProvider
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.identity.PrincipalDisplay
-import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
+import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
+import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.File
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class ExchangeDocumentVersionAccessTest
 {
@@ -48,7 +32,6 @@ class ExchangeDocumentVersionAccessTest
     private val actorId = UUID.randomUUID()
 
     private val exchangeRepository: ExchangeRepository = mock()
-    private val documentVersionRepository: DocumentVersionRepository = mock()
     private val authorizationService: AuthorizationService = mock()
     private val authorizationContextFactory: AuthorizationContextFactory = mock()
     private val documentVersionRecordingService: DocumentVersionRecordingService = mock()
@@ -68,16 +51,26 @@ class ExchangeDocumentVersionAccessTest
     {
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
         whenever(exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId)).thenReturn(document)
-        whenever(exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, foreignDocumentId)).thenReturn(null)
-        whenever(documentVersionRepository.findByDocumentId(documentId)).thenReturn(listOf(ownVersion))
-        whenever(documentVersionRepository.findByDocumentId(foreignDocumentId)).thenReturn(listOf(foreignVersion))
-        whenever(documentVersionRepository.findLatestByDocumentId(documentId)).thenReturn(ownVersion)
-        whenever(documentVersionRepository.findLatestByDocumentId(foreignDocumentId)).thenReturn(foreignVersion)
-        whenever(documentVersionRepository.findById(ownVersion.id)).thenReturn(ownVersion)
-        whenever(documentVersionRepository.findById(foreignVersion.id)).thenReturn(foreignVersion)
+        whenever(
+            exchangeRepository.findDocumentBySessionIdAndDocumentId(
+                exchangeId,
+                foreignDocumentId
+            )
+        ).thenReturn(null)
+        whenever(documentVersionRecordingService.versionsOf(documentId)).thenReturn(listOf(ownVersion))
+        whenever(documentVersionRecordingService.versionsOf(foreignDocumentId)).thenReturn(listOf(foreignVersion))
+        whenever(documentVersionRecordingService.latestVersionOf(documentId)).thenReturn(ownVersion)
+        whenever(documentVersionRecordingService.latestVersionOf(foreignDocumentId)).thenReturn(foreignVersion)
+        whenever(documentVersionRecordingService.findVersion(ownVersion.id)).thenReturn(ownVersion)
+        whenever(documentVersionRecordingService.findVersion(foreignVersion.id)).thenReturn(foreignVersion)
         whenever(authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
         whenever(authorizationContextFactory.currentContext()).thenReturn(AuthorizationContext.ANONYMOUS)
-        whenever(principalDisplayService.display(any())).thenReturn(PrincipalDisplay(name = null, email = "author@process.test"))
+        whenever(principalDisplayService.display(any())).thenReturn(
+            PrincipalDisplay(
+                name = null,
+                email = "author@process.test"
+            )
+        )
     }
 
     @Test
@@ -101,7 +94,7 @@ class ExchangeDocumentVersionAccessTest
         {
             service().getDocumentVersions(exchangeId.toString(), foreignDocumentId.toString())
         }
-        verify(documentVersionRepository, never()).findByDocumentId(foreignDocumentId)
+        verify(documentVersionRecordingService, never()).versionsOf(foreignDocumentId)
     }
 
     @Test
@@ -110,11 +103,23 @@ class ExchangeDocumentVersionAccessTest
         whenever(authorizationService.authorize(any(), eq(Action.DOCUMENT_VIEW), any(), any()))
             .thenReturn(Decision.Deny("NO_CAPABILITY", "Document view is not granted"))
 
-        assertThrows(IllegalArgumentException::class.java)
+        assertThrows(ForbiddenException::class.java)
         {
             service().getDocumentVersions(exchangeId.toString(), documentId.toString())
         }
-        verify(documentVersionRepository, never()).findByDocumentId(documentId)
+        verify(documentVersionRecordingService, never()).versionsOf(documentId)
+    }
+
+    @Test
+    fun `the version list of an Exchange the caller cannot see is refused as for an unknown Exchange before it is read`() {
+        whenever(authorizationService.authorize(any(), any(), any(), any()))
+            .thenReturn(Decision.Deny("NO_GRANT", "Nothing is granted"))
+
+        assertThrows(ExchangeNotFoundException::class.java)
+        {
+            service().getDocumentVersions(exchangeId.toString(), documentId.toString())
+        }
+        verify(exchangeRepository, never()).findById(exchangeId)
     }
 
     @Test
@@ -124,7 +129,7 @@ class ExchangeDocumentVersionAccessTest
         {
             service().getLatestVersion(exchangeId.toString(), foreignDocumentId.toString())
         }
-        verify(documentVersionRepository, never()).findLatestByDocumentId(foreignDocumentId)
+        verify(documentVersionRecordingService, never()).latestVersionOf(foreignDocumentId)
     }
 
     @Test
@@ -133,11 +138,11 @@ class ExchangeDocumentVersionAccessTest
         whenever(authorizationService.authorize(any(), eq(Action.DOCUMENT_VIEW), any(), any()))
             .thenReturn(Decision.Deny("NO_CAPABILITY", "Document view is not granted"))
 
-        assertThrows(IllegalArgumentException::class.java)
+        assertThrows(ForbiddenException::class.java)
         {
             service().getLatestVersion(exchangeId.toString(), documentId.toString())
         }
-        verify(documentVersionRepository, never()).findLatestByDocumentId(documentId)
+        verify(documentVersionRecordingService, never()).latestVersionOf(documentId)
     }
 
     @Test
@@ -187,7 +192,6 @@ class ExchangeDocumentVersionAccessTest
 
         return ExchangeDocumentVersionService(
             exchangeRepository = exchangeRepository,
-            documentVersionRepository = documentVersionRepository,
             documentAuditService = mock(),
             authTokenContext = authTokenContext,
             authorizationService = authorizationService,

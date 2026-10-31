@@ -2,14 +2,14 @@ import React from "react";
 
 export const workflowApplicabilityArticle = (
     <>
-        <p>
+        <p id={"workflow-applicability-intro-paragraph"}>
             Applicability lets an organization workflow run only when the Exchange's
             business field values match one or more conditions. Without conditions,
             the workflow runs for every matching trigger event.
         </p>
 
-        <h3>Where to find it</h3>
-        <p>
+        <h3 id={"workflow-applicability-where-to-find-it-heading"}>Where to find it</h3>
+        <p id={"workflow-applicability-where-to-find-it-paragraph"}>
             Open the Workflow Designer in Settings for an organization workflow.
             Open the <b>Applicability</b> card on the Workflow Designer's Form pane.
             It is available only for organization-scoped workflows, because
@@ -17,8 +17,8 @@ export const workflowApplicabilityArticle = (
             arrow button to return to the three main workflow cards.
         </p>
 
-        <h3>How conditions work</h3>
-        <ul>
+        <h3 id={"workflow-applicability-how-conditions-work-heading"}>How conditions work</h3>
+        <ul id={"workflow-applicability-how-conditions-work-list"}>
             <li>
                 Pick an organization <b>schema</b> (target Exchange), then add a
                 condition for one of its fields.
@@ -41,33 +41,36 @@ export const workflowApplicabilityArticle = (
             </li>
         </ul>
 
-        <p>
-            Field conditions apply only to Exchange triggers. For a workflow that starts from an
-            Information Request trigger, the designer shows no Field conditions and the workflow
-            runs for every event of its trigger.
+        <p id={"workflow-applicability-how-conditions-work-paragraph"}>
+            Exchange Field conditions apply only to Exchange triggers. For a workflow that starts
+            from an Information Request trigger, the designer shows no Exchange Field conditions.
+            When that trigger names a Submission Package, the card instead offers requirement
+            conditions on the answers frozen in the package, as described in the request trigger
+            events article. Without them, a request-trigger workflow runs for every event of its
+            trigger.
         </p>
 
-        <h3>When a workflow is skipped</h3>
-        <p>
+        <h3 id={"workflow-applicability-when-a-workflow-is-heading"}>When a workflow is skipped</h3>
+        <p id={"workflow-applicability-when-a-workflow-is-paragraph"}>
             The gate never fails open. A condition that cannot be judged counts as a
             failed condition, and one failed condition skips the workflow. That covers a
             subject that is not an Exchange, an Exchange with no assigned schema, a
             condition whose field or comparison value cannot be read, and an operator the
             field type does not offer.
         </p>
-        <p>
+        <p id={"workflow-applicability-when-a-workflow-is-paragraph-2"}>
             An unanswered field is judged rather than skipped over. It fails every
-            operator that compares a value, so a condition such as <code>equals</code>
+            operator that compares a value, so a condition such as <code>equals</code>{" "}
             needs the field answered before the workflow fires, which is why the Business
-            Fields step of Exchange creation runs first. It matches <code>is empty</code>
+            Fields step of Exchange creation runs first. It matches <code>is empty</code>{" "}
             and fails <code>is not empty</code>, so a condition written with{" "}
             <code>is empty</code> deliberately starts the workflow for the Exchange that
             left the field blank. A selection whose stored options are gone counts as
             unanswered in exactly the same way.
         </p>
 
-        <h3>Example</h3>
-        <p>
+        <h3 id={"workflow-applicability-example-heading"}>Example</h3>
+        <p id={"workflow-applicability-example-paragraph"}>
             On a Client Onboarding schema, add the condition{" "}
             <code>Category equals Onboarding</code>. The workflow then starts only for
             Exchanges whose Category field is set to Onboarding.

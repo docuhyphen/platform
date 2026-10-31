@@ -1,28 +1,21 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldConstraints
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldOption
 import kotlinx.serialization.json.*
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 
-/**
- * A controlled type contract: it validates a raw JSON input against a Field Contract's constraints
- * and options and returns a [CanonicalFieldValue]. Validation is deterministic and authoritative
- * on the backend. Unknown type codes never reach a contract; the registry fails closed.
- * See FIELDS-FEATURE.md "Field Type System".
- */
 interface FieldTypeContract
 {
     val type: FieldValueType
     val typeContractVersion: Int
     val supportedOperators: Set<FieldOperator>
 
-    /**
-     * Validates [input] and returns its canonical form. A null / JSON-null / blank input yields an
-     * empty value; requiredness is enforced by the binding layer, not here.
-     * @throws FieldValidationException when the input is malformed or violates a constraint.
-     */
     fun canonicalize(
         input: JsonElement?,
         constraints: FieldConstraints,
@@ -35,8 +28,6 @@ private fun JsonElement?.isNullish(): Boolean =
 
 private fun JsonElement.asStringOrNull(): String? =
     (this as? JsonPrimitive)?.content
-
-// ── Text types ───────────────────────────────────────────────────────────────────────────────
 
 private abstract class TextTypeContract : FieldTypeContract
 {
@@ -83,7 +74,6 @@ private object ShortTextContract : TextTypeContract()
         options: List<FieldOption>,
     ): CanonicalFieldValue
     {
-        // Short text has an implicit 255-char cap unless a smaller maxLength is set.
         val effective = constraints.copy(maxLength = minOf(constraints.maxLength ?: 255, 255))
         return super.canonicalize(input, effective, options)
     }
@@ -93,8 +83,6 @@ private object LongTextContract : TextTypeContract()
 {
     override val type = FieldValueType.LONG_TEXT
 }
-
-// ── Boolean ──────────────────────────────────────────────────────────────────────────────────
 
 private object BooleanContract : FieldTypeContract
 {
@@ -124,8 +112,6 @@ private object BooleanContract : FieldTypeContract
         return CanonicalFieldValue(type = type, isEmpty = false, boolValue = bool)
     }
 }
-
-// ── Numeric types ──────────────────────────────────────────────────────────────────────────────
 
 private abstract class NumberTypeContract : FieldTypeContract
 {
@@ -187,8 +173,6 @@ private object DecimalContract : NumberTypeContract()
     override val type = FieldValueType.DECIMAL
     override val integerOnly = false
 }
-
-// ── Date / DateTime ────────────────────────────────────────────────────────────────────────────
 
 private object DateContract : FieldTypeContract
 {
@@ -258,8 +242,6 @@ private object DateTimeContract : FieldTypeContract
     }
 }
 
-// ── Select types ─────────────────────────────────────────────────────────────────────────────
-
 private object SingleSelectContract : FieldTypeContract
 {
     override val type = FieldValueType.SINGLE_SELECT
@@ -323,13 +305,11 @@ private object MultiSelectContract : FieldTypeContract
         constraints.maxSelections?.let {
             if (codes.size > it) throw FieldValidationException("Select at most $it option(s)")
         }
-        // Preserve the declared option order for a stable canonical representation.
         val ordered = options.filter { it.code in codes }.map { it.code }
         return CanonicalFieldValue(type = type, isEmpty = false, selectionCodes = ordered)
     }
 }
 
-/** All registered contracts, one per [FieldValueType]. */
 internal val ALL_FIELD_TYPE_CONTRACTS: List<FieldTypeContract> = listOf(
     ShortTextContract,
     LongTextContract,

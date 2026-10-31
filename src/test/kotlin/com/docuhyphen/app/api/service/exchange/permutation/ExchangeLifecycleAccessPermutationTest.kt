@@ -177,6 +177,6 @@ class ExchangeLifecycleAccessPermutationTest
     fun `EX-LIF-15 guessed Exchange identifier does not disclose details`()
     {
         val decision = probe.authorize(Action.EXCHANGE_VIEW, emptyList())
-        assertEquals("NO_GRANT", (decision as com.docuhyphen.app.api.service.auth.authz.Decision.Deny).reasonCode)
+        assertEquals("NO_GRANT", (decision as com.docuhyphen.app.api.model.auth.authz.Decision.Deny).reasonCode)
     }
 }

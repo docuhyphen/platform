@@ -6,21 +6,32 @@ import com.docuhyphen.app.api.resource.informationrequest.template.operations.In
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleValidator
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateAuthoringService
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.Path
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestConfigurationBundleResourceContractTest
 {
     private val accessContextFactory: InformationRequestAccessContextFactory = mock()
-    private val resource = InformationRequestConfigurationBundleResource(InformationRequestConfigurationBundleValidator(), accessContextFactory)
+    private val authoringService: InformationRequestTemplateAuthoringService =
+        mock<InformationRequestTemplateAuthoringService>().also {
+            whenever(it.frozenVersionContents(any(), any())).thenReturn(emptyList())
+        }
+    private val resource = InformationRequestConfigurationBundleResource(
+        InformationRequestConfigurationBundleService(
+            InformationRequestConfigurationBundleValidator(),
+            authoringService
+        ),
+        accessContextFactory,
+    )
     private val bundle = """
         {"formatVersion":1,"bundleKey":"neutral-bundle","bundleVersion":1,"displayName":"Neutral bundle",
          "retentionDefaults":[{"retentionKey":"standard-retention","minimumRetentionDays":30}]}

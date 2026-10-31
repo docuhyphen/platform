@@ -7,15 +7,16 @@ import {
     OverlayDrawer,
     SelectTabData,
     SelectTabEvent,
-    TabValue,
     Text,
 } from "@fluentui/react-components";
 import {Navigation24Regular} from "@fluentui/react-icons";
 import {useSettingsStyles} from "./SettingsStyles.tsx";
 import {useIsMobile} from "../../utils/useMediaQuery.ts";
-import {SettingsPageTransitionDirection} from "./components/settings-page-transition/SettingsPageTransition.tsx";
 import SettingsTabContent from "./components/settings-tab-content/SettingsTabContent.tsx";
 import SettingsMenu from "./components/settings-menu/SettingsMenu.tsx";
+import SettingsLeaveDialog from "./settings-leave-guard/SettingsLeaveDialog.tsx";
+import {SettingsLeaveGuardContext} from "./settings-leave-guard/settingsLeaveGuard.ts";
+import {useSettingsTabSelection} from "./settings-leave-guard/useSettingsTabSelection.ts";
 import {settingsTabOrder, tabIds, tabLabels} from "./settingsTabs.ts";
 import {useSettingsPlanAvailability} from "./useSettingsPlanAvailability.ts";
 
@@ -27,34 +28,22 @@ const Settings = () =>
     const initialTab = requestedTab && settingsTabOrder.includes(requestedTab)
         ? requestedTab
         : tabIds.profile;
-    const [selectedValue, setSelectedValue] = useState<TabValue>(initialTab);
-    const [pageTransitionDirection, setPageTransitionDirection] =
-        useState<SettingsPageTransitionDirection>(null);
+    const tabs = useSettingsTabSelection(initialTab);
+    const {selectedValue, reset} = tabs;
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
     const planAvailability = useSettingsPlanAvailability();
 
     const onTabSelect = (_event: SelectTabEvent, data: SelectTabData) =>
     {
-        const nextValue = data.value;
-        const currentIndex = settingsTabOrder.indexOf(selectedValue as string);
-        const nextIndex = settingsTabOrder.indexOf(nextValue as string);
-        const nextDirection = currentIndex >= 0 && nextIndex >= 0 && nextIndex < currentIndex
-            ? "back"
-            : "forward";
-        setPageTransitionDirection(nextValue === selectedValue ? null : nextDirection);
-        setSelectedValue(data.value);
+        tabs.select(data.value);
         setIsMobileDrawerOpen(false);
     };
 
     const currentTabLabel = tabLabels[selectedValue as string] ?? "Settings";
     useEffect(() =>
     {
-        if (!planAvailability.visibleTabs.has(selectedValue as string))
-        {
-            setSelectedValue(tabIds.profile);
-            setPageTransitionDirection(null);
-        }
-    }, [planAvailability.visibleTabs, selectedValue]);
+        if (!planAvailability.visibleTabs.has(selectedValue as string)) reset(tabIds.profile);
+    }, [planAvailability.visibleTabs, reset, selectedValue]);
 
     const settingsMenu = (
         <SettingsMenu
@@ -77,9 +66,11 @@ const Settings = () =>
     );
 
     return (
-        <div className={styles.container} id="settings-container">
+        <div className={styles.container}
+             id="settings-container">
 
-            <div className={styles.mobileMenuBar}>
+            <div id={"settings-mobile-menu-bar"}
+                 className={styles.mobileMenuBar}>
                 <Button
                     id={"button-settings-mobile-menu"}
                     appearance="subtle"
@@ -88,37 +79,47 @@ const Settings = () =>
                     aria-label="Open settings menu"
                     onClick={() => setIsMobileDrawerOpen(true)}
                 />
-                <Text weight="semibold">{currentTabLabel}</Text>
+                <Text id={"settings-current-tab-label-text"}
+                      weight="semibold">{currentTabLabel}</Text>
             </div>
 
             <OverlayDrawer
+                id={"settings-container-overlay-drawer"}
                 open={isMobile && isMobileDrawerOpen}
                 onOpenChange={(_, {open}) => setIsMobileDrawerOpen(open)}
                 position="start"
             >
-                <DrawerHeader>
-                    <DrawerHeaderTitle>Settings</DrawerHeaderTitle>
+                <DrawerHeader id={"settings-container-drawer-header"}>
+                    <DrawerHeaderTitle id={"settings-container-drawer-header-title"}>Settings</DrawerHeaderTitle>
                 </DrawerHeader>
-                <DrawerBody>
+                <DrawerBody id={"settings-menu-drawer-body"}>
                     {settingsMenu}
                 </DrawerBody>
             </OverlayDrawer>
 
-            <div className={styles.layout}>
+            <div id={"settings-layout"}
+                 className={styles.layout}>
 
-                <div className={styles.sidebarWrapper}>
+                <div id={"settings-sidebar-wrapper"}
+                     className={styles.sidebarWrapper}>
                     {settingsMenu}
                 </div>
 
-                <div className={styles.tabsContainer} id="settings-tabs">
-                    <SettingsTabContent
-                        selectedValue={selectedValue}
-                        tabIds={tabIds}
-                        direction={pageTransitionDirection}
-                    />
+                <div className={styles.tabsContainer}
+                     id="settings-tabs">
+                    <SettingsLeaveGuardContext.Provider value={tabs.guard}>
+                        <SettingsTabContent
+                            selectedValue={selectedValue}
+                            tabIds={tabIds}
+                            direction={tabs.direction}
+                        />
+                    </SettingsLeaveGuardContext.Provider>
                 </div>
 
             </div>
+            <SettingsLeaveDialog open={tabs.pendingTab !== null}
+                                 onLeave={tabs.leave}
+                                 onStay={tabs.stay}/>
         </div>
     );
 }

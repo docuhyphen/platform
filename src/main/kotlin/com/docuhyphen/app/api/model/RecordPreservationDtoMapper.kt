@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.model.informationrequest.disposal.InformationReque
 import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalView
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationHoldView
 import com.docuhyphen.app.api.model.recordpreservation.RecordRetentionScheduleView
+import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationETag
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -40,6 +41,7 @@ object RecordPreservationDtoMapper
             releasedAt = hold.releasedAt,
             releaseReason = hold.releaseReason,
             holdRevision = hold.holdRevision,
+            holdETag = RecordPreservationETag.holdOf(hold),
             events = events.map {
                 RecordPreservationHoldEventDto(
                     it.eventNumber,
@@ -57,6 +59,7 @@ object RecordPreservationDtoMapper
         resourceType = resourceType.trim().uppercase(),
         current = view.current?.let(::toDto),
         versions = view.versions.map(::toDto),
+        scheduleETag = view.etag,
     )
 
     fun toDto(schedule: RecordRetentionSchedule) = RecordRetentionScheduleVersionDto(
@@ -104,7 +107,10 @@ object RecordPreservationDtoMapper
             detail = refused?.detail,
             eligibleFrom = refused?.eligibleFrom?.let(Timestamp::from),
             schedule = standing.assessment?.schedule?.let(::toDto),
-            holds = standing.assessment?.holds.orEmpty().map { toDto(it) },
+            holds = standing.readableHolds.map { toDto(it) },
+            withheldHolds = standing.withheldHolds.map {
+                RecordPreservationHoldSummaryDto(it.resourceType, it.scope, it.status, Timestamp.from(it.effectiveFrom))
+            },
             retainedObjectCount = eligible?.objects?.count { it.retainedReason != null } ?: 0,
             disposal = standing.disposal?.let(::toDto),
         )

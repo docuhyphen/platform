@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.condition
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicate
-import com.docuhyphen.app.api.service.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals

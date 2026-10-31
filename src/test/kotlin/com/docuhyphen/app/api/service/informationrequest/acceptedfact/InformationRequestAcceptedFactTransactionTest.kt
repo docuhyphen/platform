@@ -23,29 +23,74 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.acceptedfact.model.FactFixture
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestAcceptedFactTransactionTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Test
+    fun `fact promotion waits for the subject restriction transaction`() {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        val key =
+            "information_request_subject_restriction:ORGANIZATION:${fixture.runtime.template.organizationId}:${fixture.facts.subjectId}"
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            connection.prepareStatement("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))").use {
+                it.setString(1, key)
+                it.execute()
+            }
+            val pending = java.util.concurrent.CompletableFuture.supplyAsync {
+                val requestContext = io.quarkus.arc.Arc.container().requestContext()
+                requestContext.activate()
+                try {
+                    QuarkusTransaction.requiringNew().call {
+                        services.acceptedFacts.promote(
+                            promote(
+                                fixture,
+                                InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                                "restriction-race"
+                            )
+                        )
+                    }
+                } finally {
+                    requestContext.terminate()
+                }
+            }
+            try {
+                assertThrows(java.util.concurrent.TimeoutException::class.java) {
+                    pending.get(2, java.util.concurrent.TimeUnit.SECONDS)
+                }
+            } finally {
+                connection.commit()
+                pending.get(15, java.util.concurrent.TimeUnit.SECONDS)
+            }
+        }
+    }
 
     @Test
     fun `promotion refuses an unstated reuse policy basis`()
@@ -94,11 +139,13 @@ class InformationRequestAcceptedFactTransactionTest
         val replayed = QuarkusTransaction.requiringNew().call { services.acceptedFacts.promote(command) }
         assertEquals(promoted.fact.id, replayed.fact.id)
         assertThrows(com.docuhyphen.app.api.service.command.CommandReceiptConflictException::class.java) {
-            QuarkusTransaction.requiringNew().call { services.acceptedFacts.promote(command.copy(purposeKey = "profile.other")) }
+            QuarkusTransaction.requiringNew()
+                .call { services.acceptedFacts.promote(command.copy(purposeKey = "profile.other")) }
         }
 
         val later = runtime.build(fixture.laterRequestId, denies = respondentDenials(fixture))
-        val offered = QuarkusTransaction.requiringNew().call { later.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture)) }
+        val offered = QuarkusTransaction.requiringNew()
+            .call { later.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture)) }
         assertEquals(listOf(fixture.laterFieldRequirementId), offered.map { it.requirementId })
         assertEquals(promoted.fact.id, offered.single().fact.fact.id)
         assertTrue(offered.single().reconfirmationRequired)
@@ -115,7 +162,10 @@ class InformationRequestAcceptedFactTransactionTest
                 ),
             )
         }
-        assertTrue(QuarkusTransaction.requiringNew().call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }.isEmpty())
+        assertTrue(
+            QuarkusTransaction.requiringNew()
+                .call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }.isEmpty()
+        )
         val again = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
                 services.acceptedFacts.revoke(
@@ -132,21 +182,157 @@ class InformationRequestAcceptedFactTransactionTest
         assertEquals(InformationRequestErrorCatalog.ACCEPTED_FACT_REVOKED, again.reasonCode)
         QuarkusTransaction.requiringNew().run {
             val mutations = transitionRepository.findForRequest(fixture.requestId).map { it.mutation }
-            assertTrue(mutations.containsAll(listOf(InformationRequestMutation.PROMOTE_FACT, InformationRequestMutation.REVOKE_FACT)))
+            assertTrue(
+                mutations.containsAll(
+                    listOf(
+                        InformationRequestMutation.PROMOTE_FACT,
+                        InformationRequestMutation.REVOKE_FACT
+                    )
+                )
+            )
         }
     }
 
     @Test
-    fun `a fact the requesting side keeps to itself is not offered to responding parties`()
+    fun `a fact stays revocable after its source request finishes and its Exchange ends`() {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        val promoted = QuarkusTransaction.requiringNew().call {
+            services.acceptedFacts.promote(
+                promote(
+                    fixture,
+                    InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                    "promote-before-finish"
+                )
+            )
+        }
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                fixture.requestId
+            )
+            execute(connection, "UPDATE exchange SET status = 'ENDED' WHERE id = ?", fixture.runtime.exchangeId)
+        }
+
+        QuarkusTransaction.requiringNew().run {
+            services.acceptedFacts.revoke(
+                RevokeInformationRequestAcceptedFactCommand(
+                    requestId = fixture.requestId,
+                    factId = promoted.fact.id,
+                    reasonCode = "no-longer-accurate",
+                    access = owner(fixture),
+                    idempotencyKey = "revoke-after-finish",
+                ),
+            )
+        }
+
+        assertEquals(
+            1,
+            dataSource.connection.use { connection ->
+                queryInt(
+                    connection,
+                    "SELECT COUNT(*) FROM information_request_accepted_fact_revocation WHERE fact_id = ?",
+                    promoted.fact.id
+                )
+            },
+        )
+    }
+
+    @Test
+    fun `a revocation retried under one key with another narrative is refused rather than replayed`() {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        val promoted = QuarkusTransaction.requiringNew().call {
+            services.acceptedFacts.promote(
+                promote(
+                    fixture,
+                    InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                    "promote-for-revocation"
+                )
+            )
+        }
+        val revocation = RevokeInformationRequestAcceptedFactCommand(
+            requestId = fixture.requestId,
+            factId = promoted.fact.id,
+            reasonCode = "no-longer-accurate",
+            narrative = "The recorded answer changed",
+            access = owner(fixture),
+            idempotencyKey = "revoke-with-narrative",
+        )
+        QuarkusTransaction.requiringNew().run { services.acceptedFacts.revoke(revocation) }
+
+        assertThrows(com.docuhyphen.app.api.service.command.CommandReceiptConflictException::class.java) {
+            QuarkusTransaction.requiringNew()
+                .call { services.acceptedFacts.revoke(revocation.copy(narrative = "Another account of the change")) }
+        }
+    }
+
+    @Test
+    fun `a fact the requesting side keeps to itself is offered to nobody on a later request`()
     {
         val fixture = fixture()
         val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
         QuarkusTransaction.requiringNew().run {
-            services.acceptedFacts.promote(promote(fixture, InformationRequestAcceptedFactVisibility.REQUESTING_SIDE, "promote-private"))
+            services.acceptedFacts.promote(
+                promote(
+                    fixture,
+                    InformationRequestAcceptedFactVisibility.REQUESTING_SIDE,
+                    "promote-private"
+                )
+            )
         }
         val later = runtime.build(fixture.laterRequestId, denies = respondentDenials(fixture))
-        assertTrue(QuarkusTransaction.requiringNew().call { later.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture)) }.isEmpty())
-        assertEquals(1, QuarkusTransaction.requiringNew().call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }.size)
+        assertTrue(
+            QuarkusTransaction.requiringNew()
+                .call { later.acceptedFactQueries.offers(fixture.laterRequestId, contributor(fixture)) }.isEmpty()
+        )
+        assertTrue(
+            QuarkusTransaction.requiringNew()
+                .call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }.isEmpty()
+        )
+    }
+
+    @Test
+    fun `both differing current facts read as conflicting and the mark clears once one is revoked`() {
+        val fixture = fixture()
+        val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
+        val existing = insertExistingFact(fixture, "\"Different answer\"")
+        val promoted = QuarkusTransaction.requiringNew().call {
+            services.acceptedFacts.promote(
+                promote(fixture, InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, "promote-both-marked")
+            )
+        }
+
+        val marked = QuarkusTransaction.requiringNew()
+            .call { services.acceptedFactQueries.promotedFrom(fixture.requestId, owner(fixture)) }
+            .associateBy { it.fact.id }
+        assertEquals(InformationRequestAcceptedFactConflictState.CONFLICTING, marked.getValue(existing).conflictState)
+        assertEquals(promoted.fact.id, marked.getValue(existing).conflictingFactId)
+        assertEquals(
+            InformationRequestAcceptedFactConflictState.CONFLICTING,
+            marked.getValue(promoted.fact.id).conflictState
+        )
+        assertEquals(existing, marked.getValue(promoted.fact.id).conflictingFactId)
+
+        QuarkusTransaction.requiringNew().run {
+            services.acceptedFacts.revoke(
+                RevokeInformationRequestAcceptedFactCommand(
+                    requestId = fixture.requestId,
+                    factId = existing,
+                    reasonCode = "replaced-by-newer-answer",
+                    access = owner(fixture),
+                    idempotencyKey = "revoke-older-conflicting-fact",
+                ),
+            )
+        }
+
+        val settled = QuarkusTransaction.requiringNew()
+            .call { services.acceptedFactQueries.promotedFrom(fixture.requestId, owner(fixture)) }
+            .associateBy { it.fact.id }
+        assertEquals(InformationRequestAcceptedFactConflictState.NONE, settled.getValue(promoted.fact.id).conflictState)
+        assertNull(settled.getValue(promoted.fact.id).conflictingFactId)
+        assertEquals(InformationRequestAcceptedFactConflictState.NONE, settled.getValue(existing).conflictState)
     }
 
     @Test
@@ -157,7 +343,13 @@ class InformationRequestAcceptedFactTransactionTest
         val existing = insertExistingFact(fixture, "\"Different answer\"")
 
         val conflicting = QuarkusTransaction.requiringNew().call {
-            services.acceptedFacts.promote(promote(fixture, InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, "promote-conflicting"))
+            services.acceptedFacts.promote(
+                promote(
+                    fixture,
+                    InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                    "promote-conflicting"
+                )
+            )
         }
         assertEquals(InformationRequestAcceptedFactConflictState.CONFLICTING, conflicting.fact.conflictState)
         assertEquals(existing, conflicting.fact.conflictingFactId)
@@ -170,12 +362,17 @@ class InformationRequestAcceptedFactTransactionTest
         }
         assertEquals(InformationRequestAcceptedFactConflictState.NONE, superseding.fact.conflictState)
         val later = runtime.build(fixture.laterRequestId, denies = respondentDenials(fixture))
-        val offered = QuarkusTransaction.requiringNew().call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }
+        val offered = QuarkusTransaction.requiringNew()
+            .call { later.acceptedFactQueries.offers(fixture.laterRequestId, owner(fixture)) }
         assertEquals(superseding.fact.id, offered.single().fact.fact.id)
         val refused = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
                 services.acceptedFacts.promote(
-                    promote(fixture, InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES, "promote-stale-supersession")
+                    promote(
+                        fixture,
+                        InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES,
+                        "promote-stale-supersession"
+                    )
                         .copy(supersedesFactId = existing),
                 )
             }
@@ -188,9 +385,17 @@ class InformationRequestAcceptedFactTransactionTest
     {
         val fixture = fixture()
         val services = runtime.build(fixture.requestId, denies = respondentDenials(fixture))
-        val stateBefore = QuarkusTransaction.requiringNew().call { requireNotNull(requestRepository.findById(fixture.requestId)).state }
+        val stateBefore = QuarkusTransaction.requiringNew()
+            .call { requireNotNull(requestRepository.findById(fixture.requestId)).state }
         val original = QuarkusTransaction.requiringNew().call {
-            services.businessDecisions.record(decision(fixture, InformationRequestBusinessDecisionKind.ORIGINAL, null, "decide-once"))
+            services.businessDecisions.record(
+                decision(
+                    fixture,
+                    InformationRequestBusinessDecisionKind.ORIGINAL,
+                    null,
+                    "decide-once"
+                )
+            )
         }.decision
         assertEquals(1, original.decisionRevision)
         QuarkusTransaction.requiringNew().run {
@@ -201,18 +406,39 @@ class InformationRequestAcceptedFactTransactionTest
 
         val duplicate = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                services.businessDecisions.record(decision(fixture, InformationRequestBusinessDecisionKind.ORIGINAL, null, "decide-twice"))
+                services.businessDecisions.record(
+                    decision(
+                        fixture,
+                        InformationRequestBusinessDecisionKind.ORIGINAL,
+                        null,
+                        "decide-twice"
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.BUSINESS_DECISION_PRIOR_INVALID, duplicate.reasonCode)
         val appeal = QuarkusTransaction.requiringNew().call {
-            services.businessDecisions.record(decision(fixture, InformationRequestBusinessDecisionKind.APPEAL, original.id, "appeal"))
+            services.businessDecisions.record(
+                decision(
+                    fixture,
+                    InformationRequestBusinessDecisionKind.APPEAL,
+                    original.id,
+                    "appeal"
+                )
+            )
         }.decision
         assertEquals(2, appeal.decisionRevision)
         assertEquals(original.id, appeal.priorDecisionId)
         val stalePrior = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                services.businessDecisions.record(decision(fixture, InformationRequestBusinessDecisionKind.RECONSIDERATION, original.id, "stale"))
+                services.businessDecisions.record(
+                    decision(
+                        fixture,
+                        InformationRequestBusinessDecisionKind.RECONSIDERATION,
+                        original.id,
+                        "stale"
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.BUSINESS_DECISION_PRIOR_INVALID, stalePrior.reasonCode)
@@ -226,7 +452,8 @@ class InformationRequestAcceptedFactTransactionTest
         }
         assertEquals(
             listOf(original.id, appeal.id),
-            QuarkusTransaction.requiringNew().call { services.businessDecisions.decisions(fixture.requestId, owner(fixture)) }.map { it.id },
+            QuarkusTransaction.requiringNew()
+                .call { services.businessDecisions.decisions(fixture.requestId, owner(fixture)) }.map { it.id },
         )
     }
 
@@ -235,7 +462,9 @@ class InformationRequestAcceptedFactTransactionTest
             lateinit var answers: FieldAnswerSqlFixture
             val runtimeFixture = SubmissionRuntimeSqlFixture(
                 connection,
-                beforePublish = { runtime -> answers = FieldAnswerSqlFixture(connection, runtime.template, reusePurpose = "profile.reuse") },
+                beforePublish = { runtime ->
+                    answers = FieldAnswerSqlFixture(connection, runtime.template, reusePurpose = "profile.reuse")
+                },
             )
             answers.materialize(runtimeFixture)
             val facts = com.docuhyphen.app.api.migration.FactSqlFixture(connection, runtimeFixture, answers)
@@ -254,6 +483,7 @@ class InformationRequestAcceptedFactTransactionTest
                 runtimeFixture.template.versionId,
                 runtimeFixture.template.organizationId,
             )
+            answers.assignSchema(laterRequestId)
             execute(
                 connection,
                 """
@@ -278,6 +508,25 @@ class InformationRequestAcceptedFactTransactionTest
                 runtimeFixture.template.versionId,
                 answers.templateRequirementId,
                 answers.bindingId,
+            )
+            val laterRevisionId = UUID.randomUUID()
+            execute(
+                connection, """
+                INSERT INTO information_request_requirement_revision
+                    (id, information_request_requirement_id, information_request_id, source_template_version_id,
+                     source_template_requirement_id, source_template_binding_id, revision_number, occurrence_path,
+                     effective_from, configuration_hash_sha256, optimistic_version, created_at)
+                SELECT ?, ?, ?, source_template_version_id, source_template_requirement_id, source_template_binding_id,
+                    1, occurrence_path, now(), configuration_hash_sha256, 1, now()
+                FROM information_request_requirement_revision WHERE id = ?
+            """.trimIndent(), laterRevisionId, laterRequirementId, laterRequestId, answers.revisionId
+            )
+            execute(
+                connection, """
+                INSERT INTO information_request_requirement_current
+                    (information_request_requirement_id, current_revision_id, current_revision_number, updated_at)
+                VALUES (?, ?, 1, now())
+            """.trimIndent(), laterRequirementId, laterRevisionId
             )
             FactFixture(runtimeFixture, facts, answers, laterRequestId, laterRequirementId)
         }
@@ -335,7 +584,12 @@ class InformationRequestAcceptedFactTransactionTest
             idempotencyKey = key,
         )
 
-    private fun decision(fixture: FactFixture, kind: InformationRequestBusinessDecisionKind, prior: UUID?, key: String) =
+    private fun decision(
+        fixture: FactFixture,
+        kind: InformationRequestBusinessDecisionKind,
+        prior: UUID?,
+        key: String
+    ) =
         RecordInformationRequestBusinessDecisionCommand(
             requestId = fixture.requestId,
             owningProcessKey = "process.outcome",
@@ -351,24 +605,20 @@ class InformationRequestAcceptedFactTransactionTest
     private fun respondentDenials(fixture: FactFixture): (PrincipalRef, Action) -> Boolean = { principal, action ->
         principal.id != fixture.runtime.template.userId && action in setOf(
             Action.INFORMATION_REQUEST_PROMOTE_FACT,
+            Action.INFORMATION_REQUEST_REVOKE_FACT,
             Action.INFORMATION_REQUEST_RECORD_DECISION,
         )
     }
 
     private fun owner(fixture: FactFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.template.userId), AuthorizationContext(sessionRef = "owner-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.template.userId),
+            AuthorizationContext(sessionRef = "owner-session")
+        )
 
     private fun contributor(fixture: FactFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.contributorUserId), AuthorizationContext(sessionRef = "contributor-session"))
-
-    internal data class FactFixture(
-        val runtime: SubmissionRuntimeSqlFixture,
-        val facts: com.docuhyphen.app.api.migration.FactSqlFixture,
-        val answers: FieldAnswerSqlFixture,
-        val laterRequestId: UUID,
-        val laterFieldRequirementId: UUID,
-    )
-    {
-        val requestId: UUID get() = runtime.requestId
-    }
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.contributorUserId),
+            AuthorizationContext(sessionRef = "contributor-session")
+        )
 }

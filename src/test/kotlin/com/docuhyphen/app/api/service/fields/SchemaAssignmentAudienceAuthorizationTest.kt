@@ -1,63 +1,27 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
-import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeFieldBindingPolicy
 import com.docuhyphen.app.api.service.exchange.ExchangeFieldResourceAdapter
+import com.docuhyphen.app.api.service.fields.model.AudienceAuthorizationFixture
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Audience filtering and capability rules for a resource's Schema Assignment and typed values.
- *
- * The projection returned by a value write must hide exactly what the read projection hides, an
- * external caller must not be able to address a binding their audience cannot see, and changing
- * which Schema is assigned must require more than the resource's ordinary write capability.
- *
- * The Exchange adapter is exercised for real so the classification of a caller as external and the
- * capability actually demanded of them are both covered. Participant and public-link principals are
- * supplied explicitly: no production endpoint emits them yet, so these are contract tests for the
- * service and adapter boundary rather than proof of an exposed unauthenticated surface.
- */
 class SchemaAssignmentAudienceAuthorizationTest
 {
     private val resourceType = "EXCHANGE"
@@ -71,53 +35,33 @@ class SchemaAssignmentAudienceAuthorizationTest
     private val publicContractId = UUID.randomUUID()
     private val internalContractId = UUID.randomUUID()
 
-    private data class Fixture(
-        val service: SchemaAssignmentService,
-        val valueRepository: FieldValueRepository,
-        val assignmentRepository: SchemaAssignmentRepository,
-        val access: FieldsAccessContext,
-    )
-
     private val resource by lazy { FieldsResourceRef(resourceType, exchangeId) }
 
-    /** Reads the answers the Exchange gives as itself. */
-    private fun Fixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
+    private fun AudienceAuthorizationFixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
 
-    /** Saves answers into the set the Exchange answers with as itself. */
-    private fun Fixture.save(entries: List<FieldValueEntry>) =
+    private fun AudienceAuthorizationFixture.save(entries: List<FieldValueEntry>) =
         service.setValues(FieldValueWriteCommand(resource, access, entries))
 
-    /** Chooses the published Schema for the Exchange. */
-    private fun Fixture.assign() = requireNotNull(
+    private fun AudienceAuthorizationFixture.assign() = requireNotNull(
         service.applySchemaAssignment(
             SchemaAssignmentCommand(resource, access, SchemaAssignmentOperation.ASSIGN, schemaDefinitionId),
         ),
     ) { "Choosing a Schema always answers with the assignment it created" }
 
-    /** Removes the Schema governing the Exchange. */
-    private fun Fixture.unassign()
+    private fun AudienceAuthorizationFixture.unassign()
     {
         service.applySchemaAssignment(
             SchemaAssignmentCommand(resource, access, SchemaAssignmentOperation.UNASSIGN),
         )
     }
 
-    /**
-     * @param principal the caller identity handed to the service.
-     * @param callerIsOrgMember whether the caller is an active member of the Exchange's owner org,
-     *   which is what makes a registered User an internal rather than an external caller.
-     * @param allowedActions the Actions the authorization service allows for this caller.
-     * @param assigned whether the Exchange already has a Schema Assignment.
-     * @param allowEveryAction grants every Action, so a test can describe a fully privileged caller
-     *   without naming the Action a Schema Assignment change happens to demand.
-     */
     private fun fixture(
         principal: PrincipalRef,
         callerIsOrgMember: Boolean,
         vararg allowedActions: Action,
         assigned: Boolean = true,
         allowEveryAction: Boolean = false,
-    ): Fixture
+    ): AudienceAuthorizationFixture
     {
         val exchange = Exchange().apply {
             id = exchangeId
@@ -128,10 +72,8 @@ class SchemaAssignmentAudienceAuthorizationTest
         val exchangeRepository = mock<ExchangeRepository>()
         whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
 
-        val membershipRepository = mock<OrganizationMembershipRepository>()
-        whenever(membershipRepository.findActiveByUserAndOrg(any(), any())).thenReturn(
-            if (callerIsOrgMember) mock() else null,
-        )
+        val memberships = mock<OrganizationMembershipService>()
+        whenever(memberships.isMember(any(), any())).thenReturn(callerIsOrgMember)
 
         val authorization = mock<AuthorizationService>()
         whenever(authorization.authorize(any(), any(), any(), any())).thenAnswer {
@@ -146,7 +88,7 @@ class SchemaAssignmentAudienceAuthorizationTest
             authorizationService = authorization,
             bindingPolicy = ExchangeFieldBindingPolicy(
                 exchangeRepository = exchangeRepository,
-                organizationMembershipRepository = membershipRepository,
+                organizationMembershipService = memberships,
             ),
         )
         val registry = mock<FieldResourceAdapterRegistry>()
@@ -233,13 +175,14 @@ class SchemaAssignmentAudienceAuthorizationTest
         }
         val valueSetRepository = mock<FieldValueSetRepository>()
         whenever(valueSetRepository.findRoot(assignmentId)).thenReturn(rootValueSet)
+        whenever(valueSetRepository.findRootForUpdate(assignmentId)).thenReturn(rootValueSet)
         whenever(valueSetRepository.findByAssignment(assignmentId)).thenReturn(listOf(rootValueSet))
         whenever(valueSetRepository.save(any())).thenAnswer { it.getArgument<FieldValueSet>(0) }
 
         val selectionRepository = mock<FieldValueSelectionRepository>()
         whenever(selectionRepository.findByValue(any())).thenReturn(emptyList())
 
-        return Fixture(
+        return AudienceAuthorizationFixture(
             SchemaAssignmentService(
                 adapterRegistry = registry,
                 assignmentRepository = assignmentRepository,
@@ -282,8 +225,6 @@ class SchemaAssignmentAudienceAuthorizationTest
     }
 
     private fun entry(contractId: UUID) = FieldValueEntry(contractId, JsonPrimitive("supplied"))
-
-    // ── Read projection ───────────────────────────────────────────────────────
 
     @Test
     fun `external registered user read omits bindings outside their audience`()
@@ -361,13 +302,9 @@ class SchemaAssignmentAudienceAuthorizationTest
             Action.EXCHANGE_VIEW,
         ).read()
 
-        // One projection is authoritative for both, so a caller can never learn from the description
-        // of a binding that a value is being withheld from them.
         assertEquals(external?.fields?.map { it.fieldContractId }, external?.bindings?.map { it.fieldContractId })
         assertEquals(internal?.fields?.map { it.fieldContractId }, internal?.bindings?.map { it.fieldContractId })
     }
-
-    // ── Write projection ──────────────────────────────────────────────────────
 
     @Test
     fun `external registered user value write response omits bindings outside their audience`()
@@ -432,8 +369,6 @@ class SchemaAssignmentAudienceAuthorizationTest
         )
     }
 
-    // ── Writes to invisible bindings ──────────────────────────────────────────
-
     @Test
     fun `external registered user cannot write a binding outside their audience`()
     {
@@ -449,7 +384,7 @@ class SchemaAssignmentAudienceAuthorizationTest
         }
 
         assertTrue(
-            error.message?.contains("not part of the assigned schema") == true,
+            error.message.contains("not part of the assigned schema") == true,
             "An invisible binding must be refused without confirming that it exists: ${error.message}",
         )
         verify(fixture.valueRepository, never()).save(any())
@@ -486,8 +421,6 @@ class SchemaAssignmentAudienceAuthorizationTest
             fixture.save(listOf(entry(publicContractId)))
         }
     }
-
-    // ── Assignment changes ────────────────────────────────────────────────────
 
     @Test
     fun `resource write capability alone cannot assign a schema`()

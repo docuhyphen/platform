@@ -14,13 +14,16 @@ import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class PlatformInformationRequestHealthResourceContractTest
 {
@@ -36,7 +39,12 @@ class PlatformInformationRequestHealthResourceContractTest
         whenever(healthService.reportFor(access.principal, "request-1")).thenReturn(
             InformationRequestHealthReport(
                 Instant.parse("2026-09-30T10:00:00Z"),
-                listOf(InformationRequestHealthIndicator(InformationRequestHealthIndicatorKey.REQUESTS_WITHOUT_EXECUTION_GRANT, 1, 0)),
+                listOf(
+                    InformationRequestHealthIndicator(
+                        InformationRequestHealthIndicatorKey.REQUESTS_WITHOUT_EXECUTION_GRANT,
+                        1
+                    )
+                ),
             ),
         )
 
@@ -47,6 +55,10 @@ class PlatformInformationRequestHealthResourceContractTest
         val body = response.entity as InformationRequestHealthReportDto
         assertEquals(false, body.healthy)
         assertEquals(true, body.indicators.single().breached)
+        assertEquals(
+            setOf("key", "count", "breached"),
+            Json.encodeToJsonElement(body.indicators.single()).jsonObject.keys
+        )
     }
 
     @Test

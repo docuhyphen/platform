@@ -6,13 +6,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.informationrequest.amendment.AmendInformationRequestCommand
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestPrivateVersionPublisher
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateSchemaCompatibility
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
@@ -20,19 +17,9 @@ import jakarta.inject.Inject
 class InformationRequestAmendmentTargetResolver @Inject constructor(
     private val versionRepository: InformationRequestTemplateVersionRepository,
     private val definitionRepository: InformationRequestTemplateDefinitionRepository,
-    capabilityRepository: InformationRequestTemplateVersionCapabilityRepository,
-    configurationWriter: InformationRequestTemplateConfigurationWriter,
-    schemaCompatibility: InformationRequestTemplateSchemaCompatibility,
+    private val versionPublisher: InformationRequestPrivateVersionPublisher,
 )
 {
-    private val versionPublisher = InformationRequestPrivateVersionPublisher(
-        definitionRepository,
-        versionRepository,
-        capabilityRepository,
-        configurationWriter,
-        schemaCompatibility,
-    )
-
     fun current(request: InformationRequest): InformationRequestTemplateVersion =
         versionRepository.findById(request.templateVersionId)
             ?: throw IllegalStateException("Information Request ${request.id} pins no Template Version")

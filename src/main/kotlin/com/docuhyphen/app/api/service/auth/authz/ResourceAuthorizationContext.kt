@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+
 /**
  * Resolved authorization context for one specific resource instance. Produced by
  * [ResourceAuthorizationContextProvider] and consumed by [DefaultAuthorizationService]

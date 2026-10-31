@@ -3,17 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidencePolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanSettings
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.malwareOutcome
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
@@ -22,9 +12,7 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.kotlin.mock
@@ -51,6 +39,7 @@ class InformationRequestEvidenceFileBehaviorTest
         settings = InformationRequestEvidenceScanSettings(Duration.ofSeconds(5), Duration.ofDays(1), Duration.ofDays(30)),
         clock = Clock.systemUTC(),
         scanAudit = fixture.scanAudit,
+        gate = mock(),
     )
 
     init
@@ -60,18 +49,15 @@ class InformationRequestEvidenceFileBehaviorTest
     }
 
     @Test
-    fun `opaque ciphertext is kept for the record, never scanned clean, and never satisfies with a stable reason`()
+    fun `content declared end-to-end encrypted is refused and nothing is stored or offered for download`()
     {
-        upload(file("sealed.bin", "ciphertext bytes".toByteArray(), DocumentEncryptionMode.END_TO_END))
-        val version = fixture.versions.single()
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            upload(file("sealed.bin", "ciphertext bytes".toByteArray(), DocumentEncryptionMode.END_TO_END))
+        }
 
-        assertEquals(InformationRequestEvidenceMalwareOutcome.SKIPPED, scans.assess(version.id).malwareOutcome())
-        val listed = queries.list(fixture.request.id, fixture.documentRequirement.id, fixture.access)
-        val evaluation = listed.evaluation!!.versions.single()
-
-        assertEquals(InformationRequestEvidenceRequirementState.DEFICIENT, listed.evaluation?.state)
-        assertTrue(evaluation.findings.any { it.code == InformationRequestEvidenceFindingCode.CONTENT_OPAQUE && it.code.blocking })
-        assertEquals(1, fixture.recordedUploads.size)
+        assertEquals(InformationRequestErrorCatalog.EVIDENCE_OPAQUE_CONTENT_REFUSED, refusal.reasonCode)
+        assertTrue(fixture.versions.isEmpty())
+        assertTrue(fixture.recordedUploads.isEmpty())
     }
 
     @Test

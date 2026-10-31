@@ -1,24 +1,29 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
 import com.docuhyphen.app.api.model.document.DocumentVersionUpload
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.*
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -36,13 +41,18 @@ class InformationRequestEvidenceUploadService @Inject constructor(
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val viewLoader: InformationRequestEvidenceViewLoader,
     private val intake: InformationRequestEvidenceIntake,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
 )
 {
     @Transactional
-    fun upload(command: UploadInformationRequestEvidenceCommand): InformationRequestEvidenceCommandResult
+    fun upload(requested: UploadInformationRequestEvidenceCommand): InformationRequestEvidenceCommandResult
     {
-        val digest = DocumentVersionContentDigests.of(command.file.file)
-        val locked = gate.lock(command.requestId)
+        intake.requireWithinFileLimit(requested.surface, requested.file.file.length())
+        val digest = DocumentVersionContentDigests.of(requested.file.file)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val inspection = intake.inspect(requested.file)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef.informationRequestRequirement(command.requirementId),
             operation = UPLOAD_OPERATION,
@@ -61,7 +71,7 @@ class InformationRequestEvidenceUploadService @Inject constructor(
 
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
-                val result = recordUpload(locked, command, digest)
+                val result = recordUpload(locked, command, digest, inspection)
                 CommandMutationResult(result, reference(result))
             }
         )
@@ -72,10 +82,14 @@ class InformationRequestEvidenceUploadService @Inject constructor(
     }
 
     @Transactional
-    fun replace(command: ReplaceInformationRequestEvidenceCommand): InformationRequestEvidenceCommandResult
+    fun replace(requested: ReplaceInformationRequestEvidenceCommand): InformationRequestEvidenceCommandResult
     {
-        val digest = DocumentVersionContentDigests.of(command.file.file)
-        val locked = gate.lock(command.requestId)
+        intake.requireWithinFileLimit(requested.surface, requested.file.file.length())
+        val digest = DocumentVersionContentDigests.of(requested.file.file)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val inspection = intake.inspect(requested.file)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef(ResourceType.INFORMATION_REQUEST_EVIDENCE_ARTIFACT, command.artifactId),
             operation = REPLACE_OPERATION,
@@ -94,7 +108,7 @@ class InformationRequestEvidenceUploadService @Inject constructor(
 
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
-                val result = recordReplacement(locked, command, digest)
+                val result = recordReplacement(locked, command, digest, inspection)
                 CommandMutationResult(result, reference(result))
             }
         )
@@ -108,13 +122,21 @@ class InformationRequestEvidenceUploadService @Inject constructor(
         locked: LockedInformationRequest,
         command: UploadInformationRequestEvidenceCommand,
         digest: DocumentVersionContentDigest,
+        inspected: InformationRequestEvidenceInspectionFacts?,
     ): InformationRequestEvidenceCommandResult
     {
+        gate.requireRequestView(command.access, locked.request.id)
+        gate.requireEvidenceTarget(
+            command.access,
+            command.requirementId,
+            listOf(Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD)
+        )
         val requirement = gate.requireEvidenceOccurrence(locked.request, command.requirementId)
         gate.requireMutationAllowed(locked)
         gate.requireEvidenceOpen(locked, requirement)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
         gate.authorize(command.access, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD, requirement.id)
+        gate.requireShown(locked.request, requirement)
         val existing = artifactRepository.findForRequirement(requirement.id)
         command.precondition.requireSatisfiedBy(InformationRequestETag.evidenceOf(requirement.id, existing))
         val inspection = intake.admit(
@@ -124,6 +146,7 @@ class InformationRequestEvidenceUploadService @Inject constructor(
             command.surface,
             command.file,
             digest,
+            inspected,
             replacing = null,
         )
 
@@ -165,26 +188,35 @@ class InformationRequestEvidenceUploadService @Inject constructor(
                 InformationRequestEvidenceAction.UPLOAD
             ),
         )
-        return result(requirement.id, artifact)
+        return result(locked, command.access, requirement.id, artifact)
     }
 
     private fun recordReplacement(
         locked: LockedInformationRequest,
         command: ReplaceInformationRequestEvidenceCommand,
         digest: DocumentVersionContentDigest,
+        inspected: InformationRequestEvidenceInspectionFacts?,
     ): InformationRequestEvidenceCommandResult
     {
+        gate.requireRequestView(command.access, locked.request.id)
+        gate.requireEvidenceTarget(
+            command.access,
+            command.requirementId,
+            listOf(Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD)
+        )
         val requirement = gate.requireEvidenceOccurrence(locked.request, command.requirementId)
         val artifact = artifactRepository.findByIdForUpdate(command.artifactId)
-            ?.takeIf { it.informationRequestRequirementId == requirement.id }
+            ?.takeIf { it.informationRequestRequirementId == requirement.id && gate.sees(command.access, it) }
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Information Request evidence not found",
             )
         gate.requireMutationAllowed(locked)
         gate.requireArtifactOpen(locked, requirement, artifact.id)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
         gate.authorize(command.access, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD, requirement.id)
+        gate.requireShown(locked.request, requirement)
+        gate.requireChangeableBy(command.access, locked.request, artifact)
         command.precondition.requireSatisfiedBy(InformationRequestETag.artifactOf(artifact))
         if (artifact.collectionState != InformationRequestEvidenceCollectionState.ACTIVE)
         {
@@ -200,13 +232,14 @@ class InformationRequestEvidenceUploadService @Inject constructor(
             command.surface,
             command.file,
             digest,
+            inspected,
             replacing = artifact,
         )
 
         val latest = versionRepository.findLatest(artifact.id)
             ?: error("An evidence artifact records at least one version")
         val upload = documentVersionUpload(command.file, command.access, digest)
-        val document = latest.documentVersionId?.let(documentVersionRecordingService::findVersion)?.document
+        val document = documentVersionRecordingService.findVersion(latest.documentVersionId)?.document
         val documentVersion = document
             ?.let { documentVersionRecordingService.recordNextVersion(it, upload) }
             ?: documentVersionRecordingService.recordStandaloneDocument(upload)
@@ -239,7 +272,7 @@ class InformationRequestEvidenceUploadService @Inject constructor(
                 InformationRequestEvidenceAction.REPLACE
             ),
         )
-        return result(requirement.id, artifact)
+        return result(locked, command.access, requirement.id, artifact)
     }
 
     private fun replay(
@@ -253,31 +286,29 @@ class InformationRequestEvidenceUploadService @Inject constructor(
         {
             "Command receipt does not reference Information Request evidence"
         }
+        gate.requireEvidenceTarget(access, requirementId, listOf(Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD))
         val requirement = gate.requireEvidenceOccurrence(locked.request, requirementId)
         gate.requireMutationAllowed(locked)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
         gate.authorize(access, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD, requirement.id)
         val artifact = artifactRepository.findById(recorded.resourceId)
-            ?.takeIf { it.informationRequestRequirementId == requirement.id }
+            ?.takeIf { it.informationRequestRequirementId == requirement.id && gate.sees(access, it) }
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Information Request evidence receipt target not found",
             )
-        val recordedRevision = requireNotNull(recorded.revision) { "Evidence receipt did not record a revision" }
-
-        return InformationRequestEvidenceCommandResult(
-            artifact = viewLoader.view(artifact, recordedRevision.toInt()),
-            evidenceETag = requireNotNull(recorded.etag) { "Evidence receipt did not record an evidence ETag" },
-            artifactETag = RevisionETag.of(artifact.id, recordedRevision),
-        )
+        gate.requireChangeableBy(access, locked.request, artifact)
+        return result(locked, access, requirementId, artifact)
     }
 
     private fun result(
+        locked: LockedInformationRequest,
+        access: RequestAccessContext,
         requirementId: UUID,
         artifact: InformationRequestEvidenceArtifact
     ): InformationRequestEvidenceCommandResult =
         InformationRequestEvidenceCommandResult(
-            artifact = viewLoader.view(artifact),
+            artifact = gate.forCaller(access, locked.request, viewLoader.view(artifact)),
             evidenceETag = InformationRequestETag.evidenceOf(
                 requirementId,
                 artifactRepository.findForRequirement(requirementId)
@@ -343,8 +374,8 @@ class InformationRequestEvidenceUploadService @Inject constructor(
                 fromState = locked.request.state,
                 toState = locked.request.state,
                 mutation = InformationRequestMutation.ADMINISTER_EVIDENCE,
-                actor = access.principal,
-                idempotencyKey = listOf(
+                actor = InformationRequestAuditActor.of(access),
+                auditIdempotencyKey = listOf(
                     AUDIT_KEY_PREFIX,
                     evidence.requirementId,
                     "${access.principal.kind}:${access.principal.id}",
@@ -365,28 +396,26 @@ class InformationRequestEvidenceUploadService @Inject constructor(
         attributes: InformationRequestEvidenceAttributes,
         digest: DocumentVersionContentDigest,
     ): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(
-                operation,
-                requestId,
-                requirementId,
-                artifactId ?: "",
-                digest.algorithm,
-                digest.value,
-                digest.length,
-                file.declaredFileName,
-                file.declaredMediaType.orEmpty(),
-                file.encryptionMode,
-                attributes.issuer.orEmpty(),
-                attributes.jurisdiction.orEmpty(),
-                attributes.language.orEmpty(),
-                attributes.issuedOn ?: "",
-                attributes.expiresOn ?: "",
-                attributes.coverage?.startsOn ?: "",
-                attributes.coverage?.endsOn ?: "",
-                attributes.certificationReference.orEmpty(),
-                attributes.signatureReference.orEmpty(),
-            ).joinToString("|"),
+        CommandRequestFingerprint.of(
+            operation,
+            requestId,
+            requirementId,
+            artifactId,
+            digest.algorithm,
+            digest.value,
+            digest.length,
+            file.declaredFileName,
+            file.declaredMediaType.orEmpty(),
+            file.encryptionMode,
+            attributes.issuer.orEmpty(),
+            attributes.jurisdiction.orEmpty(),
+            attributes.language.orEmpty(),
+            attributes.issuedOn,
+            attributes.expiresOn,
+            attributes.coverage?.startsOn,
+            attributes.coverage?.endsOn,
+            attributes.certificationReference.orEmpty(),
+            attributes.signatureReference.orEmpty(),
         )
 
     private companion object

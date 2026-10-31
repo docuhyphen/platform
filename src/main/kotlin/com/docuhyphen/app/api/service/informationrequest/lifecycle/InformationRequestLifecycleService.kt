@@ -1,24 +1,35 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestCredentialCutoff
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestTemplateCapabilityGate
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockIssueRebaser
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockStopper
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionUsageReservationService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestBootstrapShareLinkService
 import com.docuhyphen.app.api.service.informationrequest.parent.lockParentExchangeOf
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestTrustedRecipientEligibilityService
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestFieldAudienceGuard
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -35,68 +46,107 @@ open class InformationRequestLifecycleException(
 @ApplicationScoped
 class InformationRequestLifecycleService @Inject constructor(
     private val requestRepository: InformationRequestRepository,
-    private val exchangeRepository: ExchangeRepository,
+    private val exchangeLookup: ExchangeLookupService,
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
     private val capabilityGate: InformationRequestTemplateCapabilityGate,
     private val transitionHistory: InformationRequestTransitionHistoryService,
-    private val entitlementGuard: InformationRequestEntitlementGuard,
+    private val continuationGuard: InformationRequestContinuationGuard,
     private val executionGrantService: InformationRequestExecutionGrantService,
     private val partyRepository: InformationRequestPartyRepository,
     private val executionUsageReservationService: InformationRequestExecutionUsageReservationService,
+    private val clockStopper: InformationRequestClockStopper,
+    private val clockRebaser: InformationRequestClockIssueRebaser,
+    private val trustedRecipients: InformationRequestTrustedRecipientEligibilityService,
+    private val bootstrapLinks: InformationRequestBootstrapShareLinkService,
+    private val fieldAudience: InformationRequestFieldAudienceGuard,
 )
 {
     @Transactional
-    fun issue(command: IssueInformationRequestCommand): InformationRequestLifecycleResult =
-        runOnce(
-            requestId = command.requestId,
+    fun issue(command: IssueInformationRequestCommand): InformationRequestLifecycleResult {
+        InformationRequestReadAuthorization.requireVisibleTarget(
+            authorizationService,
+            command.requestId,
+            command.access
+        )
+        val locked = lock(command.requestId)
+        return runOnce(
+            locked = locked,
             operation = ISSUE_OPERATION,
             actor = command.access,
             idempotencyKey = command.idempotencyKey,
             fingerprint = fingerprint(ISSUE_OPERATION, command.requestId),
         ) {
             mutate(
-                requestId = command.requestId,
+                locked = locked,
                 access = command.access,
                 precondition = command.precondition,
                 action = Action.INFORMATION_REQUEST_ISSUE,
                 mutation = InformationRequestMutation.ISSUE,
                 reasonCode = null,
                 idempotencyKey = command.idempotencyKey,
+                entitlement = continuationGuard::requireIssuance,
             ) { request, exchange, now ->
                 capabilityGate.requireInstalledCapabilities(request.templateVersionId)
+                trustedRecipients.requireIssuable(request)
+                fieldAudience.requireAnswerableByParties(request)
                 request.issuedAt = now
+                if (exchange.status != ExchangeStatus.INITIATED)
+                    clockRebaser.rebaseOnIssue(request, now.toInstant(), command.access.principal)
                 val grant = executionGrantService.issueGrant(request, exchange)
                 consumeActiveActingPartyCapacity(grant)
             }
         }
+    }
 
     @Transactional
-    fun cancel(command: CancelInformationRequestCommand): InformationRequestLifecycleResult =
-        runOnce(
-            requestId = command.requestId,
+    fun cancel(command: CancelInformationRequestCommand): InformationRequestLifecycleResult {
+        val reasonCode = InformationRequestReasonCodes.requireMachineCode(command.reasonCode)
+        InformationRequestReadAuthorization.requireVisibleTarget(
+            authorizationService,
+            command.requestId,
+            command.access
+        )
+        val locked = lock(command.requestId)
+        return runOnce(
+            locked = locked,
             operation = CANCEL_OPERATION,
             actor = command.access,
             idempotencyKey = command.idempotencyKey,
-            fingerprint = fingerprint(CANCEL_OPERATION, command.requestId, command.reasonCode.orEmpty()),
+            fingerprint = fingerprint(CANCEL_OPERATION, command.requestId, reasonCode.orEmpty()),
         ) {
             mutate(
-                requestId = command.requestId,
+                locked = locked,
                 access = command.access,
                 precondition = command.precondition,
                 action = Action.INFORMATION_REQUEST_CANCEL,
                 mutation = InformationRequestMutation.CANCEL,
-                reasonCode = command.reasonCode,
+                reasonCode = reasonCode,
                 idempotencyKey = command.idempotencyKey,
+                entitlement = { continuationGuard.requireOwnerWithdrawal(it) },
             ) { request, _, now ->
                 request.cancelledAt = now
+            }.also {
+                revokeAccessLinks(
+                    it.request,
+                    command.access,
+                    InformationRequestCredentialCutoff.REQUEST_CANCELLED
+                )
             }
         }
+    }
 
     @Transactional
-    fun supersede(command: SupersedeInformationRequestCommand): InformationRequestLifecycleResult =
-        runOnce(
-            requestId = command.requestId,
+    fun supersede(command: SupersedeInformationRequestCommand): InformationRequestLifecycleResult {
+        val reasonCode = InformationRequestReasonCodes.requireMachineCode(command.reasonCode)
+        InformationRequestReadAuthorization.requireVisibleTarget(
+            authorizationService,
+            command.requestId,
+            command.access
+        )
+        val locked = lock(command.requestId)
+        return runOnce(
+            locked = locked,
             operation = SUPERSEDE_OPERATION,
             actor = command.access,
             idempotencyKey = command.idempotencyKey,
@@ -104,26 +154,56 @@ class InformationRequestLifecycleService @Inject constructor(
                 SUPERSEDE_OPERATION,
                 command.requestId,
                 command.supersededByRequestId,
-                command.reasonCode.orEmpty(),
+                reasonCode.orEmpty(),
             ),
         ) {
             mutate(
-                requestId = command.requestId,
+                locked = locked,
                 access = command.access,
                 precondition = command.precondition,
                 action = Action.INFORMATION_REQUEST_SUPERSEDE,
                 mutation = InformationRequestMutation.SUPERSEDE,
-                reasonCode = command.reasonCode,
+                reasonCode = reasonCode,
                 idempotencyKey = command.idempotencyKey,
+                entitlement = {
+                    continuationGuard.requireOwnerRecovery(
+                        it,
+                        InformationRequestContinuationAction.SUPERSEDE
+                    )
+                },
             ) { request, _, now ->
                 val replacement = replacementRequest(command, request)
                 request.supersededAt = now
                 request.supersededByRequestId = replacement.id
+            }.also {
+                revokeAccessLinks(
+                    it.request,
+                    command.access,
+                    InformationRequestCredentialCutoff.REQUEST_SUPERSEDED
+                )
             }
         }
+    }
+
+    private fun revokeAccessLinks(request: InformationRequest, access: RequestAccessContext, reasonCode: String) {
+        bootstrapLinks.revokeLinksKeepingSessions(
+            request,
+            InformationRequestCredentialCutoff(InformationRequestAuditActor.of(access), reasonCode),
+        )
+    }
+
+    private fun lock(requestId: UUID): LockedInformationRequest {
+        val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeLookup)
+        val request = requestRepository.findRequestByIdForUpdate(requestId)
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found",
+            )
+        return LockedInformationRequest(exchange, request)
+    }
 
     private fun runOnce(
-        requestId: UUID,
+        locked: LockedInformationRequest,
         operation: String,
         actor: RequestAccessContext,
         idempotencyKey: String,
@@ -132,7 +212,7 @@ class InformationRequestLifecycleService @Inject constructor(
     ): InformationRequestLifecycleResult
     {
         val receiptRequest = CommandReceiptRequest(
-            resource = ResourceRef.informationRequest(requestId),
+            resource = ResourceRef.informationRequest(locked.request.id),
             operation = operation,
             actor = CommandActorRef.principal(actor.principal),
             idempotencyKey = idempotencyKey,
@@ -151,42 +231,22 @@ class InformationRequestLifecycleService @Inject constructor(
     }
 
     private fun mutate(
-        requestId: UUID,
+        locked: LockedInformationRequest,
         access: RequestAccessContext,
         precondition: CommandPrecondition,
         action: Action,
         mutation: InformationRequestMutation,
         reasonCode: String?,
         idempotencyKey: String,
+        entitlement: (LockedInformationRequest) -> Unit,
         beforeUpdate: (InformationRequest, Exchange, Timestamp) -> Unit,
     ): InformationRequestLifecycleResult
     {
-        val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeRepository)
-        val request = requestRepository.findRequestByIdForUpdate(requestId)
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.NOT_FOUND,
-                "Information Request not found",
-            )
-        precondition.requireSatisfiedBy(InformationRequestETag.aggregateOf(request))
+        val exchange = locked.exchange
+        val request = locked.request
         authorize(access, action, request.id)
-
-        // A request that already holds a frozen execution grant answers to it rather than the
-        // owner's live plan: only a request that has never been issued still has no grant to
-        // consult, so this is exactly the pre-issuance mutation path (issuance itself included).
-        val grant = executionGrantService.findForRequest(request.id)
-        if (grant == null)
-        {
-            entitlementGuard.requireRequestMutation(exchange)
-        }
-        else
-        {
-            // Neither decision is a live commercial recheck: an emergency operational suspension
-            // is checked unconditionally because it is the one live decision meant to reach a
-            // request whose grant is already frozen, and an explicit revocation targets this one
-            // request rather than the owner's plan at all.
-            entitlementGuard.requireNotOperationallySuspended(exchange)
-            requireGrantNotRevoked(grant)
-        }
+        precondition.requireSatisfiedBy(InformationRequestETag.aggregateOf(request))
+        entitlement(locked)
         val nextState = nextState(exchange, request.state, mutation)
         val previousState = request.state
         val now = Timestamp.from(Instant.now())
@@ -195,15 +255,24 @@ class InformationRequestLifecycleService @Inject constructor(
         request.aggregateRevision += 1
         request.updatedAt = now
         requestRepository.update(request)
+        if (nextState.isTerminal) {
+            clockStopper.stopForFinishedRequest(
+                request,
+                access.principal,
+                now.toInstant(),
+                InformationRequestClockStopper.REQUEST_FINISHED,
+            )
+        }
         transitionHistory.record(
             InformationRequestTransitionHistoryCommand(
                 request = request,
                 fromState = previousState,
                 toState = nextState,
                 mutation = mutation,
-                actor = access.principal,
+                actor = InformationRequestAuditActor.of(access),
                 reasonCode = reasonCode,
-                idempotencyKey = historyIdempotencyKey(mutation, request.id, idempotencyKey),
+                auditIdempotencyKey = historyIdempotencyKey(mutation, request.id, idempotencyKey),
+                requireAuditCapture = true,
             ),
         )
         return InformationRequestLifecycleResult(
@@ -236,17 +305,6 @@ class InformationRequestLifecycleService @Inject constructor(
             is InformationRequestPolicyDecision.Deny -> throw InformationRequestLifecycleException(
                 decision.reasonCode,
                 "Information Request lifecycle mutation $mutation is not allowed",
-            )
-        }
-    }
-
-    private fun requireGrantNotRevoked(grant: RequestExecutionGrant)
-    {
-        if (grant.revokedAt != null)
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.EXECUTION_GRANT_REVOKED,
-                "This request's execution grant has been revoked",
             )
         }
     }
@@ -311,6 +369,12 @@ class InformationRequestLifecycleService @Inject constructor(
                 "An Information Request cannot supersede itself",
             )
         }
+        authorize(
+            command.access,
+            Action.INFORMATION_REQUEST_SUPERSEDE,
+            command.supersededByRequestId,
+            "Access denied to the replacement Information Request",
+        )
         val replacement = requestRepository.findById(command.supersededByRequestId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
@@ -326,7 +390,12 @@ class InformationRequestLifecycleService @Inject constructor(
         return replacement
     }
 
-    private fun authorize(access: RequestAccessContext, action: Action, requestId: UUID)
+    private fun authorize(
+        access: RequestAccessContext,
+        action: Action,
+        requestId: UUID,
+        refusal: String = "Access denied to mutate Information Request lifecycle",
+    )
     {
         val decision = authorizationService.authorize(
             access.principal,
@@ -336,7 +405,7 @@ class InformationRequestLifecycleService @Inject constructor(
         )
         if (decision is Decision.Deny)
         {
-            throw ForbiddenException("Access denied to mutate Information Request lifecycle")
+            throw ForbiddenException(refusal)
         }
     }
 
@@ -356,9 +425,7 @@ class InformationRequestLifecycleService @Inject constructor(
         InformationRequestReadAuthorization.requireView(authorizationService, request.id, access)
         return InformationRequestLifecycleResult(
             request = request,
-            requestETag = requireNotNull(result.etag) {
-                "Information Request lifecycle receipt did not record an aggregate ETag"
-            },
+            requestETag = InformationRequestETag.aggregateOf(request)
         )
     }
 
@@ -371,9 +438,7 @@ class InformationRequestLifecycleService @Inject constructor(
         )
 
     private fun fingerprint(operation: String, vararg fields: Any): String =
-        CommandRequestFingerprint.sha256Hex(
-            (listOf(operation) + fields.map { it.toString().trim() }).joinToString("|"),
-        )
+        CommandRequestFingerprint.of(operation, *fields.map { if (it is String) it.trim() else it }.toTypedArray())
 
     private fun historyIdempotencyKey(
         mutation: InformationRequestMutation,

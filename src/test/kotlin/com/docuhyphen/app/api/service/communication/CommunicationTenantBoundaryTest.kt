@@ -1,22 +1,15 @@
 package com.docuhyphen.app.api.service.communication
 
-import com.docuhyphen.app.api.model.dto.CloneCommunicationRequest
-import com.docuhyphen.app.api.model.dto.CreateCommunicationRequest
-import com.docuhyphen.app.api.model.dto.PatchCommunicationPublishedRequest
-import com.docuhyphen.app.api.model.dto.PatchCommunicationStatusRequest
-import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.Communication
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
+import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.communication.model.CommunicationTenantFixture
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
@@ -25,12 +18,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class CommunicationTenantBoundaryTest
 {
@@ -67,22 +56,16 @@ class CommunicationTenantBoundaryTest
             }
         }
 
-    private data class ServiceFixture(
-        val service: CommunicationService,
-        val repository: CommunicationRepository,
-        val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
-    )
-
     private fun fixture(
         appAdmin: Boolean = true,
         orgAdmin: Boolean = false,
         allowedActions: Array<out Action> = emptyArray(),
         context: AuthorizationContext = authorizationContext(),
-    ): ServiceFixture
+    ): CommunicationTenantFixture
     {
         val repository = mock<CommunicationRepository>()
         val subscriptionGuard = mock<OrganizationFeatureSubscriptionGuard>()
-        return ServiceFixture(
+        return CommunicationTenantFixture(
             service = CommunicationService(
                 repository = repository,
                 appUserRepository = mock<AppUserRepository>(),

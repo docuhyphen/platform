@@ -7,10 +7,7 @@ import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
 import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
 import com.docuhyphen.app.api.model.document.DocumentVersionStorageProvider
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
-import org.junit.jupiter.api.Assertions.assertArrayEquals
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
@@ -66,8 +63,10 @@ class LocalDocumentVersionStorageServiceTest
 
         val opened = storage.openVersion(locator)
 
-        assertEquals("record_v1.pdf", opened.name)
-        assertArrayEquals(source.readBytes(), opened.readBytes())
+        assertEquals("record_v1.pdf", opened.file.name)
+        assertArrayEquals(source.readBytes(), opened.file.readBytes())
+        opened.close()
+        assertArrayEquals(source.readBytes(), root.resolve("document-versions/a/b/record_v1.pdf").toFile().readBytes())
     }
 
     @Test

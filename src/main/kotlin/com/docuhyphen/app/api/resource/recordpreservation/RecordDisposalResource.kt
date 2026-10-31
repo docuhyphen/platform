@@ -1,23 +1,17 @@
 package com.docuhyphen.app.api.resource.recordpreservation
 
 import com.docuhyphen.app.api.model.RecordPreservationDtoMapper
+import com.docuhyphen.app.api.resource.recordpreservation.operations.RecordDisposalResourceOperations
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationAdministration
 import jakarta.inject.Inject
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
-@Path("/record-disposals")
-@Produces(APPLICATION_JSON)
 class RecordDisposalResource @Inject constructor(
     private val administration: RecordPreservationAdministration,
-)
+) : RecordDisposalResourceOperations
 {
-    @GET
-    fun list(): Response
+    override fun list(): Response
     {
         return try
         {

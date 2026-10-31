@@ -1,12 +1,14 @@
 package com.docuhyphen.app.api.resource.group
 
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
 import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.organization.PrincipalGroupMemberSpec
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.ResponseError
@@ -194,7 +196,7 @@ class PersonalGroupResource @Inject constructor(
                     ?: throw IllegalArgumentException("principalId is required")
                 val kind = runCatching { PrincipalKind.valueOf(entry.principalKind.trim().uppercase()) }
                     .getOrElse { throw IllegalArgumentException("Invalid principalKind: ${entry.principalKind}") }
-                PrincipalGroupService.GroupMemberSpec(
+                PrincipalGroupMemberSpec(
                     principalId = pid,
                     principalKind = kind,
                     groupRole = entry.groupRole,

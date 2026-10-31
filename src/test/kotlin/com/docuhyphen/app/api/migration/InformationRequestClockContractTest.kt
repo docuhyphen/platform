@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.migration
 
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestClockContractTest
 {
@@ -181,6 +181,7 @@ internal class ClockSqlFixture(
         escalation: Int? = 240,
         dueEffect: String = "MARK_OVERDUE",
         overdueCommunicationId: UUID? = null,
+        businessTimezone: String = "Africa/Johannesburg",
     )
     {
         execute(
@@ -190,12 +191,13 @@ internal class ClockSqlFixture(
                 (id, policy_id, version_number, clock_type, business_timezone, standard_duration_minutes,
                  urgent_duration_minutes, escalation_after_minutes, due_effect, published_by_principal_kind,
                  published_by_principal_id, overdue_communication_id)
-            VALUES (?, ?, ?, ?, 'Africa/Johannesburg', ?, ?, ?, ?, 'USER', ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'USER', ?, ?)
             """.trimIndent(),
             id,
             policyId,
             versionNumber,
             clockType,
+            businessTimezone,
             standard,
             urgent,
             escalation,

@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.model.informationrequest.parent
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import java.time.Instant
@@ -37,8 +38,14 @@ data class InformationRequestSummary(
     val executionStanding: InformationRequestExecutionStanding,
 )
 
+data class InformationRequestAssignedWork(
+    val summary: InformationRequestSummary,
+    val exchangeName: String?,
+)
+
 data class InformationRequestExchangeListing(
     val requests: List<InformationRequestSummary>,
     val canCreate: Boolean,
     val creationUnavailableReason: InformationRequestStandingReason?,
+    val creationOwner: InformationRequestOwnerRef?,
 )

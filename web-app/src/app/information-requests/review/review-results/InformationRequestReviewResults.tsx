@@ -1,20 +1,9 @@
-import {useCallback, useEffect, useState} from "react";
 import {MessageBar, MessageBarBody, Text} from "@fluentui/react-components";
-import {
-    appealInformationRequestReview,
-    getInformationRequestReviewResults,
-    recordInformationRequestReviewComment,
-} from "../../../../services/informationRequestReviewService.ts";
-import {
-    InformationRequestRespondentReviewDto,
-    InformationRequestReviewFindingDto,
-    InformationRequestReviewVisibility,
-} from "../../../models/models.tsx";
-import {submissionErrorMessage} from "../../submission/submissionLabels.ts";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import RespondentReviewCard from "../respondent-review-card/RespondentReviewCard.tsx";
 import ReviewAppealDialog from "../review-appeal-dialog/ReviewAppealDialog.tsx";
-import {ReviewMessage} from "../useInformationRequestReview.ts";
 import {useInformationRequestReviewResultsStyles} from "./InformationRequestReviewResultsStyles.tsx";
+import {useRespondentReviewResults} from "./useRespondentReviewResults.ts";
 
 interface Props
 {
@@ -28,97 +17,31 @@ interface Props
 const InformationRequestReviewResults = ({requestId, accessLinkToken, refreshKey, requirementLabels, onChanged}: Props) =>
 {
     const styles = useInformationRequestReviewResultsStyles();
-    const [results, setResults] = useState<InformationRequestRespondentReviewDto[]>([]);
-    const [appealing, setAppealing] = useState<InformationRequestRespondentReviewDto | null>(null);
-    const [busy, setBusy] = useState(false);
-    const [message, setMessage] = useState<ReviewMessage | null>(null);
+    const {results, loadError, retry, appealing, setAppealing, busy, message, appeal, reply, comment} =
+        useRespondentReviewResults(requestId, accessLinkToken, refreshKey, onChanged);
 
-    const load = useCallback(() =>
-    {
-        getInformationRequestReviewResults(requestId, accessLinkToken)
-            .then(setResults)
-            .catch(() => setResults([]));
-    }, [accessLinkToken, requestId]);
-
-    useEffect(() =>
-    {
-        load();
-    }, [load, refreshKey]);
-
-    const appeal = async (reason: string) =>
-    {
-        if (!appealing) return;
-        setBusy(true);
-        try
-        {
-            const outcome = await appealInformationRequestReview(requestId, appealing.review.id, {reason}, {
-                expectedETag: appealing.review.reviewETag,
-                idempotencyKey: crypto.randomUUID(),
-                accessLinkToken,
-            });
-            setMessage(outcome.outcome === "SAVED"
-                ? {intent: "success", text: "Your appeal was recorded. A new review will decide it."}
-                : {intent: "warning", text: "This review changed. Reload the request before appealing."});
-            setAppealing(null);
-            if (outcome.outcome === "SAVED")
-            {
-                onChanged();
-                load();
-            }
-        }
-        catch (caught: unknown)
-        {
-            setMessage({intent: "error", text: submissionErrorMessage(caught, "The appeal could not be recorded.")});
-        }
-        finally
-        {
-            setBusy(false);
-        }
-    };
-
-    const reply = async (result: InformationRequestRespondentReviewDto, finding: InformationRequestReviewFindingDto, body: string) =>
-    {
-        setBusy(true);
-        try
-        {
-            await recordInformationRequestReviewComment(
-                requestId,
-                result.review.id,
-                {
-                    submissionItemId: finding.submissionItemId,
-                    findingId: finding.id,
-                    visibility: InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
-                    body,
-                },
-                crypto.randomUUID(),
-                accessLinkToken,
-            );
-            setMessage({intent: "success", text: "Your reply was sent."});
-            load();
-        }
-        catch (caught: unknown)
-        {
-            setMessage({intent: "error", text: submissionErrorMessage(caught, "The reply could not be sent.")});
-        }
-        finally
-        {
-            setBusy(false);
-        }
-    };
-
-    if (results.length === 0 && !message) return null;
+    if (results.length === 0 && !message && !loadError) return null;
 
     return (
         <section id={"information-request-review-results"}
+                 aria-labelledby={"information-request-review-results-title"}
                  className={styles.section}>
             <Text id={"information-request-review-results-title"}
                   weight={"semibold"}>
                 Review results
             </Text>
-            {message && (
+            {loadError && (
+                <InformationRequestLoadError id={"information-request-review-results-load-error"}
+                                             message={loadError}
+                                             onRetry={() => void retry()}/>
+            )}
+            {message && !appealing && (
                 <MessageBar id={"information-request-review-results-message"}
+                            key={`${message.intent}|${message.text}`}
                             intent={message.intent}>
-                    <MessageBarBody>{message.text}</MessageBarBody>
+                    <MessageBarBody id={"information-request-review-results-message-body"}>
+                        {message.text}
+                    </MessageBarBody>
                 </MessageBar>
             )}
             {[...results].reverse().map(result => (
@@ -127,10 +50,12 @@ const InformationRequestReviewResults = ({requestId, accessLinkToken, refreshKey
                                       requirementLabels={requirementLabels}
                                       busy={busy}
                                       onAppeal={() => setAppealing(result)}
-                                      onReply={(finding, body) => void reply(result, finding, body)}/>
+                                      onReply={(finding, body) => reply(result, finding, body)}
+                                      onComment={(item, body) => comment(result, item, body)}/>
             ))}
             {appealing && (
-                <ReviewAppealDialog busy={busy}
+                <ReviewAppealDialog busy={busy || !appealing.canAppeal}
+                                    message={message}
                                     onConfirm={reason => void appeal(reason)}
                                     onDismiss={() => setAppealing(null)}/>
             )}

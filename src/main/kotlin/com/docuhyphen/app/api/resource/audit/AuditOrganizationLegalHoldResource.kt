@@ -1,64 +1,69 @@
 package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditLegalHoldCreateRequestDto
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditLegalHoldNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditLegalHoldService
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/organizations/{organizationId}/audit-legal-holds")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
+@jakarta.enterprise.context.RequestScoped
 class AuditOrganizationLegalHoldResource @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val auditLegalHoldService: AuditLegalHoldService,
-)
+) : com.docuhyphen.app.api.resource.audit.operations.AuditOrganizationLegalHoldResourceOperations
 {
+    private val legalHolds =
+        com.docuhyphen.app.api.resource.audit.handler.AuditLegalHoldRequestHandler(auditLegalHoldService)
+
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditOrganizationLegalHoldResource::class.java)
     }
 
-    @POST
-    fun placeOrganizationLegalHold(
-        @PathParam("organizationId") organizationId: String,
+    override fun placeOrganizationLegalHold(
+        organizationId: String,
         body: AuditLegalHoldCreateRequestDto,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_LEGAL_HOLD_MANAGE) { principal, orgId ->
-        val hold = auditLegalHoldService.placeHold(
-            orgId,
-            body.resourceType,
-            body.resourceId,
-            body.reason,
-            body.caseReference,
-            principal
-        )
-        Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
+    ): Response {
+        return try {
+            withAuthorizedOrg(organizationId, Action.AUDIT_LEGAL_HOLD_MANAGE) { principal, orgId ->
+                legalHolds.place(orgId, principal, body)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditOrganizationLegalHoldResource placeOrganizationLegalHold failed", exception)
+        }
     }
 
-    @GET
-    fun listOrganizationLegalHolds(@PathParam("organizationId") organizationId: String): Response =
-        withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { _, orgId ->
-            Response.ok(auditLegalHoldService.listActiveHolds(orgId).map(AuditGovernanceDtoMapper::toDto)).build()
+    override fun listOrganizationLegalHolds(organizationId: String): Response {
+        return try {
+            withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { _, orgId ->
+                legalHolds.list(orgId)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditOrganizationLegalHoldResource listOrganizationLegalHolds failed", exception)
         }
+    }
 
-    @POST
-    @Path("/{holdId}/release")
-    fun releaseOrganizationLegalHold(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("holdId") holdId: String,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_LEGAL_HOLD_MANAGE) { principal, orgId ->
-        val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), orgId, principal)
-        Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
+    override fun releaseOrganizationLegalHold(
+        organizationId: String,
+        holdId: String,
+    ): Response {
+        return try {
+            withAuthorizedOrg(organizationId, Action.AUDIT_LEGAL_HOLD_MANAGE) { principal, orgId ->
+                legalHolds.release(orgId, parseUuid(holdId), principal)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditOrganizationLegalHoldResource releaseOrganizationLegalHold failed", exception)
+        }
     }
 
     private fun withAuthorizedOrg(
@@ -96,8 +101,19 @@ class AuditOrganizationLegalHoldResource @Inject constructor(
             val status =
                 if (e is AuditLegalHoldNotFoundException) Response.Status.NOT_FOUND else Response.Status.BAD_REQUEST
             Response.status(status).entity(ResponseError(e.message)).build()
+        } catch (e: com.docuhyphen.app.api.exception.RecordPreservationException) {
+            com.docuhyphen.app.api.resource.recordpreservation.RecordPreservationHttp.refused(
+                logger, "Organization audit legal-hold conflict refused", e,
+            )
         }
     }
 
     private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
+    private fun failedAuditRequest(message: String, exception: Exception): Response {
+        if (exception is jakarta.ws.rs.WebApplicationException) throw exception
+        if (exception is SubscriptionDenialException) throw exception
+        logger.error(message, exception)
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
+    }
+
 }

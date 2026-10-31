@@ -1,0 +1,6 @@
+ALTER TABLE information_request_outbound_notice
+DROP
+CONSTRAINT ux_information_request_outbound_notice_intent;
+
+CREATE UNIQUE INDEX ux_information_request_outbound_notice_intent_recipient
+    ON information_request_outbound_notice (notice_intent_id, recipient_principal_kind, recipient_principal_id) NULLS NOT DISTINCT;

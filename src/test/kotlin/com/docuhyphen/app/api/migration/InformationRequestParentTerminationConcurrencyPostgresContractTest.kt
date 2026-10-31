@@ -9,7 +9,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -337,8 +337,8 @@ class InformationRequestParentTerminationConcurrencyPostgresContractTest
                 """
                 INSERT INTO information_request_template_version
                     (id, template_definition_id, version_number, status, created_at,
-                     published_at, published_by_app_user_id)
-                VALUES (?, ?, 1, 'PUBLISHED', ?, ?, ?)
+                     published_at, published_by_principal_kind, published_by_principal_id)
+                VALUES (?, ?, 1, 'PUBLISHED', ?, ?, 'USER', ?)
                 """.trimIndent(),
             ).use { statement ->
                 statement.setObject(1, id)

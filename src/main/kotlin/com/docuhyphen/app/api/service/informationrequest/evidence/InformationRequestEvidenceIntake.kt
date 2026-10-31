@@ -10,6 +10,7 @@ import com.docuhyphen.app.api.repository.informationrequest.evidence.Information
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestAbuseLog
@@ -23,6 +24,7 @@ class InformationRequestEvidenceIntake @Inject constructor(
     private val deploymentPolicy: InformationRequestEvidenceDeploymentPolicy,
     private val limits: InformationRequestEvidenceUploadLimits,
     private val executionGrantService: InformationRequestExecutionGrantService,
+    private val requirementContext: InformationRequestRequirementAuthorizationContextProvider,
     private val policyLoader: InformationRequestEvidencePolicyLoader,
     private val inspector: InformationRequestEvidenceContentInspector,
     private val artifactRepository: InformationRequestEvidenceArtifactRepository,
@@ -32,6 +34,9 @@ class InformationRequestEvidenceIntake @Inject constructor(
     private val clock: Clock,
 )
 {
+    fun inspect(file: InformationRequestEvidenceFile): InformationRequestEvidenceInspectionFacts? =
+        if (file.encryptionMode == DocumentEncryptionMode.END_TO_END) null else inspector.inspect(file.file)
+
     fun admit(
         request: InformationRequest,
         requirement: InformationRequestRequirement,
@@ -39,16 +44,21 @@ class InformationRequestEvidenceIntake @Inject constructor(
         surface: InformationRequestEvidenceSurface,
         file: InformationRequestEvidenceFile,
         digest: DocumentVersionContentDigest,
+        inspection: InformationRequestEvidenceInspectionFacts?,
         replacing: InformationRequestEvidenceArtifact?,
-    ): InformationRequestEvidenceInspectionFacts?
+    ): InformationRequestEvidenceInspectionFacts
     {
         deploymentPolicy.requireUploadAvailable()
         requireWithinUploadLimits(request, access, surface, digest)
+        if (inspection == null || file.encryptionMode == DocumentEncryptionMode.END_TO_END) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.EVIDENCE_OPAQUE_CONTENT_REFUSED,
+                "Evidence must be readable so its type can be checked and it can be scanned; upload it without end-to-end encryption",
+            )
+        }
 
-        val opaque = file.encryptionMode == DocumentEncryptionMode.END_TO_END
-        val inspection = if (opaque) null else inspector.inspect(file.file)
         val current = currentContent(requirement, excluding = replacing)
-        requireWithinPolicy(requirement, digest, inspection, current, replacing == null)
+        requireWithinPolicy(requirement, file, digest, inspection, current, replacing == null)
         if (current.any { it.describes(digest) })
         {
             throw InformationRequestLifecycleException(
@@ -59,13 +69,23 @@ class InformationRequestEvidenceIntake @Inject constructor(
         return inspection
     }
 
+    fun requireWithinFileLimit(surface: InformationRequestEvidenceSurface, bytes: Long) {
+        val fileLimit = limits.fileLimit(surface)
+        if (bytes > fileLimit) limitExceeded(
+            "An evidence file is at most ${
+                InformationRequestEvidenceSizes.describe(
+                    fileLimit
+                )
+            }"
+        )
+    }
+
     fun recordInspection(
         version: InformationRequestEvidenceVersion,
         content: DocumentVersion,
-        inspection: InformationRequestEvidenceInspectionFacts?,
+        inspection: InformationRequestEvidenceInspectionFacts,
     )
     {
-        inspection ?: return
         assessmentRepository.save(
             InformationRequestEvidenceAssessment().apply {
                 informationRequestId = version.informationRequestId
@@ -94,12 +114,7 @@ class InformationRequestEvidenceIntake @Inject constructor(
         digest: DocumentVersionContentDigest,
     )
     {
-        val fileLimit = when (surface)
-        {
-            InformationRequestEvidenceSurface.AUTHENTICATED -> limits.maximumFileBytes
-            InformationRequestEvidenceSurface.NO_AUTH -> minOf(limits.maximumFileBytes, limits.maximumNoAuthFileBytes)
-        }
-        if (digest.length > fileLimit) limitExceeded("An evidence file is at most $fileLimit bytes")
+        requireWithinFileLimit(surface, digest.length)
 
         val grant = executionGrantService.findForRequest(request.id)
         val requestFiles = minOf(limits.maximumRequestFiles, grant?.evidenceFileAllowance ?: Long.MAX_VALUE)
@@ -111,24 +126,31 @@ class InformationRequestEvidenceIntake @Inject constructor(
         }
         if (requestUsage.bytes + digest.length > requestBytes)
         {
-            limitExceeded("This request holds at most $requestBytes bytes of evidence")
+            limitExceeded("This request holds at most ${InformationRequestEvidenceSizes.describe(requestBytes)} of evidence")
         }
 
-        val partyUsage = versionRepository.storedUsageForUploader(request.id, access.principal)
-        if (partyUsage.files + 1 > limits.maximumPartyFiles)
+        val respondentUsage = versionRepository.storedUsageForUploaders(
+            request.id,
+            requirementContext.linkedIdentitiesOf(access.principal),
+        )
+        if (respondentUsage.files + 1 > limits.maximumPartyFiles)
         {
             limitExceeded("Each respondent stores at most ${limits.maximumPartyFiles} evidence files on a request")
         }
-        if (partyUsage.bytes + digest.length > limits.maximumPartyBytes)
+        if (respondentUsage.bytes + digest.length > limits.maximumPartyBytes)
         {
-            limitExceeded("Each respondent stores at most ${limits.maximumPartyBytes} bytes of evidence on a request")
+            limitExceeded(
+                "Each respondent stores at most ${InformationRequestEvidenceSizes.describe(limits.maximumPartyBytes)} " +
+                        "of evidence on a request"
+            )
         }
     }
 
     private fun requireWithinPolicy(
         requirement: InformationRequestRequirement,
+        file: InformationRequestEvidenceFile,
         digest: DocumentVersionContentDigest,
-        inspection: InformationRequestEvidenceInspectionFacts?,
+        inspection: InformationRequestEvidenceInspectionFacts,
         current: List<DocumentVersion>,
         addsArtifact: Boolean,
     )
@@ -136,33 +158,44 @@ class InformationRequestEvidenceIntake @Inject constructor(
         val policy = policyLoader.forBinding(requirement.sourceTemplateBindingId) ?: return
 
         policy.maximumFileSizeBytes?.let { maximum ->
-            if (digest.length > maximum) policyRefused(
-                InformationRequestEvidenceFindingCode.FILE_TOO_LARGE,
-                "at most $maximum bytes"
-            )
+            if (digest.length > maximum) {
+                policyRefused(
+                    "This Requirement accepts files of at most ${
+                        InformationRequestEvidenceSizes.describe(
+                            maximum
+                        )
+                    }"
+                )
+            }
         }
         policy.maximumFileCount?.let { maximum ->
             if (addsArtifact && current.size + 1 > maximum)
             {
-                policyRefused(InformationRequestEvidenceFindingCode.FILE_COUNT_ABOVE_MAXIMUM, "at most $maximum files")
+                policyRefused("This Requirement accepts at most $maximum ${if (maximum == 1) "file" else "files"}")
             }
         }
         policy.maximumTotalSizeBytes?.let { maximum ->
             if (current.sumOf { it.contentLength } + digest.length > maximum)
             {
                 policyRefused(
-                    InformationRequestEvidenceFindingCode.TOTAL_SIZE_ABOVE_MAXIMUM,
-                    "at most $maximum bytes in total"
+                    "This Requirement accepts at most ${InformationRequestEvidenceSizes.describe(maximum)} of files in total"
                 )
             }
         }
         val accepted = policy.acceptedValues[InformationRequestEvidenceAttribute.CONTENT_TYPE].orEmpty()
-            .map(InformationRequestEvidenceMediaTypes::canonical)
-            .toSet()
-        val detected = inspection?.detectedMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)
-        if (inspection != null && accepted.isNotEmpty() && detected !in accepted)
+        val detected = inspection.detectedMediaType
+        if (accepted.isNotEmpty() &&
+            !InformationRequestEvidenceMediaTypes.accepts(
+                accepted,
+                detected,
+                file.declaredMediaType,
+                file.declaredFileName
+            )
+        )
         {
-            policyRefused(InformationRequestEvidenceFindingCode.CONTENT_TYPE_NOT_ACCEPTED, "this file is $detected")
+            val judged =
+                InformationRequestEvidenceMediaTypes.judgedType(detected, file.declaredMediaType, file.declaredFileName)
+            policyRefused("This Requirement does not accept this type of file (this file is $judged)")
         }
     }
 
@@ -187,9 +220,6 @@ class InformationRequestEvidenceIntake @Inject constructor(
         )
     }
 
-    private fun policyRefused(code: InformationRequestEvidenceFindingCode, detail: String): Nothing =
-        throw InformationRequestLifecycleException(
-            InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED,
-            "This file does not meet the Requirement's evidence policy: ${code.name} ($detail)",
-        )
+    private fun policyRefused(message: String): Nothing =
+        throw InformationRequestLifecycleException(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED, message)
 }

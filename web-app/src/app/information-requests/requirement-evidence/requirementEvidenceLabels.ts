@@ -6,10 +6,14 @@ import {
     InformationRequestEvidenceRequirementState,
     ResponseError,
 } from "../../models/models.tsx";
+import {formatInformationRequestCount, formatInformationRequestSize} from "../shared/informationRequestFormatting.ts";
 
 type BadgeColor = NonNullable<BadgeProps["color"]>;
 
-export const requirementStatePresentation: Record<InformationRequestEvidenceRequirementState, {label: string; color: BadgeColor}> = {
+export const requirementStatePresentation: Record<InformationRequestEvidenceRequirementState, {
+    label: string;
+    color: BadgeColor
+}> = {
     [InformationRequestEvidenceRequirementState.NOT_PROVIDED]: {label: "No files provided", color: "subtle"},
     [InformationRequestEvidenceRequirementState.PENDING_ASSESSMENT]: {label: "Awaiting checks", color: "informative"},
     [InformationRequestEvidenceRequirementState.INCOMPLETE]: {label: "More files needed", color: "warning"},
@@ -20,7 +24,10 @@ export const requirementStatePresentation: Record<InformationRequestEvidenceRequ
     [InformationRequestEvidenceRequirementState.WAIVER_REQUESTED]: {label: "Waiver requested", color: "brand"},
 };
 
-export const conformancePresentation: Record<InformationRequestEvidenceConformance, {label: string; color: BadgeColor}> = {
+export const conformancePresentation: Record<InformationRequestEvidenceConformance, {
+    label: string;
+    color: BadgeColor
+}> = {
     [InformationRequestEvidenceConformance.PENDING]: {label: "Awaiting checks", color: "informative"},
     [InformationRequestEvidenceConformance.CONFORMING]: {label: "Accepted", color: "success"},
     [InformationRequestEvidenceConformance.DEFICIENT]: {label: "Needs attention", color: "warning"},
@@ -29,9 +36,9 @@ export const conformancePresentation: Record<InformationRequestEvidenceConforman
     [InformationRequestEvidenceConformance.EXPIRED]: {label: "Expired", color: "danger"},
 };
 
-const humanized = (detail?: string): string => (detail ?? "detail").toLowerCase().replace(/_/g, " ");
+const humanized = (detail?: string | null): string => (detail ?? "detail").toLowerCase().replace(/_/g, " ");
 
-const findingMessages: Record<InformationRequestEvidenceFindingCode, (detail?: string) => string> = {
+const findingMessages: Record<InformationRequestEvidenceFindingCode, (detail?: string | null) => string> = {
     [InformationRequestEvidenceFindingCode.NOT_INSPECTED]: () => "This file has not been inspected yet.",
     [InformationRequestEvidenceFindingCode.NOT_SCANNED]: () => "This file is waiting for a malware scan.",
     [InformationRequestEvidenceFindingCode.SCAN_INCOMPLETE]: () => "The malware scan did not finish and will be retried.",
@@ -58,8 +65,10 @@ const findingMessages: Record<InformationRequestEvidenceFindingCode, (detail?: s
     [InformationRequestEvidenceFindingCode.EXPIRED]: () => "This file has expired.",
     [InformationRequestEvidenceFindingCode.VALIDITY_TOO_SHORT]: () => "This file expires too soon.",
     [InformationRequestEvidenceFindingCode.FILE_COUNT_BELOW_MINIMUM]: detail =>
-        `At least ${detail ?? "one"} accepted files are needed.`,
-    [InformationRequestEvidenceFindingCode.FILE_COUNT_ABOVE_MAXIMUM]: detail => `At most ${detail ?? "a few"} files are accepted.`,
+        `At least ${formatInformationRequestCount(Number(detail ?? 1))} accepted ${Number(detail ?? 1) === 1 ? "file is" : "files are"} needed.`,
+    [InformationRequestEvidenceFindingCode.FILE_COUNT_ABOVE_MAXIMUM]: detail => Number.isFinite(Number(detail ?? Number.NaN))
+        ? `At most ${formatInformationRequestCount(Number(detail))} ${Number(detail) === 1 ? "file is" : "files are"} accepted.`
+        : "At most a few files are accepted.",
     [InformationRequestEvidenceFindingCode.TOTAL_SIZE_ABOVE_MAXIMUM]: () =>
         "The files together are larger than this Requirement allows.",
     [InformationRequestEvidenceFindingCode.COVERAGE_TOO_SHORT]: () => "The files do not cover a long enough period.",
@@ -70,6 +79,12 @@ const findingMessages: Record<InformationRequestEvidenceFindingCode, (detail?: s
 export const findingMessage = (finding: InformationRequestEvidenceFindingDto): string =>
     findingMessages[finding.code]?.(finding.detail) ?? "This file needs attention.";
 
+export const findingKey = (finding: InformationRequestEvidenceFindingDto): string =>
+    [finding.code, finding.detail].filter(Boolean).join("-").toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+
+export const distinctFindings = (findings: InformationRequestEvidenceFindingDto[]): InformationRequestEvidenceFindingDto[] =>
+    findings.filter((finding, index, all) => all.findIndex(candidate => findingKey(candidate) === findingKey(finding)) === index);
+
 const refusalMessages: Record<string, string> = {
     INFORMATION_REQUEST_EVIDENCE_UPLOAD_UNAVAILABLE: "Evidence upload is not available right now.",
     INFORMATION_REQUEST_EVIDENCE_DUPLICATE_CONTENT: "This file has already been provided for this Requirement.",
@@ -77,6 +92,13 @@ const refusalMessages: Record<string, string> = {
     INFORMATION_REQUEST_EVIDENCE_CONTENT_NOT_RELEASED: "This file can be opened once it has passed a malware scan.",
     INFORMATION_REQUEST_EVIDENCE_PREVIEW_UNAVAILABLE: "This file cannot be previewed. Download it instead.",
     INFORMATION_REQUEST_EVIDENCE_ARTIFACT_INACTIVE: "Withdrawn files cannot be changed.",
+    INFORMATION_REQUEST_PARENT_STATE_INVALID: "The Exchange holding this request is not accepting files now, for example " +
+        "because it has not been accepted yet or it has ended.",
+};
+
+const unstatedRefusalMessages: Record<string, string> = {
+    INFORMATION_REQUEST_EVIDENCE_UPLOAD_LIMIT_EXCEEDED: "This upload is over a file or storage limit for this request.",
+    INFORMATION_REQUEST_EVIDENCE_POLICY_REFUSED: "This file is not one this Requirement accepts.",
 };
 
 export const refusalMessage = (refusal: unknown, fallback: string): string =>
@@ -86,16 +108,12 @@ export const refusalMessage = (refusal: unknown, fallback: string): string =>
         const stated = refusal as ResponseError;
         if (stated.reasonCode && refusalMessages[stated.reasonCode]) return refusalMessages[stated.reasonCode];
         if (stated.errorMessage) return stated.errorMessage;
+        if (stated.reasonCode && unstatedRefusalMessages[stated.reasonCode]) return unstatedRefusalMessages[stated.reasonCode];
     }
     return typeof refusal === "string" && refusal ? refusal : fallback;
 };
 
 export const INLINE_PREVIEW_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp"]);
 
-export const formatEvidenceSize = (bytes?: number): string =>
-{
-    if (bytes === undefined) return "";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+export const formatEvidenceSize = (bytes?: number | null): string =>
+    bytes === undefined || bytes === null ? "" : formatInformationRequestSize(bytes);

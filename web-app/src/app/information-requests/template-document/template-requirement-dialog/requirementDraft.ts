@@ -6,7 +6,7 @@ import {
     InformationRequestResponseMode,
     InformationRequestTemplateRequirementRequest,
 } from "../../../models/models.tsx";
-import {TemplateDraftDocument, defaultEvidencePolicy} from "../templateDraftDocument.ts";
+import {defaultEvidencePolicy, TemplateDraftDocument} from "../templateDraftDocument.ts";
 
 export type RequirementDraft = InformationRequestTemplateRequirementRequest;
 
@@ -32,9 +32,18 @@ export const withRequirementType = (draft: RequirementDraft, requirementType: In
     substituteRequirementKeys: requirementType === InformationRequestRequirementType.DOCUMENT
         ? draft.substituteRequirementKeys
         : [],
+    supportingEvidenceRequirementKeys: requirementType === InformationRequestRequirementType.DOCUMENT
+        ? []
+        : draft.supportingEvidenceRequirementKeys,
     attestationPolicy: requirementType === InformationRequestRequirementType.RESPONSE_ATTESTATION
         ? draft.attestationPolicy ?? {requiredRoles: [draft.contributorRole ?? InformationRequestContributorRole.CONTRIBUTOR]}
         : undefined,
+});
+
+export const withRequiredness = (draft: RequirementDraft, requiredness: InformationRequestRequiredness): RequirementDraft => ({
+    ...draft,
+    requiredness,
+    conditionalRuleKey: requiredness === InformationRequestRequiredness.CONDITIONAL ? draft.conditionalRuleKey : undefined,
 });
 
 export const withResponseMode = (draft: RequirementDraft, responseMode: InformationRequestResponseMode): RequirementDraft =>
@@ -49,9 +58,8 @@ export const withResponseMode = (draft: RequirementDraft, responseMode: Informat
         };
     }
     return {
-        ...draft,
+        ...withRequiredness(draft, InformationRequestRequiredness.OPTIONAL),
         responseMode,
-        requiredness: InformationRequestRequiredness.OPTIONAL,
         permittedDispositions: [],
         attestationPolicy: undefined,
     };

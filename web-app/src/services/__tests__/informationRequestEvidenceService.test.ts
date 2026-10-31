@@ -5,6 +5,7 @@ import apiClient from "../apiClient.ts";
 import {
     listInformationRequestEvidence,
     openInformationRequestEvidenceContent,
+    openInformationRequestSubmittedEvidenceContent,
     replaceInformationRequestEvidence,
     uploadInformationRequestEvidence,
     withdrawInformationRequestEvidence,
@@ -122,5 +123,29 @@ describe("Information Request evidence transport", () =>
             `${evidencePath}/artifact-a/versions/version-a/preview`,
             {headers: undefined, responseType: "blob"},
         );
+    });
+
+    it.each(["content", "preview"] as const)("reads a submitted version's %s through the package that holds it", async use => {
+        const blob = new Blob(["record"]);
+        vi.mocked(apiClient.get).mockResolvedValueOnce({data: blob});
+
+        const content = await openInformationRequestSubmittedEvidenceContent("request-a", "package-a", "version-a", use);
+
+        expect(content).toBe(blob);
+        expect(apiClient.get).toHaveBeenLastCalledWith(
+            `/information-requests/request-a/submissions/package-a/evidence/version-a/${use}`,
+            {responseType: "blob"},
+        );
+    });
+
+    it("states the refusal of a submitted version it could not read", async () => {
+        const missing = {
+            errorMessage: "Submission Package evidence not found",
+            reasonCode: "INFORMATION_REQUEST_NOT_FOUND"
+        };
+        vi.mocked(apiClient.get).mockRejectedValueOnce(refusal(404, missing));
+
+        await expect(openInformationRequestSubmittedEvidenceContent("request-a", "package-a", "version-a", "content"))
+            .rejects.toEqual(missing);
     });
 });

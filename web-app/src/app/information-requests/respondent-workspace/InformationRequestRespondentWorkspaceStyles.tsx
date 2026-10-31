@@ -51,23 +51,4 @@ export const useInformationRequestRespondentWorkspaceStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
     },
-    proofPanel: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalM,
-        width: "min(100%, 520px)",
-        padding: tokens.spacingHorizontalXL,
-        borderRadius: tokens.borderRadiusMedium,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        backgroundColor: tokens.colorNeutralBackground1,
-        boxSizing: "border-box",
-    },
-    proofActions: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalM,
-    },
-    error: {
-        color: tokens.colorPaletteRedForeground1,
-    },
 });

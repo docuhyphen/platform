@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model.informationrequest.clock
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -25,11 +25,13 @@ data class DefineInformationRequestClockPolicyCommand(
     val policyKey: String,
     val displayName: String,
     val definition: InformationRequestClockPolicyDefinition,
+    val idempotencyKey: String,
 )
 
 data class PublishInformationRequestClockPolicyVersionCommand(
     val policyId: UUID,
     val definition: InformationRequestClockPolicyDefinition,
+    val idempotencyKey: String,
 )
 
 data class InformationRequestClockPolicyVersionView(

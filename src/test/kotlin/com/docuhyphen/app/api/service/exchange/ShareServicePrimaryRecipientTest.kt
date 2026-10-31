@@ -4,9 +4,9 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.auth.authz.GroupShareExpansionPolicy
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
@@ -25,30 +25,13 @@ class ShareServicePrimaryRecipientTest
         groupMemberRepository = mock<PrincipalGroupMemberRepository>(),
         auditRecorder = mock<AuditRecorder>(),
         resourceAuthorizationContextRegistry = mock<ResourceAuthorizationContextRegistry>(),
-        exchangeRecipientAttestationService = mock<ExchangeRecipientAttestationService>(),
-        trustedRecipientValidationService = mock<TrustedRecipientValidationService>(),
+        groupShareExpansionPolicy = GroupShareExpansionPolicy.UNRESTRICTED,
         exchangeRecipientServiceProvider = recipientServiceProvider,
     )
 
     init
     {
         whenever(recipientServiceProvider.get()).thenReturn(recipientService)
-    }
-
-    @Test
-    fun `holding an active Share on a resource type is answered for the principal alone`()
-    {
-        val principal = PrincipalRef.user(UUID.randomUUID())
-        whenever(
-            shareRepository.existsActiveForPrincipalOnResourceType(
-                principal.kind,
-                principal.id,
-                ResourceType.INFORMATION_REQUEST,
-            ),
-        ).thenReturn(true)
-
-        assertEquals(true, service.holdsActiveShareOn(ResourceType.INFORMATION_REQUEST, principal))
-        assertEquals(false, service.holdsActiveShareOn(ResourceType.DOCUMENT, principal))
     }
 
     @Test

@@ -1,9 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -11,7 +9,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class InformationRequestBlueprintDocumentPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<InformationRequestBlueprintDocumentPostgreSQLContainer>(imageName)
@@ -48,6 +46,29 @@ class InformationRequestBlueprintDocumentPlaceholderContractTest
         }
     }
 
+    @Test
+    fun `a placeholder is a snapshot that outlives the Blueprint document default it was copied from`() {
+        withPostgres { postgres ->
+            flyway(postgres).migrate()
+
+            postgres.createConnection("").use { connection ->
+                val fixture = Fixture(connection)
+                val placeholderId = UUID.randomUUID()
+                insertPlaceholder(connection, placeholderId, fixture)
+
+                deleteBlueprintDocumentDefault(connection, fixture.blueprintDocumentDefaultId)
+
+                assertEquals(1, placeholderCount(connection, fixture.requestId))
+                assertEquals("Reference document", placeholderTitle(connection, placeholderId))
+                assertEquals("Reference packet", libraryTitle(connection, placeholderId))
+
+                refused(connection, "source_blueprint_document_default_id") {
+                    insertPlaceholderNamingDefault(connection, fixture)
+                }
+            }
+        }
+    }
+
     private inner class Fixture(connection: Connection)
     {
         val organizationId: UUID = UUID.randomUUID()
@@ -67,7 +88,7 @@ class InformationRequestBlueprintDocumentPlaceholderContractTest
             insertExchange(connection, exchangeId, organizationId, userId)
             insertTemplateDefinition(connection, templateDefinitionId, organizationId)
             insertTemplateVersion(connection, templateVersionId, templateDefinitionId)
-            publishVersion(connection, templateVersionId, userId)
+            publishVersion(connection, templateVersionId)
             insertRequest(connection, requestId, exchangeId, templateVersionId, organizationId, userId)
             insertBlueprint(connection, blueprintId, organizationId, userId, templateVersionId)
             insertLibraryDocument(connection, libraryDocumentId, organizationId, userId)
@@ -210,19 +231,18 @@ class InformationRequestBlueprintDocumentPlaceholderContractTest
         }
     }
 
-    private fun publishVersion(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publishVersion(connection: Connection, versionId: UUID)
     {
         recordRequiredCapabilities(connection, versionId)
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }
@@ -258,8 +278,8 @@ class InformationRequestBlueprintDocumentPlaceholderContractTest
             INSERT INTO information_request
                 (id, exchange_id, template_version_id, owner_type, owner_organization_id,
                  state, gates_exchange_closure, aggregate_revision, party_revision,
-                 created_by_app_user_id, created_at, updated_at)
-            VALUES (?, ?, ?, 'ORGANIZATION', ?, 'DRAFT', TRUE, 1, 1, ?, ?, ?)
+                 created_by_principal_kind, created_by_principal_id, created_at, updated_at)
+            VALUES (?, ?, ?, 'ORGANIZATION', ?, 'DRAFT', TRUE, 1, 1, 'USER', ?, ?, ?)
             """.trimIndent(),
         ).use { statement ->
             val now = Timestamp.from(Instant.now())
@@ -346,24 +366,56 @@ class InformationRequestBlueprintDocumentPlaceholderContractTest
         connection.prepareStatement(
             """
             INSERT INTO information_request_document_placeholder
-                (id, information_request_id, source_blueprint_document_default_id, title,
-                 restricted_type, restrict_type, required, library_document_id, library_title,
-                 library_description, library_document_type, library_file_name,
-                 library_file_size_bytes, library_content_hash, display_order)
-            VALUES (?, ?, ?, ?, 'PDF', TRUE, TRUE, ?, 'Reference packet',
+                (id, information_request_id, title, restricted_type, restrict_type, required,
+                 library_document_id, library_title, library_description, library_document_type,
+                 library_file_name, library_file_size_bytes, library_content_hash, display_order)
+            VALUES (?, ?, ?, 'PDF', TRUE, TRUE, ?, 'Reference packet',
                     'Seeded from a Library item', 'PDF', 'reference-packet.pdf', ?,
                     'hash-123', 1)
             """.trimIndent(),
         ).use { statement ->
             statement.setObject(1, id)
             statement.setObject(2, fixture.requestId)
-            statement.setObject(3, fixture.blueprintDocumentDefaultId)
-            statement.setString(4, title)
-            statement.setObject(5, fixture.libraryDocumentId)
-            statement.setObject(6, fileSizeBytes)
+            statement.setString(3, title)
+            statement.setObject(4, fixture.libraryDocumentId)
+            statement.setObject(5, fileSizeBytes)
             statement.executeUpdate()
         }
     }
+
+    private fun insertPlaceholderNamingDefault(connection: Connection, fixture: Fixture) {
+        connection.prepareStatement(
+            """
+            INSERT INTO information_request_document_placeholder
+                (id, information_request_id, source_blueprint_document_default_id, title)
+            VALUES (?, ?, ?, 'Reference document')
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setObject(1, UUID.randomUUID())
+            statement.setObject(2, fixture.requestId)
+            statement.setObject(3, fixture.blueprintDocumentDefaultId)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun deleteBlueprintDocumentDefault(connection: Connection, id: UUID) {
+        connection.prepareStatement("DELETE FROM blueprint_document_default WHERE id = ?")
+            .use { statement ->
+                statement.setObject(1, id)
+                statement.executeUpdate()
+            }
+    }
+
+    private fun placeholderTitle(connection: Connection, placeholderId: UUID): String =
+        connection.prepareStatement(
+            "SELECT title FROM information_request_document_placeholder WHERE id = ?",
+        ).use { statement ->
+            statement.setObject(1, placeholderId)
+            statement.executeQuery().use { rows ->
+                check(rows.next())
+                rows.getString(1)
+            }
+        }
 
     private fun deleteLibraryDocument(connection: Connection, id: UUID)
     {

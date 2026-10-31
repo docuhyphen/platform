@@ -1,14 +1,10 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.SchemaFieldBindingDto
-import com.docuhyphen.app.api.service.fields.FieldConstraints
-import com.docuhyphen.app.api.service.fields.FieldOption
-import com.docuhyphen.app.api.service.fields.ResolvedFieldBinding
+import com.docuhyphen.app.api.model.fields.FieldConstraints
+import com.docuhyphen.app.api.model.fields.FieldOption
+import com.docuhyphen.app.api.model.fields.ResolvedFieldBinding
 
-/**
- * Shapes one gathered question into the description an editor is built from: where it sits, how it
- * must be answered, and the wording its contract fixes. Nothing here reaches a repository.
- */
 object SchemaFieldBindingDtoMapper
 {
     fun toDto(resolved: ResolvedFieldBinding): SchemaFieldBindingDto = SchemaFieldBindingDto(

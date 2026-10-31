@@ -58,13 +58,19 @@ export const operatorsFor = (valueType?: FieldValueType): FieldOperator[] =>
 export const isListOperator = (operator: FieldOperator): boolean =>
     operator === FieldOperator.IN || operator === FieldOperator.NOT_IN;
 
-export const literalFrom = (raw: string, valueType: FieldValueType | undefined, operator: FieldOperator): unknown =>
+export const typedLiteral = (raw: string): string | undefined => raw.trim() === "" ? undefined : raw;
+
+const settledLiteral = (value: unknown): unknown =>
 {
-    if (raw.trim() === "") return undefined;
-    if (isListOperator(operator)) return raw.split(",").map(item => item.trim()).filter(Boolean);
-    if (valueType === FieldValueType.BOOLEAN) return raw === "true";
-    return raw.trim();
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed === "" ? undefined : trimmed;
 };
+
+export const settledPredicate = (
+    predicate: InformationRequestTemplateConditionPredicateRequest,
+): InformationRequestTemplateConditionPredicateRequest =>
+    predicate.value === undefined ? predicate : {...predicate, value: settledLiteral(predicate.value)};
 
 export const literalText = (value: unknown): string =>
 {

@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {Button, Combobox, Option, Switch, Text} from '@fluentui/react-components';
-import {ArrowDownRegular, ArrowUpRegular, DeleteRegular} from '@fluentui/react-icons';
+import {Combobox, Option, Text} from '@fluentui/react-components';
 import {FieldDefinitionDto} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import {addableDefinitions, BindingDraft, draftForDefinition} from './schemaBindingDrafts';
+import SchemaBindingRow from './schema-binding-row/SchemaBindingRow';
 
 interface Props
 {
@@ -11,6 +11,7 @@ interface Props
     bindings: BindingDraft[];
     onChange: (bindings: BindingDraft[]) => void;
 }
+
 const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
 {
     const styles = useFieldsTabStyles();
@@ -48,55 +49,22 @@ const SchemaBindingsEditor = ({definitions, bindings, onChange}: Props) =>
     };
 
     return (
-        <div className={styles.fieldGroup}>
+        <div id="schema-bindings-editor"
+             className={styles.fieldGroup}>
             {bindings.length === 0 && (
-                <Text className={styles.emptyText}>No fields added yet.</Text>
+                <Text id="schema-bindings-empty"
+                      className={styles.emptyText}>
+                    No fields added yet.
+                </Text>
             )}
             {bindings.map((binding, index) => (
-                <div key={binding.fieldDefinitionId}
-                     className={styles.bindingRow}>
-                    <div className={styles.bindingHeader}>
-                        <div className={styles.cardMain}>
-                            <Text weight="semibold">{binding.label}</Text>
-                            <code className={styles.codeKey}>{binding.keyLabel}</code>
-                        </div>
-                        <div className={styles.actionGroup}>
-                            <Button id={`binding-up-${index}`}
-                                    appearance="subtle"
-                                    shape="circular"
-                                    size="small"
-                                    aria-label="Move up"
-                                    disabled={index === 0}
-                                    icon={<ArrowUpRegular/>}
-                                    onClick={() => move(index, -1)}/>
-                            <Button id={`binding-down-${index}`}
-                                    appearance="subtle"
-                                    shape="circular"
-                                    size="small"
-                                    aria-label="Move down"
-                                    disabled={index === bindings.length - 1}
-                                    icon={<ArrowDownRegular/>}
-                                    onClick={() => move(index, 1)}/>
-                            <Button id={`binding-remove-${index}`}
-                                    appearance="subtle"
-                                    shape="circular"
-                                    size="small"
-                                    aria-label="Remove field"
-                                    icon={<DeleteRegular/>}
-                                    onClick={() => remove(index)}/>
-                        </div>
-                    </div>
-                    <div className={styles.bindingToggles}>
-                        <Switch id={`binding-required-${index}`}
-                                checked={binding.isRequired}
-                                label="Required"
-                                onChange={(_, d) => update(index, {isRequired: d.checked})}/>
-                        <Switch id={`binding-readonly-${index}`}
-                                checked={binding.isReadOnly}
-                                label="Read only"
-                                onChange={(_, d) => update(index, {isReadOnly: d.checked})}/>
-                    </div>
-                </div>
+                <SchemaBindingRow key={binding.fieldDefinitionId}
+                                  binding={binding}
+                                  index={index}
+                                  count={bindings.length}
+                                  onMove={delta => move(index, delta)}
+                                  onRemove={() => remove(index)}
+                                  onChange={patch => update(index, patch)}/>
             ))}
             <Combobox
                 id="binding-add-combobox"

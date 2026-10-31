@@ -5,7 +5,7 @@ import {
     RecordInformationRequestBusinessDecisionRequest,
 } from "../../../models/models.tsx";
 import DateTimeField from "../../shared/date-time-field/DateTimeField.tsx";
-import {instantFromLocalInput, localDateTimeInputValue} from "../../shared/dateTimeInput.ts";
+import {epochMillisFromLocalInput, localDateTimeInputValue} from "../../shared/dateTimeInput.ts";
 import EditorDialog from "../../shared/editor-dialog/EditorDialog.tsx";
 import {isMachineKey, machineKeyProblem} from "../../shared/machineKey.ts";
 import TextField from "../../shared/text-field/TextField.tsx";
@@ -16,6 +16,7 @@ interface Props
     kind: InformationRequestBusinessDecisionKind;
     prior?: InformationRequestBusinessDecisionDto;
     busy: boolean;
+    error?: string | null;
     onConfirm: (request: RecordInformationRequestBusinessDecisionRequest) => void;
     onDismiss: () => void;
 }
@@ -29,20 +30,20 @@ const titleOf = (kind: InformationRequestBusinessDecisionKind, prior?: Informati
         : `Reconsider the ${process} decision`;
 };
 
-const RecordDecisionDialog = ({kind, prior, busy, onConfirm, onDismiss}: Props) =>
+const RecordDecisionDialog = ({kind, prior, busy, error, onConfirm, onDismiss}: Props) =>
 {
     const [process, setProcess] = useState(prior?.owningProcessKey ?? "");
     const [outcome, setOutcome] = useState("");
     const [decided, setDecided] = useState(() => localDateTimeInputValue(new Date()));
     const [reasonReference, setReasonReference] = useState("");
     const [externalReference, setExternalReference] = useState("");
-    const decidedAt = instantFromLocalInput(decided);
-    const future = Boolean(decidedAt && new Date(decidedAt) > new Date());
-    const ready = isMachineKey(process) && isMachineKey(outcome) && Boolean(decidedAt) && !future;
+    const decidedAt = epochMillisFromLocalInput(decided);
+    const future = decidedAt !== undefined && decidedAt > Date.now();
+    const ready = isMachineKey(process) && isMachineKey(outcome) && decidedAt !== undefined && !future;
 
     const confirm = () =>
     {
-        if (!decidedAt) return;
+        if (decidedAt === undefined) return;
         onConfirm({
             owningProcessKey: process.trim(),
             outcomeCode: outcome.trim(),
@@ -59,6 +60,7 @@ const RecordDecisionDialog = ({kind, prior, busy, onConfirm, onDismiss}: Props) 
                       title={titleOf(kind, prior)}
                       confirmLabel={"Record decision"}
                       busy={busy}
+                      error={error}
                       confirmDisabled={!ready}
                       onConfirm={confirm}
                       onDismiss={onDismiss}>

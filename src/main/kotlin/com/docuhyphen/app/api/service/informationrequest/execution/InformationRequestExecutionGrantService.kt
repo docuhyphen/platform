@@ -3,6 +3,8 @@ package com.docuhyphen.app.api.service.informationrequest.execution
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestEntitlementSource
 import com.docuhyphen.app.api.repository.informationrequest.execution.RequestExecutionGrantRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.subscription.*
@@ -12,40 +14,30 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Freezes the commercial position an Information Request is issued under.
- *
- * Issuance is the one moment the owner's live plan is allowed to decide anything about a request:
- * once [issueGrant] has run, every later continuation of that same request answers to the grant it
- * wrote, never to the owner's plan as it happens to stand later. This is what lets a paid lapse or
- * trial expiry block new or expanding work while an already-issued request still lets its assigned
- * respondents and reviewers finish within what was already granted. A Template that records a typed
- * Field answer on an organization-owned request also requires the Business Fields feature at this
- * same moment, since Field writes against an issued request answer to this grant rather than to a
- * live Fields subscription check. Personal Information Requests include their typed response data.
- */
 @ApplicationScoped
 class InformationRequestExecutionGrantService @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
     private val grantRepository: RequestExecutionGrantRepository,
     private val requirementBindingRepository: InformationRequestTemplateRequirementBindingRepository,
+    private val trialService: SubscriptionTrialService,
 )
 {
-    /** The frozen grant issued for a request, or null before it has ever been issued. */
     fun findForRequest(requestId: UUID): RequestExecutionGrant? = grantRepository.findByRequestId(requestId)
 
-    /**
-     * Idempotent: a request already holding a grant keeps its original one rather than being
-     * re-priced against whatever the owner's plan has since become.
-     */
+    fun findForRequests(requestIds: Collection<UUID>): Map<UUID, RequestExecutionGrant> =
+        grantRepository.findByRequestIds(requestIds).associateBy { it.requestId }
+
+    fun committedEvidenceBytes(owner: SubscriptionContext): Long =
+        grantRepository.committedEvidenceBytes(owner.ownerType, owner.ownerId)
+
     fun issueGrant(request: InformationRequest, exchange: Exchange): RequestExecutionGrant
     {
         grantRepository.findByRequestId(request.id)?.let { return it }
 
         val context = owner(exchange)
-        if (context.ownerType == SubscriptionOwnerType.ORGANIZATION &&
-            hasFieldBoundRequirements(request.templateVersionId)
-        )
+        val fieldBound = context.ownerType == SubscriptionOwnerType.ORGANIZATION &&
+                hasFieldBoundRequirements(request.templateVersionId)
+        if (fieldBound)
         {
             subscriptionAccessService.requireFeature(context, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
         }
@@ -56,6 +48,7 @@ class InformationRequestExecutionGrantService @Inject constructor(
         val mode = subscriptionAccessService.enforcementMode()
         val limits = subscription.limits.takeIf { mode.refusesDeniedRequests }
         val now = Timestamp.from(Instant.now())
+        val source = entitlementSourceOf(subscription, mode)
 
         val grant = RequestExecutionGrant().apply {
             requestId = request.id
@@ -75,6 +68,13 @@ class InformationRequestExecutionGrantService @Inject constructor(
             actingPartyCap = limits?.maxActingPartiesPerInformationRequest
             evidenceFileAllowance = limits?.maxEvidenceFilesPerInformationRequest
             evidenceByteAllowance = limits?.maxEvidenceBytesPerInformationRequest
+            policyVersion = PlanCatalog.POLICY_VERSION
+            entitlementSource = source
+            trialGrantId = if (source == InformationRequestEntitlementSource.TRIAL)
+                trialService.activeTrialGrantId(context.ownerType, context.ownerId, now.toInstant())
+            else null
+            grantedFeatures = grantedFeaturesOf(context, subscription, fieldBound)
+            continuationActions = InformationRequestContinuationAction.entries.map { it.name }.sorted().toTypedArray()
             issuedAt = now
             createdAt = now
         }
@@ -82,13 +82,31 @@ class InformationRequestExecutionGrantService @Inject constructor(
         return grantRepository.insertNow(grant)
     }
 
-    /**
-     * Explicitly revokes an already-issued grant, distinct from [issueGrant]'s own idempotence: a
-     * request with no grant at all cannot be revoked, since there is nothing yet for a
-     * continuation mutation to answer to. Idempotent by first revocation -- a request revoked
-     * twice keeps its original reason and timestamp rather than overwriting the record of when
-     * and why it actually happened.
-     */
+    private fun entitlementSourceOf(
+        subscription: EffectiveSubscription,
+        mode: SubscriptionEnforcementMode,
+    ): InformationRequestEntitlementSource = when {
+        !mode.refusesDeniedRequests -> InformationRequestEntitlementSource.UNENFORCED
+        subscription.status == SubscriptionStatus.TRIALING -> InformationRequestEntitlementSource.TRIAL
+        PlanCatalog.definitionOf(subscription.planCode).includes(PlanFeature.INFORMATION_REQUESTS) ->
+            InformationRequestEntitlementSource.PAID
+
+        else -> InformationRequestEntitlementSource.OVERRIDE
+    }
+
+    private fun grantedFeaturesOf(
+        context: SubscriptionContext,
+        subscription: EffectiveSubscription,
+        fieldBound: Boolean,
+    ): Array<String> {
+        val typedAnswers = context.ownerType == SubscriptionOwnerType.USER || fieldBound ||
+                subscription.hasFeature(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS)
+        return listOfNotNull(
+            PlanFeature.INFORMATION_REQUESTS,
+            PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS.takeIf { typedAnswers },
+        ).map { it.name }.sorted().toTypedArray()
+    }
+
     fun revoke(requestId: UUID, reason: String): RequestExecutionGrant
     {
         val grant = grantRepository.findByRequestId(requestId)
@@ -117,7 +135,6 @@ class InformationRequestExecutionGrantService @Inject constructor(
         throw IllegalStateException("Exchange ${exchange.id} has no owner to freeze an execution grant for")
     }
 
-    /** True when at least one Requirement in this Template Version records a typed Field answer. */
     private fun hasFieldBoundRequirements(templateVersionId: UUID): Boolean =
         requirementBindingRepository.findOrdered(templateVersionId).any { it.collectedFieldDefinitionId != null }
 }

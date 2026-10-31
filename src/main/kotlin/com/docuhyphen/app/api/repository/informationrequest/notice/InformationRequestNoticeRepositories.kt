@@ -3,7 +3,6 @@ package com.docuhyphen.app.api.repository.informationrequest.notice
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
-import jakarta.persistence.LockModeType
 import java.sql.Timestamp
 import java.util.*
 
@@ -84,37 +83,39 @@ class InformationRequestOutboundNoticeRepository :
             .resultList
     }
 
-    fun findAwaitingDeliveryIds(maximumAttempts: Int, limit: Int, requestId: UUID? = null): List<UUID>
+    fun findAwaitingDeliveryIds(
+        maximumAttempts: Int,
+        limit: Int,
+        requestId: UUID? = null,
+        now: java.time.Instant = java.time.Instant.now(),
+    ): List<UUID>
     {
-        val requestClause = if (requestId != null) "AND notice.informationRequestId = :requestId" else ""
-        val query = entityManager.createQuery(
+        val requestClause = if (requestId != null) "AND notice.information_request_id = :requestId" else ""
+        val query = entityManager.createNativeQuery(
             """
-            SELECT notice.id FROM InformationRequestOutboundNotice notice
-            WHERE notice.endpointState = :resolved
+            SELECT notice.id FROM information_request_outbound_notice notice
+            WHERE notice.endpoint_state = 'RESOLVED'
               $requestClause
               AND NOT EXISTS (
-                SELECT 1 FROM InformationRequestNoticeDeliveryAttempt settled
-                WHERE settled.outboundNoticeId = notice.id AND settled.outcome <> :failed
+                SELECT 1 FROM information_request_notice_delivery_attempt settled
+                WHERE settled.outbound_notice_id = notice.id AND settled.outcome <> 'FAILED'
               )
-              AND (SELECT COUNT(attempt) FROM InformationRequestNoticeDeliveryAttempt attempt
-                   WHERE attempt.outboundNoticeId = notice.id) < :maximumAttempts
-            ORDER BY notice.renderedAt, notice.id
+              AND (SELECT COUNT(*) FROM information_request_notice_delivery_attempt attempt
+                   WHERE attempt.outbound_notice_id = notice.id) < :maximumAttempts
+              AND (NOT EXISTS (
+                SELECT 1 FROM information_request_notice_delivery_attempt attempt WHERE attempt.outbound_notice_id = notice.id
+              ) OR (SELECT MAX(attempt.attempted_at) + interval '5 minutes' * power(2, GREATEST(COUNT(*) - 1, 0))
+                    FROM information_request_notice_delivery_attempt attempt
+                    WHERE attempt.outbound_notice_id = notice.id) <= :now)
+            ORDER BY notice.rendered_at, notice.id
             """.trimIndent(),
             UUID::class.java,
         )
-            .setParameter("resolved", InformationRequestNoticeEndpointState.RESOLVED)
-            .setParameter("failed", InformationRequestNoticeAttemptOutcome.FAILED)
-            .setParameter("maximumAttempts", maximumAttempts.toLong())
+            .setParameter("maximumAttempts", maximumAttempts)
+            .setParameter("now", Timestamp.from(now))
             .setMaxResults(limit)
         requestId?.let { query.setParameter("requestId", it) }
-        return query.resultList
-    }
-
-    fun lock(noticeId: UUID): InformationRequestOutboundNotice?
-    {
-        val notice = entityManager.find(InformationRequestOutboundNotice::class.java, noticeId) ?: return null
-        entityManager.lock(notice, LockModeType.PESSIMISTIC_WRITE)
-        return notice
+        return query.resultList.map { it as UUID }
     }
 }
 
@@ -133,6 +134,44 @@ class InformationRequestNoticeSequenceAllocationRepository :
         )
             .setParameter("noticeId", noticeId)
             .resultList
+}
+
+@ApplicationScoped
+class InformationRequestNoticeRenderFailureRepository :
+    BaseRepository<InformationRequestNoticeRenderFailure>(InformationRequestNoticeRenderFailure::class.java) {
+    fun record(intentId: UUID, requestId: UUID, failureCode: String, at: Timestamp): Boolean =
+        entityManager.createNativeQuery(
+            """
+            INSERT INTO information_request_notice_render_failure
+                (id, notice_intent_id, information_request_id, attempt_number, failure_code, failed_at)
+            SELECT :id, :intent, :request, COALESCE(MAX(failure.attempt_number), 0) + 1, :code, :at
+            FROM information_request_notice_render_failure failure
+            WHERE failure.notice_intent_id = :intent
+            ON CONFLICT (notice_intent_id, attempt_number) DO NOTHING
+            """.trimIndent(),
+        )
+            .setParameter("id", UUID.randomUUID())
+            .setParameter("intent", intentId)
+            .setParameter("request", requestId)
+            .setParameter("code", failureCode)
+            .setParameter("at", at)
+            .executeUpdate() == 1
+
+    fun countsForRequests(requestIds: Collection<UUID>): Map<UUID, Int> {
+        if (requestIds.isEmpty()) return emptyMap()
+        return entityManager.createQuery(
+            """
+            SELECT failure.noticeIntentId, COUNT(failure)
+            FROM InformationRequestNoticeRenderFailure failure
+            WHERE failure.informationRequestId IN :requestIds
+            GROUP BY failure.noticeIntentId
+            """.trimIndent(),
+            Array<Any>::class.java,
+        )
+            .setParameter("requestIds", requestIds)
+            .resultList
+            .associate { row -> row[0] as UUID to (row[1] as Number).toInt() }
+    }
 }
 
 @ApplicationScoped

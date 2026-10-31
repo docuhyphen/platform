@@ -6,11 +6,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Runtime aggregate for one request attached to an Exchange and one exact published Template
- * Version. The aggregate revision is used for lifecycle commands, while the party revision is used
- * for party and access-shaping commands.
- */
 @Entity
 @Table(name = "information_request")
 class InformationRequest
@@ -50,8 +45,12 @@ class InformationRequest
     @Column(name = "response_revision", nullable = false)
     var responseRevision: Long = 1
 
-    @Column(name = "created_by_app_user_id")
-    var createdByAppUserId: UUID? = null
+    @Column(name = "created_by_principal_kind", length = 32)
+    @Enumerated(EnumType.STRING)
+    var createdByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "created_by_principal_id")
+    var createdByPrincipalId: UUID? = null
 
     @Column(name = "issued_at")
     var issuedAt: Timestamp? = null

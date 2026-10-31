@@ -1,10 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrection
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestNextAction
@@ -22,7 +18,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestCallerStandingServiceTest
 {
@@ -99,7 +95,7 @@ class InformationRequestCallerStandingServiceTest
 
         val awaited = service.standingOf(request, access, setOf(request.id))
         val notAwaited = service.standingOf(request, access, emptySet())
-        permits(Action.INFORMATION_REQUEST_MANAGE_PARTIES)
+        permits(Action.INFORMATION_REQUEST_VIEW_OPERATIONS)
         val managed = service.standingOf(request, access, emptySet())
         request.state = InformationRequestState.DRAFT
         val draft = service.standingOf(request, access, emptySet())

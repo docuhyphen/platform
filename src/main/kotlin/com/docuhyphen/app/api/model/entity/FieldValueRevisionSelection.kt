@@ -6,11 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * A canonical selected option code belonging to one [FieldValueRevision]. Chosen options are part of
- * the answer a revision records, so they are kept with the revision rather than read back from the
- * live answer, whose selections a later change replaces.
- */
 @Entity
 @Table(name = "field_value_revision_selection")
 class FieldValueRevisionSelection

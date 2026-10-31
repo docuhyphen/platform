@@ -1,37 +1,27 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.fields.FieldValidationException
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
+import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestFieldResourceAdapterTest
 {
@@ -95,11 +85,27 @@ class InformationRequestFieldResourceAdapterTest
     {
         val executionGrantService = mock<InformationRequestExecutionGrantService>()
         whenever(executionGrantService.findForRequest(requestId)).thenReturn(
-            RequestExecutionGrant().apply { requestId = this@InformationRequestFieldResourceAdapterTest.requestId },
+            issuedExecutionGrant().apply { requestId = this@InformationRequestFieldResourceAdapterTest.requestId },
         )
-        val issuedAdapter = adapter(request(InformationRequestState.ISSUED), executionGrantService = executionGrantService)
+        val issuedAdapter =
+            adapter(request(InformationRequestState.ISSUED), executionGrantService = executionGrantService)
 
         assertTrue(issuedAdapter.mutationEntitlementFrozen(requestId))
+    }
+
+    @Test
+    fun `an issued grant without the typed Field feature leaves Field writes to the live plan`() {
+        val executionGrantService = mock<InformationRequestExecutionGrantService>()
+        whenever(executionGrantService.findForRequest(requestId)).thenReturn(
+            issuedExecutionGrant().apply {
+                requestId = this@InformationRequestFieldResourceAdapterTest.requestId
+                grantedFeatures = arrayOf(PlanFeature.INFORMATION_REQUESTS.name)
+            },
+        )
+        val issuedAdapter =
+            adapter(request(InformationRequestState.ISSUED), executionGrantService = executionGrantService)
+
+        assertFalse(issuedAdapter.mutationEntitlementFrozen(requestId))
     }
 
     @Test
@@ -107,7 +113,8 @@ class InformationRequestFieldResourceAdapterTest
     {
         val executionGrantService = mock<InformationRequestExecutionGrantService>()
         whenever(executionGrantService.findForRequest(requestId)).thenReturn(null)
-        val draftAdapter = adapter(request(InformationRequestState.DRAFT), executionGrantService = executionGrantService)
+        val draftAdapter =
+            adapter(request(InformationRequestState.DRAFT), executionGrantService = executionGrantService)
 
         assertFalse(draftAdapter.mutationEntitlementFrozen(requestId))
     }
@@ -206,7 +213,7 @@ class InformationRequestFieldResourceAdapterTest
                 requestRepository = mock(),
                 requirementRepository = mock(),
                 templateBindingRepository = mock(),
-                organizationMembershipRepository = mock(),
+                organizationMemberships = mock(),
                 authorizationService = mock(),
             ),
         )

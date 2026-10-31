@@ -1,33 +1,36 @@
-import {Badge, Text} from "@fluentui/react-components";
+import {Badge, Button, Text} from "@fluentui/react-components";
 import {InformationRequestAuditEventDto} from "../../../models/models.tsx";
-import {formattedTime, shortId} from "../operationsLabels.ts";
+import {AuditFilterField} from "../audit-search/useAuditSearch.ts";
+import {auditActorText, countedText, formattedTime, shortId} from "../operationsLabels.ts";
 import {useAuditEventRowStyles} from "./AuditEventRowStyles.tsx";
 
 interface AuditEventRowProps
 {
     event: InformationRequestAuditEventDto;
     showRequest?: boolean;
+    onFilter?: (field: AuditFilterField, value: string) => void;
 }
 
 const auditPayloadText = (event: InformationRequestAuditEventDto): string =>
 {
     const shown = Object.entries(event.payload).map(([key, value]) => `${key}: ${value}`).join(", ");
     if (event.withheldKeyCount === 0) return shown;
-    const withheld = `${event.withheldKeyCount} values withheld`;
+    const withheld = countedText(event.withheldKeyCount, "value withheld", "values withheld");
     return shown ? `${shown}, ${withheld}` : withheld;
 };
 
 const whenText = (event: InformationRequestAuditEventDto, showRequest: boolean): string =>
 {
-    const when = `${formattedTime(event.occurredAt)}, ${event.outcome.toLowerCase()}, by ${event.actorKind?.toLowerCase() ?? "the platform"}`;
+    const when = `${formattedTime(event.occurredAt)}, ${event.outcome.toLowerCase()}, by ${auditActorText(event.actorKind)}`;
     return showRequest && event.requestId ? `${when}, request ${shortId(event.requestId)}` : when;
 };
 
-const AuditEventRow = ({event, showRequest = false}: AuditEventRowProps) =>
+const AuditEventRow = ({event, showRequest = false, onFilter}: AuditEventRowProps) =>
 {
     const styles = useAuditEventRowStyles();
     const id = `information-request-audit-event-${event.eventId}`;
     const payload = auditPayloadText(event);
+    const {actorId, requestId} = event;
 
     return (
         <li id={id}
@@ -53,6 +56,31 @@ const AuditEventRow = ({event, showRequest = false}: AuditEventRowProps) =>
                       className={styles.detail}>
                     {payload}
                 </Text>
+            )}
+            {onFilter && (actorId || requestId) && (
+                <div id={`${id}-filters`}
+                     className={styles.filters}>
+                    {actorId && (
+                        <Button id={`${id}-filter-actor`}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                size={"small"}
+                                aria-label={`Search the events of actor ${actorId}`}
+                                onClick={() => onFilter("actorId", actorId)}>
+                            This actor
+                        </Button>
+                    )}
+                    {requestId && (
+                        <Button id={`${id}-filter-request`}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                size={"small"}
+                                aria-label={`Search the events of request ${requestId}`}
+                                onClick={() => onFilter("requestId", requestId)}>
+                            This request
+                        </Button>
+                    )}
+                </div>
             )}
         </li>
     );

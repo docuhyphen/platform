@@ -11,7 +11,6 @@ interface Props
     onChange: (value: unknown) => void;
 }
 
-/** A retired option keeps any value already recorded against it but is no longer selectable. */
 const activeOptions = (binding: SchemaFieldBindingDto) =>
     binding.options.filter(option => option.active !== false);
 
@@ -36,7 +35,8 @@ const FieldSelectEditor = ({id, binding, value, disabled, labelledBy, onChange}:
                           .join(', ')}
                       onOptionSelect={(_, data) => onChange(data.selectedOptions)}>
                 {options.map(option => (
-                    <Option key={option.code}
+                    <Option id={`${id}-option-${option.code}`}
+                            key={option.code}
                             value={option.code}>
                         {option.label}
                     </Option>
@@ -48,13 +48,15 @@ const FieldSelectEditor = ({id, binding, value, disabled, labelledBy, onChange}:
     return (
         <Dropdown id={id}
                   aria-labelledby={labelledBy}
+                  clearable
                   disabled={disabled}
                   placeholder="Select an option"
                   selectedOptions={value ? [String(value)] : []}
                   value={options.find(option => option.code === value)?.label ?? ''}
-                  onOptionSelect={(_, data) => onChange(data.optionValue)}>
+                  onOptionSelect={(_, data) => onChange(data.optionValue ?? null)}>
             {options.map(option => (
-                <Option key={option.code}
+                <Option id={`${id}-option-${option.code}`}
+                        key={option.code}
                         value={option.code}>
                     {option.label}
                 </Option>

@@ -13,6 +13,7 @@ import {attributeRequirementLabels, evidenceAttributeLabels} from "../templateAu
 import {defaultEvidencePolicy} from "../templateDraftDocument.ts";
 import {RequirementFieldsProps} from "../template-requirement-dialog/requirementDraft.ts";
 import {useRequirementEvidenceAttributesStyles} from "./RequirementEvidenceAttributesStyles.tsx";
+import {acceptedFileTypeLabel, acceptedFileTypeOptions} from "./acceptedFileTypes.ts";
 
 type AttributeRequirementKey =
     | "issuerRequirement"
@@ -50,6 +51,12 @@ const RequirementEvidenceAttributes = ({id, draft, readOnly, onChange}: Requirem
         set({acceptedValues: [...accepted, {attribute, acceptedValue: acceptedValue.trim()}]});
         setAcceptedValue("");
     };
+    const chooseAttribute = (chosen: InformationRequestEvidenceAttribute) => {
+        setAttribute(chosen);
+        setAcceptedValue("");
+    };
+    const shownValue = (value: { attribute: InformationRequestEvidenceAttribute; acceptedValue: string }) =>
+        value.attribute === InformationRequestEvidenceAttribute.CONTENT_TYPE ? acceptedFileTypeLabel(value.acceptedValue) : value.acceptedValue;
 
     return (
         <div id={`${id}-evidence-attributes`}
@@ -86,7 +93,9 @@ const RequirementEvidenceAttributes = ({id, draft, readOnly, onChange}: Requirem
                     <li key={`${value.attribute}-${value.acceptedValue}-${index}`}
                         id={`${id}-accepted-${index}`}
                         className={styles.item}>
-                        <Text>{`${evidenceAttributeLabels[value.attribute]}: ${value.acceptedValue}`}</Text>
+                        <Text id={`${id}-accepted-${index}-label`}>
+                            {`${evidenceAttributeLabels[value.attribute]}: ${shownValue(value)}`}
+                        </Text>
                         {!readOnly && (
                             <Button id={`${id}-accepted-${index}-remove`}
                                     appearance={"subtle"}
@@ -102,14 +111,23 @@ const RequirementEvidenceAttributes = ({id, draft, readOnly, onChange}: Requirem
                 <div id={`${id}-accepted-new`}
                      className={styles.newValue}>
                     <ChoiceSelect<InformationRequestEvidenceAttribute> id={`${id}-accepted-attribute-select`}
-                                  label={"Attribute"}
-                                  value={attribute}
-                                  options={optionsFrom(evidenceAttributeLabels)}
-                                  onChange={setAttribute}/>
-                    <TextField id={`${id}-accepted-value-input`}
-                               label={"Accepted value"}
-                               value={acceptedValue}
-                               onChange={setAcceptedValue}/>
+                                                                       label={"Attribute"}
+                                                                       value={attribute}
+                                                                       options={optionsFrom(evidenceAttributeLabels)}
+                                                                       onChange={chooseAttribute}/>
+                    {attribute === InformationRequestEvidenceAttribute.CONTENT_TYPE ? (
+                        <ChoiceSelect<string> id={`${id}-accepted-type-select`}
+                                              label={"Accepted value"}
+                                              value={acceptedValue}
+                                              placeholder={"Choose a file type"}
+                                              options={acceptedFileTypeOptions}
+                                              onChange={setAcceptedValue}/>
+                    ) : (
+                        <TextField id={`${id}-accepted-value-input`}
+                                   label={"Accepted value"}
+                                   value={acceptedValue}
+                                   onChange={setAcceptedValue}/>
+                    )}
                     <Button id={`${id}-accepted-add`}
                             appearance={"secondary"}
                             shape={"circular"}

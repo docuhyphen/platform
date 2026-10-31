@@ -95,6 +95,102 @@ class InformationRequestClockCalculatorTest
     }
 
     @Test
+    fun `working periods a spring gap resolves onto the same time are counted once by every walk`() {
+        val calendar = sundays(berlin, 2 * 60 to 2 * 60 + 30, 3 * 60 to 4 * 60)
+        val received = Instant.parse("2026-03-29T01:00:00Z")
+        val due = InformationRequestClockCalculator.advance(calendar, received, HOUR)
+
+        assertEquals(Instant.parse("2026-03-29T02:00:00Z"), due)
+        assertEquals(HOUR, InformationRequestClockCalculator.elapsed(calendar, received, due))
+        assertEquals(received, InformationRequestClockCalculator.retreat(calendar, due, HOUR))
+        assertEquals(
+            due,
+            InformationRequestClockCalculator.advance(
+                calendar,
+                received,
+                InformationRequestClockCalculator.elapsed(calendar, received, due)
+            )
+        )
+        assertEquals(
+            30 * MINUTE,
+            InformationRequestClockCalculator.elapsed(calendar, received.plusSeconds(30 * MINUTE), due)
+        )
+    }
+
+    @Test
+    fun `working periods a spring gap moves out of order are walked in time order`() {
+        val calendar = sundays(berlin, 2 * 60 + 30 to 2 * 60 + 45, 3 * 60 to 3 * 60 + 20)
+        val received = Instant.parse("2026-03-29T01:00:00Z")
+        val due = InformationRequestClockCalculator.advance(calendar, received, 35 * MINUTE)
+
+        assertEquals(Instant.parse("2026-03-29T01:45:00Z"), due)
+        assertEquals(35 * MINUTE, InformationRequestClockCalculator.elapsed(calendar, received, due))
+        assertEquals(received, InformationRequestClockCalculator.retreat(calendar, due, 35 * MINUTE))
+        assertEquals(
+            Instant.parse("2026-03-29T01:20:00Z"),
+            InformationRequestClockCalculator.advance(calendar, received, 20 * MINUTE)
+        )
+    }
+
+    @Test
+    fun `split working periods across an autumn repeated hour count the real time that passes`() {
+        val calendar = sundays(berlin, 60 to 2 * 60 + 30, 2 * 60 + 30 to 4 * 60)
+        val received = Instant.parse("2026-10-24T23:00:00Z")
+        val due = InformationRequestClockCalculator.advance(calendar, received, 4 * HOUR)
+
+        assertEquals(Instant.parse("2026-10-25T03:00:00Z"), due)
+        assertEquals(4 * HOUR, InformationRequestClockCalculator.elapsed(calendar, received, due))
+        assertEquals(received, InformationRequestClockCalculator.retreat(calendar, due, 4 * HOUR))
+        val earlier = InformationRequestClockCalculator.advance(calendar, received, 3 * HOUR)
+        assertEquals(Instant.parse("2026-10-25T02:00:00Z"), earlier)
+        assertEquals(3 * HOUR, InformationRequestClockCalculator.elapsed(calendar, received, earlier))
+    }
+
+    @Test
+    fun `split working periods on ordinary dates skip the break and holidays in every walk`() {
+        val calendar = InformationRequestClockCalendar(
+            InformationRequestClockType.BUSINESS,
+            johannesburg,
+            WEEKDAYS.flatMap {
+                listOf(
+                    InformationRequestWorkingPeriod(it, 9 * 60, 12 * 60),
+                    InformationRequestWorkingPeriod(it, 13 * 60, 17 * 60)
+                )
+            },
+            setOf(LocalDate.parse("2026-09-28")),
+        )
+        val received = Instant.parse("2026-09-25T14:00:00Z")
+        val due = InformationRequestClockCalculator.advance(calendar, received, 3 * HOUR)
+
+        assertEquals(Instant.parse("2026-09-29T09:00:00Z"), due)
+        assertEquals(3 * HOUR, InformationRequestClockCalculator.elapsed(calendar, received, due))
+        assertEquals(received, InformationRequestClockCalculator.retreat(calendar, due, 3 * HOUR))
+        assertEquals(
+            HOUR,
+            InformationRequestClockCalculator.elapsed(
+                calendar,
+                Instant.parse("2026-09-29T09:30:00Z"),
+                Instant.parse("2026-09-29T11:30:00Z"),
+            ),
+        )
+    }
+
+    @Test
+    fun `a working period ending at midnight lasts the whole local day including a shortened one`() {
+        val calendar = sundays(berlin, 0 to 24 * 60)
+        val dayStart = Instant.parse("2026-03-28T23:00:00Z")
+        val dayEnd = Instant.parse("2026-03-29T22:00:00Z")
+
+        assertEquals(23 * HOUR, InformationRequestClockCalculator.elapsed(calendar, dayStart, dayEnd))
+        assertEquals(dayEnd, InformationRequestClockCalculator.advance(calendar, dayStart, 23 * HOUR))
+        assertEquals(dayStart, InformationRequestClockCalculator.retreat(calendar, dayEnd, 23 * HOUR))
+        assertEquals(
+            Instant.parse("2026-04-04T23:00:00Z"),
+            InformationRequestClockCalculator.advance(calendar, dayStart, 24 * HOUR),
+        )
+    }
+
+    @Test
     fun `a business calendar without working time cannot produce a due time`()
     {
         val calendar = InformationRequestClockCalendar(InformationRequestClockType.BUSINESS, johannesburg, emptyList(), emptySet())
@@ -107,8 +203,14 @@ class InformationRequestClockCalculatorTest
     private fun weekdays(zone: ZoneId) = InformationRequestClockCalendar(
         InformationRequestClockType.BUSINESS,
         zone,
-        listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)
-            .map { InformationRequestWorkingPeriod(it, 9 * 60, 17 * 60) },
+        WEEKDAYS.map { InformationRequestWorkingPeriod(it, 9 * 60, 17 * 60) },
+        emptySet(),
+    )
+
+    private fun sundays(zone: ZoneId, vararg periods: Pair<Int, Int>) = InformationRequestClockCalendar(
+        InformationRequestClockType.BUSINESS,
+        zone,
+        periods.map { (start, end) -> InformationRequestWorkingPeriod(DayOfWeek.SUNDAY, start, end) },
         emptySet(),
     )
 
@@ -117,5 +219,7 @@ class InformationRequestClockCalculatorTest
         const val MINUTE = 60L
         const val HOUR = 3600L
         const val DAY = 86400L
+        val WEEKDAYS =
+            listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)
     }
 }

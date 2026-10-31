@@ -1,17 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.noauth
 
-import com.docuhyphen.app.api.model.entity.RequestAccessSession
-import com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStrength
-import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.model.entity.ShareLinkMode
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestReadActor
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
+import com.docuhyphen.app.api.model.informationrequest.noauth.RequestAccessSessionBinding
 import com.docuhyphen.app.api.repository.informationrequest.noauth.RequestAccessSessionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -37,18 +33,23 @@ class RequestAccessSessionService @Inject constructor(
         require(shareLink.linkMode == ShareLinkMode.VERIFICATION_BOOTSTRAP) {
             "A request access session may only be issued against a VERIFICATION_BOOTSTRAP ShareLink"
         }
+        if (participant.kind != PrincipalKind.PARTICIPANT) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+                "A request access session is only issued to a participant identified by contact proof",
+            )
+        }
         val parent = sessionRepository.lockParentForShare(shareLink.shareId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.PARENT_STATE_INVALID,
                 "Parent Exchange not found"
             )
-        if (InformationRequestTransitionMatrix.canRead(parent, InformationRequestReadActor.EXTERNAL_SESSION)
-                    is InformationRequestPolicyDecision.Deny
+        requireCredentialCommandAllowed(
+            parent,
+            sessionRepository.requestStateForShare(shareLink.shareId),
+            InformationRequestMutation.ISSUE_ACCESS_SESSION,
         )
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
-                "Parent Exchange does not permit respondent sessions"
-            )
+        requireNoAuthPermitted(shareLink.id)
         val now = Timestamp.from(Instant.now())
         val expiry = listOfNotNull(expiresAt, shareLink.expiresAt, Timestamp.from(now.toInstant().plusSeconds(86400)))
             .minOrNull()!!
@@ -69,7 +70,20 @@ class RequestAccessSessionService @Inject constructor(
         return IssuedRequestAccessSession(saved, "${saved.id}.$secret")
     }
 
+    @Transactional(Transactional.TxType.MANDATORY)
     fun authenticate(sessionToken: String?): RequestAccessSession = requireActive(requireCredential(sessionToken).id)
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun verifyCredential(sessionToken: String?): RequestAccessSession = requireCredential(sessionToken)
+
+    fun requireNoAuthPermitted(shareLinkId: UUID) {
+        if (sessionRepository.recipientSignInRequired(shareLinkId)) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED,
+                "This Exchange requires recipients to sign in; access links and their sessions no longer work",
+            )
+        }
+    }
 
     private fun requireCredential(sessionToken: String?): RequestAccessSession
     {
@@ -77,11 +91,14 @@ class RequestAccessSessionService @Inject constructor(
         val id = parts?.firstOrNull()?.let { runCatching { UUID.fromString(it) }.getOrNull() }
         val secret = parts?.getOrNull(1)
         if (id == null || secret == null || !secret.matches(Regex("[A-Za-z0-9_-]{43}"))) refuseCredential()
-        val session = sessionRepository.findSessionByIdForUpdate(id) ?: refuseCredential()
-        val expected = session.credentialHash ?: refuseCredential()
-        if (!MessageDigest.isEqual(expected.toByteArray(Charsets.UTF_8), hash(secret).toByteArray(Charsets.UTF_8)))
+        val presented = sessionRepository.findById(id) ?: refuseCredential()
+        if (!MessageDigest.isEqual(
+                presented.credentialHash.toByteArray(Charsets.UTF_8),
+                hash(secret).toByteArray(Charsets.UTF_8)
+            )
+        )
             refuseCredential()
-        return session
+        return sessionRepository.findSessionByIdForUpdate(id) ?: refuseCredential()
     }
 
     private fun refuseCredential(): Nothing = throw InformationRequestLifecycleException(
@@ -92,10 +109,12 @@ class RequestAccessSessionService @Inject constructor(
     private fun hash(secret: String): String = MessageDigest.getInstance("SHA-256")
         .digest(secret.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
+    @Transactional(Transactional.TxType.MANDATORY)
     fun requireActive(sessionId: UUID): RequestAccessSession
     {
         val session = sessionRepository.findSessionByIdForUpdate(sessionId)
             ?: throw IllegalArgumentException("Request access session not found")
+        requireNoAuthPermitted(session.shareLinkId)
         if (session.revokedAt != null)
         {
             throw InformationRequestLifecycleException(
@@ -103,8 +122,7 @@ class RequestAccessSessionService @Inject constructor(
                 "This request access session has been revoked",
             )
         }
-        val expiresAt = session.expiresAt
-        if (expiresAt == null || !expiresAt.after(Timestamp.from(Instant.now())))
+        if (!session.expiresAt.after(Timestamp.from(Instant.now())))
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.ACCESS_SESSION_EXPIRED,
@@ -116,19 +134,6 @@ class RequestAccessSessionService @Inject constructor(
 
 
     @Transactional
-    fun revoke(sessionId: UUID): RequestAccessSession
-    {
-        val session = sessionRepository.findSessionByIdForUpdate(sessionId)
-            ?: throw IllegalArgumentException("Request access session not found")
-        if (session.revokedAt == null)
-        {
-            session.revokedAt = Timestamp.from(Instant.now())
-            return sessionRepository.update(session)
-        }
-        return session
-    }
-
-    @Transactional
     fun revokeAllForShareLink(shareLinkId: UUID): List<RequestAccessSession>
     {
         val now = Timestamp.from(Instant.now())
@@ -137,6 +142,9 @@ class RequestAccessSessionService @Inject constructor(
             sessionRepository.update(session)
         }
     }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun update(session: RequestAccessSession): RequestAccessSession = sessionRepository.update(session)
 
     @Transactional
     fun touchUse(sessionId: UUID): RequestAccessSession
@@ -148,9 +156,15 @@ class RequestAccessSessionService @Inject constructor(
         return sessionRepository.update(session)
     }
 
-    @Transactional
-    fun revokeAllForRequest(requestId: UUID)
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun revokeLiveForRequest(requestId: UUID): List<RequestAccessSessionBinding>
     {
-        sessionRepository.findActiveForRequest(requestId).forEach { revoke(it.id) }
+        val now = Timestamp.from(Instant.now())
+        return sessionRepository.findLiveForRequest(requestId, now).mapNotNull { live ->
+            val session = sessionRepository.findSessionByIdForUpdate(live.session.id)
+            if (session == null || session.revokedAt != null) return@mapNotNull null
+            session.revokedAt = now
+            RequestAccessSessionBinding(sessionRepository.update(session), live.partyId)
+        }
     }
 }

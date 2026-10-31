@@ -15,7 +15,6 @@ object InformationRequestHealthDtoMapper
                 InformationRequestHealthIndicatorDto(
                     key = indicator.key,
                     count = indicator.count,
-                    threshold = indicator.threshold,
                     breached = indicator.breached,
                 )
             },

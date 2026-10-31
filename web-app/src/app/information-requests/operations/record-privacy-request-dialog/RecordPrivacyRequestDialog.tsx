@@ -1,6 +1,9 @@
 import {useState} from "react";
 import {MessageBar, MessageBarBody, Text} from "@fluentui/react-components";
-import {InformationRequestPrivacyRequestKind, RecordInformationRequestPrivacyRequestRequest} from "../../../models/models.tsx";
+import {
+    InformationRequestPrivacyRequestKind,
+    RecordInformationRequestPrivacyRequestRequest
+} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import EditorDialog from "../../shared/editor-dialog/EditorDialog.tsx";
 import {isLetterKey, letterKeyProblem} from "../../shared/machineKey.ts";
@@ -31,7 +34,13 @@ const EXPLANATIONS: Partial<Record<InformationRequestPrivacyRequestKind, string>
         + "for example under a preservation hold, nothing is deleted and the request is recorded as refused. This cannot be undone.",
 };
 
-const RecordPrivacyRequestDialog = ({subjectId, subjectLabel, busy, onConfirm, onDone}: RecordPrivacyRequestDialogProps) =>
+const RecordPrivacyRequestDialog = ({
+                                        subjectId,
+                                        subjectLabel,
+                                        busy,
+                                        onConfirm,
+                                        onDone
+                                    }: RecordPrivacyRequestDialogProps) =>
 {
     const [kind, setKind] = useState(InformationRequestPrivacyRequestKind.ACCESS);
     const [purpose, setPurpose] = useState("");
@@ -67,7 +76,7 @@ const RecordPrivacyRequestDialog = ({subjectId, subjectLabel, busy, onConfirm, o
                 <MessageBar id={"information-request-record-privacy-refusal"}
                             intent={"error"}
                             role={"alert"}>
-                    <MessageBarBody>{refusal}</MessageBarBody>
+                    <MessageBarBody id={"information-request-record-privacy-refusal-body"}>{refusal}</MessageBarBody>
                 </MessageBar>
             )}
             <Text id={"information-request-record-privacy-subject"}
@@ -77,7 +86,10 @@ const RecordPrivacyRequestDialog = ({subjectId, subjectLabel, busy, onConfirm, o
             <ChoiceSelect<InformationRequestPrivacyRequestKind> id={"information-request-record-privacy-kind"}
                                                                 label={"Request"}
                                                                 value={kind}
-                                                                options={RECORDABLE.map(value => ({value, label: privacyKindLabels[value]}))}
+                                                                options={RECORDABLE.map(value => ({
+                                                                    value,
+                                                                    label: privacyKindLabels[value]
+                                                                }))}
                                                                 onChange={setKind}/>
             <Text id={"information-request-record-privacy-explanation"}>{EXPLANATIONS[kind]}</Text>
             <TextField id={"information-request-record-privacy-purpose"}

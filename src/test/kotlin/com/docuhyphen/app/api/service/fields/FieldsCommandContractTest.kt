@@ -1,28 +1,17 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 
-/**
- * Every Fields command says who is asking and which set of answers it addresses, and the engine
- * takes both from the command rather than working either out for itself.
- *
- * That is what lets one engine serve two arrivals. A registered caller and a recipient-bound caller
- * reach the same service through different doors, and the door each came through is the only thing
- * that knows how to identify them. A command that carried nothing but a resource id would force the
- * engine to guess, and it would guess with whatever the current request happens to hold.
- *
- * Addressing is the same idea applied to the answers themselves: a resource answers as itself in its
- * root set, and each repetition of a repeatable group answers in its own, so a command that names a
- * repetition must land there and nowhere else.
- */
 class FieldsCommandContractTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())
@@ -126,7 +115,7 @@ class FieldsCommandContractTest
             principal = author,
             rootAnswers = mapOf(
                 SchemaAssignmentFieldsFixture.Question.NOTE to
-                    SchemaAssignmentFieldsFixture.StoredAnswer("Answer of the resource", author),
+                        StoredAnswer("Answer of the resource", author),
             ),
         )
         fixture.save(

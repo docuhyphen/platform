@@ -6,6 +6,12 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.EMAIL
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
+import com.docuhyphen.app.api.model.exchange.ExchangeResolvedParticipant
+import com.docuhyphen.app.api.model.fields.FieldValueWriteCommand
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.model.fields.SchemaAssignmentCommand
+import com.docuhyphen.app.api.model.fields.SchemaAssignmentOperation
+import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.resource.model.*
@@ -18,10 +24,6 @@ import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.documentlibrary.DocumentLibraryService
-import com.docuhyphen.app.api.service.fields.FieldValueWriteCommand
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentCommand
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentOperation
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.OrganizationService
@@ -29,7 +31,6 @@ import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
-import com.docuhyphen.app.api.service.workflow.TriggerRequest
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -40,7 +41,7 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
+import com.docuhyphen.app.api.model.auth.authz.Decision as AuthorizationDecision
 
 @ApplicationScoped
 class ExchangeInitiationService @Inject constructor(
@@ -74,6 +75,7 @@ class ExchangeInitiationService @Inject constructor(
     private val noAuthExchangeAccessTokenService: NoAuthExchangeAccessTokenService,
     private val exchangeNotificationDeliveryService: ExchangeNotificationDeliveryService,
     private val exchangeInitiationSubscriptionGuard: ExchangeInitiationSubscriptionGuard,
+    private val blueprintInformationRequestStarter: ExchangeBlueprintInformationRequestStarter,
 )
 {
     @PersistenceContext
@@ -84,11 +86,6 @@ class ExchangeInitiationService @Inject constructor(
         private val logger = LoggerFactory.getLogger(ExchangeInitiationService::class.java)
     }
 
-    private data class ResolvedParticipant(
-        val selection: ResolvedExchangeRecipientSelection,
-        val role: ExchangeShareRoleName,
-    )
-
     @Transactional
     fun initiateExchange(sessionInitiationDto: ExchangeInitiationDto): Exchange
     {
@@ -97,10 +94,6 @@ class ExchangeInitiationService @Inject constructor(
         val primarySelectionRequest = sessionInitiationDto.primaryRecipient
             ?: throw IllegalArgumentException("Primary recipient is required")
 
-        // The caller is authorized by this point. What remains is whether the paying subject has
-        // the allowance: the plan that covers Exchange creation, the number created this month,
-        // the number still open, and any participants beyond the primary recipient. Running this
-        // inside the initiation transaction keeps the check and the insert inseparable.
         exchangeInitiationSubscriptionGuard.enforceInitiation(
             initiatorId = initiator.id,
             activeOrganizationId = authTokenContext.activeOrganizationId,
@@ -126,8 +119,17 @@ class ExchangeInitiationService @Inject constructor(
             }
         }
 
-        validateExchangeFields(initiator, sessionInitiationDto)
         val activeOrganizationId = authTokenContext.activeOrganizationId
+        val blueprintInformationRequest = blueprintInformationRequestStarter.prepare(
+            blueprintDefinitionId = sessionInitiationDto.blueprintDefinitionId,
+            initiatorId = initiator.id,
+            activeOrganizationId = activeOrganizationId,
+        )
+        validateExchangeFields(
+            initiator,
+            sessionInitiationDto,
+            documentsOptional = blueprintInformationRequest != null,
+        )
         val resolvedPrimary = exchangeRecipientSelectionResolver.resolve(
             primarySelectionRequest,
             initiator,
@@ -148,7 +150,7 @@ class ExchangeInitiationService @Inject constructor(
             require(resolved.selectionType != ExchangeRecipientSelectionType.EXTERNAL_EMAIL) {
                 "External email participants are not supported"
             }
-            ResolvedParticipant(resolved, participant.role)
+            ExchangeResolvedParticipant(resolved, participant.role)
         }
         val primaryPrincipal = resolvedPrimary.principalKind to resolvedPrimary.principalId
         val participantPrincipals = resolvedParticipants.map {
@@ -166,13 +168,12 @@ class ExchangeInitiationService @Inject constructor(
 
         val appUserRecipient = resolvedRecipient?.let { entityManager.merge(it) }
 
-        // Interpolate template variables in all string fields before entity creation.
         val orgId0 = authTokenContext.activeOrganizationId
         val orgForInterpolation = orgId0?.let { organizationService.getOrganizationById(it) }
         val interpolationContext = VariableResolutionContext(
             user = initiator,
             organization = orgForInterpolation,
-            timestamp = java.time.Instant.now(),
+            timestamp = Instant.now(),
             overrides = sessionInitiationDto.variableOverrides ?: emptyMap(),
         )
         val resolvedName = sessionInitiationDto.name?.let {
@@ -219,7 +220,7 @@ class ExchangeInitiationService @Inject constructor(
                 this.updateDate = Timestamp.from(Instant.now())
                 this.uploadDate = null
                 this.isDeleted = false
-                this.type = null // Type is set on the document upload method
+                this.type = null
                 this.restrictedType = doc.restrictedType
                 this.restrictType = doc.restrictType
                 this.required = doc.required
@@ -229,6 +230,25 @@ class ExchangeInitiationService @Inject constructor(
         }
 
         val savedExchange = exchangeRepository.save(exchange)
+
+        grantInitiatorOwnerShare(savedExchange, initiator)
+
+        applyCreationTimeFields(savedExchange.id, sessionInitiationDto)
+
+        blueprintInformationRequest?.let {
+            val exchangePrincipals =
+                (listOf(resolvedPrimary) + resolvedParticipants.map { participant -> participant.selection })
+                    .mapNotNull { selection ->
+                        (selection.group?.id ?: selection.appUser?.id)?.let { id ->
+                            PrincipalRef(
+                                selection.principalKind,
+                                id
+                            )
+                        }
+                    }
+                    .toSet()
+            blueprintInformationRequestStarter.start(it, savedExchange.id, initiator.id, exchangePrincipals)
+        }
 
         libraryFilesToCopy.forEach { (document, libId) ->
             try
@@ -249,7 +269,7 @@ class ExchangeInitiationService @Inject constructor(
             catch (e: Exception)
             {
                 logger.warn(
-                    "Failed to pre-populate exchange document {} from library entry {}: {}",
+                    "Failed to pre-populate Exchange document {} from library entry {}: {}",
                     document.id,
                     libId,
                     e.message
@@ -257,26 +277,9 @@ class ExchangeInitiationService @Inject constructor(
             }
         }
 
-        // Grant the initiator's OWNER share before any authorization-gated operation runs in this
-        // transaction (e.g. applyCreationTimeFields below requires EXCHANGE_WRITE, which is only
-        // granted via an active Share on the exchange).
-        grantInitiatorOwnerShare(savedExchange, initiator)
-
-        // Apply an optional business schema + typed field values chosen at creation time, inside
-        // this same transaction and BEFORE any workflow fires, so workflow applicability (and
-        // assignee logic) can observe the values. Validation failures roll back the whole Exchange.
-        applyCreationTimeFields(savedExchange.id, sessionInitiationDto)
-
-        // Use the caller's validated active organization for Exchange settings and workflows.
         val orgId = authTokenContext.activeOrganizationId
         val orgSettings = orgId?.let { organizationService.getOrganizationById(it) }?.settings
 
-        // 1. Fire exchange.draft_submitted (optional pre-send internal-approval gate).
-        //    If an active workflow picks this up, the recipient share must be held until
-        //    EVENT_DRAFT_APPROVED fires (which then progresses to the acceptance phase).
-        //    Capturing the result here prevents the acceptance_pending trigger from firing
-        //    prematurely at creation time, and avoids the duplicate workflow that would
-        //    otherwise occur when both a draft and an acceptance workflow are configured.
         val draftResult = workflowEngineService.trigger(
             TriggerRequest(
                 triggerEvent = "exchange.draft_submitted",
@@ -292,17 +295,6 @@ class ExchangeInitiationService @Inject constructor(
         )
         val draftApprovalPending = draftResult != null
 
-        // 2. Determine whether the recipient's share must be held PENDING_APPROVAL.
-        //
-        //    • Draft approval pending: hold share unconditionally; acceptance_pending is deferred
-        //      to EVENT_DRAFT_APPROVED (ExchangeApprovalEventHandler), which already handles it.
-        //    • No draft approval, requireRecipientAcceptance = true: fire acceptance_pending now;
-        //      a matching WorkflowDefinition holds the share until "exchange.activated" is emitted.
-        //    • No draft approval, requireRecipientAcceptance = false: auto-advance immediately.
-        // Trusted person and trusted group selections always require recipient sign-in and
-        // acceptance, even when the initiating organization normally auto-starts Exchanges. This
-        // preserves the trusted assurance contract: their direct Share is held until the attested
-        // recipient decides.
         val trustedRecipient = resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_GROUP ||
                 resolvedPrimary.selectionType == ExchangeRecipientSelectionType.TRUSTED_PERSON
         val requireAcceptance = trustedRecipient || (orgSettings?.requireRecipientAcceptance ?: true)
@@ -313,7 +305,7 @@ class ExchangeInitiationService @Inject constructor(
             recipientNeedsApproval = true
             logger.info(
                 "Exchange {} has draft approval pending (workflow instance {}); share held PENDING_APPROVAL",
-                savedExchange.id, draftResult!!.instanceId,
+                savedExchange.id, draftResult.instanceId,
             )
         }
         else if (requireAcceptance)
@@ -358,7 +350,6 @@ class ExchangeInitiationService @Inject constructor(
         }
         else
         {
-            // Org-level auto-accept: exchange is immediately active.
             savedExchange.status = ExchangeStatus.ACCEPTED_STARTED
             exchangeRepository.update(savedExchange)
             workflowEngineService.trigger(
@@ -369,7 +360,7 @@ class ExchangeInitiationService @Inject constructor(
                     organizationId = orgId,
                     subjectData = buildMap {
                         put("initiatorId", initiator.id.toString())
-                        orgId?.let { put("orgId", it.toString()) }
+                        orgId.let { put("orgId", it.toString()) }
                     },
                     initiatedByAppUserId = initiator.id,
                 )
@@ -378,10 +369,6 @@ class ExchangeInitiationService @Inject constructor(
             logger.info("Exchange {} created with auto-accept (requireRecipientAcceptance=false)", savedExchange.id)
         }
 
-        // Recipients/participants/permissions live in the unified Share model. The initiator's
-        // OWNER share was already granted above (before applyCreationTimeFields); the recipient
-        // gets a role derived from the requested document permissions, and each participant a
-        // PARTICIPANT share (groups fan out to members).
         val primaryRecipientShare = grantRecipientShare(
             session = savedExchange,
             recipientType = resolvedPrimary.recipientType,
@@ -447,10 +434,6 @@ class ExchangeInitiationService @Inject constructor(
         }
     }
 
-    /**
-     * Creates the direct Share that grants the selected recipient access to the Exchange.
-     * Group Shares fan out to active group members through [ShareService].
-     */
     private fun grantRecipientShare(
         session: Exchange,
         recipientType: ExchangeRecipientType,
@@ -484,7 +467,6 @@ class ExchangeInitiationService @Inject constructor(
     }
 
 
-    /** Grant the initiator an OWNER [Share] (OWNER carries EXCHANGE_OWNER / EXCHANGE_SHARE). */
     private fun grantInitiatorOwnerShare(session: Exchange, initiator: AppUser)
     {
         shareService.grant(
@@ -498,13 +480,9 @@ class ExchangeInitiationService @Inject constructor(
         )
     }
 
-    /**
-     * Grant each participant the requested non-owner Share role. Trusted participant Shares remain
-     * pending until that participant independently accepts its attested invitation.
-     */
     private fun grantParticipantShares(
         session: Exchange,
-        participants: List<ResolvedParticipant>,
+        participants: List<ExchangeResolvedParticipant>,
         initiator: AppUser,
     )
     {
@@ -548,10 +526,6 @@ class ExchangeInitiationService @Inject constructor(
         }
     }
 
-    /**
-     * Consumes a trusted-member verification under a row lock inside this Exchange transaction so it
-     * cannot be replayed. Consumption rolls back if Exchange creation rolls back.
-     */
     private fun consumeTrustedPersonResolution(
         prepared: ExternalIdentityResolutionService.PreparedPersonResolution,
         actorAppUserId: UUID,
@@ -570,14 +544,6 @@ class ExchangeInitiationService @Inject constructor(
         )
     }
 
-    /**
-     * Applies a caller-selected business schema and typed field values to a freshly created
-     * Exchange, delegating to [SchemaAssignmentService] (service-to-service, never cross-repository).
-     * Called inside [initiateExchange]'s transaction and before any workflow trigger fires, so a
-     * field-conditioned workflow can observe the values. Any validation failure propagates and rolls
-     * back the whole Exchange creation. The assignment source defaults to `MANUAL` and is set to
-     * `BLUEPRINT` when the Exchange is started from a blueprint that pre-seeds the schema.
-     */
     internal fun applyCreationTimeFields(exchangeId: UUID, dto: ExchangeInitiationDto)
     {
         val rawSchemaId = dto.schemaDefinitionId?.trim()?.takeIf { it.isNotBlank() }
@@ -600,9 +566,7 @@ class ExchangeInitiationService @Inject constructor(
         }
 
         val assignmentSource = dto.schemaAssignmentSource
-            ?: com.docuhyphen.app.api.model.entity.SchemaAssignmentSource.MANUAL
-        // The caller is resolved here, at the surface that received the creation request, and passed
-        // into the Fields engine, which never works out who is asking for itself.
+            ?: SchemaAssignmentSource.MANUAL
         val resource = FieldsResourceRef(ResourceType.EXCHANGE.name, exchangeId)
         val access = fieldsAccessContextFactory.current()
         schemaAssignmentService.applySchemaAssignment(
@@ -620,15 +584,6 @@ class ExchangeInitiationService @Inject constructor(
             )
     }
 
-    /**
-     * Maps the requested document permissions to a resource role: any write-style permission
-     * (add/delete/update/upload) implies EDITOR, otherwise VIEWER. The full flag set is
-     * preserved verbatim in the share's constraints JSON (see [sessionConstraintsJson]).
-     *
-     * When the caller supplies an explicit `recipientRoleName`, honor it (after
-     * validating it against [ExchangeShareRoleName]). Lets the UI offer PARTICIPANT / VIEWER /
-     * COMMENTER / SIGNER / REVIEWER at initiation, not just EDITOR/VIEWER.
-     */
     private fun recipientRoleFor(dto: ExchangeInitiationDto): ExchangeShareRoleName
     {
         dto.recipientRoleName?.trim()?.takeIf { it.isNotBlank() }?.let { explicit ->
@@ -640,14 +595,6 @@ class ExchangeInitiationService @Inject constructor(
         return if (canWrite) ExchangeShareRoleName.EDITOR else ExchangeShareRoleName.VIEWER
     }
 
-    /**
-     * Build the constraints JSON for the recipient share. Always emits the legacy
-     * `can_download` + `allow_document_*` keys derived from the per-permission flags; when
-     * the caller supplies an explicit `recipientConstraintsJson` blob, its keys
-     * are merged on top (explicit wins). The result is parsed by
-     * [com.docuhyphen.app.api.service.auth.authz.ShareConstraints] at read time and powers
-     * the access panel + viewer obligations.
-     */
     private fun sessionConstraintsJson(dto: ExchangeInitiationDto): String
     {
         val legacy: Map<String, Any> = mapOf(
@@ -664,7 +611,6 @@ class ExchangeInitiationService @Inject constructor(
             "\"$k\":${renderConstraintValue(v)}"
         }.toMutableList()
 
-        // Add allowed_download_formats as a JSON array if present
         if (dto.allowedDownloadFormats != null)
         {
             val formatsArray = dto.allowedDownloadFormats!!.joinToString(",") { "\"$it\"" }
@@ -710,7 +656,8 @@ class ExchangeInitiationService @Inject constructor(
 
     fun validateExchangeFields(
         initiator: AppUser,
-        sessionInitiationDto: ExchangeInitiationDto
+        sessionInitiationDto: ExchangeInitiationDto,
+        documentsOptional: Boolean,
     )
     {
         if (sessionInitiationDto.name.isNullOrBlank())
@@ -764,9 +711,9 @@ class ExchangeInitiationService @Inject constructor(
             null -> throw IllegalArgumentException("Primary recipient is required")
         }
 
-        if (sessionInitiationDto.exchangeDocuments.isNullOrEmpty())
+        if (!documentsOptional && sessionInitiationDto.exchangeDocuments.isNullOrEmpty())
         {
-            throw IllegalArgumentException("Session documents cannot be empty")
+            throw IllegalArgumentException("Add at least one document")
         }
 
         sessionInitiationDto.participants.forEach {
@@ -793,7 +740,7 @@ class ExchangeInitiationService @Inject constructor(
         recipientType: ExchangeRecipientType,
         recipientAppUser: AppUser?,
         recipientGroupId: UUID?,
-        participants: List<ResolvedParticipant>,
+        participants: List<ExchangeResolvedParticipant>,
         externalEmailSelection: ExternalEmailRecipientSelectionRequest?,
         draftApprovalPending: Boolean,
         recipientNeedsApproval: Boolean,
@@ -867,7 +814,7 @@ class ExchangeInitiationService @Inject constructor(
         {
             if (isNoAuthTempRecipient)
             {
-                val recipientEmailAddr = recipientAppUser!!.email
+                val recipientEmailAddr = recipientAppUser.email
                 if (!recipientEmailAddr.isNullOrBlank())
                 {
                     val otp = otpService.generateEmailOtp()
@@ -1042,14 +989,6 @@ class ExchangeInitiationService @Inject constructor(
             lastName?.trim()?.takeIf { it.isNotBlank() },
         ).joinToString(" ").takeIf { it.isNotBlank() }
 
-    /**
-     * Sends the initial "document request" invite email to the recipient(s) after the exchange
-     * has been activated (i.e. after any approval workflows have completed). The initiator email
-     * is intentionally omitted here because it was already sent at creation time.
-     *
-     * Resolves the recipient from the now-active Share rows so there is no dependency on the
-     * original initiation call-site context.
-     */
     fun notifyRecipientOnActivation(exchangeId: UUID)
     {
         val exchange = exchangeRepository.findById(exchangeId) ?: return
@@ -1088,7 +1027,7 @@ class ExchangeInitiationService @Inject constructor(
         val emails = recipientAppUsers
             .filter { it.settings?.notifyShareStart != false }
             .mapNotNull { appUser ->
-                appUser.email?.let { email ->
+                appUser.email.let { email ->
                     ExchangeEmailDelivery(
                         to = email,
                         subject = "$subjectTitle | Exchange request from $initiatorName",

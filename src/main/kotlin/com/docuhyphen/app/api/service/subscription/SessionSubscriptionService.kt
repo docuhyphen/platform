@@ -7,20 +7,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Builds the commercial part of the session contract.
- *
- * The paying subject follows the caller's context: the selected organization when one is
- * active, otherwise the authenticated user acting personally. Because this is recomputed on
- * every session fetch, switching organization immediately changes the plan the app presents.
- *
- * A resolution failure returns null rather than failing the session. The session is an identity
- * and capability contract first, and a missing commercial summary must never widen access or
- * lock a customer out of the application.
- *
- * The reported features are the ones the caller can reach from the owner's plan and
- * platform-administered overrides.
- */
 @ApplicationScoped
 class SessionSubscriptionService @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
@@ -40,7 +26,6 @@ class SessionSubscriptionService @Inject constructor(
                 subscription = subscription,
                 usage = usage,
                 enforcementMode = subscriptionAccessService.enforcementMode(),
-                availableFeatures = subscriptionAccessService.availableFeatures(subscription),
             )
         }.getOrElse { failure ->
             logger.error(

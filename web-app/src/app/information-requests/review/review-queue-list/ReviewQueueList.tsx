@@ -1,10 +1,11 @@
-import {useEffect, useState} from "react";
-import {Badge, Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {Badge, Button, Spinner, Text} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
 import {getInformationRequestReviewQueue} from "../../../../services/informationRequestReviewService.ts";
-import {InformationRequestReviewQueueEntryDto} from "../../../models/models.tsx";
+import {useServerRead} from "../../shared/useServerRead.ts";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import {humanizedKey, submissionErrorMessage} from "../../submission/submissionLabels.ts";
 import {reviewStatePresentation} from "../reviewLabels.ts";
+import {executionStandingBadge, executionStandingNotice} from "../../shared/executionStandingText.ts";
 import {useReviewQueueListStyles} from "./ReviewQueueListStyles.tsx";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
@@ -12,24 +13,15 @@ const ReviewQueueList = () =>
 {
     const styles = useReviewQueueListStyles();
     const navigate = useNavigate();
-    const [entries, setEntries] = useState<InformationRequestReviewQueueEntryDto[] | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const read = useServerRead("review-queue", getInformationRequestReviewQueue,
+        caught => submissionErrorMessage(caught, "Your reviews could not be loaded."));
+    const entries = read.value;
 
-    useEffect(() =>
+    if (read.error)
     {
-        getInformationRequestReviewQueue()
-            .then(setEntries)
-            .catch((caught: unknown) => setError(submissionErrorMessage(caught, "Your reviews could not be loaded.")));
-    }, []);
-
-    if (error)
-    {
-        return (
-            <MessageBar id={"information-request-review-queue-error"}
-                        intent={"error"}>
-                <MessageBarBody>{error}</MessageBarBody>
-            </MessageBar>
-        );
+        return <InformationRequestLoadError id={"information-request-review-queue-error"}
+                                            message={read.error}
+                                            onRetry={() => void read.reload()}/>;
     }
     if (!entries)
     {
@@ -51,12 +43,16 @@ const ReviewQueueList = () =>
             {
                 const id = `information-request-review-queue-${entry.assignmentId}`;
                 const state = reviewStatePresentation[entry.reviewState];
+                const standingBadge = executionStandingBadge(entry.executionStanding);
                 return (
                     <li id={id}
                         key={entry.assignmentId}
                         className={styles.entry}>
                         <div id={`${id}-summary`}
                              className={styles.summary}>
+                            <Text id={`${id}-request`}
+                                  weight={"semibold"}>{entry.requestTitle}</Text>
+                            {entry.exchangeName && <Text id={`${id}-exchange`}>{entry.exchangeName}</Text>}
                             <Text id={`${id}-title`}
                                   weight={"semibold"}>
                                 {entry.submissionStageKey
@@ -65,7 +61,7 @@ const ReviewQueueList = () =>
                             </Text>
                             <Text id={`${id}-stage`}
                                   className={styles.detail}>
-                                {`${humanizedKey(entry.reviewStageKey)}, ${entry.itemCount} items`}
+                                {`${entry.reviewStageTitle}, ${entry.itemCount} items`}
                             </Text>
                             {entry.dueAt && (
                                 <Text id={`${id}-due`}
@@ -74,6 +70,14 @@ const ReviewQueueList = () =>
                                 </Text>
                             )}
                         </div>
+                        {standingBadge && (
+                            <Badge id={`${id}-standing`}
+                                   appearance={"tint"}
+                                   color={"warning"}
+                                   title={executionStandingNotice(entry.executionStanding)?.text}>
+                                {standingBadge}
+                            </Badge>
+                        )}
                         <Badge id={`${id}-state`}
                                appearance={"outline"}
                                color={state.color}>
@@ -81,6 +85,7 @@ const ReviewQueueList = () =>
                         </Badge>
                         <Button id={`${id}-open`}
                                 appearance={"primary"}
+                                aria-label={`Open review of ${entry.requestTitle}, submission ${entry.packageNumber}, ${entry.reviewStageTitle}`}
                                 shape={"circular"}
                                 onClick={() => navigate(`/information-requests/${entry.informationRequestId}/reviews/${entry.reviewId}`)}>
                             Open review

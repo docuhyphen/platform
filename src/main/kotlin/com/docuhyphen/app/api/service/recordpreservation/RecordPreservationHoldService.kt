@@ -42,7 +42,9 @@ class RecordPreservationHoldService @Inject constructor(
             resourceType = normalizedType(command.resourceType)
             resourceId = normalizedId(command.resourceId)
             this.reason = reason
-            caseReference = command.caseReference?.trim()?.ifBlank { null }
+            caseReference = command.caseReference?.trim()?.ifBlank { null }?.also {
+                if (it.length > 256) throw RecordPreservationRequestException("A case reference is at most 256 characters")
+            }
             scope = command.scope
             effectiveFrom = Timestamp.from(command.effectiveFrom ?: now)
             placedByPrincipalKind = command.principal.kind
@@ -54,7 +56,7 @@ class RecordPreservationHoldService @Inject constructor(
         refuseWhileUnderDisposal(hold)
         holdRepository.save(hold)
         append(hold, RecordPreservationHoldEventKind.PLACED, reason, command.principal, now)
-        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_PLACED, hold, command.principal)
+        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_PLACED, hold, command.principal, reason)
         return view(hold)
     }
 
@@ -77,7 +79,7 @@ class RecordPreservationHoldService @Inject constructor(
         refuseWhileUnderDisposal(hold)
         holdRepository.update(hold)
         append(hold, RecordPreservationHoldEventKind.SCOPE_CHANGED, reason, command.principal, now)
-        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_SCOPE_CHANGED, hold, command.principal)
+        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_SCOPE_CHANGED, hold, command.principal, reason)
         return view(hold)
     }
 
@@ -96,7 +98,7 @@ class RecordPreservationHoldService @Inject constructor(
         hold.updatedAt = Timestamp.from(now)
         holdRepository.update(hold)
         append(hold, RecordPreservationHoldEventKind.RELEASED, reason, command.principal, now)
-        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_RELEASED, hold, command.principal)
+        audit.hold(AuditEventType.AUDIT_LEGAL_HOLD_RELEASED, hold, command.principal, reason)
         return view(hold)
     }
 
@@ -106,8 +108,15 @@ class RecordPreservationHoldService @Inject constructor(
     fun hold(holdId: UUID, owner: RecordOwnerRef): RecordPreservationHoldView =
         view(ownedHold(holdRepository.findById(holdId), owner))
 
+    fun lockOwned(holdId: UUID, owner: RecordOwnerRef): RecordPreservationHold =
+        ownedHold(holdRepository.findForUpdate(holdId), owner)
+
+    fun lockPlacements(owner: RecordOwnerRef) = holdRepository.lockPlacements(owner)
+
     fun coveringHolds(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): List<RecordPreservationHold> =
-        holdRepository.findActiveCovering(owner, keys)
+        holdRepository.findActiveCovering(owner, keys.map {
+            it.copy(resourceType = normalizedType(it.resourceType), resourceId = normalizedId(it.resourceId))
+        })
 
     fun isPreserved(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): Boolean =
         coveringHolds(owner, keys).isNotEmpty()
@@ -165,15 +174,16 @@ class RecordPreservationHoldService @Inject constructor(
     private fun view(hold: RecordPreservationHold) =
         RecordPreservationHoldView(hold, eventRepository.findForHold(hold.id))
 
-    private fun requireText(raw: String, message: String): String =
-        raw.trim().takeIf { it.isNotEmpty() } ?: throw RecordPreservationRequestException(message)
+    private fun requireText(raw: String, message: String, maxLength: Int = 2048): String =
+        raw.trim().takeIf { it.isNotEmpty() && it.length <= maxLength }
+            ?: throw RecordPreservationRequestException("$message (at most $maxLength characters)")
 
     private fun normalizedType(raw: String): String =
-        requireText(raw, "A hold names its resource type").uppercase()
+        requireText(raw, "A hold names its resource type", 64).uppercase()
 
     private fun normalizedId(raw: String): String
     {
-        val trimmed = requireText(raw, "A hold names its resource")
+        val trimmed = requireText(raw, "A hold names its resource", 128)
         return runCatching { UUID.fromString(trimmed).toString() }.getOrDefault(trimmed)
     }
 }

@@ -42,4 +42,7 @@ export const useRespondentReviewCardStyles = makeStyles({
     detail: {
         color: tokens.colorNeutralForeground3,
     },
+    reason: {
+        color: tokens.colorNeutralForeground2,
+    },
 });

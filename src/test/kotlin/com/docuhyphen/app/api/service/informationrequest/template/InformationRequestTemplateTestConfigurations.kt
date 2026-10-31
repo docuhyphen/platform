@@ -3,13 +3,9 @@ package com.docuhyphen.app.api.service.informationrequest.template
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.service.informationrequest.capability.WalkingSkeletonField
-import java.util.UUID
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
+import java.util.*
 
 internal fun singleFieldConfiguration(schemaVersionId: UUID, field: WalkingSkeletonField) =
     InformationRequestTemplateConfigurationRequest(

@@ -5,10 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One request-scoped party. A subject party names what the request concerns; acting parties name a
- * principal that can later receive a request-scoped Share.
- */
 @Entity
 @Table(name = "information_request_party")
 class InformationRequestParty
@@ -39,14 +35,21 @@ class InformationRequestParty
     @Column(name = "share_id")
     var shareId: UUID? = null
 
+    @Column(name = "linked_user_share_id")
+    var linkedUserShareId: UUID? = null
+
     @Column(name = "active", nullable = false)
     var active: Boolean = true
 
     @Column(name = "party_revision", nullable = false)
     var partyRevision: Long = 1
 
-    @Column(name = "assigned_by_app_user_id")
-    var assignedByAppUserId: UUID? = null
+    @Column(name = "assigned_by_principal_kind", length = 32)
+    @Enumerated(EnumType.STRING)
+    var assignedByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "assigned_by_principal_id")
+    var assignedByPrincipalId: UUID? = null
 
     @Column(name = "assigned_at", nullable = false)
     var assignedAt: Timestamp = Timestamp.from(Instant.now())

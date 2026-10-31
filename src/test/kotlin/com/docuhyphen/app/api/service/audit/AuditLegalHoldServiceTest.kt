@@ -1,11 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
-import com.docuhyphen.app.api.model.entity.RecordOwnerKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHold
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEvent
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldEventKind
-import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
-import com.docuhyphen.app.api.model.entity.RecordPreservationScope
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.repository.recordpreservation.RecordDisposalClaimRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldEventRepository
@@ -13,22 +8,13 @@ import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHo
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationAudit
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 class AuditLegalHoldServiceTest
 {
@@ -60,7 +46,7 @@ class AuditLegalHoldServiceTest
         val event = argumentCaptor<RecordPreservationHoldEvent>()
         verify(eventRepository).save(event.capture())
         assertEquals(RecordPreservationHoldEventKind.PLACED, event.firstValue.eventKind)
-        verify(audit).hold(eq(AuditEventType.AUDIT_LEGAL_HOLD_PLACED), any(), any())
+        verify(audit).hold(eq(AuditEventType.AUDIT_LEGAL_HOLD_PLACED), any(), any(), any())
     }
 
     @Test
@@ -87,7 +73,13 @@ class AuditLegalHoldServiceTest
     {
         val released = activeHold(RecordOwnerRef.PLATFORM).apply { status = RecordPreservationHoldStatus.RELEASED }
         whenever(holdRepository.findForUpdate(released.id)).thenReturn(released)
-        assertThrows(IllegalArgumentException::class.java) { service.releaseHold(released.id, null, UUID.randomUUID()) }
+        assertThrows(com.docuhyphen.app.api.exception.RecordPreservationException::class.java) {
+            service.releaseHold(
+                released.id,
+                null,
+                UUID.randomUUID()
+            )
+        }
 
         val foreign = activeHold(RecordOwnerRef.organization(UUID.randomUUID()))
         whenever(holdRepository.findForUpdate(foreign.id)).thenReturn(foreign)
@@ -103,7 +95,7 @@ class AuditLegalHoldServiceTest
     {
         whenever(claimRepository.hasOpenClaimCovering(any())).thenReturn(true)
 
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(com.docuhyphen.app.api.exception.RecordPreservationException::class.java) {
             service.placeHold(UUID.randomUUID(), "INFORMATION_REQUEST", UUID.randomUUID().toString(), "preserve", null, UUID.randomUUID())
         }
         verify(holdRepository, never()).save(any())

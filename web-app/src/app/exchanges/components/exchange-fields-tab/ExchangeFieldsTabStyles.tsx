@@ -18,33 +18,11 @@ export const useExchangeFieldsTabStyles = makeStyles({
         gap: tokens.spacingHorizontalL,
         flexWrap: 'wrap',
     },
-    headerTitleBlock: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacingHorizontalSNudge,
-        minWidth: 0,
-    },
     sectionEyebrow: {
         color: tokens.colorNeutralForeground3,
         fontSize: tokens.fontSizeBase200,
         textTransform: 'uppercase',
         letterSpacing: '0.04em',
-    },
-    schemaTitle: {
-        fontSize: tokens.fontSizeBase500,
-        fontWeight: tokens.fontWeightSemibold,
-        color: tokens.colorNeutralForeground1,
-    },
-    schemaSummaryCard: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        gap: tokens.spacingHorizontalL,
-        flexWrap: 'wrap',
-        padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalXL}`,
-        borderRadius: tokens.borderRadiusXLarge,
-        backgroundColor: tokens.colorNeutralBackground2,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
     },
     headerDescription: {
         color: tokens.colorNeutralForeground2,
@@ -133,7 +111,7 @@ export const useExchangeFieldsTabStyles = makeStyles({
         padding: tokens.spacingHorizontalL,
         borderRadius: tokens.borderRadiusLarge,
         backgroundColor: tokens.colorNeutralBackground1,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
     },
     fieldCardHeader: {
         display: 'flex',
@@ -203,11 +181,5 @@ export const useExchangeFieldsTabStyles = makeStyles({
         flexWrap: 'wrap',
         flexShrink: 0,
         paddingTop: tokens.spacingVerticalM,
-    },
-    schemaBadgeRow: {
-        display: 'flex',
-        gap: tokens.spacingHorizontalS,
-        alignItems: 'center',
-        flexWrap: 'wrap',
     },
 });

@@ -20,7 +20,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestReminderResourceContractTest
 {
@@ -41,7 +41,10 @@ class InformationRequestReminderResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, missingKey.status)
         assertEquals(Response.Status.CREATED.statusCode, sent.status)
         @Suppress("UNCHECKED_CAST")
-        assertEquals(listOf(InformationRequestReminderResultDto(requestId, 2)), sent.entity as List<InformationRequestReminderResultDto>)
+        assertEquals(
+            listOf(InformationRequestReminderResultDto(requestId, 2)),
+            (sent.entity as Array<InformationRequestReminderResultDto>).toList()
+        )
         verify(reminderService).send(SendInformationRequestRemindersCommand(listOf(requestId), "remind-1"))
     }
 
@@ -58,7 +61,7 @@ class InformationRequestReminderResourceContractTest
         @Suppress("UNCHECKED_CAST")
         assertEquals(
             listOf(InformationRequestReminderResultDto(requestId, 0, "2026-10-01T11:00:00Z")),
-            sent.entity as List<InformationRequestReminderResultDto>,
+            (sent.entity as Array<InformationRequestReminderResultDto>).toList(),
         )
     }
 

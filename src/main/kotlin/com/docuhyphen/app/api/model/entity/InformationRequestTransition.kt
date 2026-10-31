@@ -7,9 +7,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Append-only lifecycle history for one runtime Information Request.
- */
 @Entity
 @Table(name = "information_request_transition")
 class InformationRequestTransition
@@ -50,6 +47,9 @@ class InformationRequestTransition
 
     @Column(name = "command_receipt_id")
     var commandReceiptId: UUID? = null
+
+    @Column(name = "idempotency_key", nullable = false, length = 256)
+    lateinit var idempotencyKey: String
 
     @Column(name = "occurred_at", nullable = false)
     var occurredAt: Timestamp = Timestamp.from(Instant.now())

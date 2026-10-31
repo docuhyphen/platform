@@ -1,10 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
+import java.time.LocalDate
 import java.util.*
 
 data class CreateInformationRequestSuccessorCommand(
@@ -45,11 +46,26 @@ data class DefineInformationRequestRefreshRuleCommand(
     val idempotencyKey: String,
 )
 
+data class InformationRequestRecurrenceDefinition(
+    val recurrence: InformationRequestRecurrence,
+    val requestETag: String,
+)
+
+data class InformationRequestRefreshRuleDefinition(
+    val refreshRule: InformationRequestRefreshRule,
+    val requestETag: String,
+)
+
 data class RefreshInformationRequestCommand(
     val requestId: UUID,
     val refreshRuleId: UUID,
     val access: RequestAccessContext,
     val idempotencyKey: String,
+)
+
+data class InformationRequestRefreshSource(
+    val packageId: UUID,
+    val expiresOn: LocalDate,
 )
 
 data class InformationRequestFollowUpSpec(
@@ -84,12 +100,23 @@ data class InformationRequestSuccessorResult(
     val successorETag: String,
 )
 
+data class InformationRequestRefreshRuleStanding(
+    val rule: InformationRequestRefreshRule,
+    val refreshDueOn: LocalDate? = null,
+    val refreshDue: Boolean = false,
+    val refreshed: Boolean = false,
+)
+
 data class InformationRequestLineageView(
     val request: InformationRequest,
     val source: InformationRequestLineage?,
     val successors: List<InformationRequestLineage>,
     val recurrence: InformationRequestRecurrence? = null,
+    val series: InformationRequestRecurrence? = null,
     val nextOccurrenceDueAt: Instant? = null,
+    val everyOccurrenceCreated: Boolean = false,
+    val nextOccurrenceCreatable: Boolean = false,
+    val refreshRules: List<InformationRequestRefreshRuleStanding> = emptyList(),
 )
 
 data class InformationRequestCarryForwardOffer(

@@ -1,20 +1,13 @@
 package com.docuhyphen.app.api.model.entity
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestEntitlementSource
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The frozen commercial position an Information Request was issued under.
- *
- * Captured once, at issuance, so a later change to the owner's plan (a paid lapse, a trial expiry,
- * a tightened limit) cannot strand a respondent or reviewer partway through work that was already
- * granted. Nothing in this row is ever recomputed from the live subscription after it is written.
- */
 @Entity
 @Table(name = "request_execution_grant")
 class RequestExecutionGrant
@@ -57,6 +50,24 @@ class RequestExecutionGrant
 
     @Column(name = "evidence_byte_allowance")
     var evidenceByteAllowance: Long? = null
+
+    @Column(name = "policy_version", nullable = false, length = 32)
+    lateinit var policyVersion: String
+
+    @Column(name = "entitlement_source", nullable = false, length = 16)
+    @Enumerated(EnumType.STRING)
+    lateinit var entitlementSource: InformationRequestEntitlementSource
+
+    @Column(name = "trial_grant_id")
+    var trialGrantId: UUID? = null
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "granted_features", nullable = false, columnDefinition = "varchar(64)[]")
+    var grantedFeatures: Array<String> = emptyArray()
+
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "continuation_actions", nullable = false, columnDefinition = "varchar(64)[]")
+    var continuationActions: Array<String> = emptyArray()
 
     @Column(name = "revoked_at")
     var revokedAt: Timestamp? = null

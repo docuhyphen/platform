@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
@@ -10,6 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -25,6 +27,7 @@ class InformationRequestFirstViewService @Inject constructor(
     private val requirementContext: InformationRequestRequirementAuthorizationContextProvider,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
 )
 {
     @Transactional(Transactional.TxType.REQUIRES_NEW)
@@ -33,6 +36,7 @@ class InformationRequestFirstViewService @Inject constructor(
         val candidate = requestRepository.findById(requestId) ?: return false
         if (candidate.firstViewedAt != null || !isRespondingParty(requestId, access)) return false
         val locked = gate.lock(requestId)
+        noAuthAccess.requireCurrent(requestId, access)
         val request = locked.request
         if (request.firstViewedAt != null) return false
         val permitted = InformationRequestTransitionMatrix.canMutate(
@@ -51,8 +55,8 @@ class InformationRequestFirstViewService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.RECORD_FIRST_VIEW,
-                actor = access.principal,
-                idempotencyKey = "information_request.first_view|$requestId",
+                actor = InformationRequestAuditActor.of(access),
+                auditIdempotencyKey = "information_request.first_view|$requestId",
             ),
         )
         return true
@@ -60,16 +64,6 @@ class InformationRequestFirstViewService @Inject constructor(
 
     private fun isRespondingParty(requestId: UUID, access: RequestAccessContext): Boolean =
         partyRepository.findActiveForRequest(requestId)
-            .filter { it.roleKey in RESPONDING_ROLES }
+            .filter { it.roleKey in InformationRequestShareRoleKey.RESPONDING_ROLES }
             .any { access.principal in requirementContext.principalsActingFor(it) }
-
-    private companion object
-    {
-        val RESPONDING_ROLES = setOf(
-            InformationRequestShareRoleKey.SUBJECT,
-            InformationRequestShareRoleKey.CONTRIBUTOR,
-            InformationRequestShareRoleKey.PREPARER,
-            InformationRequestShareRoleKey.ATTESTOR,
-        )
-    }
 }

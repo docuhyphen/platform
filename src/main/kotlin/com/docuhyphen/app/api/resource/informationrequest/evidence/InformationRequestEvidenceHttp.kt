@@ -7,7 +7,9 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContent
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
+import com.docuhyphen.app.api.resource.command.CommandIdempotencyKeyHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.model.InformationRequestEvidenceAttributeForm
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
@@ -19,6 +21,7 @@ import io.quarkus.security.UnauthorizedException
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
+import jakarta.ws.rs.core.StreamingOutput
 import org.jboss.resteasy.reactive.multipart.FileUpload
 import org.slf4j.Logger
 import java.net.URLEncoder
@@ -31,14 +34,24 @@ object InformationRequestEvidenceHttp
 {
     const val IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
     const val EVIDENCE_ETAG_HEADER = "X-Evidence-ETag"
+    private const val REASON_LIMIT = 512
 
     fun uuid(raw: String, name: String): UUID =
         runCatching { UUID.fromString(raw) }.getOrNull()
             ?: throw InformationRequestEvidenceRequestException("Invalid $name")
 
     fun idempotencyKey(raw: String?): String =
-        raw?.trim()?.takeIf { it.isNotEmpty() }
-            ?: throw InformationRequestEvidenceRequestException("Idempotency-Key is required")
+        InformationRequestCommandHttp.idempotencyKey(
+            CommandIdempotencyKeyHeader.stated(raw)
+                ?: throw InformationRequestEvidenceRequestException("Idempotency-Key is required"),
+        )
+
+    fun reason(raw: String?): String? =
+        raw?.trim()?.takeIf { it.isNotEmpty() }?.also { reason ->
+            if (reason.length > REASON_LIMIT) {
+                throw InformationRequestEvidenceRequestException("A reason is at most $REASON_LIMIT characters")
+            }
+        }
 
     fun evidenceFile(upload: FileUpload?, encryptionMode: String?): InformationRequestEvidenceFile
     {
@@ -89,13 +102,18 @@ object InformationRequestEvidenceHttp
         }
 
     fun content(content: InformationRequestEvidenceContent): Response =
-        Response.ok(content.file.inputStream(), content.mediaType)
-            .header("Content-Disposition", contentDisposition(content))
-            .header("Content-Length", content.file.length())
-            .header("X-Content-Type-Options", "nosniff")
-            .header("Content-Security-Policy", "sandbox; default-src 'none'")
-            .header("Cache-Control", "no-store")
-            .build()
+        try {
+            Response.ok(StreamingOutput(content::transferTo), content.mediaType)
+                .header("Content-Disposition", contentDisposition(content))
+                .header("Content-Length", content.file.length())
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Content-Security-Policy", "sandbox; default-src 'none'")
+                .header("Cache-Control", "no-store")
+                .build()
+        } catch (failure: Exception) {
+            content.close()
+            throw failure
+        }
 
     fun refused(logger: Logger, message: String, exception: Exception): Response
     {
@@ -104,26 +122,26 @@ object InformationRequestEvidenceHttp
 
         return when (exception)
         {
-            is InformationRequestEvidenceRequestException -> error(BAD_REQUEST, exception.message)
+            is InformationRequestEvidenceRequestException -> error(
+                BAD_REQUEST,
+                exception.message,
+                InformationRequestErrorCatalog.EVIDENCE_REQUEST_INVALID
+            )
             is CommandPreconditionException -> CommandPreconditionResponse.refused(exception)
             is CommandReceiptConflictException -> error(CONFLICT, exception.message, exception.reasonCode)
-            is InformationRequestLifecycleException ->
-                if (exception.reasonCode == InformationRequestErrorCatalog.NOT_FOUND)
-                    error(NOT_FOUND, exception.message, exception.reasonCode)
-                else
-                    error(CONFLICT, exception.message, exception.reasonCode)
-
-            is ForbiddenException -> error(FORBIDDEN, exception.message)
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
+            is ForbiddenException -> error(FORBIDDEN, exception.message, InformationRequestErrorCatalog.FORBIDDEN)
             is UnauthorizedException -> error(UNAUTHORIZED, exception.message)
-            else ->
-            {
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+
+            is IllegalArgumentException -> error(NOT_FOUND, exception.message)
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 error(INTERNAL_SERVER_ERROR, "Request failed")
             }
         }
     }
-
-    fun notFound(): Response = error(NOT_FOUND, "Information Request not found")
 
     private fun error(status: Response.Status, message: String?, reasonCode: String? = null): Response =
         Response.status(status).entity(ResponseError(message, reasonCode)).build()

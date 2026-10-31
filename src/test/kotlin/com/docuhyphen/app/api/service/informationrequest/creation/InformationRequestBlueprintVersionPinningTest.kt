@@ -1,46 +1,66 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryString
 import com.docuhyphen.app.api.migration.queryStrings
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.service.auth.AdminActionGuardService
+import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestTemplateWalkingSkeletonStore
-import com.docuhyphen.app.api.service.informationrequest.capability.WalkingSkeletonField
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
 import io.quarkus.narayana.jta.QuarkusTransaction
+import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
+import io.quarkus.test.junit.QuarkusMock
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestBlueprintVersionPinningTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
-    @Inject lateinit var versionRepository: InformationRequestTemplateVersionRepository
-    @Inject lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
-    @Inject lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
-    @Inject lateinit var blueprintInstantiation: InformationRequestBlueprintInstantiationService
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
+
+    @Inject
+    lateinit var versionRepository: InformationRequestTemplateVersionRepository
+
+    @Inject
+    lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
+
+    @Inject
+    lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
+
+    @Inject
+    lateinit var blueprintInstantiation: InformationRequestBlueprintInstantiationService
+
+    @Inject
+    lateinit var blueprintService: BlueprintDefinitionService
+
+    @Inject
+    lateinit var placeholderQueries: InformationRequestDocumentPlaceholderQueryService
 
     private val store by lazy {
         InformationRequestTemplateWalkingSkeletonStore(
@@ -83,13 +103,130 @@ class InformationRequestBlueprintVersionPinningTest
         }
     }
 
+    @Test
+    fun `a Blueprint stays editable after a request copies its document defaults`() {
+        val owner = store.insertOwner()
+        subscribe(owner)
+        val field = store.insertTextField("recorded-note")
+        val schemaVersionId = store.insertSchemaVersion(owner, listOf(field))
+        val draft = store.insertDraft(owner, "documented-pattern")
+        store.publish(draft, configuration(schemaVersionId, field, "recorded-note", "Record the note"))
+        val blueprintId = insertBlueprint(owner, draft.versionId)
+        insertDocumentDefault(blueprintId, "Signed record")
+        val requestId = create(blueprintId, insertExchange(owner), owner, "documented")
+        actAs(owner)
+
+        blueprintService.updateBlueprint(
+            blueprintId,
+            UpdateBlueprintRequest(
+                exchangeDocuments = listOf(BlueprintDocumentConfig(title = "Revised record", required = true)),
+            ),
+            AdminApprovalContext(),
+        )
+
+        dataSource.connection.use { connection ->
+            assertEquals(
+                setOf("Revised record"),
+                queryStrings(
+                    connection,
+                    "SELECT title FROM blueprint_document_default WHERE blueprint_definition_id = ?",
+                    blueprintId,
+                ),
+            )
+            assertEquals(
+                setOf("Signed record|true"),
+                queryStrings(
+                    connection,
+                    """
+                    SELECT title || '|' || required
+                    FROM information_request_document_placeholder
+                    WHERE information_request_id = ?
+                    """.trimIndent(),
+                    requestId,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `the request's author reads its frozen document placeholders after the Blueprint changes and others cannot`() {
+        val owner = store.insertOwner()
+        subscribe(owner)
+        val field = store.insertTextField("recorded-note")
+        val schemaVersionId = store.insertSchemaVersion(owner, listOf(field))
+        val draft = store.insertDraft(owner, "expected-documents-pattern")
+        store.publish(draft, configuration(schemaVersionId, field, "recorded-note", "Record the note"))
+        val blueprintId = insertBlueprint(owner, draft.versionId)
+        insertDocumentDefault(blueprintId, "Supporting statement", 1)
+        insertDocumentDefault(blueprintId, "Signed record", 0)
+        val requestId = create(blueprintId, insertExchange(owner), owner, "expected-documents")
+        actAs(owner)
+        blueprintService.updateBlueprint(
+            blueprintId,
+            UpdateBlueprintRequest(
+                exchangeDocuments = listOf(
+                    BlueprintDocumentConfig(
+                        title = "Revised record",
+                        required = false
+                    )
+                )
+            ),
+            AdminApprovalContext(),
+        )
+
+        val read = QuarkusTransaction.requiringNew().call {
+            placeholderQueries.listForRequest(
+                requestId,
+                RequestAccessContext(PrincipalRef.user(owner), AuthorizationContext())
+            )
+        }
+
+        assertEquals(listOf("Signed record", "Supporting statement"), read.map { it.title })
+        assertEquals(listOf(true, true), read.map { it.required })
+        assertThrows(ForbiddenException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                placeholderQueries.listForRequest(
+                    requestId,
+                    RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
+                )
+            }
+        }
+    }
+
+    private fun actAs(userId: UUID) {
+        val authTokenContext = mock<AuthTokenContext>()
+        whenever(authTokenContext.authToken).thenReturn(AuthToken().apply { appUser = AppUser().apply { id = userId } })
+        QuarkusMock.installMockForType(authTokenContext, AuthTokenContext::class.java)
+        QuarkusMock.installMockForType(mock<AdminActionGuardService>(), AdminActionGuardService::class.java)
+    }
+
+    private fun insertDocumentDefault(blueprintId: UUID, title: String, displayOrder: Int = 0) {
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                """
+                INSERT INTO blueprint_document_default
+                    (id, blueprint_definition_id, title, restrict_type, required, display_order)
+                VALUES (?, ?, ?, FALSE, TRUE, ?)
+                """.trimIndent(),
+                UUID.randomUUID(),
+                blueprintId,
+                title,
+                displayOrder,
+            )
+        }
+    }
+
     private fun create(blueprintId: UUID, exchangeId: UUID, owner: UUID, key: String): UUID =
         QuarkusTransaction.requiringNew().call {
             blueprintInstantiation.createFromBlueprint(
                 CreateInformationRequestFromBlueprintCommand(
                     blueprintDefinitionId = blueprintId,
                     exchangeId = exchangeId,
-                    access = RequestAccessContext(PrincipalRef.user(owner), AuthorizationContext(sessionRef = "owner-session")),
+                    access = RequestAccessContext(
+                        PrincipalRef.user(owner),
+                        AuthorizationContext(sessionRef = "owner-session")
+                    ),
                     idempotencyKey = key,
                 ),
             ).request.id

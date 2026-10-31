@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.clock.operations
 
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER
 import com.docuhyphen.app.api.resource.model.DefineInformationRequestClockPolicyRequest
 import com.docuhyphen.app.api.resource.model.InformationRequestClockPolicyDefinitionRequest
 import jakarta.ws.rs.*
@@ -19,12 +20,16 @@ interface InformationRequestClockPolicyResourceOperations
     fun get(@PathParam("policyId") policyId: String): Response
 
     @POST
-    fun define(request: DefineInformationRequestClockPolicyRequest?): Response
+    fun define(
+        request: DefineInformationRequestClockPolicyRequest?,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
 
     @POST
     @Path("/{policyId}/versions")
     fun publishVersion(
         @PathParam("policyId") policyId: String,
         request: InformationRequestClockPolicyDefinitionRequest?,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response
 }

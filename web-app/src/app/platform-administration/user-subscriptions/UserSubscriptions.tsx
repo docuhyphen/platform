@@ -4,8 +4,11 @@ import {PlatformUserSubscriptionPolicy} from "../../../services/types/platformUs
 import UserSubscriptionEditorDialog from "./UserSubscriptionEditorDialog.tsx";
 import UserSubscriptionsTable from "./UserSubscriptionsTable.tsx";
 import SubscriptionTrialDialog from "../subscription-trial-dialog/SubscriptionTrialDialog.tsx";
-import SubscriptionTrialTransitionDialog from "../subscription-trial-transition-dialog/SubscriptionTrialTransitionDialog.tsx";
-import {SubscriptionTrialTransitionMode} from "../subscription-trial-transition-dialog/useSubscriptionTrialTransitionDialog.ts";
+import SubscriptionTrialTransitionDialog
+    from "../subscription-trial-transition-dialog/SubscriptionTrialTransitionDialog.tsx";
+import {
+    SubscriptionTrialTransitionMode
+} from "../subscription-trial-transition-dialog/useSubscriptionTrialTransitionDialog.ts";
 import {useUserSubscriptions} from "./useUserSubscriptions.ts";
 import {useUserSubscriptionsStyles} from "./UserSubscriptionsStyles.tsx";
 
@@ -80,7 +83,9 @@ const UserSubscriptions = () =>
             <UserSubscriptionEditorDialog
                 user={editing}
                 onDismiss={() => setEditing(null)}
-                onSave={state.save}/>
+                onSave={state.save}
+                onLoadFeatureOverrides={state.loadFeatureOverrides}
+                onSaveFeatureOverrides={state.saveFeatureOverrides}/>
             <SubscriptionTrialDialog
                 open={trialTarget !== null}
                 ownerName={trialTarget?.email ?? "user"}

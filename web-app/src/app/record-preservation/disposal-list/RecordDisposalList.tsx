@@ -3,19 +3,13 @@ import {useLoadedValue} from "../../../hooks/useLoadedValue.ts";
 import {getRecordDisposals} from "../../../services/recordPreservationService.ts";
 import LoadedPanel from "../../information-requests/operations/loaded-panel/LoadedPanel.tsx";
 import {formattedTime, shortId} from "../../information-requests/operations/operationsLabels.ts";
-import {RecordDisposalDto} from "../../models/models.tsx";
-import {disposalStatePresentation, disposalSummary, recordTypeLabel} from "../recordPreservationLabels.ts";
+import {
+    disposalObjectsSummary,
+    disposalStatePresentation,
+    disposalSummary,
+    recordTypeLabel,
+} from "../recordPreservationLabels.ts";
 import {useRecordDisposalListStyles} from "./RecordDisposalListStyles.tsx";
-
-const objectsOf = (disposal: RecordDisposalDto): string =>
-{
-    if (disposal.tombstone)
-    {
-        return `${disposal.tombstone.deletedObjectCount} stored files deleted, ${disposal.tombstone.retainedObjectCount} kept because other records share them`;
-    }
-    const retained = disposal.objects.filter(entry => entry.retained).length;
-    return `${disposal.objects.length - retained} stored files to delete, ${retained} kept because other records share them`;
-};
 
 const RecordDisposalList = () =>
 {
@@ -57,7 +51,7 @@ const RecordDisposalList = () =>
                                         </Text>
                                         <Text id={`${id}-objects`}
                                               className={styles.detail}>
-                                            {objectsOf(disposal)}
+                                            {disposalObjectsSummary(disposal)}
                                         </Text>
                                     </div>
                                     <Badge id={`${id}-state`}

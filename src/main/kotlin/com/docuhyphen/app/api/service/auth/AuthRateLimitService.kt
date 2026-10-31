@@ -20,11 +20,14 @@ class AuthRateLimitService @Inject constructor(
         return redisRateLimiter.isRateLimitedWithBackoff(key, maxPerMinute, 60)
     }
 
-    /**
-     * Returns how many distinct [member] values have been recorded against [key] in the current
-     * window, after recording this one. Returns 0 when throttling is disabled so callers that
-     * compare against a budget stay inert.
-     */
+    fun retryAfterSeconds(key: String, maxPerMinute: Long): Long? {
+        if (!isLimited(key, maxPerMinute)) {
+            return null
+        }
+
+        return redisRateLimiter.blockSecondsRemaining(key).coerceAtLeast(1)
+    }
+
     fun countDistinct(key: String, member: String, windowSeconds: Long): Long
     {
         if (!configurationService.isAuthRateLimitEnabled())

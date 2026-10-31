@@ -18,6 +18,8 @@ export interface AuditSearchForm
     until: string;
 }
 
+export type AuditFilterField = "requestId" | "actorId";
+
 const EMPTY_FORM: AuditSearchForm = {requestId: "", eventClass: "", eventType: "", actorId: "", from: "", until: ""};
 
 type AuditCriteria = Omit<InformationRequestAuditSearch, "limit" | "offset">;
@@ -56,7 +58,7 @@ export const useAuditSearch = () =>
         () => searchInformationRequestAuditEvents({...criteria, limit: AUDIT_SEARCH_PAGE_SIZE, offset}),
         [criteria, offset],
     );
-    const page = useLoadedValue(load, "The audit record could not be searched.");
+    const page = useLoadedValue(load, "The audit record could not be searched.", JSON.stringify(criteria));
 
     return {
         form,
@@ -67,6 +69,13 @@ export const useAuditSearch = () =>
         search: () =>
         {
             setCriteria(criteriaOf(form));
+            setOffset(0);
+        },
+        filterBy: (field: AuditFilterField, value: string) => {
+            const next = {...form, [field]: value};
+            setForm(next);
+            if (periodProblem(next)) return;
+            setCriteria(criteriaOf(next));
             setOffset(0);
         },
         setOffset,

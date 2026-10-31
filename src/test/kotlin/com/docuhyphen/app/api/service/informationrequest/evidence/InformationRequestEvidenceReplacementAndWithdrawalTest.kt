@@ -1,35 +1,28 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAction
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceReplacementAndWithdrawalTest
 {
@@ -59,8 +52,10 @@ class InformationRequestEvidenceReplacementAndWithdrawalTest
         assertEquals(listOf(1, 2), result.artifact.versions.map { it.version.versionNumber })
         assertEquals(InformationRequestETag.artifactOf(artifact), result.artifactETag)
 
-        val firstDocument = fixture.documentVersions.getValue(requireNotNull(firstDocumentVersion)).document
-        val secondDocument = fixture.documentVersions.getValue(requireNotNull(second.documentVersionId)).document
+        val firstDocument =
+            requireNotNull(fixture.documentVersions.getValue(requireNotNull(firstDocumentVersion)).document)
+        val secondDocument =
+            requireNotNull(fixture.documentVersions.getValue(requireNotNull(second.documentVersionId)).document)
         assertEquals(firstDocument.id, secondDocument.id)
         assertEquals(DocumentVersionContentDigests.of(revised.file), fixture.recordedUploads.last().expectedDigest)
     }
@@ -205,6 +200,54 @@ class InformationRequestEvidenceReplacementAndWithdrawalTest
     }
 
     @Test
+    fun `a file a manager removed answers not found to a respondent who changes it, whatever precondition it names`() {
+        val artifact = uploaded()
+        val beforeRemoval = fixture.expectedArtifactETag(artifact)
+        val manager =
+            RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "manager"))
+        collection.remove(
+            stateCommand(artifact, reason = "Recorded in error").copy(
+                access = manager,
+                idempotencyKey = "manager-remove"
+            )
+        )
+        whenever(
+            fixture.authorizationService.authorize(
+                eq(fixture.access.principal),
+                eq(Action.INFORMATION_REQUEST_EVIDENCE_MANAGE),
+                any(),
+                any(),
+            ),
+        ).thenReturn(Decision.Deny("PARTY_NOT_ASSIGNED", "Not an evidence manager"))
+
+        val refusals = listOf(
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                collection.withdraw(
+                    stateCommand(
+                        artifact,
+                        precondition = beforeRemoval,
+                        idempotencyKey = "stale-withdraw"
+                    )
+                )
+            },
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                collection.withdraw(stateCommand(artifact, idempotencyKey = "current-withdraw"))
+            },
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                collection.remove(stateCommand(artifact, idempotencyKey = "respondent-remove"))
+            },
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                uploads.replace(replaceCommand(artifact, precondition = beforeRemoval))
+            },
+        )
+
+        assertEquals(List(4) { InformationRequestErrorCatalog.NOT_FOUND }, refusals.map { it.reasonCode })
+        assertEquals(List(4) { "Information Request evidence not found" }, refusals.map { it.message })
+        assertEquals(InformationRequestEvidenceCollectionState.REMOVED, artifact.collectionState)
+        assertEquals(1, fixture.versions.size)
+    }
+
+    @Test
     fun `a retried withdrawal replays the recorded state without changing it again`()
     {
         val artifact = uploaded()
@@ -215,6 +258,63 @@ class InformationRequestEvidenceReplacementAndWithdrawalTest
         assertEquals(first.artifactETag, replayed.artifactETag)
         assertEquals(2L, artifact.artifactRevision)
         assertEquals(2, fixture.recordedTransitions().size)
+    }
+
+    @Test
+    fun `a party sharing the Requirement cannot replace, withdraw, or remove a file another party provided`() {
+        val artifact = uploaded()
+        val coParty =
+            RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "co-party"))
+        actsFor(fixture.access.principal, UUID.randomUUID())
+        actsFor(coParty.principal, UUID.randomUUID())
+        whenever(
+            fixture.authorizationService.authorize(any(), eq(Action.INFORMATION_REQUEST_EVIDENCE_MANAGE), any(), any()),
+        ).thenReturn(Decision.Deny("PARTY_NOT_ASSIGNED", "Not an evidence manager"))
+
+        val refusals = listOf(
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                uploads.replace(replaceCommand(artifact).copy(access = coParty, idempotencyKey = "co-party-replace"))
+            },
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                collection.withdraw(stateCommand(artifact).copy(access = coParty, idempotencyKey = "co-party-withdraw"))
+            },
+            assertThrows(InformationRequestLifecycleException::class.java) {
+                collection.remove(
+                    stateCommand(artifact, reason = "Belongs to another response").copy(
+                        access = coParty,
+                        idempotencyKey = "co-party-remove"
+                    )
+                )
+            },
+        )
+
+        assertEquals(
+            List(3) { InformationRequestErrorCatalog.EVIDENCE_PROVIDED_BY_ANOTHER_PARTY },
+            refusals.map { it.reasonCode },
+        )
+        assertEquals(1, fixture.versions.size)
+        assertEquals(InformationRequestEvidenceCollectionState.ACTIVE, artifact.collectionState)
+    }
+
+    @Test
+    fun `whoever acts for the party that provided a file may replace it`() {
+        val artifact = uploaded()
+        val party = UUID.randomUUID()
+        val delegate =
+            RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "delegate"))
+        actsFor(fixture.access.principal, party)
+        actsFor(delegate.principal, party)
+
+        uploads.replace(replaceCommand(artifact).copy(access = delegate, idempotencyKey = "delegate-replace"))
+
+        assertEquals(listOf(1, 2), fixture.versions.map { it.versionNumber })
+        assertEquals(delegate.principal.id, fixture.versions.last().createdByPrincipalId)
+    }
+
+    private fun actsFor(principal: PrincipalRef, partyId: UUID) {
+        whenever(
+            fixture.requirementContext.contributingPartyIds(any(), eq(fixture.documentRequirement.id), eq(principal)),
+        ).thenReturn(setOf(partyId))
     }
 
     @Test

@@ -1,7 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.acceptedfact
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactOffer
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestFactRecertificationResult
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestFactRecertificationView
@@ -11,21 +14,22 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseFieldValuesPatch
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRepository
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestFactRecertificationEvidenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestFactRecertificationRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -41,31 +45,37 @@ class InformationRequestFactRecertificationService @Inject constructor(
     private val factQueries: InformationRequestAcceptedFactQueryService,
     private val responses: InformationRequestResponseDraftService,
     private val requirementRepository: InformationRequestRequirementRepository,
-    private val schemaAssignmentRepository: SchemaAssignmentRepository,
-    private val schemaFieldBindingRepository: SchemaFieldBindingRepository,
-    private val fieldContractRepository: FieldContractRepository,
+    private val fieldsReader: FieldsReadFacade,
     private val schemaAssignmentService: SchemaAssignmentService,
     private val recertificationRepository: InformationRequestFactRecertificationRepository,
     private val recertificationEvidenceRepository: InformationRequestFactRecertificationEvidenceRepository,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
 )
 {
     @Transactional
-    fun recertify(command: RecertifyInformationRequestAcceptedFactCommand): InformationRequestFactRecertificationResult
+    fun recertify(requested: RecertifyInformationRequestAcceptedFactCommand): InformationRequestFactRecertificationResult
     {
-        if (!command.assented)
+        if (!requested.assented)
         {
             throw InformationRequestCommandRequestException("Reusing an earlier answer requires the respondent's explicit confirmation")
         }
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                "$OPERATION|${command.requestId}|${command.factId}|${command.requirementId}",
+            requestFingerprint = CommandRequestFingerprint.of(
+                OPERATION,
+                command.requestId,
+                command.factId,
+                command.requirementId,
+                command.confirmedHiddenResponseClears.map { it.toString() }.sorted().joinToString(","),
             ),
         )
         return when (
@@ -84,13 +94,14 @@ class InformationRequestFactRecertificationService @Inject constructor(
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed -> replay(command, decision.result)
+            is CommandReceiptDecision.Replayed -> replay(command, decision.result, locked.request)
         }
     }
 
     private fun recertifyOnce(command: RecertifyInformationRequestAcceptedFactCommand): InformationRequestFactRecertificationResult
     {
         val locked = gate.lock(command.requestId)
+        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_VIEW), command.requestId)
         gate.requireMutation(locked, InformationRequestMutation.RECERTIFY_FACT)
         factRepository.findByIdForUpdate(command.factId) ?: unavailable()
         val offer = currentOffer(command)
@@ -104,6 +115,7 @@ class InformationRequestFactRecertificationService @Inject constructor(
                 access = command.access,
                 precondition = command.precondition,
                 idempotencyKey = "fact-recertification|${command.idempotencyKey}",
+                confirmedHiddenResponseClears = command.confirmedHiddenResponseClears,
                 patches = listOf(
                     InformationRequestResponsePatch(
                         requirementId = requirement.id,
@@ -155,8 +167,8 @@ class InformationRequestFactRecertificationService @Inject constructor(
                 fromState = draft.request.state,
                 toState = draft.request.state,
                 mutation = InformationRequestMutation.RECERTIFY_FACT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.fact_recertification|${recertification.id}|${command.idempotencyKey}",
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.fact_recertification|${recertification.id}|${command.idempotencyKey}",
                 details = mapOf(
                     "acceptedFactId" to fact.id.toString(),
                     "requirementId" to requirement.id.toString(),
@@ -178,12 +190,13 @@ class InformationRequestFactRecertificationService @Inject constructor(
 
     private fun fieldEntry(request: InformationRequest, fact: InformationRequestAcceptedFact): FieldValueEntry
     {
-        val assignment = schemaAssignmentRepository.findByResource(ResourceType.INFORMATION_REQUEST.name, request.id)
-            ?: unavailable()
-        val binding = schemaFieldBindingRepository.findByVersion(assignment.schemaVersionId)
+        val assignment =
+            fieldsReader.assignmentFor(FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id))
+                ?: unavailable()
+        val binding = fieldsReader.schemaBindings(assignment.schemaVersionId)
             .firstOrNull { it.fieldDefinitionId == fact.fieldDefinitionId }
             ?: unavailable()
-        if (fieldContractRepository.findById(binding.fieldContractId)?.valueType != fact.valueType) unavailable()
+        if (fieldsReader.contract(binding.fieldContractId)?.valueType != fact.valueType) unavailable()
         return FieldValueEntry(binding.fieldContractId, Json.parseToJsonElement(fact.canonicalValue))
     }
 
@@ -207,6 +220,7 @@ class InformationRequestFactRecertificationService @Inject constructor(
     private fun replay(
         command: RecertifyInformationRequestAcceptedFactCommand,
         result: CommandResultReference,
+        request: InformationRequest,
     ): InformationRequestFactRecertificationResult
     {
         gate.authorizeRequirement(command.access, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND, command.requirementId)
@@ -220,7 +234,7 @@ class InformationRequestFactRecertificationService @Inject constructor(
             .map { it.evidenceVersionId }
         return InformationRequestFactRecertificationResult(
             InformationRequestFactRecertificationView(recertification, evidence),
-            requireNotNull(result.etag) { "A recertification receipt records the response ETag it produced" },
+            InformationRequestETag.responsesOf(request),
         )
     }
 

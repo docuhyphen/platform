@@ -1,26 +1,38 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.blueprint.BlueprintDocumentInstantiationDefault
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.BlueprintFieldDefaultEntry
+import com.docuhyphen.app.api.model.fields.BlueprintFieldDefaultsCommand
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInformationRequestPartyDefault
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.creation.InformationRequestDocumentPlaceholderRepository
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
-import com.docuhyphen.app.api.service.blueprint.BlueprintDocumentInstantiationDefault
-import com.docuhyphen.app.api.service.command.*
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.fields.FieldsJson
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyMaterializationService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -32,11 +44,11 @@ import java.util.*
 
 @ApplicationScoped
 class InformationRequestBlueprintInstantiationService @Inject constructor(
-    private val exchangeRepository: ExchangeRepository,
+    private val exchangeLookup: ExchangeLookupService,
     private val requestRepository: InformationRequestRepository,
     private val placeholderRepository: InformationRequestDocumentPlaceholderRepository,
     private val blueprintService: BlueprintDefinitionService,
-    private val partyService: InformationRequestPartyService,
+    private val partyMaterialization: InformationRequestPartyMaterializationService,
     private val schemaAssignmentService: SchemaAssignmentService,
     private val materializer: InformationRequestTemplateMaterializer,
     private val authorizationService: AuthorizationService,
@@ -69,7 +81,8 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
 
     private fun createMutation(command: CreateInformationRequestFromBlueprintCommand): InformationRequestCreationResult
     {
-        val exchange = exchangeRepository.findByIdForUpdate(command.exchangeId)
+        authorize(command)
+        val exchange = exchangeLookup.lockExchangeForUpdate(command.exchangeId)
             ?: throw IllegalArgumentException("Exchange not found")
         if (exchange.isDeleted)
         {
@@ -77,7 +90,6 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
         }
         requireDraftCreationAllowed(exchange)
         entitlementGuard.requireRequestCreation(exchange)
-        authorize(command)
 
         val snapshot = blueprintService.loadInformationRequestInstantiationSnapshot(
             command.blueprintDefinitionId,
@@ -93,9 +105,8 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
                 ownerUserId = exchange.ownerUserId
                 state = InformationRequestState.DRAFT
                 gatesExchangeClosure = command.gatesExchangeClosure
-                createdByAppUserId = command.access.principal.id.takeIf {
-                    command.access.principal.kind == PrincipalKind.USER
-                }
+                createdByPrincipalKind = command.access.principal.kind
+                createdByPrincipalId = command.access.principal.id
                 val now = Timestamp.from(Instant.now())
                 createdAt = now
                 updatedAt = now
@@ -106,9 +117,10 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
             request,
             FieldsAccessContext(command.access.principal, command.access.authorization),
         )
-        partyService.materializeBlueprintDefaultParties(
+        partyMaterialization.materializeBlueprintDefaultParties(
             request,
-            snapshot.participantDefaults.map(::mapParticipantDefault),
+            snapshot.participantDefaults.map(::mapParticipantDefault)
+                .filter { default -> command.participantPrincipals?.contains(default.principal) ?: true },
             command.access,
         )
         materializeDocumentPlaceholders(request, snapshot.documentDefaults)
@@ -131,7 +143,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
             BlueprintFieldDefaultEntry(default.fieldDefinitionId, FieldsJson.instance.parseToJsonElement(raw))
         }
         if (entries.isEmpty()) return
-        schemaAssignmentService.applyBlueprintFieldDefaults(
+        schemaAssignmentService.applyBlueprintFieldDefaultsForCreation(
             BlueprintFieldDefaultsCommand(
                 resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id),
                 access = FieldsAccessContext(access.principal, access.authorization),
@@ -150,7 +162,6 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
             placeholderRepository.save(
                 InformationRequestDocumentPlaceholder().apply {
                     informationRequestId = request.id
-                    sourceBlueprintDocumentDefaultId = source.default.id
                     title = source.default.title
                     restrictedType = source.default.restrictedType
                     restrictType = source.default.restrictType
@@ -236,8 +247,8 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
                 fromState = null,
                 toState = InformationRequestState.DRAFT,
                 mutation = InformationRequestMutation.CREATE_DRAFT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.draft.create|$CREATE_FROM_BLUEPRINT_OPERATION|${request.id}|" +
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.draft.create|$CREATE_FROM_BLUEPRINT_OPERATION|${request.id}|" +
                         command.idempotencyKey,
             ),
         )
@@ -264,9 +275,7 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
         InformationRequestReadAuthorization.requireView(authorizationService, request.id, access)
         return InformationRequestCreationResult(
             request = request,
-            requestETag = requireNotNull(result.etag) {
-                "Information Request creation receipt did not record an aggregate ETag"
-            },
+            requestETag = InformationRequestETag.aggregateOf(request),
             requirementCount = requireNotNull(result.revision) {
                 "Information Request creation receipt did not record materialized Requirements"
             }.toInt(),
@@ -282,13 +291,11 @@ class InformationRequestBlueprintInstantiationService @Inject constructor(
         )
 
     private fun fingerprint(command: CreateInformationRequestFromBlueprintCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(
-                CREATE_FROM_BLUEPRINT_OPERATION,
-                command.blueprintDefinitionId.toString(),
-                command.exchangeId.toString(),
-                command.gatesExchangeClosure.toString(),
-            ).joinToString("|"),
+        CommandRequestFingerprint.of(
+            CREATE_FROM_BLUEPRINT_OPERATION,
+            command.blueprintDefinitionId,
+            command.exchangeId,
+            command.gatesExchangeClosure,
         )
 
     private companion object

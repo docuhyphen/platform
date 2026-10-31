@@ -5,8 +5,8 @@ import {InformationRequestCapabilitiesDto, InformationRequestTemplateScopeKind} 
 import TemplateCreateDialog from "../template-create-dialog/TemplateCreateDialog.tsx";
 import TemplateEditor from "../template-editor/TemplateEditor.tsx";
 import TemplateList from "../template-list/TemplateList.tsx";
-import {useInformationRequestTemplatesTabStyles} from "../InformationRequestTemplatesTabStyles.tsx";
 import {useInformationRequestTemplateAdministration} from "../useInformationRequestTemplateAdministration.ts";
+import {useTemplateAdministrationStyles} from "./TemplateAdministrationStyles.tsx";
 
 interface Props
 {
@@ -15,7 +15,7 @@ interface Props
 
 const TemplateAdministration = ({capabilities}: Props) =>
 {
-    const styles = useInformationRequestTemplatesTabStyles();
+    const styles = useTemplateAdministrationStyles();
     const state = useInformationRequestTemplateAdministration(capabilities);
     const [creating, setCreating] = useState(false);
 
@@ -24,6 +24,8 @@ const TemplateAdministration = ({capabilities}: Props) =>
         return (
             <TemplateEditor template={state.openTemplate}
                             schemas={state.schemas}
+                            schemasError={state.schemasError}
+                            onRetrySchemas={() => void state.reloadSchemas()}
                             canManage={state.canManageScope}
                             copyTargets={state.copyTargets}
                             commands={state.commands}
@@ -67,7 +69,10 @@ const TemplateAdministration = ({capabilities}: Props) =>
                  className={styles.content}>
                 <TemplateList templates={state.templates}
                               loading={state.loading}
-                              error={state.error}
+                              error={state.listError}
+                              refusal={state.listRefusal}
+                              openError={state.openError}
+                              onRetry={() => void state.reloadTemplates()}
                               onOpen={template => void state.open(template)}/>
             </div>
             {creating && state.scope && (

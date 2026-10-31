@@ -1,7 +1,10 @@
 import {Button, Text} from "@fluentui/react-components";
-import {InformationRequestSubmissionProblemDto} from "../../../models/models.tsx";
-import {humanizedKey, problemLabels} from "../submissionLabels.ts";
-import {focusRequirement} from "../submissionReview.ts";
+import {
+    InformationRequestSubmissionGroupProblemDto,
+    InformationRequestSubmissionProblemDto,
+} from "../../../models/models.tsx";
+import {groupProblemDetail, groupProblemLabel, humanizedKey, problemLabels} from "../submissionLabels.ts";
+import {focusGroup, focusRequirement, labeledOccurrence} from "../submissionReview.ts";
 import {useSubmissionReadinessListStyles} from "./SubmissionReadinessListStyles.tsx";
 
 interface Props
@@ -9,10 +12,11 @@ interface Props
     ready: boolean;
     problems: InformationRequestSubmissionProblemDto[];
     undisclosedProblemCount: number;
+    groupProblems: InformationRequestSubmissionGroupProblemDto[];
     requirementLabels: Record<string, string>;
 }
 
-const SubmissionReadinessList = ({ready, problems, undisclosedProblemCount, requirementLabels}: Props) =>
+const SubmissionReadinessList = ({ready, problems, undisclosedProblemCount, groupProblems, requirementLabels}: Props) =>
 {
     const styles = useSubmissionReadinessListStyles();
 
@@ -37,20 +41,45 @@ const SubmissionReadinessList = ({ready, problems, undisclosedProblemCount, requ
                 className={styles.problems}>
                 {problems.map(problem =>
                 {
-                    const label = requirementLabels[problem.requirementId] ?? humanizedKey(problem.requirementKey);
+                    const label = requirementLabels[problem.requirementId] ?? labeledOccurrence(humanizedKey(problem.requirementKey), problem.occurrencePath);
+                    const id = `information-request-submission-problem-${problem.requirementId}-${problem.code.toLowerCase()}`;
                     return (
-                        <li id={`information-request-submission-problem-${problem.requirementId}`}
+                        <li id={id}
                             key={`${problem.requirementId}-${problem.code}`}
                             className={styles.problem}>
-                            <Button id={`information-request-submission-problem-${problem.requirementId}-go`}
+                            <Button id={`${id}-go`}
                                     appearance={"transparent"}
                                     shape={"circular"}
                                     size={"small"}
                                     aria-label={`Go to ${label}`}
-                                    onClick={() => focusRequirement(problem.occurrencePath, problem.requirementKey)}>
+                                    onClick={() => focusRequirement(problem.occurrencePath, problem.requirementKey, problem.requirementId)}>
                                 {label}
                             </Button>
-                            <Text className={styles.detail}>{problemLabels[problem.code]}</Text>
+                            <Text id={`${id}-detail`}
+                                  className={styles.detail}>
+                                {problemLabels[problem.code]}
+                            </Text>
+                        </li>
+                    );
+                })}
+                {groupProblems.map((problem, index) => {
+                    const id = `information-request-submission-group-problem-${index}`;
+                    return (
+                        <li id={id}
+                            key={`${problem.groupKey}-${problem.parentOccurrencePath ?? ""}`}
+                            className={styles.problem}>
+                            <Button id={`${id}-label`}
+                                    appearance={"transparent"}
+                                    shape={"circular"}
+                                    size={"small"}
+                                    aria-label={`Go to ${groupProblemLabel(problem)}`}
+                                    onClick={() => focusGroup(problem.groupKey, problem.parentOccurrencePath)}>
+                                {groupProblemLabel(problem)}
+                            </Button>
+                            <Text id={`${id}-detail`}
+                                  className={styles.detail}>
+                                {groupProblemDetail(problem)}
+                            </Text>
                         </li>
                     );
                 })}
@@ -59,8 +88,8 @@ const SubmissionReadinessList = ({ready, problems, undisclosedProblemCount, requ
                 <Text id={"information-request-submission-undisclosed-problems"}
                       className={styles.detail}>
                     {undisclosedProblemCount === 1
-                        ? "One more item handled by another party is not complete yet."
-                        : `${undisclosedProblemCount} more items handled by other parties are not complete yet.`}
+                        ? "One additional item or submission rule is not complete yet."
+                        : `${undisclosedProblemCount} additional items or submission rules are not complete yet.`}
                 </Text>
             )}
         </div>

@@ -5,20 +5,15 @@ import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
-import org.junit.jupiter.api.Assertions.assertThrows
+import com.docuhyphen.app.api.service.user.AppUserService
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class ExternalEmailAcceptancePolicyServiceTest
 {
@@ -30,6 +25,22 @@ class ExternalEmailAcceptancePolicyServiceTest
     private val exchange = Exchange().apply {
         ownerOrganizationId = senderOrganizationId
         this.initiator = this@ExternalEmailAcceptancePolicyServiceTest.initiator
+    }
+
+    @Test
+    fun `a participant principal Share is refused before any account lookup whether or not someone is signed in`() {
+        val share = Share().apply {
+            principalKind = PrincipalKind.PARTICIPANT
+            principalId = UUID.randomUUID()
+        }
+
+        assertThrows(ExchangeRecipientEligibilityException::class.java) {
+            service.validate(exchange, share, authenticatedAppUserId = null)
+        }
+        assertThrows(ExchangeRecipientEligibilityException::class.java) {
+            service.validate(exchange, share, authenticatedAppUserId = UUID.randomUUID())
+        }
+        verifyNoInteractions(appUserService, policyService)
     }
 
     @Test
@@ -127,7 +138,13 @@ class ExternalEmailAcceptancePolicyServiceTest
         val share = userShare(currentAccount.id)
         whenever(appUserService.getById(currentAccount.id)).thenReturn(currentAccount)
         whenever(appUserService.findRegisteredByEmail("member@example.test")).thenReturn(currentAccount)
-        whenever(policyService.assertCanShareWithUser(eq(senderOrganizationId), eq(initiator.id), eq(currentAccount.id)))
+        whenever(
+            policyService.assertCanShareWithUser(
+                eq(senderOrganizationId),
+                eq(initiator.id),
+                eq(currentAccount.id)
+            )
+        )
             .thenThrow(IllegalArgumentException("Directional receiver policy denied"))
 
         val exception = assertThrows(ExchangeRecipientEligibilityException::class.java) {

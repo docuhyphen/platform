@@ -1,21 +1,8 @@
 package com.docuhyphen.app.api.repository.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceSourceKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStoredUsage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestExternalEvidenceSource
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
@@ -24,9 +11,7 @@ import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -34,7 +19,7 @@ import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 private const val ABC_SHA_256 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
@@ -68,15 +53,6 @@ class RequestEvidencePostgreSQLResource : QuarkusTestResourceLifecycleManager
     }
 }
 
-/**
- * A stored evidence item has to come back as the exact typed source it was written as, under the
- * exact Requirement occurrence it was collected for.
- *
- * A lookup that reads an artifact key without its Requirement occurrence answers for a different
- * occurrence of the same request, and a version list that ignores its artifact mixes two collected
- * items into one history. Recorded evidence history is never rewritten, so the mapped repository
- * must refuse an update or a delete rather than leave that refusal to the database alone.
- */
 @QuarkusTest
 @QuarkusTestResource(RequestEvidencePostgreSQLResource::class)
 class InformationRequestEvidencePersistenceContractTest
@@ -103,7 +79,7 @@ class InformationRequestEvidencePersistenceContractTest
     lateinit var dataSource: DataSource
 
     @Test
-    fun `an artifact and its file-backed and external versions survive the round trip`()
+    fun `an artifact and its file-backed versions survive the round trip`()
     {
         val fixture = fixture()
 
@@ -115,9 +91,9 @@ class InformationRequestEvidencePersistenceContractTest
                 fileVersion(artifact.id, fixture.requestId, 1, fixture.documentVersionId),
             )
         }
-        val externalVersion = QuarkusTransaction.requiringNew().call {
+        val secondVersion = QuarkusTransaction.requiringNew().call {
             versionRepository.save(
-                externalVersion(artifact.id, fixture.requestId, 2, "process-register", "REG-4821"),
+                fileVersion(artifact.id, fixture.requestId, 2, fixture.documentVersionId),
             )
         }
 
@@ -138,15 +114,12 @@ class InformationRequestEvidencePersistenceContractTest
                 InformationRequestEvidenceVersionSourceMapper.read(storedFileVersion!!),
             )
 
-            val storedExternalVersion = versionRepository.findById(externalVersion.id)
+            val storedSecondVersion = versionRepository.findById(secondVersion.id)
+            assertEquals(2, storedSecondVersion?.versionNumber)
+            assertEquals(InformationRequestEvidenceSourceKind.DOCUMENT_VERSION, storedSecondVersion?.sourceKind)
             assertEquals(
-                InformationRequestEvidenceSourceKind.EXTERNAL_REFERENCE,
-                storedExternalVersion?.sourceKind,
-            )
-            assertNull(storedExternalVersion?.documentVersionId)
-            assertEquals(
-                InformationRequestExternalEvidenceSource("process-register", "REG-4821"),
-                InformationRequestEvidenceVersionSourceMapper.read(storedExternalVersion!!),
+                InformationRequestDocumentVersionEvidenceSource(fixture.documentVersionId),
+                InformationRequestEvidenceVersionSourceMapper.read(storedSecondVersion!!),
             )
         }
     }
@@ -179,10 +152,7 @@ class InformationRequestEvidencePersistenceContractTest
                 listOf(sibling),
                 artifactRepository.findForRequirement(fixture.siblingRequirementId).map { it.id },
             )
-            assertEquals(
-                owned,
-                artifactRepository.findByKey(fixture.requirementId, "collected-record")?.id,
-            )
+
             assertEquals(
                 setOf(owned, sibling),
                 artifactRepository.findForRequest(fixture.requestId).map { it.id }.toSet(),
@@ -191,7 +161,7 @@ class InformationRequestEvidencePersistenceContractTest
                 listOf(otherRequest),
                 artifactRepository.findForRequest(fixture.otherRequestId).map { it.id },
             )
-            assertNull(artifactRepository.findByKey(fixture.requirementId, "unrecorded-key"))
+            assertTrue(artifactRepository.findForRequirement(UUID.randomUUID()).isEmpty())
         }
     }
 
@@ -211,9 +181,7 @@ class InformationRequestEvidencePersistenceContractTest
             versionRepository.save(fileVersion(artifact, fixture.requestId, 1, fixture.documentVersionId)).id
         }
         val second = QuarkusTransaction.requiringNew().call {
-            versionRepository.save(
-                externalVersion(artifact, fixture.requestId, 2, "process-register", "REG-4821"),
-            ).id
+            versionRepository.save(fileVersion(artifact, fixture.requestId, 2, fixture.documentVersionId)).id
         }
         val otherArtifactVersion = QuarkusTransaction.requiringNew().call {
             versionRepository.save(
@@ -365,7 +333,13 @@ class InformationRequestEvidencePersistenceContractTest
         }
         val scan = QuarkusTransaction.requiringNew().call {
             assessmentRepository.save(
-                assessment(fixture.requestId, version.id, InformationRequestEvidenceAssessmentKind.MALWARE_SCAN, "CLEAN", assessedAt.plusSeconds(60))
+                assessment(
+                    fixture.requestId,
+                    version.id,
+                    InformationRequestEvidenceAssessmentKind.MALWARE_SCAN,
+                    "CLEAN",
+                    assessedAt.plusSeconds(60)
+                )
                     .apply {
                         engineName = "process-scanner"
                         engineVersion = "1.0"
@@ -377,7 +351,13 @@ class InformationRequestEvidencePersistenceContractTest
         }
         val inspection = QuarkusTransaction.requiringNew().call {
             assessmentRepository.save(
-                assessment(fixture.requestId, version.id, InformationRequestEvidenceAssessmentKind.CONTENT_INSPECTION, "INSPECTED", assessedAt)
+                assessment(
+                    fixture.requestId,
+                    version.id,
+                    InformationRequestEvidenceAssessmentKind.CONTENT_INSPECTION,
+                    "INSPECTED",
+                    assessedAt
+                )
                     .apply {
                         detectedMediaType = "application/pdf"
                         pageCount = 2
@@ -386,7 +366,13 @@ class InformationRequestEvidencePersistenceContractTest
         }
         val unavailable = QuarkusTransaction.requiringNew().call {
             assessmentRepository.save(
-                assessment(fixture.requestId, version.id, InformationRequestEvidenceAssessmentKind.MALWARE_SCAN, "UNAVAILABLE", assessedAt.plusSeconds(120))
+                assessment(
+                    fixture.requestId,
+                    version.id,
+                    InformationRequestEvidenceAssessmentKind.MALWARE_SCAN,
+                    "UNAVAILABLE",
+                    assessedAt.plusSeconds(120)
+                )
                     .apply { detail = "scanner not configured" },
             )
         }
@@ -405,10 +391,6 @@ class InformationRequestEvidencePersistenceContractTest
             assertEquals(Instant.parse("2026-09-24T00:00:00Z"), storedScan.signaturesPublishedAt?.toInstant())
             assertTrue(storedScan.productionEligible)
             assertEquals("scanner not configured", stored[2].detail)
-
-            val settled = assessmentRepository.findSettledMalwareScans(ABC_SHA_256).map { it.id }
-            assertTrue(scan.id in settled)
-            assertTrue(inspection.id !in settled && unavailable.id !in settled)
             assertTrue(assessmentRepository.findForVersions(emptyList()).isEmpty())
         }
 
@@ -429,7 +411,12 @@ class InformationRequestEvidencePersistenceContractTest
             productionEligible = true
         }
 
-        fun scanned(key: String, outcome: String?, at: Instant, describe: InformationRequestEvidenceAssessment.() -> Unit = {}): UUID
+        fun scanned(
+            key: String,
+            outcome: String?,
+            at: Instant,
+            describe: InformationRequestEvidenceAssessment.() -> Unit = {}
+        ): UUID
         {
             val artifact = QuarkusTransaction.requiringNew().call {
                 artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, key)).id
@@ -441,7 +428,13 @@ class InformationRequestEvidencePersistenceContractTest
             {
                 QuarkusTransaction.requiringNew().run {
                     assessmentRepository.save(
-                        assessment(fixture.requestId, version.id, InformationRequestEvidenceAssessmentKind.MALWARE_SCAN, outcome, at)
+                        assessment(
+                            fixture.requestId,
+                            version.id,
+                            InformationRequestEvidenceAssessmentKind.MALWARE_SCAN,
+                            outcome,
+                            at
+                        )
                             .apply(describe),
                     )
                 }
@@ -456,12 +449,6 @@ class InformationRequestEvidencePersistenceContractTest
         val oldClean = scanned("old-clean", "CLEAN", now.minusSeconds(40L * 24 * 60 * 60), engine)
         val detected = scanned("detected", "MALWARE_DETECTED", now.minusSeconds(40L * 24 * 60 * 60), engine)
         val skipped = scanned("skipped", "SKIPPED", now.minusSeconds(40L * 24 * 60 * 60))
-        val externalArtifact = QuarkusTransaction.requiringNew().call {
-            artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, "external")).id
-        }
-        val external = QuarkusTransaction.requiringNew().call {
-            versionRepository.save(externalVersion(externalArtifact, fixture.requestId, 1, "process-register", "REG-4821")).id
-        }
 
         val due = QuarkusTransaction.requiringNew().call {
             assessmentRepository.findVersionsDueForMalwareScan(
@@ -472,17 +459,137 @@ class InformationRequestEvidencePersistenceContractTest
         }
 
         assertTrue(listOf(unscanned, oldFailure, oldClean).all { it in due }, "Expected every due version in $due")
-        assertTrue(listOf(recentFailure, recentClean, detected, skipped, external).none { it in due }, "Unexpected version in $due")
+        assertTrue(
+            listOf(recentFailure, recentClean, detected, skipped).none { it in due },
+            "Unexpected version in $due"
+        )
         assertEquals(
             1,
             QuarkusTransaction.requiringNew().call {
-                assessmentRepository.findVersionsDueForMalwareScan(now.minusSeconds(15 * 60), now.minusSeconds(30L * 24 * 60 * 60), 1)
+                assessmentRepository.findVersionsDueForMalwareScan(
+                    now.minusSeconds(15 * 60),
+                    now.minusSeconds(30L * 24 * 60 * 60),
+                    1
+                )
             }.size,
         )
     }
 
     @Test
-    fun `stored usage counts every retained file-backed version and its bytes, for a request and for one uploader`()
+    fun `a version never scanned is selected before a version due for its rescan, whatever their upload order`() {
+        val fixture = fixture()
+        val now = Instant.parse("2026-09-25T12:00:00Z")
+
+        fun uploaded(key: String): UUID {
+            val artifact = QuarkusTransaction.requiringNew().call {
+                artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, key)).id
+            }
+            return QuarkusTransaction.requiringNew().call {
+                versionRepository.save(fileVersion(artifact, fixture.requestId, 1, fixture.documentVersionId)).id
+            }
+        }
+
+        val rescanDue = uploaded("rescan-due")
+        QuarkusTransaction.requiringNew().run {
+            assessmentRepository.save(
+                assessment(
+                    fixture.requestId,
+                    rescanDue,
+                    InformationRequestEvidenceAssessmentKind.MALWARE_SCAN,
+                    "CLEAN",
+                    now.minusSeconds(40L * 24 * 60 * 60)
+                ).apply {
+                    engineName = "process-scanner"
+                    engineVersion = "1.0"
+                    signatureVersion = "2026.09.25"
+                    productionEligible = true
+                },
+            )
+        }
+        val neverScanned = uploaded("never-scanned")
+
+        val due = QuarkusTransaction.requiringNew().call {
+            assessmentRepository.findVersionsDueForMalwareScan(
+                retryBefore = now.minusSeconds(15 * 60),
+                rescanBefore = now.minusSeconds(30L * 24 * 60 * 60),
+                limit = 10_000,
+            )
+        }
+
+        assertTrue(
+            due.indexOf(neverScanned) in 0 until due.indexOf(rescanDue),
+            "Expected the never-scanned version first in $due"
+        )
+    }
+
+    @Test
+    fun `reuse finds only the newest settled scan of the same bytes by the same engine and signatures inside the window`() {
+        val fixture = fixture()
+        val now = Instant.parse("2026-09-25T12:00:00Z")
+        val engine = InformationRequestEvidenceScannerEngine("reuse-scanner-${UUID.randomUUID()}", "1.0", true)
+        val artifact = QuarkusTransaction.requiringNew().call {
+            artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, "reused-record")).id
+        }
+        val version = QuarkusTransaction.requiringNew().call {
+            versionRepository.save(fileVersion(artifact, fixture.requestId, 1, fixture.documentVersionId)).id
+        }
+
+        fun scanned(
+            outcome: String,
+            hoursAgo: Long,
+            describe: InformationRequestEvidenceAssessment.() -> Unit = {},
+        ): UUID = QuarkusTransaction.requiringNew().call {
+            assessmentRepository.save(
+                assessment(
+                    fixture.requestId,
+                    version,
+                    InformationRequestEvidenceAssessmentKind.MALWARE_SCAN,
+                    outcome,
+                    now.minusSeconds(hoursAgo * 60 * 60)
+                ).apply {
+                    engineName = engine.name
+                    engineVersion = engine.version
+                    signatureVersion = "2026.09.25"
+                    productionEligible = outcome == "CLEAN" || outcome == "MALWARE_DETECTED"
+                    describe()
+                },
+            ).id
+        }
+
+        scanned("CLEAN", hoursAgo = 240)
+        val newest = scanned("CLEAN", hoursAgo = 24)
+        scanned("CLEAN", hoursAgo = 1) { signatureVersion = "2026.09.24" }
+        scanned("CLEAN", hoursAgo = 1) { engineVersion = "2.0" }
+        scanned("CLEAN", hoursAgo = 1) { productionEligible = false }
+        scanned("ERROR", hoursAgo = 1)
+
+        val reused = QuarkusTransaction.requiringNew().call {
+            assessmentRepository.findReusableMalwareScan(
+                DocumentVersionContentHashAlgorithm.SHA_256,
+                ABC_SHA_256,
+                3,
+                engine,
+                "2026.09.25",
+                now.minusSeconds(30L * 24 * 60 * 60),
+            )?.id
+        }
+        val outsideWindow = QuarkusTransaction.requiringNew().call {
+            assessmentRepository.findReusableMalwareScan(
+                DocumentVersionContentHashAlgorithm.SHA_256,
+                ABC_SHA_256,
+                3,
+                engine,
+                "2026.09.25",
+                now.minusSeconds(12 * 60 * 60),
+            )
+        }
+
+        assertEquals(newest, reused)
+        assertNull(outsideWindow)
+    }
+
+    @Test
+    fun `stored usage counts every retained file-backed version and its bytes, for a request and for a set of uploaders`()
     {
         val fixture = fixture()
         val uploader = PrincipalRef.participant(UUID.randomUUID())
@@ -509,29 +616,40 @@ class InformationRequestEvidencePersistenceContractTest
             artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, "other-party")).id
         }
         stored(otherArtifact, 1, otherParty)
-        val externalArtifact = QuarkusTransaction.requiringNew().call {
-            artifactRepository.save(artifact(fixture.requestId, fixture.requirementId, "external")).id
-        }
-        QuarkusTransaction.requiringNew().run {
-            versionRepository.save(
-                externalVersion(externalArtifact, fixture.requestId, 1, "process-register", "REG-4821").apply {
-                    createdByPrincipalKind = uploader.kind
-                    createdByPrincipalId = uploader.id
-                },
-            )
-        }
 
         QuarkusTransaction.requiringNew().run {
-            assertEquals(InformationRequestEvidenceStoredUsage(3, 9), versionRepository.storedUsageForRequest(fixture.requestId))
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(3, 9),
+                versionRepository.storedUsageForRequest(fixture.requestId)
+            )
             assertEquals(
                 InformationRequestEvidenceStoredUsage(2, 6),
-                versionRepository.storedUsageForUploader(fixture.requestId, uploader),
+                versionRepository.storedUsageForUploaders(fixture.requestId, setOf(uploader)),
             )
             assertEquals(
                 InformationRequestEvidenceStoredUsage(1, 3),
-                versionRepository.storedUsageForUploader(fixture.requestId, otherParty),
+                versionRepository.storedUsageForUploaders(fixture.requestId, setOf(otherParty)),
             )
-            assertEquals(InformationRequestEvidenceStoredUsage(0, 0), versionRepository.storedUsageForRequest(fixture.otherRequestId))
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(3, 9),
+                versionRepository.storedUsageForUploaders(fixture.requestId, setOf(uploader, otherParty)),
+            )
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(0, 0),
+                versionRepository.storedUsageForUploaders(fixture.requestId, setOf(PrincipalRef.user(uploader.id))),
+            )
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(0, 0),
+                versionRepository.storedUsageForUploaders(fixture.otherRequestId, setOf(uploader, otherParty)),
+            )
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(0, 0),
+                versionRepository.storedUsageForUploaders(fixture.requestId, emptySet()),
+            )
+            assertEquals(
+                InformationRequestEvidenceStoredUsage(0, 0),
+                versionRepository.storedUsageForRequest(fixture.otherRequestId)
+            )
         }
     }
 
@@ -565,10 +683,11 @@ class InformationRequestEvidencePersistenceContractTest
     }
 
     @Test
-    fun `materializing a request writes each supporting evidence link its Template links resolve to, once`()
+    fun `materializing supporting links excludes inactive occurrences and writes each current link once`()
     {
         val fixture = fixture()
-        val request = QuarkusTransaction.requiringNew().call { requireNotNull(requestRepository.findById(fixture.requestId)) }
+        val request =
+            QuarkusTransaction.requiringNew().call { requireNotNull(requestRepository.findById(fixture.requestId)) }
 
         QuarkusTransaction.requiringNew().run { supportingLinkService.materialize(request) }
         QuarkusTransaction.requiringNew().run { supportingLinkService.materialize(request) }
@@ -576,10 +695,11 @@ class InformationRequestEvidencePersistenceContractTest
         QuarkusTransaction.requiringNew().run {
             val links = supportingLinkRepository.findForRequest(fixture.requestId)
             assertEquals(
-                setOf(fixture.requirementId to fixture.documentRequirementId, fixture.siblingRequirementId to fixture.documentRequirementId),
+                setOf(fixture.requirementId to fixture.documentRequirementId),
+
                 links.map { it.supportedRequirementId to it.supportingRequirementId }.toSet(),
             )
-            assertEquals(2, links.size)
+            assertEquals(1, links.size)
             assertTrue(links.all { it.templateEvidenceLinkId == fixture.templateEvidenceLinkId })
         }
     }
@@ -628,24 +748,6 @@ class InformationRequestEvidencePersistenceContractTest
         )
     }
 
-    private fun externalVersion(
-        artifactId: UUID,
-        requestId: UUID,
-        number: Int,
-        referenceType: String,
-        referenceValue: String,
-    ) = InformationRequestEvidenceVersion().apply {
-        evidenceArtifactId = artifactId
-        informationRequestId = requestId
-        versionNumber = number
-        createdByPrincipalKind = PrincipalKind.USER
-        createdByPrincipalId = UUID.randomUUID()
-        InformationRequestEvidenceVersionSourceMapper.write(
-            this,
-            InformationRequestExternalEvidenceSource(referenceType, referenceValue),
-        )
-    }
-
     private fun fixture(): Fixture
     {
         val fixture = Fixture()
@@ -653,7 +755,7 @@ class InformationRequestEvidencePersistenceContractTest
         return fixture
     }
 
-    private inner class Fixture
+    private class Fixture
     {
         val organizationId: UUID = UUID.randomUUID()
         val userId: UUID = UUID.randomUUID()
@@ -903,7 +1005,7 @@ class InformationRequestEvidencePersistenceContractTest
                 connection,
                 """
                 UPDATE information_request_template_version
-                SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+                SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
                 WHERE id = ?
                 """.trimIndent(),
                 now,

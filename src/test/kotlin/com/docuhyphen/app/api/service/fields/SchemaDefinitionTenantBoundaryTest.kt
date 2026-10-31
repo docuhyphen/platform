@@ -1,10 +1,14 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.resource.model.BindingRequest
+import com.docuhyphen.app.api.resource.model.CreateSchemaRequest
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.fields.model.SchemaDefinitionTenantFixture
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -19,21 +23,12 @@ class SchemaDefinitionTenantBoundaryTest
     private val otherOrganizationId = UUID.randomUUID()
     private val principal = PrincipalRef.user(principalId)
 
-    private data class Fixture(
-        val service: SchemaDefinitionService,
-        val schemaRepository: SchemaDefinitionRepository,
-        val versionRepository: SchemaVersionRepository,
-        val bindingRepository: SchemaFieldBindingRepository,
-        val contractRepository: FieldContractRepository,
-        val fieldRepository: FieldDefinitionRepository,
-    )
-
     private fun fixture(
         activeOrganizationId: UUID? = organizationId,
         appAdmin: Boolean = true,
         organizationRole: OrganizationRoleName? = null,
         vararg allowedActions: Action,
-    ): Fixture
+    ): SchemaDefinitionTenantFixture
     {
         val schemaRepository = mock<SchemaDefinitionRepository>()
         val versionRepository = mock<SchemaVersionRepository>()
@@ -60,7 +55,7 @@ class SchemaDefinitionTenantBoundaryTest
             else
                 Decision.Deny("test-deny", "Denied in test")
         }
-        return Fixture(
+        return SchemaDefinitionTenantFixture(
             SchemaDefinitionService(
                 schemaDefinitionRepository = schemaRepository,
                 schemaVersionRepository = versionRepository,
@@ -197,11 +192,41 @@ class SchemaDefinitionTenantBoundaryTest
     }
 
     @Test
+    fun `an organization Schema Version is read only through the organization that owns it`() {
+        val reader = fixture(
+            organizationRole = OrganizationRoleName.ORG_ADMIN,
+            allowedActions = arrayOf(Action.FIELD_CONFIG_VIEW),
+        )
+        val outsider = fixture(
+            activeOrganizationId = otherOrganizationId,
+            organizationRole = OrganizationRoleName.ORG_ADMIN,
+            allowedActions = arrayOf(Action.FIELD_CONFIG_VIEW),
+        )
+        val schema = schema(FieldScopeKind.ORGANIZATION, organizationId)
+        val version = SchemaVersion().apply {
+            schemaDefinitionId = schema.id
+            versionNumber = 2
+            status = FieldLifecycleStatus.PUBLISHED
+        }
+        listOf(reader, outsider).forEach { fixture ->
+            whenever(fixture.schemaRepository.findById(schema.id)).thenReturn(schema)
+            whenever(fixture.versionRepository.findById(version.id)).thenReturn(version)
+        }
+
+        val read = reader.service.getVersion(version.id)
+
+        assertEquals(version.id, read.id)
+        assertEquals(2, read.versionNumber)
+        assertThrows<ForbiddenException> { outsider.service.getVersion(version.id) }
+        assertThrows<IllegalArgumentException> { reader.service.getVersion(UUID.randomUUID()) }
+    }
+
+    @Test
     fun `APP_ADMIN can create draft version for platform schema`()
     {
         val fixture = fixture(activeOrganizationId = null)
         val schema = schema(FieldScopeKind.PLATFORM)
-        whenever(fixture.schemaRepository.findById(schema.id)).thenReturn(schema)
+        whenever(fixture.schemaRepository.findByIdForUpdate(schema.id)).thenReturn(schema)
         whenever(fixture.versionRepository.findMaxVersion(schema.id)).thenReturn(1)
         whenever(fixture.versionRepository.save(any())).thenAnswer { it.getArgument(0) }
 
@@ -216,7 +241,7 @@ class SchemaDefinitionTenantBoundaryTest
     {
         val fixture = fixture(allowedActions = arrayOf(Action.FIELD_CONFIG_EDIT))
         val schema = schema(FieldScopeKind.ORGANIZATION, organizationId)
-        whenever(fixture.schemaRepository.findById(schema.id)).thenReturn(schema)
+        whenever(fixture.schemaRepository.findByIdForUpdate(schema.id)).thenReturn(schema)
 
         assertThrows<ForbiddenException> {
             fixture.service.updateDraftBindings(schema.id, emptyList())
@@ -232,7 +257,7 @@ class SchemaDefinitionTenantBoundaryTest
             allowedActions = arrayOf(Action.FIELD_CONFIG_PUBLISH),
         )
         val schema = schema(FieldScopeKind.ORGANIZATION, organizationId)
-        whenever(fixture.schemaRepository.findById(schema.id)).thenReturn(schema)
+        whenever(fixture.schemaRepository.findByIdForUpdate(schema.id)).thenReturn(schema)
 
         assertThrows<ForbiddenException> {
             fixture.service.publishDraft(schema.id, null)
@@ -255,7 +280,7 @@ class SchemaDefinitionTenantBoundaryTest
             fieldDefinitionId = field.id
             label = "Secret"
         }
-        whenever(fixture.schemaRepository.findById(schema.id)).thenReturn(schema)
+        whenever(fixture.schemaRepository.findByIdForUpdate(schema.id)).thenReturn(schema)
         whenever(fixture.versionRepository.findDraft(schema.id)).thenReturn(version)
         whenever(fixture.contractRepository.findById(contract.id)).thenReturn(contract)
         whenever(fixture.fieldRepository.findById(field.id)).thenReturn(field)

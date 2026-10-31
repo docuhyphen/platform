@@ -32,6 +32,7 @@ data class InformationRequestOperationsRowDto(
     val reminderCount: Int,
     val noticeCounts: Map<InformationRequestNoticeDeliveryState, Int>,
     val exceptionCounts: Map<InformationRequestOperationsException, Int>,
+    val executionStanding: InformationRequestExecutionStandingDto,
 )
 
 @Serializable

@@ -6,15 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * One repeatable or nested grouping an [InformationRequestTemplateVersion] defines. A requirement
- * binding that names this group's key as its occurrence anchor is answered once per runtime
- * occurrence of the group. [parentGroupId] nests one group's occurrences inside another's, null
- * meaning the group repeats directly under the request.
- *
- * Groups are structure one version states, not a stable identity: a rewrite of the document
- * replaces every group of the version the same way it replaces every section and binding.
- */
 @Entity
 @Table(name = "information_request_template_requirement_group")
 class InformationRequestTemplateRequirementGroup

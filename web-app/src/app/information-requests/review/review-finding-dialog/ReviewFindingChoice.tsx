@@ -21,7 +21,7 @@ const ReviewFindingChoice = <T extends string>({id, label, options, labelOf, val
                   onOptionSelect={(_, data) =>
                   {
                       const chosen = options.find(option => option === data.optionValue);
-                      if (chosen) onChange(chosen);
+                      if (chosen !== undefined) onChange(chosen);
                   }}>
             {options.map(option => (
                 <Option id={`${id}-${option}`}

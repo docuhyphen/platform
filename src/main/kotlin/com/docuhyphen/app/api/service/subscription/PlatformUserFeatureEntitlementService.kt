@@ -3,7 +3,8 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
+import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
+import com.docuhyphen.app.api.model.subscription.UserFeatureEntitlementResult
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsUpdateRequest
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
@@ -16,22 +17,6 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.util.*
 
-/** An individual account and the platform-administered feature decisions it holds. */
-data class UserFeatureEntitlementResult(
-    val user: AppUser,
-    val entitlements: List<SubscriptionFeatureEntitlement>,
-)
-
-/**
- * Platform administration of the feature decisions recorded against an individual account: the
- * personal counterpart of the organization surface. An App Administrator can add a feature the
- * account's plan omits or withdraw one it grants, which is what an organization owner could already
- * be decided about.
- *
- * Only a registered individual account can hold a decision. A temporary recipient and a registered
- * application both exist without a subscription of their own, so there is no commercial position for
- * a decision to change.
- */
 @RequestScoped
 class PlatformUserFeatureEntitlementService @Inject constructor(
     private val authTokenContext: AuthTokenContext,

@@ -1,8 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.capability
 
-import com.docuhyphen.app.api.migration.NextSubmissionVersion
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
+import com.docuhyphen.app.api.migration.model.NextSubmissionVersion
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
@@ -11,7 +12,6 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.IssueInformatio
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest

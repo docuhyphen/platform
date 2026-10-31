@@ -1,6 +1,11 @@
+import ReviewDialogFeedback from "../review-dialog-feedback/ReviewDialogFeedback.tsx";
+import {ReviewMessage} from "../useReviewFeedback.ts";
 import {useState} from "react";
 import {InformationRequestReviewAssignmentChange} from "../../../../services/informationRequestReviewService.ts";
-import {ChangeInformationRequestReviewAssignmentRequest, InformationRequestPartyDto} from "../../../models/models.tsx";
+import {
+    ChangeInformationRequestReviewAssignmentRequest,
+    InformationRequestReviewDelegationCandidateDto,
+} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import EditorDialog from "../../shared/editor-dialog/EditorDialog.tsx";
 import TextField from "../../shared/text-field/TextField.tsx";
@@ -9,8 +14,9 @@ interface Props
 {
     title: string;
     change: InformationRequestReviewAssignmentChange;
-    delegates: InformationRequestPartyDto[];
+    candidates: InformationRequestReviewDelegationCandidateDto[];
     busy: boolean;
+    message?: ReviewMessage | null;
     onConfirm: (request: ChangeInformationRequestReviewAssignmentRequest) => void;
     onDismiss: () => void;
 }
@@ -21,7 +27,7 @@ const CONFIRM_LABELS: Record<InformationRequestReviewAssignmentChange, string> =
     revocation: "Revoke",
 };
 
-const AssignmentChangeDialog = ({title, change, delegates, busy, onConfirm, onDismiss}: Props) =>
+const AssignmentChangeDialog = ({title, change, candidates, busy, message, onConfirm, onDismiss}: Props) =>
 {
     const [reason, setReason] = useState("");
     const [delegateId, setDelegateId] = useState("");
@@ -43,7 +49,10 @@ const AssignmentChangeDialog = ({title, change, delegates, busy, onConfirm, onDi
                               label={"Delegate to"}
                               value={delegateId}
                               placeholder={"Choose a reviewer"}
-                              options={delegates.map(party => ({value: party.id, label: party.label ?? "Reviewer"}))}
+                              options={candidates.map(candidate => ({
+                                  value: candidate.partyId,
+                                  label: candidate.label
+                              }))}
                               onChange={setDelegateId}/>
             )}
             <TextField id={"information-request-assignment-change-reason"}
@@ -52,6 +61,8 @@ const AssignmentChangeDialog = ({title, change, delegates, busy, onConfirm, onDi
                        value={reason}
                        maxLength={120}
                        onChange={setReason}/>
+            <ReviewDialogFeedback id={"information-request-assignment-change-dialog-feedback"}
+                                  message={message}/>
         </EditorDialog>
     );
 };

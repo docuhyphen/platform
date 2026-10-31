@@ -16,6 +16,8 @@ import {configurationRequestFrom} from "../../template-document/templateDraftDoc
 import {targetForRefusal} from "../../template-document/templateDraftValidation.ts";
 import {useTemplateDocumentEditor} from "../../template-document/useTemplateDocumentEditor.ts";
 import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
+import {InformationRequestOwnerFields} from "../../shared/ownerWorkspace.ts";
+import {Scoped, valueInScope} from "../../shared/useScopeGuard.ts";
 import {useRequestSourceOptions} from "./useRequestSourceOptions.ts";
 
 export type RequestSource = "template" | "blueprint" | "adhoc";
@@ -25,15 +27,22 @@ const TEMPLATE_REFUSAL = "INFORMATION_REQUEST_TEMPLATE_INVALID";
 const isTemplateRefusal = (error: unknown): error is InformationRequestTemplateRefusalDto =>
     (error as InformationRequestTemplateRefusalDto | undefined)?.reasonCode === TEMPLATE_REFUSAL;
 
-export const useCreateInformationRequest = (exchangeId: string, onCreated: (request: InformationRequestDto) => void) =>
+export const useCreateInformationRequest = (
+    exchangeId: string,
+    owner: InformationRequestOwnerFields | null,
+    onCreated: (request: InformationRequestDto, decisionMakerFailure: string | null) => void,
+) =>
 {
     const {appUser} = useAuth();
-    const options = useRequestSourceOptions();
+    const options = useRequestSourceOptions(owner);
     const editor = useTemplateDocumentEditor(undefined, "one-off-request", options.schemas, false);
     const [source, setSource] = useState<RequestSource>("template");
-    const [templateId, setTemplateId] = useState("");
-    const [blueprintId, setBlueprintId] = useState("");
+    const [templateChoice, setTemplateChoice] = useState<Scoped<string> | null>(null);
+    const [blueprintChoice, setBlueprintChoice] = useState<Scoped<string> | null>(null);
+    const templateId = valueInScope(templateChoice, options.scope) ?? "";
+    const blueprintId = valueInScope(blueprintChoice, options.scope) ?? "";
     const [name, setName] = useState("");
+    const [gatesExchangeClosure, setGatesExchangeClosure] = useState(true);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const commandKey = useRef({signature: "", key: ""});
@@ -53,17 +62,24 @@ export const useCreateInformationRequest = (exchangeId: string, onCreated: (requ
 
     const requestFor = async (): Promise<CreateInformationRequestRequest> =>
     {
-        if (source === "blueprint") return {exchangeId, blueprintDefinitionId: blueprintId};
-        if (source === "adhoc") return {exchangeId, displayName: name.trim(), configuration: configurationRequestFrom(editor.document)};
+        if (source === "blueprint") return {exchangeId, blueprintDefinitionId: blueprintId, gatesExchangeClosure};
+        if (source === "adhoc") {
+            return {
+                exchangeId,
+                displayName: name.trim(),
+                configuration: configurationRequestFrom(editor.document),
+                gatesExchangeClosure
+            };
+        }
         const template = await getInformationRequestTemplate(templateId);
         const versionId = template.latestPublishedVersion?.id;
         if (!versionId) throw {errorMessage: "This Template has no published Version to start from."};
-        return {exchangeId, templateVersionId: versionId};
+        return {exchangeId, templateVersionId: versionId, gatesExchangeClosure};
     };
 
-    const nameAuthorDecisionMaker = async (requestId: string) =>
+    const nameAuthorDecisionMaker = async (requestId: string): Promise<string | null> =>
     {
-        if (!appUser?.id) return;
+        if (!appUser?.id) return null;
         try
         {
             const {partiesETag} = await getInformationRequestParties(requestId);
@@ -73,10 +89,10 @@ export const useCreateInformationRequest = (exchangeId: string, onCreated: (requ
                 partiesETag,
                 crypto.randomUUID(),
             );
-        }
-        catch
+            return null;
+        } catch (caught: unknown)
         {
-            return;
+            return informationRequestRefusalMessage(caught, "Naming you the Decision Maker did not finish.");
         }
     };
 
@@ -89,13 +105,13 @@ export const useCreateInformationRequest = (exchangeId: string, onCreated: (requ
         {
             const request = await requestFor();
             const created = await createInformationRequest(request, keyFor(request));
-            await nameAuthorDecisionMaker(created.id);
-            onCreated(created);
+            onCreated(created, await nameAuthorDecisionMaker(created.id));
         }
         catch (caught: unknown)
         {
             setError(informationRequestRefusalMessage(caught, "The Information Request could not be created."));
-            if (source === "adhoc" && isTemplateRefusal(caught)) editor.goTo(targetForRefusal(editor.document, caught));
+            const target = source === "adhoc" && isTemplateRefusal(caught) ? targetForRefusal(editor.document, caught) : undefined;
+            if (target) editor.goTo(target);
         }
         finally
         {
@@ -109,11 +125,13 @@ export const useCreateInformationRequest = (exchangeId: string, onCreated: (requ
         source,
         setSource,
         templateId,
-        setTemplateId,
+        setTemplateId: (id: string) => setTemplateChoice({scope: options.scope, value: id}),
         blueprintId,
-        setBlueprintId,
+        setBlueprintId: (id: string) => setBlueprintChoice({scope: options.scope, value: id}),
         name,
         setName,
+        gatesExchangeClosure,
+        setGatesExchangeClosure,
         ready,
         busy,
         error,

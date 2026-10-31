@@ -1,4 +1,4 @@
-﻿package com.docuhyphen.app.api.model.entity
+package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -10,19 +10,14 @@ import java.util.*
 
 enum class ShareSource
 {
-    /** Explicit grant to a known principal. */
     DIRECT,
 
-    /** Email invite that materialises an [ExternalParticipant] on acceptance. */
     INVITE,
 
-    /** Anonymous access via a [ShareLink] token. */
     LINK,
 
-    /** Auto-generated when a [PrincipalGroup] receives a DIRECT share. */
     INHERITED_FROM_GROUP,
 
-    /** Auto-generated when an [Organization] receives a DIRECT share. */
     INHERITED_FROM_ORG,
 }
 
@@ -34,17 +29,6 @@ enum class ShareStatus
     EXPIRED,
 }
 
-/**
- * Unified sharing grant. Replaces the legacy three-way recipient columns on
- * [Exchange] (`recipient_id`, `recipient_type`, `group_id`) and the
- * boolean `allow_document_*` flags. Every recipient, be it a user, participant,
- * group, organization, service account, or public link, gets its own row.
- *
- * Inheritance is materialised: when a group is shared with, a DIRECT row is created
- * for the group plus INHERITED_FROM_GROUP rows for each member, with `sourceShareId`
- * pointing back to the parent grant. This keeps the [AuthorizationService] query a
- * single `select * from share where ...` instead of recursive traversal.
- */
 @Entity
 @Serializable
 @Table(name = "share")
@@ -54,7 +38,7 @@ class Share
     @Serializable(with = UUIDSerializer::class)
     var id: UUID = UUID.randomUUID()
 
-    @Column(name = "resource_type", nullable = false, length = 32)
+    @Column(name = "resource_type", nullable = false, length = 64)
     @Enumerated(EnumType.STRING)
     var resourceType: ResourceType = ResourceType.EXCHANGE
 
@@ -113,12 +97,6 @@ class Share
     @Serializable(with = UUIDSerializer::class)
     var revokedByPrincipalId: UUID? = null
 
-    /**
-     * Optional JSON blob describing per-share constraints
-     * (can_reshare, can_download, watermark, ip_allowlist, require_mfa, max_views, etc.).
-     * Parsed by [com.docuhyphen.app.api.service.auth.authz.AuthorizationService] when
-     * computing denies.
-     */
     @Column(name = "constraints_json", nullable = true, columnDefinition = "text")
     var constraintsJson: String? = null
 

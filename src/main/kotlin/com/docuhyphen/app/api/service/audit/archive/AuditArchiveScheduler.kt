@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit.archive
 
+import com.docuhyphen.app.api.model.audit.archive.SegmentVerificationResult
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -10,24 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.context.control.ActivateRequestContext
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
-import java.util.*
 
-/**
- * Periodically closes ready ledger ranges into signed archive segments ([AuditArchiver]) and
- * continuously re-verifies previously archived segments ([AuditArchiveVerifier]), recording every
- * verification result (success or failure) as its own immutable audit event - the architecture's
- * "continuous verification job emits its result as an immutable audit event and alerts on failure
- * via CloudWatch. CloudWatch alerting is achieved by logging
- * failures at ERROR with a distinctive, greppable message that a CloudWatch Logs metric filter +
- * alarm can match (see `infra/cloudformation.yml`), reusing the CloudWatch Logs group already in
- * the stack rather than adding a new AWS service.
- *
- * [AuditRecorder] is `@RequestScoped` (it derives per-request actor/correlation context), so the
- * verification tick uses [ActivateRequestContext] to open a request context for the duration of
- * the scheduled invocation, exactly as recommended for injecting request-scoped beans into a
- * background job; with no inbound HTTP request, [AuditEventDraft.actorKind] is explicitly set to
- * `SYSTEM` so the ledger never has to guess.
- */
 @ApplicationScoped
 class AuditArchiveScheduler @Inject constructor(
     private val archiver: AuditArchiver,
@@ -83,17 +67,35 @@ class AuditArchiveScheduler @Inject constructor(
             val results = verifier.verifyDueSegments(configService.getReverifyAfterHours())
             for ((segment, result) in results)
             {
-                recordVerificationResult(segment.streamId, segment.firstSequence, segment.lastSequence, result)
+                runCatching {
+                    recordVerificationResult(
+                        segment.streamId,
+                        segment.firstSequence,
+                        segment.lastSequence,
+                        result
+                    )
+                }
+                    .onFailure {
+                        logger.error(
+                            "{}: verification result not recorded streamId={} range=[{},{}]",
+                            ALERT_MARKER, segment.streamId, segment.firstSequence, segment.lastSequence, it,
+                        )
+                    }
             }
 
-            val failedStreams = results.map { it.first.streamId }.distinct()
-            for (streamId in failedStreams)
-            {
-                val chainResult = verifier.verifyStreamChain(streamId)
-                if (!chainResult.valid)
-                {
-                    logger.error("{}: stream chain break streamId={} note={}", ALERT_MARKER, streamId, chainResult.note)
-                }
+            for (streamId in results.map { it.first.streamId }.distinct()) {
+                runCatching { verifier.verifyStreamChain(streamId) }
+                    .onSuccess { chainResult ->
+                        if (!chainResult.valid) {
+                            logger.error(
+                                "{}: stream chain break streamId={} note={}",
+                                ALERT_MARKER,
+                                streamId,
+                                chainResult.note
+                            )
+                        }
+                    }
+                    .onFailure { logger.error("{}: stream chain not verified streamId={}", ALERT_MARKER, streamId, it) }
             }
         }
         catch (e: Exception)
@@ -121,9 +123,7 @@ class AuditArchiveScheduler @Inject constructor(
         {
             auditRecorder.record(
                 AuditEventDraft(
-                    owner = streamId.substringBefore(':').takeUnless { it == "platform" }
-                        ?.let { AuditOwnerScope.Organization(UUID.fromString(it)) }
-                        ?: AuditOwnerScope.Platform,
+                    owner = LedgerProcessor.ownerOfStream(streamId),
                     eventTypeKey = if (result.valid) AuditEventType.ARCHIVE_INTEGRITY_VERIFIED.key else AuditEventType.ARCHIVE_INTEGRITY_FAILED.key,
                     outcome = if (result.valid) AuditOutcome.SUCCESS else AuditOutcome.FAILURE,
                     actorKind = AuditActorKind.SYSTEM,

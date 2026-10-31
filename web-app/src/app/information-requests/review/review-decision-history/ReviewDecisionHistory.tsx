@@ -6,7 +6,7 @@ import {
 } from "../../../models/models.tsx";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {reviewOutcomeLabels} from "../reviewLabels.ts";
-import {useReviewAssignmentsPanelStyles} from "../review-assignments-panel/ReviewAssignmentsPanelStyles.tsx";
+import {useReviewDecisionHistoryStyles} from "./ReviewDecisionHistoryStyles.tsx";
 
 interface Props
 {
@@ -23,7 +23,7 @@ const deciderText = (decision: InformationRequestReviewDecisionDto): string =>
 
 const ReviewDecisionHistory = ({review, labelOf}: Props) =>
 {
-    const styles = useReviewAssignmentsPanelStyles();
+    const styles = useReviewDecisionHistoryStyles();
     const stageTitle = (stageKey: string) => review.stages.find(stage => stage.stageKey === stageKey)?.title ?? stageKey;
     const remediated = review.remediations.length;
 
@@ -39,18 +39,20 @@ const ReviewDecisionHistory = ({review, labelOf}: Props) =>
             </Title3>
             <ol id={"information-request-review-history-list"}
                 className={styles.list}>
-                {[...review.decisions].sort((left, right) => left.decidedAt.localeCompare(right.decidedAt)).map(decision => (
+                {[...review.decisions].sort((left, right) => left.decidedAt - right.decidedAt).map(decision => (
                     <li key={decision.id}
                         id={`information-request-review-history-${decision.id}`}>
-                        <Text>
+                        <Text id={`information-request-review-history-${decision.id}-outcome`}>
                             {`${labelOf(decision.submissionItemId)}: ${reviewOutcomeLabels[decision.outcome]} ${deciderText(decision)}`}
                         </Text>
-                        <Text size={200}
+                        <Text id={`information-request-review-history-${decision.id}-decided`}
+                              size={200}
                               className={styles.detail}>
                             {` (${stageTitle(decision.stageKey)}, ${formatInformationRequestTime(decision.decidedAt)})`}
                         </Text>
                         {decision.narrative && (
-                            <Text size={200}
+                            <Text id={`information-request-review-history-${decision.id}-narrative`}
+                                  size={200}
                                   className={styles.detail}>
                                 {` ${decision.narrative}`}
                             </Text>

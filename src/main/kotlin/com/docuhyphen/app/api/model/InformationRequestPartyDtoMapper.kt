@@ -9,7 +9,9 @@ object InformationRequestPartyDtoMapper
     fun toDto(
         party: InformationRequestParty,
         revealIdentity: Boolean,
-        label: String? = null
+        label: String? = null,
+        trustSuspended: Boolean = false,
+        processingRestricted: Boolean = false,
     ): InformationRequestPartyDto =
         InformationRequestPartyDto(
             id = party.id,
@@ -25,5 +27,8 @@ object InformationRequestPartyDtoMapper
             partyRevision = party.partyRevision,
             partyETag = InformationRequestETag.partyOf(party),
             label = label.takeIf { revealIdentity },
+            accountLinked = revealIdentity && party.linkedUserShareId != null,
+            trustSuspended = revealIdentity && trustSuspended,
+            processingRestricted = revealIdentity && processingRestricted,
         )
 }

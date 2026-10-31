@@ -1,11 +1,10 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
-import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
-import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -13,13 +12,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class WorkflowRequirementConditionTest
 {
@@ -35,7 +29,15 @@ class WorkflowRequirementConditionTest
     fun `a requirement condition reads the frozen answer of the exact package the trigger names`()
     {
         whenever(operands.frozenValue(requestId, packageId, templateRequirementId, "root"))
-            .thenReturn(WorkflowRequirementOperand.Value(CanonicalFieldValue(FieldValueType.SHORT_TEXT, false, textValue = "Accepted")))
+            .thenReturn(
+                WorkflowRequirementOperand.Value(
+                    CanonicalFieldValue(
+                        FieldValueType.SHORT_TEXT,
+                        false,
+                        textValue = "Accepted"
+                    )
+                )
+            )
 
         assertTrue(applies(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("Accepted"))))
         assertFalse(applies(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("Returned"))))
@@ -67,15 +69,30 @@ class WorkflowRequirementConditionTest
     }
 
     @Test
-    fun `an unanswered item is empty and a value of another type never matches`()
+    fun `an unanswered item is empty only for a condition of its own type and a value of another type never matches`()
     {
         whenever(operands.frozenValue(requestId, packageId, templateRequirementId, "root"))
-            .thenReturn(WorkflowRequirementOperand.Empty)
-        assertTrue(applies(condition(FieldValueType.INTEGER, FieldOperator.IS_EMPTY, null)))
+            .thenReturn(WorkflowRequirementOperand.Empty(FieldValueType.SHORT_TEXT))
+        assertTrue(applies(condition(FieldValueType.SHORT_TEXT, FieldOperator.IS_EMPTY, null)))
+        assertFalse(applies(condition(FieldValueType.SHORT_TEXT, FieldOperator.IS_NOT_EMPTY, null)))
+        assertFalse(applies(condition(FieldValueType.INTEGER, FieldOperator.IS_EMPTY, null)))
         assertFalse(applies(condition(FieldValueType.INTEGER, FieldOperator.IS_NOT_EMPTY, null)))
 
         whenever(operands.frozenValue(requestId, packageId, templateRequirementId, "root"))
-            .thenReturn(WorkflowRequirementOperand.Value(CanonicalFieldValue(FieldValueType.SHORT_TEXT, false, textValue = "4")))
+            .thenReturn(WorkflowRequirementOperand.Empty(FieldValueType.INTEGER))
+        assertTrue(applies(condition(FieldValueType.INTEGER, FieldOperator.IS_EMPTY, null)))
+        assertFalse(applies(condition(FieldValueType.SHORT_TEXT, FieldOperator.IS_EMPTY, null)))
+
+        whenever(operands.frozenValue(requestId, packageId, templateRequirementId, "root"))
+            .thenReturn(
+                WorkflowRequirementOperand.Value(
+                    CanonicalFieldValue(
+                        FieldValueType.SHORT_TEXT,
+                        false,
+                        textValue = "4"
+                    )
+                )
+            )
         assertFalse(applies(condition(FieldValueType.INTEGER, FieldOperator.EQUALS, JsonPrimitive(4))))
     }
 
@@ -97,7 +114,14 @@ class WorkflowRequirementConditionTest
                 requestId,
                 organizationId,
                 ApplicabilitySpec(
-                    listOf(FieldConditionSpec(UUID.randomUUID().toString(), null, FieldValueType.SHORT_TEXT, FieldOperator.IS_EMPTY)),
+                    listOf(
+                        FieldConditionSpec(
+                            UUID.randomUUID().toString(),
+                            null,
+                            FieldValueType.SHORT_TEXT,
+                            FieldOperator.IS_EMPTY
+                        )
+                    ),
                 ),
                 subject(),
             ),
@@ -109,16 +133,36 @@ class WorkflowRequirementConditionTest
     fun `validation refuses a malformed requirement condition and one the trigger cannot scope to a package`()
     {
         val packageTrigger = WorkflowTriggerSubject("INFORMATION_REQUEST", setOf("requestId", "submissionPackageId"))
-        evaluator.validate(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("x")), packageTrigger)
+        evaluator.validate(
+            condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("x")),
+            packageTrigger
+        )
 
         assertThrows<IllegalArgumentException> {
-            evaluator.validate(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("x"), requirement = "not-an-id"), packageTrigger)
+            evaluator.validate(
+                condition(
+                    FieldValueType.SHORT_TEXT,
+                    FieldOperator.EQUALS,
+                    JsonPrimitive("x"),
+                    requirement = "not-an-id"
+                ), packageTrigger
+            )
         }
         assertThrows<IllegalArgumentException> {
-            evaluator.validate(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, JsonPrimitive("x"), path = " "), packageTrigger)
+            evaluator.validate(
+                condition(
+                    FieldValueType.SHORT_TEXT,
+                    FieldOperator.EQUALS,
+                    JsonPrimitive("x"),
+                    path = " "
+                ), packageTrigger
+            )
         }
         assertThrows<IllegalArgumentException> {
-            evaluator.validate(condition(FieldValueType.BOOLEAN, FieldOperator.GREATER_THAN, JsonPrimitive(true)), packageTrigger)
+            evaluator.validate(
+                condition(FieldValueType.BOOLEAN, FieldOperator.GREATER_THAN, JsonPrimitive(true)),
+                packageTrigger
+            )
         }
         assertThrows<IllegalArgumentException> {
             evaluator.validate(condition(FieldValueType.SHORT_TEXT, FieldOperator.EQUALS, null), packageTrigger)
@@ -138,7 +182,14 @@ class WorkflowRequirementConditionTest
         assertThrows<IllegalArgumentException> {
             evaluator.validate(
                 ApplicabilitySpec(
-                    listOf(FieldConditionSpec(UUID.randomUUID().toString(), null, FieldValueType.SHORT_TEXT, FieldOperator.IS_EMPTY)),
+                    listOf(
+                        FieldConditionSpec(
+                            UUID.randomUUID().toString(),
+                            null,
+                            FieldValueType.SHORT_TEXT,
+                            FieldOperator.IS_EMPTY
+                        )
+                    ),
                 ),
                 packageTrigger,
             )
@@ -160,6 +211,15 @@ class WorkflowRequirementConditionTest
         requirement: String = templateRequirementId.toString(),
         path: String = "root",
     ) = ApplicabilitySpec(
-        requirementConditions = listOf(RequirementConditionSpec(requirement, path, "recorded-note", type, operator, value)),
+        requirementConditions = listOf(
+            RequirementConditionSpec(
+                requirement,
+                path,
+                "recorded-note",
+                type,
+                operator,
+                value
+            )
+        ),
     )
 }

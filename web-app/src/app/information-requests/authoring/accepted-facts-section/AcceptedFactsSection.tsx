@@ -1,27 +1,33 @@
 import {useState} from "react";
 import {Text} from "@fluentui/react-components";
-import {InformationRequestAcceptedFactDto} from "../../../models/models.tsx";
+import {InformationRequestAcceptedFactDto, InformationRequestPartyDto} from "../../../models/models.tsx";
 import AcceptedFactRow from "../accepted-fact-row/AcceptedFactRow.tsx";
 import PromotableAnswerRow from "../promotable-answer-row/PromotableAnswerRow.tsx";
 import PromoteFactDialog from "../promote-fact-dialog/PromoteFactDialog.tsx";
-import {PromotableAnswer, promotableAnswers, supportingEvidenceChoices} from "../request-outcomes-panel/outcomeLabels.ts";
+import {supportingEvidenceChoices} from "../request-outcomes-panel/outcomeLabels.ts";
+import {PromotionCandidate, promotionCandidates} from "../request-outcomes-panel/promotionEligibility.ts";
 import {RequestOutcomes} from "../request-outcomes-panel/useRequestOutcomes.ts";
 import RevokeFactDialog from "../revoke-fact-dialog/RevokeFactDialog.tsx";
 import {useAcceptedFactsSectionStyles} from "./AcceptedFactsSectionStyles.tsx";
+import {useDialogCommand} from "../../shared/useDialogCommand.ts";
 
 interface Props
 {
     outcomes: RequestOutcomes;
+    subjects: InformationRequestPartyDto[];
+    correctedItemIds: ReadonlySet<string>;
     labelOf: (requirementId: string, requirementKey?: string) => string;
-    editable: boolean;
+    promotable: boolean;
+    revocable: boolean;
 }
 
-const AcceptedFactsSection = ({outcomes, labelOf, editable}: Props) =>
+const AcceptedFactsSection = ({outcomes, subjects, correctedItemIds, labelOf, promotable, revocable}: Props) =>
 {
     const styles = useAcceptedFactsSectionStyles();
-    const [promoting, setPromoting] = useState<PromotableAnswer | null>(null);
+    const [promoting, setPromoting] = useState<PromotionCandidate | null>(null);
     const [revoking, setRevoking] = useState<InformationRequestAcceptedFactDto | null>(null);
-    const answers = promotableAnswers(outcomes.packages);
+    const command = useDialogCommand(outcomes.error, outcomes.notice);
+    const answers = promotionCandidates(outcomes.packages, outcomes.facts, subjects, outcomes.reviews, correctedItemIds);
 
     return (
         <section id={"information-request-accepted-facts"}
@@ -36,11 +42,11 @@ const AcceptedFactsSection = ({outcomes, labelOf, editable}: Props) =>
             </Text>
             <Text id={"information-request-accepted-facts-explanation"}
                   className={styles.muted}>
-                An accepted fact is a submitted answer kept for reuse. Later requests about the same subject offer it
-                for the respondent to confirm again. An answer in a package that needs review can be promoted once
-                its review accepts it.
+                An accepted fact is a submitted answer about the request's single subject, kept for reuse. Later
+                requests about the same subject offer it for the respondent to confirm again. An answer in a package
+                that needs review can be promoted once its review accepts it.
             </Text>
-            {editable && (
+            {promotable && (
                 <>
                     <Text id={"information-request-promotable-answers-title"}
                           as={"h4"}
@@ -57,12 +63,15 @@ const AcceptedFactsSection = ({outcomes, labelOf, editable}: Props) =>
                         <ul id={"information-request-promotable-answers"}
                             aria-labelledby={"information-request-promotable-answers-title"}
                             className={styles.list}>
-                            {answers.map(answer => (
-                                <PromotableAnswerRow key={`${answer.packageId}-${answer.item.id}`}
-                                                     answer={answer}
-                                                     label={labelOf(answer.item.requirementId, answer.item.requirementKey)}
+                            {answers.map(candidate => (
+                                <PromotableAnswerRow key={`${candidate.answer.packageId}-${candidate.answer.item.id}`}
+                                                     candidate={candidate}
+                                                     label={labelOf(candidate.answer.item.requirementId, candidate.answer.item.requirementKey)}
                                                      busy={outcomes.busy}
-                                                     onPromote={() => setPromoting(answer)}/>
+                                                     onPromote={() => {
+                                                         command.reset();
+                                                         setPromoting(candidate);
+                                                     }}/>
                             ))}
                         </ul>
                     )}
@@ -87,30 +96,34 @@ const AcceptedFactsSection = ({outcomes, labelOf, editable}: Props) =>
                         <AcceptedFactRow key={fact.id}
                                          fact={fact}
                                          label={labelOf(fact.sourceRequirementId)}
-                                         editable={editable}
+                                         editable={revocable}
                                          busy={outcomes.busy}
-                                         onRevoke={() => setRevoking(fact)}/>
+                                         onRevoke={() => {
+                                             command.reset();
+                                             setRevoking(fact);
+                                         }}/>
                     ))}
                 </ul>
             )}
             {promoting && (
-                <PromoteFactDialog label={labelOf(promoting.item.requirementId, promoting.item.requirementKey)}
-                                   evidenceChoices={supportingEvidenceChoices(outcomes.packages, promoting, labelOf)}
-                                   busy={outcomes.busy}
-                                   onConfirm={terms =>
-                                   {
-                                       setPromoting(null);
-                                       void outcomes.promote({packageId: promoting.packageId, submissionItemId: promoting.item.id, ...terms});
-                                   }}
+                <PromoteFactDialog
+                    label={labelOf(promoting.answer.item.requirementId, promoting.answer.item.requirementKey)}
+                    evidenceChoices={supportingEvidenceChoices(outcomes.packages, promoting.answer, labelOf)}
+                    promotedPurposes={promoting.promotedPurposes}
+                    busy={outcomes.busy || command.busy}
+                    error={command.error}
+                    onConfirm={terms => void command.run(
+                        () => outcomes.promote({
+                            packageId: promoting.answer.packageId,
+                            submissionItemId: promoting.answer.item.id, ...terms
+                        }),
+                        () => setPromoting(null))}
                                    onDismiss={() => setPromoting(null)}/>
             )}
             {revoking && (
-                <RevokeFactDialog busy={outcomes.busy}
-                                  onConfirm={request =>
-                                  {
-                                      setRevoking(null);
-                                      void outcomes.revoke(revoking, request);
-                                  }}
+                <RevokeFactDialog busy={outcomes.busy || command.busy}
+                                  error={command.error}
+                                  onConfirm={request => void command.run(() => outcomes.revoke(revoking, request), () => setRevoking(null))}
                                   onDismiss={() => setRevoking(null)}/>
             )}
         </section>

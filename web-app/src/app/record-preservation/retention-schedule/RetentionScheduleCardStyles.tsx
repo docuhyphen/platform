@@ -11,18 +11,4 @@ export const useRetentionScheduleCardStyles = makeStyles({
         backgroundColor: tokens.colorNeutralBackground1,
         minWidth: 0,
     },
-    form: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalS,
-    },
-    fields: {
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: tokens.spacingHorizontalM,
-    },
-    actions: {
-        display: "flex",
-        justifyContent: "flex-end",
-    },
 });

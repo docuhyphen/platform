@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -17,20 +19,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Group-mediated Share path in DefaultAuthorizationService.
- *
- * Rules verified (Phase 10 required matrix):
- *  - A user who is an active member of a group that has a Share on an Exchange is permitted
- *    (the "Legal group permitted" requirement).
- *  - A user who is an active member of a group that has NO Share on the same Exchange is denied
- *    (the "Finance group denied" requirement).
- *  - An inactive group membership yields no grant; findGroupsForPrincipal filters to isActive=true
- *    so the repository simply returns no groups for an inactive member.
- *  - A group with an EDITOR Share grants both EXCHANGE_VIEW and EXCHANGE_EDIT to the member.
- *  - Two independent users with different groups on the same exchange produce the expected
- *    Allow/Deny split.
- */
 class GroupMediatedShareTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
@@ -66,11 +54,13 @@ class GroupMediatedShareTest
     private fun buildService(
         groupMembers: List<PrincipalGroupMember> = emptyList(),
         groupShareOverride: Pair<UUID, List<Share>>? = null,
+        memberShares: List<Share> = emptyList(),
+        expansion: GroupShareExpansionPolicy = GroupShareExpansionPolicy.UNRESTRICTED,
     ): DefaultAuthorizationService
     {
         val shareRepo = mock<ShareRepository>()
         whenever(shareRepo.findActiveForPrincipalOnResource(eq(PrincipalKind.USER), any(), any(), any()))
-            .thenReturn(emptyList())
+            .thenReturn(memberShares)
         whenever(shareRepo.findActiveForPrincipalOnResource(eq(PrincipalKind.PRINCIPAL_GROUP), any(), any(), any()))
             .thenReturn(emptyList())
         if (groupShareOverride != null)
@@ -80,11 +70,18 @@ class GroupMediatedShareTest
                     eq(PrincipalKind.PRINCIPAL_GROUP), eq(groupShareOverride.first), any(), any()
                 )
             ).thenReturn(groupShareOverride.second)
+            groupShareOverride.second.forEach { whenever(shareRepo.findById(it.id)).thenReturn(it) }
         }
 
         val groupMemberRepo = mock<PrincipalGroupMemberRepository>()
         whenever(groupMemberRepo.findGroupsForPrincipal(any(), any())).thenReturn(groupMembers)
-        whenever(groupMemberRepo.findMembership(any(), any(), any())).thenReturn(null)
+        whenever(groupMemberRepo.findMembership(any(), any(), any())).thenAnswer { invocation ->
+            groupMembers.firstOrNull {
+                it.principalGroupId == invocation.getArgument(0) &&
+                        it.principalKind == invocation.getArgument(1) &&
+                        it.principalId == invocation.getArgument(2)
+            }
+        }
 
         val registry = mock<ResourceAuthorizationContextRegistry>()
         whenever(registry.resolution(any<ResourceRef>())).thenReturn(
@@ -106,12 +103,22 @@ class GroupMediatedShareTest
             principalGroupRepository = mock<PrincipalGroupRepository>(),
             applicationService = mock<ApplicationService>(),
             resourceContextRegistry = registry,
+            groupShareExpansionPolicy = expansion,
         )
     }
 
-    // -------------------------------------------------------------------------
-    // Legal group permitted, Finance group denied
-    // -------------------------------------------------------------------------
+    private fun inheritedShare(groupShare: Share, userId: UUID): Share = Share().apply {
+        id = UUID.randomUUID()
+        principalKind = PrincipalKind.USER
+        principalId = userId
+        resourceType = groupShare.resourceType
+        resourceId = groupShare.resourceId
+        roleName = groupShare.roleName
+        source = ShareSource.INHERITED_FROM_GROUP
+        sourceShareId = groupShare.id
+        status = ShareStatus.ACTIVE
+        constraintsJson = null
+    }
 
     @Test
     fun `member of Legal group with VIEWER Share on Exchange is permitted`()
@@ -211,5 +218,62 @@ class GroupMediatedShareTest
         assertFalse(
             financeSvc.authorize(PrincipalRef.user(financeUser), Action.EXCHANGE_VIEW, resource, AuthorizationContext()).isAllowed
         )
+    }
+
+    @Test
+    fun `a group Share that no longer expands grants nothing to a member it never materialized`() {
+        val userId = UUID.randomUUID()
+        val groupShare = makeGroupShare(legalGroupId, exchangeId)
+        val svc = buildService(
+            groupMembers = listOf(makeGroupMembership(legalGroupId, userId)),
+            groupShareOverride = legalGroupId to listOf(groupShare),
+            expansion = GroupShareExpansionPolicy { false },
+        )
+
+        val decision = svc.authorize(
+            PrincipalRef.user(userId), Action.EXCHANGE_VIEW, ResourceRef.exchange(exchangeId), AuthorizationContext()
+        )
+
+        assertFalse(decision.isAllowed) { "A member the group Share holds back must not reach the Exchange through it" }
+    }
+
+    @Test
+    fun `a member materialized from a group Share keeps its grant after the Share stops expanding`() {
+        val userId = UUID.randomUUID()
+        val groupShare = makeGroupShare(legalGroupId, exchangeId)
+        val consulted = mutableListOf<UUID>()
+        val svc = buildService(
+            groupMembers = listOf(makeGroupMembership(legalGroupId, userId)),
+            groupShareOverride = legalGroupId to listOf(groupShare),
+            memberShares = listOf(inheritedShare(groupShare, userId)),
+            expansion = GroupShareExpansionPolicy { share ->
+                consulted += share.id
+                false
+            },
+        )
+
+        val decision = svc.authorize(
+            PrincipalRef.user(userId), Action.EXCHANGE_VIEW, ResourceRef.exchange(exchangeId), AuthorizationContext()
+        )
+
+        assertTrue(decision.isAllowed) { "A member admitted while the group Share expanded keeps that access" }
+        assertTrue(consulted.isEmpty()) { "A materialized member needs no expansion decision" }
+    }
+
+    @Test
+    fun `a group Share that still expands grants a member it has not materialized yet`() {
+        val userId = UUID.randomUUID()
+        val groupShare = makeGroupShare(legalGroupId, exchangeId)
+        val svc = buildService(
+            groupMembers = listOf(makeGroupMembership(legalGroupId, userId)),
+            groupShareOverride = legalGroupId to listOf(groupShare),
+            expansion = GroupShareExpansionPolicy { share -> share.id == groupShare.id },
+        )
+
+        val decision = svc.authorize(
+            PrincipalRef.user(userId), Action.EXCHANGE_VIEW, ResourceRef.exchange(exchangeId), AuthorizationContext()
+        )
+
+        assertTrue(decision.isAllowed)
     }
 }

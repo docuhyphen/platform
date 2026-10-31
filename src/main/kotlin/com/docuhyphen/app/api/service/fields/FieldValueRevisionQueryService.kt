@@ -2,11 +2,11 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueRevision
+import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
-import com.docuhyphen.app.api.repository.fields.FieldValueRevisionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRevisionSelectionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.repository.fields.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -17,8 +17,12 @@ class FieldValueRevisionQueryService @Inject constructor(
     private val bindingRepository: SchemaFieldBindingRepository,
     private val revisionRepository: FieldValueRevisionRepository,
     private val selectionRepository: FieldValueRevisionSelectionRepository,
+    private val contractRepository: FieldContractRepository,
 )
 {
+    fun valueTypeOfDefinition(fieldDefinitionId: UUID): FieldValueType? =
+        contractRepository.findByDefinition(fieldDefinitionId).minByOrNull { it.contractVersion }?.valueType
+
     fun latestRevision(resource: FieldsResourceRef, valueSetId: UUID, fieldDefinitionId: UUID): FieldValueRevision?
     {
         val assignment = assignmentRepository.findByResource(resource.resourceType, resource.resourceId) ?: return null

@@ -10,21 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class RequirementPolicyPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<RequirementPolicyPostgreSQLContainer>(imageName)
 
-/**
- * A template requirement is now typed, and a version states the respondent policy under which it
- * asks for that type.
- *
- * The type belongs to the stable requirement, because a requirement whose kind changes between
- * versions is no longer the thing earlier responses were recorded against. Everything a version can
- * legitimately restate about the same requirement, the prompt it uses, who answers, what answers
- * are permitted, whether a reviewer must look at it, and what supports it, belongs to the binding
- * that places the requirement into that version.
- */
 class InformationRequestTemplateRequirementPolicyContractTest
 {
     private val structureVersion = "86"
@@ -38,7 +28,13 @@ class InformationRequestTemplateRequirementPolicyContractTest
             postgres.createConnection("").use { connection ->
                 val fixture = Fixture(connection)
 
-                insertRequirement(connection, fixture.fieldRequirementId, fixture.definitionId, "recorded-note", "FIELD")
+                insertRequirement(
+                    connection,
+                    fixture.fieldRequirementId,
+                    fixture.definitionId,
+                    "recorded-note",
+                    "FIELD"
+                )
                 insertRequirement(
                     connection,
                     fixture.documentRequirementId,
@@ -61,12 +57,11 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 refused(connection, "ck_request_template_requirement_type") {
                     insertRequirement(connection, UUID.randomUUID(), fixture.definitionId, "guessed-kind", "SIGNATURE")
                 }
-                // The stable identity now includes what kind of thing is being asked for.
                 refused(connection, "stable identity") {
                     updateStatement(
                         connection,
                         "UPDATE information_request_template_requirement SET requirement_type = 'DOCUMENT' " +
-                            "WHERE id = ?",
+                                "WHERE id = ?",
                         fixture.fieldRequirementId,
                     )
                 }
@@ -95,8 +90,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 refused(connection, "ck_request_template_binding_requiredness") {
                     fixture.insertSecondBinding(connection, requiredness = "PREFERRED")
                 }
-                // A reviewer is not the party a template nominates to answer, so review roles are
-                // absent from the contributor vocabulary rather than merely discouraged.
                 refused(connection, "ck_request_template_binding_contributor_role") {
                     fixture.insertSecondBinding(connection, contributorRole = "REVIEWER")
                 }
@@ -109,8 +102,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 refused(connection, "ck_request_template_binding_policy_keys") {
                     fixture.insertSecondBinding(connection, occurrenceAnchorKey = "  ")
                 }
-                // A requirement that only sometimes applies has to say what decides it, otherwise
-                // nothing can ever resolve whether it was owed.
                 refused(connection, "ck_request_template_binding_conditional_rule") {
                     fixture.insertSecondBinding(connection, requiredness = "CONDITIONAL", conditionalRuleKey = null)
                 }
@@ -127,7 +118,10 @@ class InformationRequestTemplateRequirementPolicyContractTest
                     "prior-answer-recorded",
                     bindingValue(connection, fixture.secondBindingId, "conditional_rule_key"),
                 )
-                assertEquals("repeated-entry", bindingValue(connection, fixture.secondBindingId, "occurrence_anchor_key"))
+                assertEquals(
+                    "repeated-entry",
+                    bindingValue(connection, fixture.secondBindingId, "occurrence_anchor_key")
+                )
                 assertEquals(
                     "restricted-review",
                     bindingValue(connection, fixture.secondBindingId, "confidentiality_compartment_key"),
@@ -146,8 +140,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 val fixture = Fixture(connection)
                 fixture.withFieldRequirementBound(connection)
 
-                // The permitted answers of a binding belong to the version that binding is in, so a
-                // set row naming another version reaches no binding at all.
                 refused(connection, "request_template_disposition_binding_fkey") {
                     insertDisposition(
                         connection,
@@ -177,8 +169,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 refused(connection, "ck_request_template_disposition_value") {
                     insertDisposition(connection, UUID.randomUUID(), fixture.bindingId, fixture.versionId, "APPROVED")
                 }
-                // Not having answered is the state every requirement starts in, so permitting it as
-                // an answer would make an unanswered requirement indistinguishable from a resolved one.
                 refused(connection, "ck_request_template_disposition_value") {
                     insertDisposition(
                         connection,
@@ -221,8 +211,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // Nothing supports itself: the relation runs one way, so the same binding cannot be
-                // both a non-document end and a document end of it.
                 refused(connection, "supporting evidence must be a requested document") {
                     insertEvidenceLink(
                         connection,
@@ -232,8 +220,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // Evidence is what a document requirement collects, so a document does not itself
-                // declare supporting evidence and nothing but a document can be supporting evidence.
                 refused(connection, "does not itself declare supporting evidence") {
                     insertEvidenceLink(
                         connection,
@@ -253,8 +239,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                         fixture.versionId,
                     )
                 }
-                // Another version of the same definition asks for the same document, but its
-                // binding is not the one this version placed, so it cannot support this answer.
                 fixture.withDocumentOnlyVersion(connection)
                 refused(connection, "request_template_evidence_link_supporting_fkey") {
                     insertEvidenceLink(
@@ -280,21 +264,20 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 fixture.withFieldRequirementBound(connection)
 
                 refused(connection, "must name the schema version") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 updateStatement(
                     connection,
                     "UPDATE information_request_template_version SET schema_version_id = '${fixture.schemaVersionId}' " +
-                        "WHERE id = ?",
+                            "WHERE id = ?",
                     fixture.versionId,
                 )
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
 
-                // A version that asks only for documents and assertions needs no typed-data contract.
                 fixture.withDocumentOnlyVersion(connection)
-                publish(connection, fixture.otherVersionId, fixture.userId)
+                publish(connection, fixture.otherVersionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.otherVersionId))
             }
         }
@@ -325,10 +308,10 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 updateStatement(
                     connection,
                     "UPDATE information_request_template_version SET schema_version_id = '${fixture.schemaVersionId}' " +
-                        "WHERE id = ?",
+                            "WHERE id = ?",
                     fixture.versionId,
                 )
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
 
                 refused(connection, "immutable") {
                     insertDisposition(connection, UUID.randomUUID(), fixture.bindingId, fixture.versionId, "WAIVED")
@@ -351,7 +334,7 @@ class InformationRequestTemplateRequirementPolicyContractTest
                     updateStatement(
                         connection,
                         "UPDATE information_request_template_requirement_binding SET review_policy = 'NOT_REQUIRED' " +
-                            "WHERE id = ?",
+                                "WHERE id = ?",
                         fixture.bindingId,
                     )
                 }
@@ -391,8 +374,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
                 insertUntypedRequirement(connection, UUID.randomUUID(), fixture.definitionId, "recorded-note")
             }
 
-            // No requirement has a writer yet, so a row recorded before the type existed can only
-            // have been placed by hand. There is no honest type to backfill for it.
             val refusal = assertThrows<Exception> { flyway(postgres).migrate() }
             assertTrue(
                 generateSequence<Throwable>(refusal) { it.cause }
@@ -440,7 +421,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
             )
         }
 
-        /** The version under test asks for one typed answer, in one section, from a contributor. */
         fun withFieldRequirementBound(connection: Connection)
         {
             insertSection(connection, sectionId, versionId, "collected-data", 1)
@@ -470,7 +450,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
             insertBinding(connection, attestationBindingId, versionId, attestationRequirementId, sectionId, 3)
         }
 
-        /** A second version of the same definition that asks for no typed data at all. */
         fun withDocumentOnlyVersion(connection: Connection)
         {
             insertSection(connection, otherSectionId, otherVersionId, "supporting-data", 1)
@@ -491,7 +470,13 @@ class InformationRequestTemplateRequirementPolicyContractTest
             occurrenceAnchorKey: String? = null,
         )
         {
-            insertRequirement(connection, attestationRequirementId, definitionId, "recorded-assertion", "RESPONSE_ATTESTATION")
+            insertRequirement(
+                connection,
+                attestationRequirementId,
+                definitionId,
+                "recorded-assertion",
+                "RESPONSE_ATTESTATION"
+            )
             insertBinding(
                 connection,
                 secondBindingId,
@@ -799,11 +784,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
         }
     }
 
-    /**
-     * One stable field, its contract, and the schema version binding that carries it. A typed
-     * requirement has to name a field it collects, and publication asks whether the version's own
-     * contract carries that field, so the fixture supplies both halves.
-     */
     private fun insertCollectableField(
         connection: Connection,
         fieldDefinitionId: UUID,
@@ -856,10 +836,6 @@ class InformationRequestTemplateRequirementPolicyContractTest
         }
     }
 
-    /**
-     * The least restrictive policy a requested document can be judged by. A version that requests a
-     * document cannot be published without one, so every document this fixture binds carries it.
-     */
     private fun insertEvidencePolicy(connection: Connection, id: UUID, bindingId: UUID, versionId: UUID)
     {
         connection.prepareStatement(
@@ -928,32 +904,24 @@ class InformationRequestTemplateRequirementPolicyContractTest
         }
     }
 
-    /**
-     * Publication requires the version to have recorded the runtime capabilities its configuration
-     * needs, which is not what these tests are about, so the set is derived and recorded here.
-     * Nothing is recorded once the version has left draft, so a refused publication still refuses
-     * for its own reason.
-     */
-    private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publish(connection: Connection, versionId: UUID)
     {
         recordRequiredCapabilities(connection, versionId)
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }
 
     private fun recordRequiredCapabilities(connection: Connection, versionId: UUID)
     {
-        // A baseline that predates the rule has neither the table nor anything to record in it.
         if (!capabilityTableExists(connection))
         {
             return

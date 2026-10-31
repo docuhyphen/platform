@@ -10,11 +10,14 @@ export type RecertifyReusableAnswer = (
     factId: string,
     requirementId: string,
     responseETag: string,
+    confirmedHiddenResponseClearRequirementIds?: string[],
 ) => Promise<ReusableAnswerResult>;
 
 export interface ReusableAnswerSettings
 {
     offers: InformationRequestAcceptedFactOfferDto[];
+    error: string | null;
+    reload: () => Promise<void>;
     recertify: RecertifyReusableAnswer;
 }
 

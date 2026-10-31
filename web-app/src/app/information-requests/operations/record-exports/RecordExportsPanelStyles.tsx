@@ -13,10 +13,20 @@ export const useRecordExportsPanelStyles = makeStyles({
     },
     heading: {
         display: "flex",
-        alignItems: "center",
+        alignItems: "flex-end",
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalM,
         flexWrap: "wrap",
+    },
+    create: {
+        display: "flex",
+        alignItems: "flex-end",
+        gap: tokens.spacingHorizontalS,
+        flexWrap: "wrap",
+        minWidth: 0,
+    },
+    region: {
+        minWidth: "180px",
     },
     list: {
         display: "flex",
@@ -26,23 +36,7 @@ export const useRecordExportsPanelStyles = makeStyles({
         padding: 0,
         listStyleType: "none",
     },
-    entry: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalM,
-        flexWrap: "wrap",
-        paddingTop: tokens.spacingVerticalS,
-        borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke3}`,
-    },
-    summary: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalXXS,
-        flex: 1,
-        minWidth: "200px",
-    },
-    detail: {
+    note: {
         color: tokens.colorNeutralForeground3,
-        overflowWrap: "anywhere",
     },
 });

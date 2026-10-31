@@ -2,11 +2,10 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
-import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
-import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -17,12 +16,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-/**
- * Evaluates a workflow definition's [ApplicabilitySpec] against the subject Exchange's typed field
- * values. AND semantics: every condition must match. Missing data (no schema, no value, retired
- * option, unevaluatable literal, unsupported operator) is always a non-match; the gate never
- * fails open. Conditions reference the immutable `fieldDefinitionId` and option codes, never labels.
- */
 @ApplicationScoped
 class WorkflowApplicabilityEvaluator @Inject constructor(
     private val exchangeFieldQueryService: ExchangeFieldQueryService,
@@ -32,10 +25,6 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
 {
     private val logger = LoggerFactory.getLogger(WorkflowApplicabilityEvaluator::class.java)
 
-    /**
-     * @return true if the definition should start for this subject. A null/empty [applicability]
-     *   block is always applicable. Only EXCHANGE subjects support field conditions.
-     */
     fun isApplicable(
         subjectResourceType: String?,
         subjectResourceId: UUID?,
@@ -147,12 +136,9 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
             ))
             {
                 is WorkflowRequirementOperand.Unavailable -> false
-                WorkflowRequirementOperand.Empty -> evaluate(
-                    condition.valueType,
-                    condition.operator,
-                    condition.value,
-                    null
-                )
+                is WorkflowRequirementOperand.Empty ->
+                    operand.type == condition.valueType &&
+                            evaluate(condition.valueType, condition.operator, condition.value, null)
 
                 is WorkflowRequirementOperand.Value ->
                     operand.value.type == condition.valueType &&
@@ -192,29 +178,27 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
         return when (valueType)
         {
             FieldValueType.SHORT_TEXT, FieldValueType.LONG_TEXT ->
-                matchesText(operator, stored!!.textValue, literal)
+                matchesText(operator, stored.textValue, literal)
 
             FieldValueType.BOOLEAN ->
-                matchesBoolean(operator, stored!!.boolValue, literal)
+                matchesBoolean(operator, stored.boolValue, literal)
 
             FieldValueType.INTEGER, FieldValueType.DECIMAL ->
-                matchesNumber(operator, stored!!.numberValue, literal)
+                matchesNumber(operator, stored.numberValue, literal)
 
             FieldValueType.DATE ->
-                matchesDate(operator, stored!!.dateValue, literal)
+                matchesDate(operator, stored.dateValue, literal)
 
             FieldValueType.DATE_TIME ->
-                matchesDateTime(operator, stored!!.datetimeValue, literal)
+                matchesDateTime(operator, stored.datetimeValue, literal)
 
             FieldValueType.SINGLE_SELECT ->
-                matchesSingleSelect(operator, stored!!.selectionCodes.firstOrNull(), literal)
+                matchesSingleSelect(operator, stored.selectionCodes.firstOrNull(), literal)
 
             FieldValueType.MULTI_SELECT ->
-                matchesMultiSelect(operator, stored!!.selectionCodes, literal)
+                matchesMultiSelect(operator, stored.selectionCodes, literal)
         }
     }
-
-    // ── Per-type comparisons ──────────────────────────────────────────────────
 
     private fun matchesText(operator: FieldOperator, stored: String?, literal: JsonElement?): Boolean
     {
@@ -311,8 +295,6 @@ class WorkflowApplicabilityEvaluator @Inject constructor(
         FieldOperator.GREATER_THAN_OR_EQUAL -> cmp >= 0
         else -> false
     }
-
-    // ── Literal parsing (canonical, never display strings) ─────────────────────
 
     private fun requiresValue(operator: FieldOperator): Boolean =
         operator != FieldOperator.IS_EMPTY && operator != FieldOperator.IS_NOT_EMPTY

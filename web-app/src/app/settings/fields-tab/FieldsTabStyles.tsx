@@ -96,7 +96,7 @@ export const useFieldsTabStyles = makeStyles({
         },
     },
     card: {
-        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusXLarge,
         padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: 'flex',
@@ -198,26 +198,6 @@ export const useFieldsTabStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         alignItems: 'flex-end',
     },
-    bindingRow: {
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: tokens.borderRadiusMedium,
-        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacingHorizontalS,
-    },
-    bindingHeader: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: tokens.spacingHorizontalS,
-    },
-    bindingToggles: {
-        display: 'flex',
-        gap: tokens.spacingHorizontalL,
-        alignItems: 'center',
-        flexWrap: 'wrap',
-    },
     buttonRow: {
         display: 'flex',
         gap: tokens.spacingHorizontalS,
@@ -254,7 +234,7 @@ export const useFieldsTabStyles = makeStyles({
     },
     filterDivider: {
         border: 'none',
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         margin: "0",
     },
     table: {
@@ -267,11 +247,11 @@ export const useFieldsTabStyles = makeStyles({
         fontSize: tokens.fontSizeBase200,
         fontWeight: tokens.fontWeightSemibold,
         color: tokens.colorNeutralForeground3,
-        borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         whiteSpace: 'nowrap',
     },
     tr: {
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         ':hover': {
             backgroundColor: tokens.colorNeutralBackground2,
         },

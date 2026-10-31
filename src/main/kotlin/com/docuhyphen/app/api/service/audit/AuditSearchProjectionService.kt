@@ -1,5 +1,9 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
+import com.docuhyphen.app.api.model.audit.AuditProjectionEvent
+import com.docuhyphen.app.api.model.audit.AuditProjectionPage
 import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
@@ -7,9 +11,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -21,43 +23,6 @@ import java.sql.Timestamp
 import java.time.Duration
 import java.time.Instant
 import java.util.*
-
-data class AuditProjectionCursor(
-    val occurredAt: Instant,
-    val eventId: UUID,
-)
-
-data class AuditProjectionEvent(
-    val eventId: UUID,
-    val category: String,
-    val eventTypeKey: String,
-    val outcome: String,
-    val occurredAt: Instant,
-    val recordedAt: Instant,
-    val ledgerTime: Instant,
-    val streamId: String,
-    val streamSequence: Long,
-    val actorKind: String,
-    val actorId: UUID?,
-    val actorRole: String?,
-    val actorLabel: String?,
-    val ownerType: String,
-    val ownerId: UUID?,
-    val organizationId: UUID?,
-    val organizationLabel: String?,
-    val targetType: String?,
-    val targetId: String?,
-    val targetLabel: String?,
-    val reason: String?,
-    val payload: Map<String, String>,
-    val eventHash: String,
-    val prevHash: String?,
-)
-
-data class AuditProjectionPage(
-    val items: List<AuditProjectionEvent>,
-    val nextCursor: AuditProjectionCursor?,
-)
 
 class AuditProjectionAccessDeniedException(message: String) : RuntimeException(message)
 
@@ -71,12 +36,6 @@ class AuditSearchProjectionService @Inject constructor(
     private val auditRecorder: AuditRecorder,
 )
 {
-    data class AuditAccessActor(
-        val principal: PrincipalRef,
-        val context: AuthorizationContext,
-        val capabilities: Set<Capability>,
-    )
-
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditSearchProjectionService::class.java)
@@ -209,13 +168,6 @@ class AuditSearchProjectionService @Inject constructor(
         )
     }
 
-    /**
-     * Same authorization/query/audit-the-audit pattern as [listExchangeDocumentEvents], but
-     * widened from a single document to every document currently in the Exchange plus the
-     * Exchange-level target itself. Backs the Exchange "Audit" tab
-     * (`GET /exchanges/{exchangeId}/audit-events`) with one ledger query instead of one request
-     * per document.
-     */
     fun listExchangeEvents(
         actor: AuditAccessActor,
         organizationId: UUID,
@@ -331,6 +283,7 @@ class AuditSearchProjectionService @Inject constructor(
         auditTargetType = "APP_USER",
         auditTargetId = actor.principal.id.toString(),
         requireEngagement = false,
+        auditOwnerUserId = actor.principal.id.takeIf { actor.context.activeOrgId == null },
     )
 
     fun listPersonalOwnerEvents(
@@ -425,6 +378,7 @@ class AuditSearchProjectionService @Inject constructor(
         auditTargetLabel: String? = null,
         requireEngagement: Boolean = shouldRequireEngagement(actor, organizationId, platformOnly),
         ownerUserId: UUID? = null,
+        auditOwnerUserId: UUID? = ownerUserId,
     ): AuditProjectionPage
     {
         if (requireEngagement)
@@ -523,7 +477,7 @@ class AuditSearchProjectionService @Inject constructor(
                 "categories" to categories.joinToString(",") { it.name },
             ),
             reason = "Searched the audit trail",
-            ownerUserId = ownerUserId,
+            ownerUserId = auditOwnerUserId,
         )
 
         val nextCursor = lastRawEvent?.let {

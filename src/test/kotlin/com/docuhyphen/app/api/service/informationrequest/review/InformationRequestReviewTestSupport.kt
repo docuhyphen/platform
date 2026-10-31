@@ -1,52 +1,83 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewVisibility
+import com.docuhyphen.app.api.migration.execute
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
-import com.docuhyphen.app.api.model.informationrequest.review.AssignInformationRequestReviewerCommand
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
-import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDraftPatch
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewDecisionsCommand
-import com.docuhyphen.app.api.model.informationrequest.review.RecordInformationRequestReviewFindingCommand
-import com.docuhyphen.app.api.model.informationrequest.review.SaveInformationRequestReviewDraftCommand
+import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformationRequestSubmissionAttestationCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
+import com.docuhyphen.app.api.service.informationrequest.review.model.ReviewFixture
 import io.quarkus.narayana.jta.QuarkusTransaction
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.sql.Connection
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
-internal data class ReviewFixture(
-    val runtime: SubmissionRuntimeSqlFixture,
-    val reviewerPartyId: UUID,
-    val reviewerUserId: UUID,
-)
+@Suppress("LongParameterList")
+internal fun insertReviewStage(
+    connection: Connection,
+    versionId: UUID,
+    stageKey: String,
+    position: Int,
+    aggregation: String = "ANY",
+    minimumReviewers: Int = 1,
+    tieResolution: String = "MOST_SEVERE_OUTCOME",
+    overridePermitted: Boolean = false,
+    excludesResponseParties: Boolean = false,
+    excludesPriorReviewers: Boolean = false,
+) {
+    execute(
+        connection,
+        """
+        INSERT INTO information_request_template_review_stage
+            (id, template_version_id, stage_key, position, title, aggregation, minimum_reviewer_count,
+             tie_resolution, override_permitted, excludes_response_parties, excludes_prior_reviewers)
+        VALUES (gen_random_uuid(), ?, ?, ?, 'Synthetic check', ?, ?, ?, ?, ?, ?)
+        """.trimIndent(),
+        versionId,
+        stageKey,
+        position,
+        aggregation,
+        minimumReviewers,
+        tieResolution,
+        overridePermitted,
+        excludesResponseParties,
+        excludesPriorReviewers,
+    )
+}
+
+internal fun orderReviewStages(connection: Connection, versionId: UUID, ordering: String)
 {
-    val requestId: UUID get() = runtime.requestId
-    val documentRequirementId: UUID get() = runtime.documentRequirementId
-    val attestationRequirementId: UUID get() = runtime.attestationRequirementId
-    val optionalRequirementId: UUID get() = runtime.optionalRequirementId
-    val artifactId: UUID get() = runtime.artifactId
+    execute(
+        connection,
+        "UPDATE information_request_template_version SET review_stage_ordering = ? WHERE id = ?",
+        ordering,
+        versionId
+    )
+}
+
+internal fun reviewAttestation(connection: Connection, runtime: SubmissionRuntimeSqlFixture) {
+    execute(
+        connection,
+        "UPDATE information_request_template_requirement_binding SET review_policy = 'REQUIRED' WHERE id = ?",
+        runtime.attestationBindingId,
+    )
 }
 
 internal class InformationRequestReviewTestSupport(
@@ -75,26 +106,54 @@ internal class InformationRequestReviewTestSupport(
             ReviewFixture(runtimeFixture, reviewerPartyId, reviewerUserId)
         }
 
-    fun roleDenials(fixture: ReviewFixture): (PrincipalRef, Action) -> Boolean = { principal, action ->
+    fun roleDenials(
+        fixture: ReviewFixture,
+        reviewers: Set<UUID> = setOf(fixture.reviewerUserId),
+    ): (PrincipalRef, Action) -> Boolean = { principal, action ->
         when (principal.id)
         {
             fixture.runtime.template.userId -> action in setOf(
                 Action.INFORMATION_REQUEST_REVIEW,
+                Action.INFORMATION_REQUEST_VIEW_REVIEWS,
                 Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW,
+                Action.INFORMATION_REQUEST_REQUIREMENT_VIEW_REVIEW,
                 Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW,
                 Action.INFORMATION_REQUEST_APPEAL_REVIEW,
             )
-            fixture.reviewerUserId -> action in setOf(
+
+            in reviewers -> action in setOf(
                 Action.INFORMATION_REQUEST_MANAGE_REVIEWS,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW,
                 Action.INFORMATION_REQUEST_APPEAL_REVIEW,
             )
+
             else -> action in setOf(
                 Action.INFORMATION_REQUEST_REVIEW,
+                Action.INFORMATION_REQUEST_VIEW_REVIEWS,
                 Action.INFORMATION_REQUEST_MANAGE_REVIEWS,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW,
+                Action.INFORMATION_REQUEST_REQUIREMENT_VIEW_REVIEW,
             )
         }
+    }
+
+    fun authorization(
+        denies: (PrincipalRef, Action) -> Boolean,
+        hidden: Set<Triple<UUID, Action, UUID>> = emptySet(),
+    ): AuthorizationService {
+        val authorization = mock<AuthorizationService>()
+        whenever(authorization.authorize(any(), any(), any(), any())).thenAnswer { invocation ->
+            val principal = invocation.getArgument<PrincipalRef>(0)
+            val action = invocation.getArgument<Action>(1)
+            val resource = invocation.getArgument<ResourceRef>(2)
+            if (denies(principal, action) || Triple(principal.id, action, resource.id) in hidden)
+                Decision.Deny("DENIED", "Denied to this caller")
+            else
+                Decision.Allow()
+        }
+        return authorization
     }
 
     fun reviewsOf(fixture: ReviewFixture): List<InformationRequestReview> =
@@ -142,12 +201,19 @@ internal class InformationRequestReviewTestSupport(
         }
 
     fun responseETag(fixture: ReviewFixture): String =
-        QuarkusTransaction.requiringNew().call { InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(fixture.requestId))) }
+        QuarkusTransaction.requiringNew()
+            .call { InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(fixture.requestId))) }
 
     fun reviewETag(reviewId: UUID): String =
-        QuarkusTransaction.requiringNew().call { runtime.reviewLoader.reviewETag(requireNotNull(reviewRepository.findById(reviewId))) }
+        QuarkusTransaction.requiringNew()
+            .call { runtime.reviewLoader.reviewETag(requireNotNull(reviewRepository.findById(reviewId))) }
 
-    fun patchNarrative(services: InformationRequestRuntimeServices, fixture: ReviewFixture, requirementId: UUID, narrative: String) =
+    fun patchNarrative(
+        services: InformationRequestRuntimeServices,
+        fixture: ReviewFixture,
+        requirementId: UUID,
+        narrative: String
+    ) =
         QuarkusTransaction.requiringNew().call {
             services.responses.patch(
                 PatchInformationRequestResponsesCommand(
@@ -158,7 +224,10 @@ internal class InformationRequestReviewTestSupport(
                     ),
                     idempotencyKey = "patch-${UUID.randomUUID()}",
                     patches = listOf(
-                        InformationRequestResponsePatch(requirementId = requirementId, narrative = ResponseNarrativePatch.Set(narrative)),
+                        InformationRequestResponsePatch(
+                            requirementId = requirementId,
+                            narrative = ResponseNarrativePatch.Set(narrative)
+                        ),
                     ),
                 ),
             )
@@ -172,7 +241,16 @@ internal class InformationRequestReviewTestSupport(
         stageKey: String = "review",
         dueAt: Instant? = null,
     ) = QuarkusTransaction.requiringNew().call {
-        services.reviewAssignments.assign(assignment(fixture, review, partyId, stageKey, "assign-${UUID.randomUUID()}", dueAt))
+        services.reviewAssignments.assign(
+            assignment(
+                fixture,
+                review,
+                partyId,
+                stageKey,
+                "assign-${UUID.randomUUID()}",
+                dueAt
+            )
+        )
     }
 
     @Suppress("LongParameterList")
@@ -257,33 +335,95 @@ internal class InformationRequestReviewTestSupport(
         visibility: InformationRequestReviewVisibility = InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
         evidenceVersionId: UUID? = null,
         reviewerAccess: RequestAccessContext = reviewer(fixture),
+        assignmentId: UUID? = null,
     ) = QuarkusTransaction.requiringNew().call {
         services.reviewFindings.record(
-            RecordInformationRequestReviewFindingCommand(
-                requestId = fixture.requestId,
-                reviewId = review.id,
-                submissionItemId = itemId,
-                evidenceVersionId = evidenceVersionId,
-                reasonCode = "record.incomplete",
-                narrative = "The note does not say what was asked",
-                severity = InformationRequestFindingSeverity.MAJOR,
-                visibility = visibility,
-                correctionScope = scope,
-                access = reviewerAccess,
-                idempotencyKey = "finding-${UUID.randomUUID()}",
-            ),
+            findingCommand(fixture, review, itemId, scope, visibility, evidenceVersionId, reviewerAccess, assignmentId),
         )
     }.finding!!
 
+    @Suppress("LongParameterList")
+    fun findingCommand(
+        fixture: ReviewFixture,
+        review: InformationRequestReview,
+        itemId: UUID,
+        scope: InformationRequestFindingCorrectionScope = InformationRequestFindingCorrectionScope.RESPONSE,
+        visibility: InformationRequestReviewVisibility = InformationRequestReviewVisibility.RESPONDENT_VISIBLE,
+        evidenceVersionId: UUID? = null,
+        reviewerAccess: RequestAccessContext = reviewer(fixture),
+        assignmentId: UUID? = null,
+        key: String = "finding-${UUID.randomUUID()}",
+    ) = RecordInformationRequestReviewFindingCommand(
+        requestId = fixture.requestId,
+        reviewId = review.id,
+        submissionItemId = itemId,
+        assignmentId = assignmentId,
+        evidenceVersionId = evidenceVersionId,
+        reasonCode = "record.incomplete",
+        narrative = "The note does not say what was asked",
+        severity = InformationRequestFindingSeverity.MAJOR,
+        visibility = visibility,
+        correctionScope = scope,
+        access = reviewerAccess,
+        idempotencyKey = key,
+    )
+
+    @Suppress("LongParameterList")
+    fun changeCommand(
+        fixture: ReviewFixture,
+        assignment: InformationRequestReviewAssignment,
+        change: InformationRequestReviewAssignmentChange,
+        access: RequestAccessContext,
+        reasonCode: String? = "reviewer.unavailable",
+        delegatePartyId: UUID? = null,
+        key: String = "change-${UUID.randomUUID()}",
+    ) = ChangeInformationRequestReviewAssignmentCommand(
+        requestId = fixture.requestId,
+        reviewId = assignment.reviewId,
+        assignmentId = assignment.id,
+        change = change,
+        reasonCode = reasonCode,
+        narrative = "The assigned reviewer cannot take this item",
+        delegatePartyId = delegatePartyId,
+        access = access,
+        precondition = CommandPrecondition.ExpectedRevision(reviewETag(assignment.reviewId)),
+        idempotencyKey = key,
+    )
+
+    fun assignmentOf(assignmentId: UUID): InformationRequestReviewAssignment =
+        QuarkusTransaction.requiringNew()
+            .call { requireNotNull(runtime.reviewAssignmentRepository.findById(assignmentId)) }
+
+    fun reviewOf(reviewId: UUID): InformationRequestReview =
+        QuarkusTransaction.requiringNew().call { requireNotNull(reviewRepository.findById(reviewId)) }
+
+    fun access(userId: UUID) =
+        RequestAccessContext(
+            PrincipalRef.user(userId),
+            AuthorizationContext(sessionRef = "session-${userId.toString().take(8)}")
+        )
+
     fun owner(fixture: ReviewFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.template.userId), AuthorizationContext(sessionRef = "owner-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.template.userId),
+            AuthorizationContext(sessionRef = "owner-session")
+        )
 
     fun contributor(fixture: ReviewFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.contributorUserId), AuthorizationContext(sessionRef = "contributor-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.contributorUserId),
+            AuthorizationContext(sessionRef = "contributor-session")
+        )
 
     fun attestor(fixture: ReviewFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.runtime.attestorUserId), AuthorizationContext(sessionRef = "attestor-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.runtime.attestorUserId),
+            AuthorizationContext(sessionRef = "attestor-session")
+        )
 
     fun reviewer(fixture: ReviewFixture) =
-        RequestAccessContext(PrincipalRef.user(fixture.reviewerUserId), AuthorizationContext(sessionRef = "reviewer-session"))
+        RequestAccessContext(
+            PrincipalRef.user(fixture.reviewerUserId),
+            AuthorizationContext(sessionRef = "reviewer-session")
+        )
 }

@@ -9,6 +9,7 @@ import com.docuhyphen.app.api.repository.informationrequest.party.InformationReq
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -20,6 +21,7 @@ class InformationRequestAmendmentQueryService @Inject constructor(
     private val requirementRepository: InformationRequestRequirementRepository,
     private val partyRepository: InformationRequestPartyRepository,
     private val gate: InformationRequestMutationGate,
+    private val requirementContext: InformationRequestRequirementAuthorizationContextProvider,
 )
 {
     fun amendments(requestId: UUID, access: RequestAccessContext): List<InformationRequestReadableAmendment>
@@ -52,11 +54,11 @@ class InformationRequestAmendmentQueryService @Inject constructor(
             }
             .toSet()
         val noticedParties = views.flatMap { view -> view.notices.map { it.partyId } }.toSet()
-        val visibleParties = if (gate.permitsRequest(access, Action.INFORMATION_REQUEST_MANAGE_PARTIES, request.id))
+        val visibleParties = if (gate.permitsRequest(access, Action.INFORMATION_REQUEST_VIEW_OPERATIONS, request.id))
             noticedParties
         else
-            partyRepository.findActiveForPrincipal(access.principal.kind, access.principal.id)
-                .filter { it.informationRequestId == request.id }
+            partyRepository.findActiveForRequest(request.id)
+                .filter { access.principal in requirementContext.principalsActingFor(it) }
                 .map { it.id }
                 .toSet()
         return views.map { InformationRequestReadableAmendment(it, visibleTemplateRequirements, visibleParties) }

@@ -41,8 +41,9 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
-            withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
-                handler.list(requestId, requirementId(requirementId), access)
+            val requirement = requirementId(requirementId)
+            withReadAccess(id, accessLinkToken, sessionToken) { requestId, access ->
+                handler.list(requestId, requirement, access)
             }
         }
         catch (exception: Exception)
@@ -65,8 +66,10 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
-            withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
-                handler.artifact(requestId, requirementId(requirementId), artifactId(artifactId), access)
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
+            withReadAccess(id, accessLinkToken, sessionToken) { requestId, access ->
+                handler.artifact(requestId, requirement, artifact, access)
             }
         }
         catch (exception: Exception)
@@ -101,10 +104,11 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.upload(
                     requestId,
-                    requirementId(requirementId),
+                    requirement,
                     access,
                     file,
                     encryptionMode,
@@ -150,11 +154,13 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.replace(
                     requestId,
-                    requirementId(requirementId),
-                    artifactId(artifactId),
+                    requirement,
+                    artifact,
                     access,
                     file,
                     encryptionMode,
@@ -190,11 +196,13 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.withdraw(
                     requestId,
-                    requirementId(requirementId),
-                    artifactId(artifactId),
+                    requirement,
+                    artifact,
                     access,
                     request?.reason,
                     ifMatch,
@@ -216,7 +224,7 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         id: String,
         requirementId: String,
         artifactId: String,
-        reason: String?,
+        request: InformationRequestEvidenceStateChangeRequest?,
         ifMatch: String?,
         idempotencyKey: String?,
         accessLinkToken: String?,
@@ -225,13 +233,15 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.remove(
                     requestId,
-                    requirementId(requirementId),
-                    artifactId(artifactId),
+                    requirement,
+                    artifact,
                     access,
-                    reason,
+                    request?.reason,
                     ifMatch,
                     idempotencyKey,
                 )
@@ -258,12 +268,15 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
+            val version = InformationRequestEvidenceHttp.uuid(versionId, "evidence version id")
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.content(
                     requestId,
-                    requirementId(requirementId),
-                    artifactId(artifactId),
-                    InformationRequestEvidenceHttp.uuid(versionId, "evidence version id"),
+                    requirement,
+                    artifact,
+                    version,
                     access,
                     InformationRequestEvidenceContentUse.DOWNLOAD,
                 )
@@ -290,12 +303,15 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
     {
         return try
         {
+            val requirement = requirementId(requirementId)
+            val artifact = artifactId(artifactId)
+            val version = InformationRequestEvidenceHttp.uuid(versionId, "evidence version id")
             withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
                 handler.content(
                     requestId,
-                    requirementId(requirementId),
-                    artifactId(artifactId),
-                    InformationRequestEvidenceHttp.uuid(versionId, "evidence version id"),
+                    requirement,
+                    artifact,
+                    version,
                     access,
                     InformationRequestEvidenceContentUse.PREVIEW,
                 )
@@ -321,12 +337,16 @@ class InformationRequestNoAuthEvidenceResource @Inject constructor(
         val requestId = requestId(id)
         val token = accessLinkToken?.trim()?.takeIf { it.isNotEmpty() }
             ?: throw InformationRequestEvidenceRequestException("An access link token is required")
-        val noAuthAccess = readAccessService.resolve(token, sessionToken)
-        if (noAuthAccess.requestId != requestId)
-        {
-            return InformationRequestEvidenceHttp.notFound()
-        }
-        return call(requestId, noAuthAccess.access)
+        return call(requestId, readAccessService.resolve(requestId, token, sessionToken))
+    }
+
+    private fun withReadAccess(
+        id: String,
+        accessLinkToken: String?,
+        sessionToken: String?,
+        read: (UUID, RequestAccessContext) -> Response,
+    ): Response = withAccess(id, accessLinkToken, sessionToken) { requestId, access ->
+        readAccessService.readCurrent(requestId, access) { current -> read(requestId, current) }
     }
 
     private fun requestId(raw: String) = InformationRequestEvidenceHttp.uuid(raw, "information request id")

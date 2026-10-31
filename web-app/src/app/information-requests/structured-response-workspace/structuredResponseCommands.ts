@@ -13,12 +13,14 @@ import {
     RuntimeCommandOptions,
     RuntimeCommandResult,
 } from "../../../services/informationRequestRuntimeService.ts";
+import {stableKeyedCommand} from "../shared/useStableIdempotencyKey.ts";
 import {OccurrenceCommandResult, SaveResponsesResult} from "./StructuredResponseWorkspaceTypes.ts";
 
 export interface StructuredResponseCommandOptions
 {
     accessLinkToken?: string;
     newIdempotencyKey?: () => string;
+    commandKeys?: Map<string, string>;
 }
 
 export interface StructuredResponseCommands
@@ -63,38 +65,32 @@ export const structuredResponseCommands = (
     options: StructuredResponseCommandOptions = {},
 ): StructuredResponseCommands =>
 {
-    const nextIdempotencyKey = options.newIdempotencyKey ?? (() => crypto.randomUUID());
+    const keyed = stableKeyedCommand(options.commandKeys ?? new Map(), options.newIdempotencyKey);
 
-    const commandOptions = (responseETag: string): RuntimeCommandOptions => ({
-        expectedETag: responseETag,
-        idempotencyKey: nextIdempotencyKey(),
-        accessLinkToken: options.accessLinkToken,
-    });
+    const send = <T>(
+        identity: string,
+        body: unknown,
+        responseETag: string,
+        command: (commandOptions: RuntimeCommandOptions) => Promise<T>,
+    ): Promise<T> =>
+        keyed(identity, {body, responseETag}, idempotencyKey => command({
+            expectedETag: responseETag,
+            idempotencyKey,
+            accessLinkToken: options.accessLinkToken,
+        }));
 
     return {
         saveResponses: async (requestId, request, responseETag) =>
-            toSaveResult(await patchInformationRequestResponses(
-                requestId,
-                request,
-                commandOptions(responseETag),
-            )),
+            toSaveResult(await send(`save-responses|${requestId}`, request, responseETag, commandOptions =>
+                patchInformationRequestResponses(requestId, request, commandOptions))),
         addOccurrence: async (requestId, request, responseETag) =>
-            toOccurrenceResult(await addInformationRequestGroupOccurrence(
-                requestId,
-                request,
-                commandOptions(responseETag),
-            )),
+            toOccurrenceResult(await send(`add-occurrence|${requestId}`, request, responseETag, commandOptions =>
+                addInformationRequestGroupOccurrence(requestId, request, commandOptions))),
         removeOccurrence: async (requestId, occurrenceId, responseETag) =>
-            toOccurrenceResult(await removeInformationRequestGroupOccurrence(
-                requestId,
-                occurrenceId,
-                commandOptions(responseETag),
-            )),
+            toOccurrenceResult(await send(`remove-occurrence|${requestId}`, occurrenceId, responseETag, commandOptions =>
+                removeInformationRequestGroupOccurrence(requestId, occurrenceId, commandOptions))),
         reorderOccurrences: async (requestId, request, responseETag) =>
-            toOccurrenceResult(await reorderInformationRequestGroupOccurrences(
-                requestId,
-                request,
-                commandOptions(responseETag),
-            )),
+            toOccurrenceResult(await send(`reorder-occurrences|${requestId}`, request, responseETag, commandOptions =>
+                reorderInformationRequestGroupOccurrences(requestId, request, commandOptions))),
     };
 };

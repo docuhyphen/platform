@@ -1,7 +1,7 @@
 import {Text} from "@fluentui/react-components";
 import {
-    InformationRequestContributorRole,
     InformationRequestRequiredness,
+    InformationRequestRequirementType,
     InformationRequestResponseDisposition,
     InformationRequestResponseMode,
     InformationRequestReviewPolicy,
@@ -12,7 +12,6 @@ import {optionsFrom} from "../../shared/choice-select/choiceOptions.ts";
 import TextField from "../../shared/text-field/TextField.tsx";
 import {useTemplateDocument} from "../TemplateDocumentContext.ts";
 import {
-    contributorRoleLabels,
     dispositionLabels,
     requirednessLabels,
     responseModeLabels,
@@ -22,9 +21,11 @@ import {
     isAnswerable,
     RequirementDraft,
     RequirementFieldsProps,
+    withRequiredness,
     withResponseMode,
 } from "../template-requirement-dialog/requirementDraft.ts";
 import {useRequirementAnsweringFieldsStyles} from "./RequirementAnsweringFieldsStyles.tsx";
+import {answeringRoleOf, answeringRoleOptions} from "./answeringRoles.ts";
 
 interface RequirementAnsweringFieldsProps extends RequirementFieldsProps
 {
@@ -33,11 +34,18 @@ interface RequirementAnsweringFieldsProps extends RequirementFieldsProps
 
 const ONCE_FOR_REQUEST = "";
 
-const RequirementAnsweringFields = ({id, draft, readOnly, onChange, onDraftReplaced}: RequirementAnsweringFieldsProps) =>
+const RequirementAnsweringFields = ({
+                                        id,
+                                        draft,
+                                        readOnly,
+                                        onChange,
+                                        onDraftReplaced
+                                    }: RequirementAnsweringFieldsProps) =>
 {
     const styles = useRequirementAnsweringFieldsStyles();
     const {document} = useTemplateDocument();
     const answerable = isAnswerable(draft);
+    const answeringRole = answeringRoleOf(draft);
     const conditional = draft.requiredness === InformationRequestRequiredness.CONDITIONAL;
 
     return (
@@ -54,21 +62,25 @@ const RequirementAnsweringFields = ({id, draft, readOnly, onChange, onDraftRepla
                           value={draft.requiredness ?? InformationRequestRequiredness.OPTIONAL}
                           options={optionsFrom(requirednessLabels)}
                           disabled={readOnly || !answerable}
-                          onChange={requiredness => onChange({requiredness})}/>
+                          onChange={requiredness => onDraftReplaced(withRequiredness(draft, requiredness))}/>
             {conditional && (
                 <ChoiceSelect id={`${id}-condition-select`}
                               label={"Condition"}
                               value={draft.conditionalRuleKey ?? ""}
                               placeholder={"Choose a condition"}
-                              options={document.conditionRules.map(rule => ({value: rule.ruleKey, label: rule.ruleKey}))}
+                              options={document.conditionRules.map(rule => ({
+                                  value: rule.ruleKey,
+                                  label: rule.ruleKey
+                              }))}
                               disabled={readOnly}
                               hint={document.conditionRules.length === 0 ? "Add a condition on the Conditions tab first." : undefined}
                               onChange={conditionalRuleKey => onChange({conditionalRuleKey})}/>
             )}
             <ChoiceSelect id={`${id}-role-select`}
                           label={"Answered by"}
-                          value={draft.contributorRole ?? InformationRequestContributorRole.CONTRIBUTOR}
-                          options={optionsFrom(contributorRoleLabels)}
+                          value={answeringRole}
+                          placeholder={answeringRole === "" ? "Choose an acting role" : undefined}
+                          options={answeringRoleOptions(draft.requirementType)}
                           disabled={readOnly}
                           onChange={contributorRole => onChange({contributorRole})}/>
             <ChoiceSelect id={`${id}-review-select`}
@@ -82,14 +94,17 @@ const RequirementAnsweringFields = ({id, draft, readOnly, onChange, onDraftRepla
                           value={draft.occurrenceAnchorKey ?? ONCE_FOR_REQUEST}
                           options={[
                               {value: ONCE_FOR_REQUEST, label: "Once for the whole request"},
-                              ...document.groups.map(group => ({value: group.groupKey, label: `Once per ${group.groupKey}`})),
+                              ...document.groups.map(group => ({
+                                  value: group.groupKey,
+                                  label: `Once per ${group.groupKey}`
+                              })),
                           ]}
                           disabled={readOnly}
                           onChange={anchor => onChange({occurrenceAnchorKey: anchor || undefined})}/>
             <TextField id={`${id}-compartment-input`}
                        label={"Confidentiality compartment"}
                        value={draft.confidentialityCompartmentKey ?? ""}
-                       hint={"Answers in a compartment are shown only to parties cleared for it."}
+                       hint={"Any label marks this Requirement as protected: people must verify again to see or answer it."}
                        disabled={readOnly}
                        onChange={key => onChange({confidentialityCompartmentKey: key || undefined})}/>
             <div id={`${id}-dispositions`}
@@ -102,7 +117,9 @@ const RequirementAnsweringFields = ({id, draft, readOnly, onChange, onDraftRepla
                                        .filter(option => option.value !== InformationRequestResponseDisposition.NOT_ANSWERED)}
                                    selected={draft.permittedDispositions ?? []}
                                    disabled={readOnly}
-                                   hint={"A waived answer also needs a waiver rule on the Evidence tab."}
+                                   hint={draft.requirementType === InformationRequestRequirementType.DOCUMENT
+                                       ? "A waived answer also needs a waiver rule on the Evidence tab."
+                                       : undefined}
                                    onChange={permittedDispositions => onChange({permittedDispositions})}/>
                     )
                     : (

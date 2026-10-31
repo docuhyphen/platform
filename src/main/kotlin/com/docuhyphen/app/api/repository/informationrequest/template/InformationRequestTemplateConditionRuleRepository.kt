@@ -5,10 +5,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for [InformationRequestTemplateConditionRule]. Rules belong to one version, like
- * sections, bindings, and groups.
- */
 @ApplicationScoped
 class InformationRequestTemplateConditionRuleRepository :
     BaseRepository<InformationRequestTemplateConditionRule>(
@@ -27,11 +23,6 @@ class InformationRequestTemplateConditionRuleRepository :
             .setParameter("versionId", templateVersionId)
             .resultList
 
-    /**
-     * Clears this part of one draft version's configuration so the whole document can be rewritten.
-     * The stored freeze rule refuses the same statement against a version that is no longer a
-     * draft, so a frozen version cannot lose configuration this way.
-     */
     fun deleteForVersion(templateVersionId: UUID): Int =
         entityManager.createQuery(
             """

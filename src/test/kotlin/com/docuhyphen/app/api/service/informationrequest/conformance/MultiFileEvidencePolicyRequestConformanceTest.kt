@@ -1,45 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementEvaluation
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanSettings
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScanVerdict
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceScannerEngine
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSignatureState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
@@ -52,24 +21,19 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceCollectionService
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceContentRelease
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceEvaluationService
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceGate
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceIntake
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceMalwareAssessmentService
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceMalwareScanner
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceScanAudit
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceUploadService
-import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceViewLoader
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.PublishedRequest
+import com.docuhyphen.app.api.service.informationrequest.evidence.*
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionContentCollector
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
@@ -80,17 +44,14 @@ import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -100,7 +61,9 @@ class MultiFileEvidencePolicyRequestConformanceTest
     @Inject lateinit var dataSource: DataSource
     @Inject lateinit var runtime: InformationRequestRuntimeTestServices
     @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var exchangeRepository: ExchangeRepository
+
+    @Inject
+    lateinit var exchangeLookup: ExchangeLookupService
     @Inject lateinit var requirementRepository: InformationRequestRequirementRepository
     @Inject lateinit var occurrenceRepository: InformationRequestGroupOccurrenceRepository
     @Inject lateinit var templateRequirementRepository: InformationRequestTemplateRequirementRepository
@@ -357,7 +320,11 @@ class MultiFileEvidencePolicyRequestConformanceTest
             )
         }
 
-    private fun submit(services: com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices, request: PublishedRequest, key: String): UUID =
+    private fun submit(
+        services: com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices,
+        request: PublishedRequest,
+        key: String
+    ): UUID =
         QuarkusTransaction.requiringNew().call {
             val stored = requireNotNull(requestRepository.findById(request.requestId))
             services.submissions.submit(
@@ -405,6 +372,7 @@ class MultiFileEvidencePolicyRequestConformanceTest
             InformationRequestEvidenceScanSettings(Duration.ofSeconds(30), Duration.ofDays(1), Duration.ofMinutes(5)),
             clock,
             scanAudit,
+            org.mockito.kotlin.mock(),
         )
 
     private object FlaggingScanner : InformationRequestEvidenceMalwareScanner
@@ -420,22 +388,34 @@ class MultiFileEvidencePolicyRequestConformanceTest
     {
         val gate = InformationRequestEvidenceGate(
             requestRepository = requestRepository,
-            exchangeRepository = exchangeRepository,
+            exchangeLookup = exchangeLookup,
             requirementRepository = requirementRepository,
             occurrenceRepository = occurrenceRepository,
             templateRequirementRepository = templateRequirementRepository,
             authorizationService = authorizationService,
-            entitlementGuard = org.mockito.kotlin.mock(),
-            executionGrantService = executionGrants,
+            continuationGuard = InformationRequestContinuationGuard(executionGrants, org.mockito.kotlin.mock()),
             lockService = lockService,
+            requirementContext = org.mockito.kotlin.mock(),
+            conditionVisibility = InformationRequestConditionVisibility(
+                org.mockito.kotlin.mock(),
+                org.mockito.kotlin.mock()
+            ),
         )
         val viewLoader = InformationRequestEvidenceViewLoader(evidenceVersionRepository, documentVersionRecordingService)
         return EvidenceServices(
             uploads = InformationRequestEvidenceUploadService(
                 gate, artifactRepository, evidenceVersionRepository, documentVersionRecordingService, commandReceiptService,
                 transitionHistory, viewLoader, intake,
+                InformationRequestNoAuthAccessDoubles.current(),
             ),
-            collection = InformationRequestEvidenceCollectionService(gate, artifactRepository, commandReceiptService, transitionHistory, viewLoader),
+            collection = InformationRequestEvidenceCollectionService(
+                gate,
+                artifactRepository,
+                commandReceiptService,
+                transitionHistory,
+                viewLoader,
+                InformationRequestNoAuthAccessDoubles.current()
+            ),
         )
     }
 

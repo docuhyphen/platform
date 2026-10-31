@@ -1,16 +1,18 @@
 import {Text} from "@fluentui/react-components";
 import {WorkflowApplicabilityDraft} from "../../../../models/models.tsx";
 import ApplicabilityEditor from "../applicability-editor/ApplicabilityEditor.tsx";
+import RequirementConditionEditor from "../requirement-condition-editor/RequirementConditionEditor.tsx";
+import {ApplicabilityTriggerKind} from "../workflowApplicability.ts";
 
 interface WorkflowApplicabilityPageProps
 {
     scope?: string;
-    requestTrigger: boolean;
+    triggerKind?: ApplicabilityTriggerKind;
     applicability?: WorkflowApplicabilityDraft;
     onChange: (next?: WorkflowApplicabilityDraft) => void;
 }
 
-const WorkflowApplicabilityPage = ({scope, requestTrigger, applicability, onChange}: WorkflowApplicabilityPageProps) =>
+const WorkflowApplicabilityPage = ({scope, triggerKind, applicability, onChange}: WorkflowApplicabilityPageProps) =>
 {
     if (scope !== "ORG")
     {
@@ -20,14 +22,18 @@ const WorkflowApplicabilityPage = ({scope, requestTrigger, applicability, onChan
             </Text>
         );
     }
-    if (requestTrigger)
+    if (triggerKind === "SUBMISSION_PACKAGE")
     {
-        const requirementCount = applicability?.requirementConditions?.length ?? 0;
+        return (
+            <RequirementConditionEditor applicability={applicability}
+                                        onChange={onChange}/>
+        );
+    }
+    if (triggerKind === "REQUEST") {
         return (
             <Text id="workflow-applicability-request-message">
-                {requirementCount === 0
-                    ? "Exchange Field conditions apply only to Exchange triggers. This workflow runs for every event of its Information Request trigger."
-                    : `Exchange Field conditions apply only to Exchange triggers. This workflow runs only for Submission Packages that meet its ${requirementCount} requirement conditions.`}
+                Exchange Field conditions apply only to Exchange triggers. This workflow runs for every event of its
+                Information Request trigger. Requirement conditions need a trigger that names a Submission Package.
             </Text>
         );
     }

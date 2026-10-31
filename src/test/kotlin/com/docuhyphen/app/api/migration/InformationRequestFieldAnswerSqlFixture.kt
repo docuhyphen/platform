@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 internal class FieldAnswerSqlFixture(
     private val connection: Connection,
@@ -152,6 +152,23 @@ internal class FieldAnswerSqlFixture(
                 now,
             )
         }
+    }
+
+    fun assignSchema(requestId: UUID) {
+        execute(
+            connection,
+            """
+            INSERT INTO schema_assignment (id, resource_type, resource_id, schema_version_id, scope_kind, scope_org_id,
+                                           assignment_source, assigned_by_principal_kind, assigned_by_principal_id, assigned_at)
+            VALUES (?, 'INFORMATION_REQUEST', ?, ?, 'ORGANIZATION', ?, 'MANUAL', 'USER', ?, ?)
+            """.trimIndent(),
+            UUID.randomUUID(),
+            requestId,
+            schemaVersionId,
+            template.organizationId,
+            template.userId,
+            template.now,
+        )
     }
 
     fun materialize(runtime: SubmissionRuntimeSqlFixture)

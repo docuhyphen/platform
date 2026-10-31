@@ -1,22 +1,19 @@
 package com.docuhyphen.app.api.service.informationrequest.workflow
 
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionItem
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestWorkflowOperandServiceTest
 {
@@ -24,7 +21,8 @@ class InformationRequestWorkflowOperandServiceTest
     private val items = mock<InformationRequestSubmissionItemRepository>()
     private val requirements = mock<InformationRequestRequirementRepository>()
     private val revisions = mock<FieldValueRevisionQueryService>()
-    private val service = InformationRequestWorkflowOperandService(packages, items, requirements, revisions)
+    private val bindings = mock<InformationRequestTemplateRequirementBindingRepository>()
+    private val service = InformationRequestWorkflowOperandService(packages, items, requirements, revisions, bindings)
     private val requestId = UUID.randomUUID()
     private val packageId = UUID.randomUUID()
     private val templateRequirementId = UUID.randomUUID()
@@ -84,12 +82,46 @@ class InformationRequestWorkflowOperandServiceTest
     }
 
     @Test
-    fun `an item frozen without an answer is empty`()
+    fun `an item frozen without an answer is empty and carries the type of the Field it collects`()
     {
         givenPackage()
-        givenItems(item(templateRequirementId, "root", null))
+        val unanswered = item(templateRequirementId, "root", null)
+        givenItems(unanswered)
+        givenFieldType(unanswered, FieldValueType.INTEGER)
 
-        assertEquals(WorkflowRequirementOperand.Empty, service.frozenValue(requestId, packageId, templateRequirementId, "root"))
+        assertEquals(
+            WorkflowRequirementOperand.Empty(FieldValueType.INTEGER),
+            service.frozenValue(requestId, packageId, templateRequirementId, "root"),
+        )
+    }
+
+    @Test
+    fun `a cleared answer is empty of its recorded type and an unanswered item whose Field type cannot be resolved is unavailable`() {
+        givenPackage()
+        val revisionId = UUID.randomUUID()
+        givenItems(item(templateRequirementId, "root", revisionId))
+        whenever(revisions.canonicalValueOf(revisionId)).thenReturn(CanonicalFieldValue.empty(FieldValueType.DATE))
+        assertEquals(
+            WorkflowRequirementOperand.Empty(FieldValueType.DATE),
+            service.frozenValue(requestId, packageId, templateRequirementId, "root"),
+        )
+
+        givenItems(item(templateRequirementId, "root", null))
+        assertEquals(
+            WorkflowRequirementOperand.Unavailable(InformationRequestWorkflowOperandService.VALUE_TYPE_UNRESOLVED),
+            service.frozenValue(requestId, packageId, templateRequirementId, "root"),
+        )
+    }
+
+    private fun givenFieldType(frozen: InformationRequestSubmissionItem, type: FieldValueType) {
+        val fieldDefinitionId = UUID.randomUUID()
+        whenever(bindings.findById(frozen.templateBindingId)).thenReturn(
+            InformationRequestTemplateRequirementBinding().apply {
+                id = frozen.templateBindingId
+                collectedFieldDefinitionId = fieldDefinitionId
+            },
+        )
+        whenever(revisions.valueTypeOfDefinition(fieldDefinitionId)).thenReturn(type)
     }
 
     private fun givenPackage()

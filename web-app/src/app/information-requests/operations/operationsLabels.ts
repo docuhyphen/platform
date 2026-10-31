@@ -8,11 +8,11 @@ import {
     InformationRequestSlaStatus,
     InformationRequestState,
 } from "../../models/models.tsx";
-import {formatInformationRequestTime} from "../shared/informationRequestFormatting.ts";
+import {formatInformationRequestCount, formatInformationRequestTime} from "../shared/informationRequestFormatting.ts";
 
 type BadgeColor = NonNullable<BadgeProps["color"]>;
 
-export const slaStatusPresentation: Record<InformationRequestSlaStatus, {label: string; color: BadgeColor}> = {
+export const slaStatusPresentation: Record<InformationRequestSlaStatus, { label: string; color: BadgeColor }> = {
     [InformationRequestSlaStatus.NO_CLOCK]: {label: "No clock", color: "subtle"},
     [InformationRequestSlaStatus.ON_TRACK]: {label: "On track", color: "success"},
     [InformationRequestSlaStatus.DUE_SOON]: {label: "Due soon", color: "warning"},
@@ -37,6 +37,14 @@ export const exceptionLabels: Record<InformationRequestOperationsException, stri
     [InformationRequestOperationsException.CLOCK_ESCALATED]: "escalated clocks",
     [InformationRequestOperationsException.AUTOMATION_SKIPPED]: "skipped automations",
     [InformationRequestOperationsException.EVENT_DELIVERY_FAILING]: "failing event deliveries",
+};
+
+export const exceptionSingularLabels: Record<InformationRequestOperationsException, string> = {
+    [InformationRequestOperationsException.NOTICE_UNDELIVERABLE]: "undeliverable notice",
+    [InformationRequestOperationsException.NOTICE_FAILED]: "failed notice",
+    [InformationRequestOperationsException.CLOCK_ESCALATED]: "escalated clock",
+    [InformationRequestOperationsException.AUTOMATION_SKIPPED]: "skipped automation",
+    [InformationRequestOperationsException.EVENT_DELIVERY_FAILING]: "failing event delivery",
 };
 
 export const clockStateLabels: Record<InformationRequestClockState, string> = {
@@ -83,7 +91,11 @@ export const noticeKindLabels: Record<InformationRequestNoticeKind, string> = {
     [InformationRequestNoticeKind.RESPONSE_OVERDUE]: "Response overdue",
 };
 
-export const formattedTime = (value?: string): string => value ? formatInformationRequestTime(value) : "Not set";
+export const formattedTime = (value?: number | null): string =>
+    value === undefined || value === null ? "Not set" : formatInformationRequestTime(value);
+
+export const countedText = (count: number, one: string, many: string): string =>
+    `${formatInformationRequestCount(count)} ${count === 1 ? one : many}`;
 
 export const formattedDuration = (totalSeconds: number): string =>
 {
@@ -97,3 +109,15 @@ export const formattedDuration = (totalSeconds: number): string =>
 };
 
 export const shortId = (id: string): string => id.slice(0, 8);
+
+const auditActorLabels: Record<string, string> = {
+    HUMAN: "a person",
+    PUBLIC_LINK: "an access-link respondent",
+    PARTICIPANT: "a participant",
+    APP: "an application",
+    WORKFLOW: "a Workflow",
+    SYSTEM: "the system",
+};
+
+export const auditActorText = (actorKind?: string | null): string =>
+    actorKind ? auditActorLabels[actorKind] ?? actorKind.toLowerCase().replace(/_/g, " ") : "the platform";

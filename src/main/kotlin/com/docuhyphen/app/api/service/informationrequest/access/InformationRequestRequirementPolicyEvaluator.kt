@@ -8,6 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentPolicy
 import jakarta.enterprise.context.ApplicationScoped
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
@@ -101,16 +102,25 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
         return ResourcePolicyOutcome.Permit()
     }
 
+    fun disclosesToParty(facts: InformationRequestRequirementPolicyFacts, partyId: UUID): Boolean {
+        val roles = facts.rolesActingFor(Action.INFORMATION_REQUEST_REQUIREMENT_VIEW)
+        return facts.responseMode != InformationRequestResponseMode.NOT_DISCLOSED &&
+                facts.assignedParties.any { it.partyId == partyId && it.roleKey in roles }
+    }
+
+    private fun InformationRequestRequirementPolicyFacts.rolesActingFor(action: Action) =
+        if (action in attestationActions) attestingRoleKeys + assignedRoleKey else setOf(assignedRoleKey)
+
     private fun InformationRequestRequirementPolicyFacts.canActAsAssignedParty(
         principal: PrincipalRef,
         action: Action,
     ): Boolean
     {
-        val roles = if (action in attestationActions) attestingRoleKeys + assignedRoleKey else setOf(assignedRoleKey)
+        val roles = rolesActingFor(action)
         return assignedParties.any { party ->
             party.roleKey in roles &&
                     (
-                            party.principal == principal ||
+                            (party.principal == principal && !party.accountLinked) ||
                                     principal in party.equivalentPrincipals ||
                                     hasActiveAuthorityFor(principal, party.partyId)
                             )
@@ -119,12 +129,12 @@ class InformationRequestRequirementPolicyEvaluator : ResourcePolicyEvaluator
 
     private fun InformationRequestRequirementPolicyFacts.hasActiveAuthorityFor(
         principal: PrincipalRef,
-        assignedPartyId: java.util.UUID,
+        assignedPartyId: UUID,
     ): Boolean =
         delegatedAuthorityFacts.any { authority ->
             authority.active &&
                     authority.assignedPartyId == assignedPartyId &&
-                    authority.delegatePrincipal == principal &&
+                    authority.admits(principal) &&
                     authority.requestId == requestId &&
                     (authority.requirementId == null || authority.requirementId == requirementId)
         }

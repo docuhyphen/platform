@@ -8,32 +8,42 @@ export interface LoadedValue<T>
     reload: () => void;
 }
 
-export const useLoadedValue = <T>(load: () => Promise<T>, failure: string): LoadedValue<T> =>
+interface LoadResult<T>
 {
-    const [value, setValue] = useState<T | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    owner: string | (() => Promise<T>);
+    value: T | null;
+    error: string | null;
+}
+
+export const useLoadedValue = <T>(load: () => Promise<T>, failure: string, scope?: string): LoadedValue<T> => {
+    const owner = scope ?? load;
+    const [result, setResult] = useState<LoadResult<T> | null>(null);
     const [generation, setGeneration] = useState(0);
 
     useEffect(() =>
     {
         let current = true;
-        setError(null);
+        setResult(previous => previous?.owner === owner && previous.error !== null ? {
+            ...previous,
+            error: null
+        } : previous);
         load()
             .then(loaded =>
             {
-                if (current) setValue(loaded);
+                if (current) setResult({owner, value: loaded, error: null});
             })
             .catch((caught: unknown) =>
             {
-                if (current) setError(normalizeApiError(caught, failure).message);
+                if (current) setResult({owner, value: null, error: normalizeApiError(caught, failure).message});
             });
         return () =>
         {
             current = false;
         };
-    }, [load, failure, generation]);
+    }, [load, owner, failure, generation]);
 
     const reload = useCallback(() => setGeneration(next => next + 1), []);
+    const shown = result?.owner === owner ? result : null;
 
-    return {value, error, reload};
+    return {value: shown?.value ?? null, error: shown?.error ?? null, reload};
 };

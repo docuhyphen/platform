@@ -11,25 +11,6 @@ import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import java.util.*
 
-/**
- * Writes one authored configuration document into one draft Template Version.
- *
- * A draft is replaced whole rather than patched. The parts of a configuration are spread over eight
- * tables joined by composite keys, with one-way relations and ordering constraints between them, so
- * a partial edit has no coherent meaning: a section removed while its requirements remain, or a
- * substitute kept after the document it stood in for is gone, would leave a version that renders as
- * something no author ever stated. Replacing the whole document means the stored configuration is
- * always exactly one authored statement.
- *
- * Positions are never authored. A section takes the position it is listed at and a requirement takes
- * the position it is listed at within its section, so the stored order cannot contain a gap, a
- * duplicate, or a disagreement with what the author saw.
- *
- * Requirement identities are not part of the replaced document. They belong to the definition rather
- * than the version, so a rewrite reuses the identity behind a key it still names, creates one for a
- * key it names for the first time, and leaves behind the identity of a key it no longer names, which
- * a later version can ask about again.
- */
 @ApplicationScoped
 class InformationRequestTemplateConfigurationWriter @Inject constructor(
     private val validator: InformationRequestTemplateConfigurationValidator,
@@ -48,23 +29,13 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
     private val conditionPredicateLiteralRepository: InformationRequestTemplateConditionPredicateLiteralRepository,
     private val attestationPolicyWriter: InformationRequestTemplateAttestationPolicyWriter,
     private val reviewPlanWriter: InformationRequestTemplateReviewPlanWriter,
+    private val conditionContracts: InformationRequestTemplateConditionContractValidator,
+    private val fieldMembership: InformationRequestTemplateFieldMembershipValidator,
 )
 {
-    /**
-     * The stored rules that decide whether a relation is permitted read the rows already written
-     * rather than the rows still pending, so each stage of the write reaches the database before the
-     * stage that depends on it is attempted. That ordering is the reason this class controls the
-     * flush rather than leaving it to the end of the transaction.
-     */
     @PersistenceContext
     private lateinit var entityManager: EntityManager
 
-    /**
-     * Replaces everything [draft] configures with [request].
-     *
-     * @throws InformationRequestTemplateValidationException when the document does not hold
-     * together, or when it asks a requirement to change what kind of thing it asks for.
-     */
     @Transactional
     fun replaceConfiguration(
         draft: InformationRequestTemplateVersion,
@@ -72,6 +43,8 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
     )
     {
         val document = validator.normalize(request)
+        conditionContracts.requireMatchesSchema(document.schemaVersionId, document.conditionRules)
+        fieldMembership.requireCollectedFieldsBound(document.schemaVersionId, document.sections)
         val authored = document.sections.flatMap { it.requirements }
 
         clearConfiguration(draft.id)
@@ -95,14 +68,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
         versionRepository.update(draft)
     }
 
-    // ── Removing what the previous document stated ─────────────────────────────
-
-    /**
-     * Children before parents, because every one of these rows is reachable from the row above it
-     * and the database refuses to leave a reference behind. The stored freeze rule refuses each of
-     * these statements against a version that is no longer a draft, so this is also what stops a
-     * frozen configuration from being emptied.
-     */
     private fun clearConfiguration(templateVersionId: UUID)
     {
         reviewPlanWriter.clear(templateVersionId)
@@ -121,14 +86,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
         entityManager.flush()
     }
 
-    // ── The repeatable and nested groups one version defines ───────────────────
-
-    /**
-     * Groups nest by key rather than by row, so a child has to be written after the parent it names
-     * exists to store. The document is authored in any order, so this writes whichever groups are
-     * ready -- having no parent, or a parent already written -- one layer at a time until none
-     * remain. The validator already proved the document is acyclic, so every layer is non-empty.
-     */
     private fun writeGroups(
         templateVersionId: UUID,
         groups: List<InformationRequestTemplateGroupRequest>,
@@ -159,12 +116,8 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
             remaining = notReady
         }
 
-        // Reaches the database before anything relies on a parent group already existing, the same
-        // reason the structure written below is flushed before its own policies are stated.
         entityManager.flush()
     }
-
-    // ── The versioned conditions one version defines ───────────────────────────
 
     private fun writeConditionRules(
         templateVersionId: UUID,
@@ -185,7 +138,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
             }
         }
 
-        // Reaches the database before the requirement bindings written below are checked against it.
         entityManager.flush()
     }
 
@@ -223,8 +175,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
             }
     }
 
-    // ── The stable identities the document names ───────────────────────────────
-
     private fun resolveRequirements(
         templateDefinitionId: UUID,
         authored: List<InformationRequestTemplateRequirementRequest>,
@@ -257,9 +207,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
         }
     }
 
-    // ── The structure one version states ──────────────────────────────────────
-
-    /** Returns the binding placed for each requirement key, keyed by that key. */
     private fun writeStructure(
         draft: InformationRequestTemplateVersion,
         document: InformationRequestTemplateConfigurationRequest,
@@ -304,12 +251,9 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
             }
         }
 
-        // Every rule below reads a binding to decide what kind of thing it is being stated about.
         entityManager.flush()
         return placed
     }
-
-    // ── What one version states about each requirement it places ───────────────
 
     private fun writeBindingPolicies(
         templateVersionId: UUID,
@@ -365,9 +309,6 @@ class InformationRequestTemplateConfigurationWriter @Inject constructor(
             return
         }
 
-        // An accepted value names the policy it restricts, so every policy reaches the database
-        // before any of them is restricted. Doing that once rather than once per document keeps the
-        // cost of a write independent of how many documents the version asks for.
         entityManager.flush()
         stated.forEach { (policy, authored) -> writeAcceptedValues(templateVersionId, policy, authored) }
     }

@@ -1,24 +1,20 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.FieldValueProvenance
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.service.audit.*
+import com.docuhyphen.app.api.model.fields.FieldPrincipalProvenance
+import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-/**
- * Records the audit trail for choosing a Schema for a resource, removing it, and changing the values
- * held against it. Assembling the drafts here keeps the assignment service free of audit plumbing and
- * keeps the payload rules for these events in one place.
- *
- * A payload never carries an answer. Which questions were changed and how many is enough to
- * reconstruct what happened, while the answers themselves belong to the Fields tables and their
- * visibility rules; a value copied into an audit payload would escape those rules entirely.
- */
 @ApplicationScoped
 class SchemaAssignmentAuditTrail @Inject constructor(
     private val auditRecorder: AuditRecorder,
@@ -35,9 +31,10 @@ class SchemaAssignmentAuditTrail @Inject constructor(
         ownerScope: ScopeReference?,
         provenance: FieldPrincipalProvenance,
         schemaDisplayName: String?,
+        defaultValueCount: Int,
     ) = record(
         AuditEventType.SCHEMA_ASSIGNMENT_ASSIGN, assignment, ownerScope, provenance, schemaDisplayName,
-        payload = emptyMap(),
+        payload = mapOf("defaultValueCount" to defaultValueCount.toString()),
     )
 
     fun schemaUnassigned(
@@ -51,22 +48,22 @@ class SchemaAssignmentAuditTrail @Inject constructor(
         payload = mapOf("removedValueCount" to removedValueCount.toString()),
     )
 
-    /**
-     * @param changedCount questions whose stored answer this call actually changed.
-     * @param clearedCount how many of those were emptied rather than given a value.
-     */
     fun valuesUpdated(
         assignment: SchemaAssignment,
         ownerScope: ScopeReference?,
         provenance: FieldPrincipalProvenance,
         schemaDisplayName: String?,
+        valueProvenance: FieldValueProvenance,
         changedCount: Int,
         clearedCount: Int,
+        fieldKeys: List<String>,
     ) = record(
         AuditEventType.FIELD_VALUE_UPDATE, assignment, ownerScope, provenance, schemaDisplayName,
         payload = mapOf(
+            "valueProvenance" to valueProvenance.name,
             "changedCount" to changedCount.toString(),
             "clearedCount" to clearedCount.toString(),
+            "fieldKeys" to fieldKeys.joinToString(","),
         ),
     )
 
@@ -105,16 +102,8 @@ class SchemaAssignmentAuditTrail @Inject constructor(
         {
             logger.warn("SchemaAssignmentAuditTrail: AuditRecorder rejected {} draft: {}", eventType.key, e.message)
         }
-        catch (e: AuditCaptureFailedException)
-        {
-            logger.error(
-                "SchemaAssignmentAuditTrail: AuditRecorder capture failed for {}: {}",
-                eventType.key, e.message, e,
-            )
-        }
     }
 
-    /** The owning scope the audit record is filed under. */
     private fun ownerOf(ownerScope: ScopeReference?): AuditOwnerScope = when (ownerScope)
     {
         is ScopeReference.Organization -> AuditOwnerScope.Organization(ownerScope.organizationId)

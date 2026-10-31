@@ -1,48 +1,40 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.exception.DocumentVersionContentIntegrityException
+import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
 import com.docuhyphen.app.api.model.InformationRequestEvidenceDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.document.DocumentVersionContent
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContentUse
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidencePolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.document.DocumentVersionReadHandle
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.File
-import java.util.UUID
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.*
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 
 class InformationRequestEvidenceQueryServiceTest
 {
@@ -54,7 +46,10 @@ class InformationRequestEvidenceQueryServiceTest
 
     private val collection = fixture.collectionService()
 
-    private val service = fixture.queryService(queryService, auditRecorder)
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService =
+        InformationRequestNoAuthAccessDoubles.current()
+    private val service = fixture.queryService(queryService, auditRecorder, noAuthAccess)
+    private var contentRead = false
 
     init
     {
@@ -74,6 +69,40 @@ class InformationRequestEvidenceQueryServiceTest
         assertEquals(
             InformationRequestETag.evidenceOf(fixture.documentRequirement.id, fixture.artifacts),
             listed.evidenceETag,
+        )
+    }
+
+    @Test
+    fun `attached files are counted only where the caller may read evidence and a withdrawn file is not counted`() {
+        uploaded("first-upload")
+        val withdrawn = uploaded("second-upload")
+        collection.withdraw(
+            ChangeInformationRequestEvidenceStateCommand(
+                requestId = fixture.request.id,
+                requirementId = fixture.documentRequirement.id,
+                artifactId = withdrawn.id,
+                access = fixture.access,
+                precondition = fixture.expectedArtifactETag(withdrawn),
+                idempotencyKey = "withdraw-key",
+                reason = "replaced",
+            ),
+        )
+        val unanswered = UUID.randomUUID()
+
+        assertEquals(
+            mapOf(fixture.documentRequirement.id to 1, unanswered to 0),
+            service.attachedFileCounts(
+                fixture.request.id,
+                listOf(fixture.documentRequirement.id, unanswered),
+                fixture.access
+            ),
+        )
+
+        deny(Action.INFORMATION_REQUEST_EVIDENCE_VIEW)
+        deny(Action.INFORMATION_REQUEST_EVIDENCE_MANAGE)
+        assertEquals(
+            emptyMap<UUID, Int>(),
+            service.attachedFileCounts(fixture.request.id, listOf(fixture.documentRequirement.id), fixture.access),
         )
     }
 
@@ -163,7 +192,8 @@ class InformationRequestEvidenceQueryServiceTest
         val artifact = uploaded("first-upload")
         val version = fixture.versions.single()
         val stored = pdfFile()
-        whenever(fixture.documentVersionRecordingService.open(any())).thenReturn(DocumentVersionContent(stored, "collected-record.pdf"))
+        whenever(fixture.documentVersionRecordingService.open(any()))
+            .thenReturn(DocumentVersionContent(DocumentVersionReadHandle.storedFile(stored), "collected-record.pdf"))
 
         val content = service.openContent(
             fixture.request.id,
@@ -181,6 +211,9 @@ class InformationRequestEvidenceQueryServiceTest
         val draft = recordedAudit()
         assertEquals(AuditEventType.INFORMATION_REQUEST_EVIDENCE_DOWNLOAD.key, draft.eventTypeKey)
         assertEquals(fixture.respondent.id, draft.actorId)
+        assertEquals(AuditActorKind.PUBLIC_LINK, draft.actorKind)
+        assertEquals("participant:${fixture.respondent.id}", draft.actorLabel)
+        assertEquals("verified-session", draft.sessionId)
         assertEquals(fixture.request.id.toString(), draft.targetId)
         assertEquals(artifact.id.toString(), draft.payload["evidenceArtifactId"])
         assertEquals("1", draft.payload["evidenceVersionNumber"])
@@ -189,12 +222,151 @@ class InformationRequestEvidenceQueryServiceTest
     }
 
     @Test
+    fun `a file is released and recorded as opened with the access the session recheck holds current`() {
+        val artifact = uploaded("first-upload")
+        val version = fixture.versions.single()
+        val current = fixture.access.copy(
+            authorization = fixture.access.authorization.copy(sessionRef = "current-session"),
+        )
+        whenever(queryService.findById(fixture.request.id, current)).thenReturn(fixture.request)
+        doAnswer { it.getArgument<(RequestAccessContext) -> Any?>(2).invoke(current) }
+            .whenever(noAuthAccess).readCurrent<Any?>(eq(fixture.request.id), eq(fixture.access), any())
+        whenever(fixture.documentVersionRecordingService.open(any()))
+            .thenReturn(DocumentVersionContent(DocumentVersionReadHandle.storedFile(pdfFile()), "collected-record.pdf"))
+
+        service.openContent(
+            fixture.request.id,
+            fixture.documentRequirement.id,
+            artifact.id,
+            version.id,
+            fixture.access,
+            InformationRequestEvidenceContentUse.DOWNLOAD,
+        )
+
+        assertEquals("current-session", recordedAudit().sessionId)
+    }
+
+    @Test
+    fun `a file is neither read nor recorded as opened once the access session that asked for it has ended`() {
+        val artifact = uploaded("first-upload")
+        val version = fixture.versions.single()
+        doAnswer {
+            it.getArgument<(RequestAccessContext) -> Any?>(2).invoke(fixture.access)
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_SESSION_REVOKED,
+                "This request access session has been revoked",
+            )
+        }.whenever(noAuthAccess).readCurrent<Any?>(eq(fixture.request.id), eq(fixture.access), any())
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            service.openContent(
+                fixture.request.id,
+                fixture.documentRequirement.id,
+                artifact.id,
+                version.id,
+                fixture.access,
+                InformationRequestEvidenceContentUse.DOWNLOAD,
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.ACCESS_SESSION_REVOKED, refusal.reasonCode)
+        verify(fixture.documentVersionRecordingService, never()).open(any())
+        verify(auditRecorder, never()).record(any())
+    }
+
+    @Test
+    fun `a file whose access session ends while it is read is closed and neither recorded nor released`() {
+        val artifact = uploaded("first-upload")
+        val copy = readTemporaryCopy()
+        whenever(noAuthAccess.confirmCurrent(any(), any())).thenAnswer {
+            if (contentRead) throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_SESSION_REVOKED,
+                "This request access session has been revoked",
+            )
+            it.getArgument<RequestAccessContext>(1)
+        }
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            service.openContent(
+                fixture.request.id,
+                fixture.documentRequirement.id,
+                artifact.id,
+                fixture.versions.single().id,
+                fixture.access,
+                InformationRequestEvidenceContentUse.DOWNLOAD,
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.ACCESS_SESSION_REVOKED, refusal.reasonCode)
+        assertTrue(contentRead)
+        assertFalse(copy.toFile().exists())
+        verify(auditRecorder, never()).record(any())
+    }
+
+    @Test
+    fun `protected content is closed and neither recorded nor released when verification lapses while it is read`() {
+        val artifact = uploaded("first-upload")
+        val verified = fixture.access.copy(authorization = fixture.access.authorization.copy(mfaSatisfied = true))
+        whenever(queryService.findById(fixture.request.id, verified)).thenReturn(fixture.request)
+        evidenceNeedsRecentVerification()
+        val copy = readTemporaryCopy()
+        whenever(noAuthAccess.confirmCurrent(any(), any())).thenAnswer {
+            if (contentRead) fixture.access else it.getArgument<RequestAccessContext>(1)
+        }
+
+        assertThrows(ForbiddenException::class.java) {
+            service.openContent(
+                fixture.request.id,
+                fixture.documentRequirement.id,
+                artifact.id,
+                fixture.versions.single().id,
+                verified,
+                InformationRequestEvidenceContentUse.PREVIEW,
+            )
+        }
+
+        assertTrue(contentRead)
+        assertFalse(copy.toFile().exists())
+        verify(auditRecorder, never()).record(any())
+    }
+
+    @Test
+    fun `unprotected content stays released when verification lapses while it is read and is recorded with the access current then`() {
+        val artifact = uploaded("first-upload")
+        val verified = fixture.access.copy(
+            authorization = fixture.access.authorization.copy(
+                mfaSatisfied = true,
+                sessionRef = "verified-before-reading"
+            ),
+        )
+        whenever(queryService.findById(fixture.request.id, verified)).thenReturn(fixture.request)
+        val copy = readTemporaryCopy()
+        whenever(noAuthAccess.confirmCurrent(any(), any())).thenAnswer {
+            if (contentRead) fixture.access else it.getArgument<RequestAccessContext>(1)
+        }
+
+        val content = service.openContent(
+            fixture.request.id,
+            fixture.documentRequirement.id,
+            artifact.id,
+            fixture.versions.single().id,
+            verified,
+            InformationRequestEvidenceContentUse.DOWNLOAD,
+        )
+
+        assertEquals("application/pdf", content.mediaType)
+        assertTrue(copy.toFile().exists())
+        assertEquals("verified-session", recordedAudit().sessionId)
+        content.close()
+    }
+
+    @Test
     fun `a preview is offered inline only for content a browser can show safely`()
     {
         val artifact = uploaded("first-upload")
         val version = fixture.versions.single()
         whenever(fixture.documentVersionRecordingService.open(any()))
-            .thenReturn(DocumentVersionContent(pdfFile(), "collected-record.pdf"))
+            .thenReturn(DocumentVersionContent(DocumentVersionReadHandle.storedFile(pdfFile()), "collected-record.pdf"))
 
         val preview = service.openContent(
             fixture.request.id,
@@ -208,7 +380,12 @@ class InformationRequestEvidenceQueryServiceTest
         assertEquals(AuditEventType.INFORMATION_REQUEST_EVIDENCE_PREVIEW.key, recordedAudit().eventTypeKey)
 
         whenever(fixture.documentVersionRecordingService.open(any()))
-            .thenReturn(DocumentVersionContent(markupFile(), "collected-record.pdf"))
+            .thenReturn(
+                DocumentVersionContent(
+                    DocumentVersionReadHandle.storedFile(markupFile()),
+                    "collected-record.pdf"
+                )
+            )
         val refusal = assertThrows(InformationRequestLifecycleException::class.java)
         {
             service.openContent(
@@ -221,6 +398,37 @@ class InformationRequestEvidenceQueryServiceTest
             )
         }
         assertEquals(InformationRequestErrorCatalog.EVIDENCE_PREVIEW_UNAVAILABLE, refusal.reasonCode)
+    }
+
+    @Test
+    fun `content refused for preview is released without being served`() {
+        val artifact = uploaded("first-upload")
+        val directory = Files.createTempDirectory("evidence-preview-copy")
+        val copy = directory.resolve("collected-record.pdf").toFile()
+            .apply { writeText("<html><body><script>alert(1)</script></body></html>") }
+        whenever(fixture.documentVersionRecordingService.open(any()))
+            .thenReturn(
+                DocumentVersionContent(
+                    DocumentVersionReadHandle.temporaryCopy(copy, directory),
+                    "collected-record.pdf"
+                )
+            )
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            service.openContent(
+                fixture.request.id,
+                fixture.documentRequirement.id,
+                artifact.id,
+                fixture.versions.single().id,
+                fixture.access,
+                InformationRequestEvidenceContentUse.PREVIEW,
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.EVIDENCE_PREVIEW_UNAVAILABLE, refusal.reasonCode)
+        assertFalse(directory.toFile().exists())
+        verify(auditRecorder, never()).record(any())
     }
 
     @Test
@@ -258,19 +466,77 @@ class InformationRequestEvidenceQueryServiceTest
         whenever(fixture.documentVersionRecordingService.open(any()))
             .thenThrow(DocumentVersionContentIntegrityException("document-versions/changed"))
 
-        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
-        {
-            service.openContent(
-                fixture.request.id,
-                fixture.documentRequirement.id,
-                artifact.id,
-                fixture.versions.single().id,
-                fixture.access,
-                InformationRequestEvidenceContentUse.DOWNLOAD,
-            )
+        val logged = CapturedErrors(InformationRequestEvidenceContentOpener::class.java.name).use { errors ->
+            val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+            {
+                service.openContent(
+                    fixture.request.id,
+                    fixture.documentRequirement.id,
+                    artifact.id,
+                    fixture.versions.single().id,
+                    fixture.access,
+                    InformationRequestEvidenceContentUse.DOWNLOAD,
+                )
+            }
+            assertEquals(InformationRequestErrorCatalog.EVIDENCE_CONTENT_UNAVAILABLE, refusal.reasonCode)
+            errors.messages.toList()
         }
-        assertEquals(InformationRequestErrorCatalog.EVIDENCE_CONTENT_UNAVAILABLE, refusal.reasonCode)
         verify(auditRecorder, never()).record(any())
+        val version = fixture.versions.single()
+        assertEquals(
+            listOf(
+                "INFORMATION_REQUEST_EVIDENCE_CONTENT_INTEGRITY_FAILED reason=DIGEST_MISMATCH " +
+                        "informationRequestId=${fixture.request.id} evidenceVersionId=${version.id} " +
+                        "documentVersionId=${version.documentVersionId}",
+            ),
+            logged,
+        )
+    }
+
+    @Test
+    fun `content missing from the store is refused with the same reason and logged for operators`() {
+        val artifact = uploaded("first-upload")
+        whenever(fixture.documentVersionRecordingService.open(any()))
+            .thenThrow(DocumentVersionContentNotFoundException("document-versions/missing"))
+
+        val logged = CapturedErrors(InformationRequestEvidenceContentOpener::class.java.name).use { errors ->
+            val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+            {
+                service.openContent(
+                    fixture.request.id,
+                    fixture.documentRequirement.id,
+                    artifact.id,
+                    fixture.versions.single().id,
+                    fixture.access,
+                    InformationRequestEvidenceContentUse.PREVIEW,
+                )
+            }
+            assertEquals(InformationRequestErrorCatalog.EVIDENCE_CONTENT_UNAVAILABLE, refusal.reasonCode)
+            errors.messages.toList()
+        }
+        assertEquals(1, logged.size)
+        assertTrue(
+            logged.single().startsWith("INFORMATION_REQUEST_EVIDENCE_CONTENT_INTEGRITY_FAILED reason=CONTENT_MISSING ")
+        )
+    }
+
+    private class CapturedErrors(loggerName: String) : Handler(), AutoCloseable {
+        private val logger: Logger = Logger.getLogger(loggerName)
+        val messages = mutableListOf<String>()
+
+        init {
+            logger.addHandler(this)
+        }
+
+        override fun publish(record: LogRecord) {
+            if (record.level.intValue() >= Level.SEVERE.intValue()) messages += record.message
+        }
+
+        override fun flush() = Unit
+
+        override fun close() {
+            logger.removeHandler(this)
+        }
     }
 
     @Test
@@ -366,6 +632,26 @@ class InformationRequestEvidenceQueryServiceTest
     {
         whenever(fixture.authorizationService.authorize(any(), eq(action), any(), any()))
             .thenReturn(Decision.Deny("PARTY_NOT_ASSIGNED", "Not assigned"))
+    }
+
+    private fun evidenceNeedsRecentVerification() {
+        val evidenceActions =
+            setOf(Action.INFORMATION_REQUEST_EVIDENCE_VIEW, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE)
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenAnswer {
+            if (it.getArgument<Action>(1) in evidenceActions && !it.getArgument<AuthorizationContext>(3).mfaSatisfied)
+                Decision.Deny(InformationRequestErrorCatalog.CONFIDENTIALITY_DENIED, "Protected evidence")
+            else Decision.Allow()
+        }
+    }
+
+    private fun readTemporaryCopy(): Path {
+        val directory = Files.createTempDirectory("evidence-read-copy")
+        val copy = directory.resolve("collected-record.pdf").toFile().apply { writeBytes(pdfFile().readBytes()) }
+        whenever(fixture.documentVersionRecordingService.open(any())).thenAnswer {
+            contentRead = true
+            DocumentVersionContent(DocumentVersionReadHandle.temporaryCopy(copy, directory), "collected-record.pdf")
+        }
+        return directory
     }
 
     private fun recordedAudit(): AuditEventDraft

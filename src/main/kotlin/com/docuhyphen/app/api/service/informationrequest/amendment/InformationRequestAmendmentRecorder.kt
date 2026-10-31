@@ -3,13 +3,16 @@ package com.docuhyphen.app.api.service.informationrequest.amendment
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentPlan
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentView
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestAmendmentChangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestAmendmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseFiles
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
@@ -23,6 +26,8 @@ class InformationRequestAmendmentRecorder @Inject constructor(
     private val partyRepository: InformationRequestPartyRepository,
     private val requirementRepository: InformationRequestRequirementRepository,
     private val responseRepository: InformationRequestResponseRepository,
+    private val revisionRepository: InformationRequestRequirementRevisionRepository,
+    private val files: InformationRequestHiddenResponseFiles,
 )
 {
     @Suppress("LongParameterList")
@@ -62,7 +67,11 @@ class InformationRequestAmendmentRecorder @Inject constructor(
             )
         }
         requireReconfirmation(request, plan, amendment)
-        val notices = partyRepository.findActiveForRequest(request.id).map { party ->
+        val notified =
+            if (request.state == InformationRequestState.DRAFT) emptyList() else partyRepository.findActiveForRequest(
+                request.id
+            )
+        val notices = notified.map { party ->
             noticeRepository.save(
                 InformationRequestNoticeIntent().apply {
                     informationRequestId = request.id
@@ -82,20 +91,35 @@ class InformationRequestAmendmentRecorder @Inject constructor(
     )
     {
         val changedMeaning = plan.changes
-            .filter { it.kind == InformationRequestAmendmentChangeKind.MEANING_CHANGED || it.kind == InformationRequestAmendmentChangeKind.ADDED }
+            .filter { it.kind == InformationRequestAmendmentChangeKind.MEANING_CHANGED }
             .map { it.templateRequirementId }
             .toSet()
         if (changedMeaning.isEmpty()) return
-        val requirementIds = requirementRepository.findForRequest(request.id)
+        val existing =
+            responseRepository.findAllForRequest(request.id).associateBy { it.informationRequestRequirementId }
+        requirementRepository.findForRequest(request.id)
             .filter { it.sourceTemplateRequirementId in changedMeaning }
-            .map { it.id }
-            .toSet()
-        responseRepository.findAllForRequest(request.id)
-            .filter { it.informationRequestRequirementId in requirementIds }
-            .filter { it.disposition != InformationRequestResponseDisposition.NOT_ANSWERED || it.narrative != null }
-            .forEach { response ->
+            .forEach { requirement ->
+                val previous = existing[requirement.id]
+                val hasAnswer = previous?.let {
+                    it.disposition != InformationRequestResponseDisposition.NOT_ANSWERED ||
+                            !it.narrative.isNullOrBlank() || it.fieldValueSetId != null
+                } == true || files.active(requirement.id).isNotEmpty()
+                if (!hasAnswer) return@forEach
+                val response = previous ?: InformationRequestResponse().apply {
+                    informationRequestId = request.id
+                    informationRequestRequirementId = requirement.id
+                    requirementRevisionId =
+                        requireNotNull(revisionRepository.findCurrentForRequirement(requirement.id)).id
+                    occurrencePath = requirement.occurrencePath
+                    responseRevision = request.responseRevision
+                    recordedByPrincipalKind = amendment.amendedByPrincipalKind
+                    recordedByPrincipalId = amendment.amendedByPrincipalId
+                    createdAt = amendment.amendedAt
+                    updatedAt = amendment.amendedAt
+                }
                 response.reconfirmationRequiredByAmendmentId = amendment.id
-                responseRepository.update(response)
+                if (previous == null) responseRepository.save(response) else responseRepository.update(response)
             }
     }
 }

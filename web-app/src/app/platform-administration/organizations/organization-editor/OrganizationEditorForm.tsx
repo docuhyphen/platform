@@ -1,14 +1,6 @@
-import {
-    Caption1,
-    Checkbox,
-    Field,
-    MessageBar,
-    MessageBarBody,
-    Spinner,
-    Textarea,
-} from "@fluentui/react-components";
-import OrganizationEntitlementRow from "./OrganizationEntitlementRow.tsx";
-import OrganizationFeatureSelector from "./OrganizationFeatureSelector.tsx";
+import {Caption1, Checkbox, Field, MessageBar, MessageBarBody, Spinner, Textarea,} from "@fluentui/react-components";
+import FeatureOverrideRow from "../../feature-override-row/FeatureOverrideRow.tsx";
+import FeatureOverrideSelector from "../../feature-override-selector/FeatureOverrideSelector.tsx";
 import OrganizationSubscriptionFields from "./OrganizationSubscriptionFields.tsx";
 import OrganizationTrialActions from "./organization-trial-actions/OrganizationTrialActions.tsx";
 import {useOrganizationEditorStyles} from "./OrganizationEditorStyles.tsx";
@@ -94,13 +86,16 @@ const OrganizationEditorForm = ({
             <div
                 id={"platform-organization-entitlements"}
                 className={styles.entitlements}>
-                <OrganizationFeatureSelector
+                <FeatureOverrideSelector
+                    idPrefix={"platform-organization"}
+                    ownerDescription={"this organization"}
                     selectedFeatures={editor.entitlements.map((entitlement) => entitlement.featureCode)}
                     disabled={editor.saving}
                     onChange={editor.setEntitlementFeatureCodes}/>
                 {editor.entitlements.map((entitlement, index) => (
-                    <OrganizationEntitlementRow
+                    <FeatureOverrideRow
                         key={entitlement.featureCode}
+                        idPrefix={"platform-organization"}
                         index={index}
                         entitlement={entitlement}
                         disabled={editor.saving}
@@ -113,6 +108,7 @@ const OrganizationEditorForm = ({
 };
 
 export const OrganizationEditorSaveContent = ({saving}: {saving: boolean}) =>
-    saving ? <Spinner size={"tiny"}/> : <>Save</>;
+    saving ? <Spinner id={"organization-editor-spinner"}
+                      size={"tiny"}/> : <>Save</>;
 
 export default OrganizationEditorForm;

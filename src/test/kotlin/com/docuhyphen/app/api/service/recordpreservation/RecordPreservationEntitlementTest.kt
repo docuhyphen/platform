@@ -1,23 +1,19 @@
 package com.docuhyphen.app.api.service.recordpreservation
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.RecordPreservationScope
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
+import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
 import com.docuhyphen.app.api.service.subscription.SubscriptionContext
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class RecordPreservationEntitlementTest
 {
@@ -31,6 +27,8 @@ class RecordPreservationEntitlementTest
     private val subscriptions = mock<SubscriptionAccessService>()
     private val administration = RecordPreservationAdministration(
         access, holds, schedules, disposals, RecordPreservationEntitlementGuard(organizationFeatures, subscriptions),
+        CommandReceiptService(mock(), CommandReceiptScope()),
+        mock(),
     )
 
     @Test
@@ -43,11 +41,42 @@ class RecordPreservationEntitlementTest
             .whenever(organizationFeatures).requireMutation(organizationId, PlanFeature.AUDIT_GOVERNANCE)
 
         assertThrows(IllegalStateException::class.java) {
-            administration.placeHold("INFORMATION_REQUEST", UUID.randomUUID().toString(), RecordPreservationScope.RESOURCE, "records review", null, null)
+            administration.placeHold(
+                "INFORMATION_REQUEST",
+                UUID.randomUUID().toString(),
+                RecordPreservationScope.RESOURCE,
+                "records review",
+                null,
+                null,
+                "place-1"
+            )
         }
-        assertThrows(IllegalStateException::class.java) { administration.changeHoldScope(UUID.randomUUID(), RecordPreservationScope.RESOURCE, "narrowed") }
-        assertThrows(IllegalStateException::class.java) { administration.releaseHold(UUID.randomUUID(), "review closed") }
-        assertThrows(IllegalStateException::class.java) { administration.publishSchedule("INFORMATION_REQUEST", 30, 90) }
+        assertThrows(IllegalStateException::class.java) {
+            administration.changeHoldScope(
+                UUID.randomUUID(),
+                RecordPreservationScope.RESOURCE,
+                "narrowed",
+                CommandPrecondition.Unconditioned,
+                "scope-1",
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            administration.releaseHold(
+                UUID.randomUUID(),
+                "review closed",
+                CommandPrecondition.Unconditioned,
+                "release-1"
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            administration.publishSchedule(
+                "INFORMATION_REQUEST",
+                30,
+                90,
+                CommandPrecondition.Unconditioned,
+                "publish-1"
+            )
+        }
         verifyNoInteractions(holds, schedules)
 
         administration.holds(emptySet())
@@ -61,11 +90,28 @@ class RecordPreservationEntitlementTest
         whenever(access.currentOwner()).thenReturn(RecordOwnerRef.user(userId))
         whenever(access.requireAccess(any(), any())).thenReturn(PrincipalRef.user(userId))
         doThrow(IllegalStateException("not included in the plan"))
-            .whenever(subscriptions).requireFeature(SubscriptionContext.forUser(userId), PlanFeature.INFORMATION_REQUESTS)
+            .whenever(subscriptions)
+            .requireFeature(SubscriptionContext.forUser(userId), PlanFeature.INFORMATION_REQUESTS)
 
-        assertThrows(IllegalStateException::class.java) { administration.publishSchedule("INFORMATION_REQUEST", 0, null) }
         assertThrows(IllegalStateException::class.java) {
-            administration.placeHold("INFORMATION_REQUEST", UUID.randomUUID().toString(), RecordPreservationScope.RESOURCE, "records review", null, null)
+            administration.publishSchedule(
+                "INFORMATION_REQUEST",
+                0,
+                null,
+                CommandPrecondition.Unconditioned,
+                "publish-1"
+            )
+        }
+        assertThrows(IllegalStateException::class.java) {
+            administration.placeHold(
+                "INFORMATION_REQUEST",
+                UUID.randomUUID().toString(),
+                RecordPreservationScope.RESOURCE,
+                "records review",
+                null,
+                null,
+                "place-1"
+            )
         }
 
         verify(subscriptions, never()).requireFeature(SubscriptionContext.forUser(userId), PlanFeature.AUDIT_GOVERNANCE)

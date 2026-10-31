@@ -1,17 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationContext
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationIssue
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationKind
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestItemProblem
+import com.docuhyphen.app.api.model.informationrequest.response.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
+import java.util.*
 
 interface InformationRequestStructuredResponseValidator
 {
-    val kinds: Set<InformationRequestStructuredResponseValidationKind>
+    val stages: Set<InformationRequestStructuredResponseValidationStage>
 
     fun validate(context: InformationRequestStructuredResponseValidationContext):
             List<InformationRequestStructuredResponseValidationIssue>
@@ -35,22 +35,54 @@ class InformationRequestStructuredResponseValidationService
         testValidators = validators
     }
 
-    fun validate(context: InformationRequestStructuredResponseValidationContext)
-    {
-        val issues = duplicatePatchIssues(context) + validators().flatMap { it.validate(context) }
-        if (issues.isEmpty()) return
+    fun appliesTo(stage: InformationRequestStructuredResponseValidationStage): Boolean =
+        validators().any { stage in it.stages }
 
-        throw InformationRequestLifecycleException(
-            InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
-            issues.joinToString("; ") { it.message },
-        )
+    fun evaluate(context: InformationRequestStructuredResponseValidationContext):
+            List<InformationRequestStructuredResponseValidationIssue> =
+        validators().filter { context.stage in it.stages }.flatMap { it.validate(context) }
+
+    fun requireDistinctPatchTargets(patches: List<InformationRequestResponsePatch>)
+    {
+        val issues = duplicatePatchIssues(patches)
+        if (issues.isEmpty()) return
+        throw refusal(issues.map { problemOf(it) }, undisclosedProblemCount = 0)
     }
 
-    private fun duplicatePatchIssues(
+    fun validate(
         context: InformationRequestStructuredResponseValidationContext,
+        disclosed: (UUID) -> Boolean = { true },
+    ) {
+        val issues = evaluate(context)
+        if (issues.isEmpty()) return
+
+        val (shown, withheld) = issues.partition { issue -> issue.requirementId?.let(disclosed) ?: true }
+        throw refusal(shown.map { problemOf(it) }, withheld.size)
+    }
+
+    private fun refusal(problems: List<InformationRequestItemProblem>, undisclosedProblemCount: Int) =
+        InformationRequestItemRefusalException(
+            reasonCode = InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+            message = "The response did not pass structured validation",
+            problems = problems,
+            undisclosedProblemCount = undisclosedProblemCount,
+        )
+
+    private fun problemOf(issue: InformationRequestStructuredResponseValidationIssue) =
+        InformationRequestItemProblem(
+            code = InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+            message = issue.message,
+            requirementId = issue.requirementId,
+            occurrencePath = issue.occurrencePath,
+            fieldContractId = issue.fieldContractId,
+            validationKind = issue.kind,
+        )
+
+    private fun duplicatePatchIssues(
+        patches: List<InformationRequestResponsePatch>,
     ): List<InformationRequestStructuredResponseValidationIssue>
     {
-        val requirementIssues = context.patches
+        val requirementIssues = patches
             .groupBy { it.requirementId }
             .filterValues { it.size > 1 }
             .map { (requirementId, _) ->
@@ -61,7 +93,7 @@ class InformationRequestStructuredResponseValidationService
                 )
             }
 
-        val fieldIssues = context.patches.flatMap { patch ->
+        val fieldIssues = patches.flatMap { patch ->
             patch.fieldValues?.entries
                 ?.groupBy { it.fieldContractId }
                 ?.filterValues { it.size > 1 }

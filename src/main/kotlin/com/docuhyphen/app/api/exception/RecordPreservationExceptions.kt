@@ -7,7 +7,10 @@ class RecordPreservationException(
 
 class RecordPreservationNotFoundException(message: String) : RuntimeException(message)
 
-class RecordPreservationRequestException(message: String) : RuntimeException(message)
+class RecordPreservationRequestException(
+    message: String,
+    val reasonCode: String? = null,
+) : RuntimeException(message)
 
 object RecordPreservationErrorCatalog
 {

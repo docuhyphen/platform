@@ -6,8 +6,8 @@ import {
 import {reviewValueText} from "../../review/reviewLabels.ts";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {useAcceptedFactsSectionStyles} from "../accepted-facts-section/AcceptedFactsSectionStyles.tsx";
 import {confidenceLabels, factVisibilityLabels, freshnessLabels} from "../request-outcomes-panel/outcomeLabels.ts";
+import {useAcceptedFactRowStyles} from "./AcceptedFactRowStyles.tsx";
 
 interface Props
 {
@@ -28,7 +28,7 @@ const validitySentence = (fact: InformationRequestAcceptedFactDto): string =>
 
 const AcceptedFactRow = ({fact, label, editable, busy, onRevoke}: Props) =>
 {
-    const styles = useAcceptedFactsSectionStyles();
+    const styles = useAcceptedFactRowStyles();
     const id = `information-request-accepted-fact-${fact.id}`;
     const purpose = humanizedKey(fact.purposeKey);
 

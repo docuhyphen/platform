@@ -3,7 +3,13 @@ package com.docuhyphen.app.api.model.informationrequest.audit
 import com.docuhyphen.app.api.model.audit.AuditTargetRecord
 import com.docuhyphen.app.api.model.audit.DEFAULT_AUDIT_TARGET_LIMIT
 import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
+import kotlinx.serialization.json.JsonObject
 import java.time.Instant
 import java.util.*
 
@@ -21,6 +27,11 @@ data class InformationRequestAuditSearch(
 data class InformationRequestAuditEvent(
     val record: AuditTargetRecord,
     val eventClass: String,
+    val payload: Map<String, String>,
+    val withheldKeyCount: Int,
+)
+
+data class InformationRequestAuditPayloadProjection(
     val payload: Map<String, String>,
     val withheldKeyCount: Int,
 )
@@ -64,9 +75,34 @@ data class CreateInformationRequestRecordExportCommand(
     val idempotencyKey: String,
 )
 
+data class CreateInformationRequestSubjectExportCommand(
+    val owner: RecordOwnerRef,
+    val subjectIdentityRefId: UUID,
+    val requestIds: List<UUID>,
+    val access: RequestAccessContext,
+    val transferRegion: String?,
+)
+
 data class InformationRequestRecordExportView(
     val export: InformationRequestRecordExport,
     val sourceRequestIds: List<UUID>,
     val verified: Boolean,
     val content: String?,
+    val containsConfidentialContent: Boolean,
+    val withheldRelatedRequestCount: Int = 0,
+)
+
+data class InformationRequestRecordRelatedRequestProjection(
+    val content: JsonObject,
+    val withheldCount: Int,
+)
+
+data class InformationRequestAuditedRead(
+    val owner: AuditOwnerScope,
+    val eventType: AuditEventType,
+    val requestId: UUID,
+    val actor: InformationRequestAuditActor,
+    val payload: Map<String, String>,
+    val businessTransactionId: String?,
+    val outcome: AuditOutcome = AuditOutcome.SUCCESS,
 )

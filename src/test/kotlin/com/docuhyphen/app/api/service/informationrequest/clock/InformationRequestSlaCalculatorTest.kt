@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestSlaCalculatorTest
 {
@@ -37,22 +37,76 @@ class InformationRequestSlaCalculatorTest
 
         assertEquals(InformationRequestSlaStatus.ON_TRACK, InformationRequestSlaCalculator.statusOf(onTrack, now))
         assertEquals(InformationRequestSlaStatus.DUE_SOON, InformationRequestSlaCalculator.statusOf(dueSoon, now))
-        assertEquals(InformationRequestSlaStatus.ON_TRACK, InformationRequestSlaCalculator.statusOf(withoutReminders, now))
+        assertEquals(
+            InformationRequestSlaStatus.ON_TRACK,
+            InformationRequestSlaCalculator.statusOf(withoutReminders, now)
+        )
         assertEquals(InformationRequestSlaStatus.OVERDUE, InformationRequestSlaCalculator.statusOf(overdue, now))
     }
 
     @Test
     fun `a recorded overdue point stays overdue, a paused clock is paused, and a stopped clock is met only by its due instant`()
     {
-        val recordedOverdue = running(now.plusSeconds(HOUR)).apply { overdueAt = Timestamp.from(now.minusSeconds(MINUTE)) }
+        val recordedOverdue =
+            running(now.plusSeconds(HOUR)).apply { overdueAt = Timestamp.from(now.minusSeconds(MINUTE)) }
         val paused = running(now.minusSeconds(HOUR)).apply { state = InformationRequestClockState.PAUSED }
         val stoppedInTime = stopped(due = now, stoppedAt = now.minusSeconds(MINUTE))
         val stoppedLate = stopped(due = now.minusSeconds(HOUR), stoppedAt = now)
 
-        assertEquals(InformationRequestSlaStatus.OVERDUE, InformationRequestSlaCalculator.statusOf(slaClock(recordedOverdue), now))
-        assertEquals(InformationRequestSlaStatus.PAUSED, InformationRequestSlaCalculator.statusOf(slaClock(paused), now))
-        assertEquals(InformationRequestSlaStatus.MET, InformationRequestSlaCalculator.statusOf(slaClock(stoppedInTime), now))
-        assertEquals(InformationRequestSlaStatus.OVERDUE, InformationRequestSlaCalculator.statusOf(slaClock(stoppedLate), now))
+        assertEquals(
+            InformationRequestSlaStatus.OVERDUE,
+            InformationRequestSlaCalculator.statusOf(slaClock(recordedOverdue), now)
+        )
+        assertEquals(
+            InformationRequestSlaStatus.PAUSED,
+            InformationRequestSlaCalculator.statusOf(slaClock(paused), now)
+        )
+        assertEquals(
+            InformationRequestSlaStatus.MET,
+            InformationRequestSlaCalculator.statusOf(slaClock(stoppedInTime), now)
+        )
+        assertEquals(
+            InformationRequestSlaStatus.OVERDUE,
+            InformationRequestSlaCalculator.statusOf(slaClock(stoppedLate), now)
+        )
+    }
+
+    @Test
+    fun `a clock stopped while paused is met unless it went overdue before the pause`() {
+        val pausedBeforeDue = stopped(due = now.minusSeconds(HOUR), stoppedAt = now)
+        val pausedAfterOverdue = stopped(due = now.minusSeconds(HOUR), stoppedAt = now).apply {
+            overdueAt = Timestamp.from(now.minusSeconds(HOUR))
+        }
+        val resumedThenLate = stopped(due = now.minusSeconds(HOUR), stoppedAt = now)
+        val paused = listOf(event(pausedBeforeDue, InformationRequestClockEventKind.PAUSED, number = 2))
+
+        assertEquals(
+            InformationRequestSlaStatus.MET,
+            InformationRequestSlaCalculator.statusOf(slaClock(pausedBeforeDue, events = paused), now),
+        )
+        assertEquals(
+            InformationRequestSlaStatus.OVERDUE,
+            InformationRequestSlaCalculator.statusOf(
+                slaClock(
+                    pausedAfterOverdue,
+                    events = listOf(event(pausedAfterOverdue, InformationRequestClockEventKind.PAUSED, number = 3))
+                ),
+                now,
+            ),
+        )
+        assertEquals(
+            InformationRequestSlaStatus.OVERDUE,
+            InformationRequestSlaCalculator.statusOf(
+                slaClock(
+                    resumedThenLate,
+                    events = listOf(
+                        event(resumedThenLate, InformationRequestClockEventKind.PAUSED, number = 2),
+                        event(resumedThenLate, InformationRequestClockEventKind.RESUMED, number = 3),
+                    ),
+                ),
+                now,
+            ),
+        )
     }
 
     @Test
@@ -64,7 +118,11 @@ class InformationRequestSlaCalculatorTest
         val escalatedEarlierCycle = running(now.plusSeconds(3 * HOUR)).apply { dueCycle = 1 }
         val standing = InformationRequestSlaCalculator.standing(
             listOf(
-                slaClock(nearest, dueSoonFrom = now.minusSeconds(MINUTE), events = listOf(event(nearest, InformationRequestClockEventKind.REMINDED))),
+                slaClock(
+                    nearest,
+                    dueSoonFrom = now.minusSeconds(MINUTE),
+                    events = listOf(event(nearest, InformationRequestClockEventKind.REMINDED))
+                ),
                 slaClock(later, events = listOf(event(later, InformationRequestClockEventKind.ESCALATED))),
                 slaClock(finished, events = listOf(event(finished, InformationRequestClockEventKind.ESCALATED))),
                 slaClock(
@@ -88,6 +146,20 @@ class InformationRequestSlaCalculatorTest
         )
     }
 
+    @Test
+    fun `superseded reminder points are not counted as reminders`() {
+        val clock = running(now.plusSeconds(HOUR))
+        val superseded =
+            event(clock, InformationRequestClockEventKind.REMINDED).apply { reasonCode = "REMINDER_SUPERSEDED" }
+        val current = event(clock, InformationRequestClockEventKind.REMINDED, number = 2)
+        assertEquals(
+            1,
+            InformationRequestSlaCalculator.standing(
+                listOf(slaClock(clock, events = listOf(superseded, current))),
+                now
+            ).reminderCount
+        )
+    }
     private fun slaClock(
         clock: InformationRequestClock,
         dueSoonFrom: Instant? = null,
@@ -109,11 +181,17 @@ class InformationRequestSlaCalculatorTest
         this.stoppedAt = Timestamp.from(stoppedAt)
     }
 
-    private fun event(clock: InformationRequestClock, kind: InformationRequestClockEventKind, cycle: Int = clock.dueCycle) =
+    private fun event(
+        clock: InformationRequestClock,
+        kind: InformationRequestClockEventKind,
+        cycle: Int = clock.dueCycle,
+        number: Int = 1,
+    ) =
         InformationRequestClockEvent().apply {
             clockId = clock.id
             eventKind = kind
             dueCycle = cycle
+            eventNumber = number
         }
 
     private companion object

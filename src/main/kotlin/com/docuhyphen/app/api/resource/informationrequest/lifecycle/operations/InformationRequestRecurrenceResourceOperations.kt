@@ -15,7 +15,7 @@ interface InformationRequestRecurrenceResourceOperations
     @POST
     fun define(
         @PathParam("id") id: String,
-        request: DefineInformationRequestRecurrenceRequest,
+        request: DefineInformationRequestRecurrenceRequest?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response

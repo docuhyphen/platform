@@ -1,5 +1,6 @@
 ﻿package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
@@ -8,7 +9,6 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.*
-import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Provider
@@ -17,23 +17,13 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Write-side service for the unified [Share] model. The legacy recipient columns
- * (`recipient_id`, `recipient_type`, `group_id`, `allow_document_*`) were removed;
- * all access is now resolved exclusively through [Share] rows.
- *
- * Group inheritance is *materialised*: sharing with a `PRINCIPAL_GROUP` creates the DIRECT
- * grant for the group plus `INHERITED_FROM_GROUP` rows for each active member (pointing back
- * via `sourceShareId`), keeping authorization a flat query rather than a recursive walk.
- */
 @ApplicationScoped
 class ShareService @Inject constructor(
     private val shareRepository: ShareRepository,
     private val groupMemberRepository: PrincipalGroupMemberRepository,
     private val auditRecorder: AuditRecorder,
     private val resourceAuthorizationContextRegistry: ResourceAuthorizationContextRegistry,
-    private val exchangeRecipientAttestationService: ExchangeRecipientAttestationService,
-    private val trustedRecipientValidationService: TrustedRecipientValidationService,
+    private val groupShareExpansionPolicy: GroupShareExpansionPolicy,
     private val exchangeRecipientServiceProvider: Provider<ExchangeRecipientService>,
 )
 {
@@ -43,9 +33,6 @@ class ShareService @Inject constructor(
     }
 
     fun getById(shareId: UUID): Share? = shareRepository.findById(shareId)
-
-    fun holdsActiveShareOn(resourceType: ResourceType, principal: PrincipalRef): Boolean =
-        shareRepository.existsActiveForPrincipalOnResourceType(principal.kind, principal.id, resourceType)
 
     fun findDirectForPrincipalOnResource(
         principalKind: PrincipalKind,
@@ -60,11 +47,14 @@ class ShareService @Inject constructor(
             resourceId,
         ).firstOrNull()
 
-    /**
-     * Grant (or refresh) a DIRECT share of [resourceType]/[resourceId] to a principal.
-     * Idempotent: an existing ACTIVE DIRECT share to the same principal is updated in place
-     * rather than duplicated. For group principals, member inheritance is (re)materialised.
-     */
+    fun findDirectSharesForPrincipalOnResource(
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        resourceType: ResourceType,
+        resourceId: UUID,
+    ): List<Share> =
+        shareRepository.findDirectForPrincipalOnResource(principalKind, principalId, resourceType, resourceId)
+
     fun grant(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -119,6 +109,30 @@ class ShareService @Inject constructor(
             resourceLabel = resourceLabel,
         )
 
+    fun grantAdditionalRoleKeyWithPrincipalProvenance(
+        resourceType: ResourceType,
+        resourceId: UUID,
+        principalKind: PrincipalKind,
+        principalId: UUID,
+        roleName: String,
+        grantedByPrincipal: PrincipalRef? = null,
+        resourceLabel: String? = null,
+    ): Share =
+        grantInternal(
+            resourceType = resourceType,
+            resourceId = resourceId,
+            principalKind = principalKind,
+            principalId = principalId,
+            roleName = roleName,
+            grantor = grantedByPrincipal,
+            source = ShareSource.DIRECT,
+            constraintsJson = null,
+            expiresAt = null,
+            status = ShareStatus.ACTIVE,
+            resourceLabel = resourceLabel,
+            reuseExisting = false,
+        )
+
     private fun grantInternal(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -131,13 +145,15 @@ class ShareService @Inject constructor(
         expiresAt: Timestamp?,
         status: ShareStatus,
         resourceLabel: String?,
+        reuseExisting: Boolean = true,
     ): Share
     {
-        val existingDirect = shareRepository
+        val existingDirect = if (!reuseExisting) null
+        else shareRepository
             .findActiveForPrincipalOnResource(principalKind, principalId, resourceType, resourceId)
             .firstOrNull { it.source == source && it.sourceShareId == null }
 
-        val previouslyDirect = if (existingDirect == null && source == ShareSource.DIRECT)
+        val previouslyDirect = if (reuseExisting && existingDirect == null && source == ShareSource.DIRECT)
             shareRepository.findDirectForPrincipalOnResource(principalKind, principalId, resourceType, resourceId)
                 .firstOrNull()
         else null
@@ -183,16 +199,6 @@ class ShareService @Inject constructor(
         return persisted
     }
 
-    /**
-     * Create `INHERITED_FROM_GROUP` shares for each active member of the group named by
-     * [parentShare]. Re-runnable: members already holding the inherited share are left as-is.
-     *
-     * Individual inherited-member shares are not each given their own ledger event: for a group
-     * with many members that would be audit noise unrelated to a distinct human decision. The
-     * triggering [grant]/[activate] call already records one event with
-     * `principal_kind=PRINCIPAL_GROUP` in its payload, which is enough to discover that
-     * inheritance was re-materialized; this preserves the scope of the original grant.
-     */
     private fun materialiseGroupInheritance(parentShare: Share)
     {
         val members = groupMemberRepository.findActiveMembers(parentShare.principalId)
@@ -270,11 +276,6 @@ class ShareService @Inject constructor(
         }
     }
 
-    /**
-     * Promote a PENDING_APPROVAL share to ACTIVE (e.g. after an approval workflow completes).
-     * For a group's DIRECT grant this also materialises member inheritance, which is skipped
-     * while the grant is pending. No-op (returns the share unchanged) if it isn't pending.
-     */
     fun activate(shareId: UUID): Share?
     {
         val share = shareRepository.findById(shareId) ?: return null
@@ -311,13 +312,24 @@ class ShareService @Inject constructor(
         }
     }
 
-    private fun canExpandTrustedGroup(parentShare: Share): Boolean
+    fun membersHeldBackFrom(groupShareId: UUID, members: Collection<PrincipalRef>): Set<PrincipalRef>
     {
-        val attestation = exchangeRecipientAttestationService.findForDirectShare(parentShare.id) ?: return true
-        return trustedRecipientValidationService.isGroupAttestationCurrentlyEligible(attestation)
+        if (members.isEmpty()) return emptySet()
+        val groupShare = shareRepository.findById(groupShareId)
+            ?.takeIf { it.principalKind == PrincipalKind.PRINCIPAL_GROUP }
+            ?: return emptySet()
+        val materialized = shareRepository.findBySourceShareId(groupShare.id)
+            .filter { it.status == ShareStatus.ACTIVE }
+            .map { PrincipalRef(it.principalKind, it.principalId) }
+            .toSet()
+        val unmaterialized = members.filterNot { it in materialized }.toSet()
+        if (unmaterialized.isEmpty() || canExpandTrustedGroup(groupShare)) return emptySet()
+        return unmaterialized
     }
 
-    /** Promote every PENDING_APPROVAL share on a resource to ACTIVE; returns the count activated. */
+    private fun canExpandTrustedGroup(parentShare: Share): Boolean =
+        groupShareExpansionPolicy.expandsToNewMembers(parentShare)
+
     fun activatePendingForResource(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -327,7 +339,6 @@ class ShareService @Inject constructor(
             .filterNot { it.id in excludedShareIds }
             .count { activate(it.id)?.status == ShareStatus.ACTIVE }
 
-    /** Revoke every PENDING_APPROVAL share on a resource (e.g. when an approval is rejected). */
     fun revokePendingForResource(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -340,11 +351,6 @@ class ShareService @Inject constructor(
             .forEach { markRevoked(it, revokedBy, now, resourceLabel) }
     }
 
-    /**
-     * Change the role on a share. If the share is a group's DIRECT grant, the new role is
-     * propagated to its inherited member shares so the group stays internally consistent.
-     * Returns the updated share, or null if it doesn't exist.
-     */
     fun updateRole(shareId: UUID, roleName: ExchangeShareRoleName): Share?
     {
         return updateRoleAndConstraints(shareId, roleName, constraintsJson = null, applyConstraints = false)
@@ -391,10 +397,6 @@ class ShareService @Inject constructor(
         return updated
     }
 
-    /**
-     * The "recipient" shares of a session: active USER shares that are neither the owner nor a
-     * pure participant. Replaces the legacy single `Exchange.recipient`.
-     */
     fun recipientShares(exchangeId: UUID): List<Share> =
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
@@ -402,11 +404,6 @@ class ShareService @Inject constructor(
                         it.roleName != ExchangeShareRoleName.OWNER.name
             }
 
-    /**
-     * All non-owner, non-participant shares on a session, includes both USER and
-     * PRINCIPAL_GROUP recipients. Used for constraint reads/writes so that group-recipient
-     * sessions are handled correctly.
-     */
     private fun allRecipientShares(exchangeId: UUID): List<Share> =
         shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
             .filter {
@@ -415,6 +412,12 @@ class ShareService @Inject constructor(
 
     fun recipientUserIds(exchangeId: UUID): List<UUID> =
         recipientShares(exchangeId).map { it.principalId }.distinct()
+
+    fun activeUserPrincipalIds(resourceType: ResourceType, resourceId: UUID): List<UUID> =
+        shareRepository.findActiveByResource(resourceType, resourceId)
+            .filter { it.principalKind == PrincipalKind.USER }
+            .map { it.principalId }
+            .distinct()
 
     fun recipientUserIdsForDisplay(exchangeId: UUID): List<UUID> =
         shareRepository.findAllByResource(ResourceType.EXCHANGE, exchangeId)
@@ -425,10 +428,6 @@ class ShareService @Inject constructor(
             .map { it.principalId }
             .distinct()
 
-    /** Returns the user ID of the primary direct (non-inherited) recipient, or null when the
-     *  exchange is shared with a group rather than a user directly.  Using DIRECT-only here
-     *  prevents an initiator's own INHERITED_FROM_GROUP share (created when they are also a
-     *  member of the recipient group) from being mistaken for the "primary recipient". */
     fun primaryRecipientUserId(exchangeId: UUID): UUID? =
         primaryDirectRecipientShare(exchangeId)
             ?.takeIf { it.principalKind == PrincipalKind.USER }
@@ -437,7 +436,6 @@ class ShareService @Inject constructor(
     fun primaryRecipientPrincipal(exchangeId: UUID): PrincipalRef? =
         primaryDirectRecipientShare(exchangeId)?.let { PrincipalRef(it.principalKind, it.principalId) }
 
-    /** Returns the group ID of the primary PRINCIPAL_GROUP recipient share, or null if none. */
     fun primaryRecipientGroupId(exchangeId: UUID): UUID? =
         primaryDirectRecipientShare(exchangeId)
             ?.takeIf { it.principalKind == PrincipalKind.PRINCIPAL_GROUP }
@@ -451,40 +449,25 @@ class ShareService @Inject constructor(
         exchangeRecipientServiceProvider.get().findPrimary(exchangeId)
             ?.let { recipient -> shareRepository.findById(recipient.directShareId) }
 
-    /**
-     * Display-only variant of [primaryRecipientUserId]: searches ALL share rows regardless of
-     * status so that ended/archived exchanges (whose shares are revoked) still resolve a
-     * recipient for display purposes. Must not be used for authorization checks.
-     */
     fun primaryRecipientUserIdForDisplay(exchangeId: UUID): UUID? =
         primaryDirectRecipientShareForDisplay(exchangeId)
             ?.takeIf { it.principalKind == PrincipalKind.USER }
             ?.principalId
 
-    /**
-     * Display-only variant of [primaryRecipientGroupId]: searches ALL share rows regardless of
-     * status. Must not be used for authorization checks.
-     */
     fun primaryRecipientGroupIdForDisplay(exchangeId: UUID): UUID? =
         primaryDirectRecipientShareForDisplay(exchangeId)
             ?.takeIf { it.principalKind == PrincipalKind.PRINCIPAL_GROUP }
             ?.principalId
 
-    /** Whether the session's recipient share permits the given constraint flag (e.g. "allow_document_upload"). */
     fun recipientConstraintAllows(exchangeId: UUID, flag: String): Boolean
     {
         val constraints = allRecipientShares(exchangeId).firstOrNull()?.constraintsJson ?: return false
         return constraints.contains("\"$flag\":true")
     }
 
-    /** Returns the constraints JSON of the primary recipient share, or null if none. */
     fun recipientConstraintsJson(exchangeId: UUID): String? =
         allRecipientShares(exchangeId).firstOrNull()?.constraintsJson
 
-    /**
-     * Update the constraints JSON on all recipient shares (and their inherited children)
-     * for the given session. Used when the initiator changes document permissions.
-     */
     fun updateRecipientConstraints(exchangeId: UUID, constraintsJson: String)
     {
         val shares = allRecipientShares(exchangeId)
@@ -497,7 +480,6 @@ class ShareService @Inject constructor(
         {
             share.constraintsJson = constraintsJson
             shareRepository.update(share)
-            // Propagate to inherited shares (e.g. from group grants)
             shareRepository.findBySourceShareId(share.id).forEach { child ->
                 child.constraintsJson = constraintsJson
                 shareRepository.update(child)
@@ -505,7 +487,6 @@ class ShareService @Inject constructor(
         }
     }
 
-    /** Revoke a single share and any inherited children that point at it. */
     fun revoke(
         shareId: UUID,
         revokedBy: PrincipalRef? = null,
@@ -521,16 +502,23 @@ class ShareService @Inject constructor(
         }
     }
 
-    fun retainInformationRequestOwnerRead(requestId: UUID, ownerUserId: UUID)
+    fun retainInformationRequestOwnerReads(exchangeId: UUID, requestId: UUID)
     {
-        val existing = shareRepository.findActiveForPrincipalOnResource(
-            PrincipalKind.USER, ownerUserId, ResourceType.INFORMATION_REQUEST, requestId
-        )
-        if (existing.isEmpty())
-            grantRoleKeyWithPrincipalProvenance(
-                ResourceType.INFORMATION_REQUEST, requestId,
-                PrincipalKind.USER, ownerUserId, InformationRequestShareRoleKey.SUBJECT.name
-            )
+        shareRepository.findActiveByResource(ResourceType.EXCHANGE, exchangeId)
+            .filter { it.principalKind == PrincipalKind.USER && it.roleName == ExchangeShareRoleName.OWNER.name }
+            .map { it.principalId }
+            .distinct()
+            .filter { ownerId ->
+                shareRepository.findActiveForPrincipalOnResource(
+                    PrincipalKind.USER, ownerId, ResourceType.INFORMATION_REQUEST, requestId
+                ).isEmpty()
+            }
+            .forEach { ownerId ->
+                grantRoleKeyWithPrincipalProvenance(
+                    ResourceType.INFORMATION_REQUEST, requestId,
+                    PrincipalKind.USER, ownerId, InformationRequestShareRoleKey.RECORD_OWNER.name
+                )
+            }
     }
 
     fun revokeAllForResource(
@@ -546,12 +534,6 @@ class ShareService @Inject constructor(
         }
     }
 
-    /**
-     * The single choke point for every revoke variant (direct [revoke],
-     * [revokePendingForResource], [revokeAllForResource]) so SHARE_REVOKE is captured exactly
-     * once per share regardless of which caller triggered it. The `status == REVOKED` guard
-     * above (unchanged) also prevents a duplicate event for an already-revoked share.
-     */
     private fun markRevoked(share: Share, revoker: PrincipalRef?, now: Timestamp, resourceLabel: String? = null)
     {
         if (share.status == ShareStatus.REVOKED) return
@@ -569,15 +551,6 @@ class ShareService @Inject constructor(
         )
     }
 
-    /**
-     * Captures Share grant, activation, role changes, and revocation through [AuditRecorder].
-     * Target is the resource being shared (denormalized `resourceType.name`/
-     * `resourceId`), not the Share row itself, so the event is discoverable alongside every other
-     * event about that resource. When an acting principal is known, its canonical kind is mapped to
-     * the audit actor kind. Grants and activations without an actor are recorded as SYSTEM.
-     * Failures are caught and logged, never propagated, so audit plumbing can never break a
-     * Share mutation.
-     */
     private fun recordShareEvent(
         eventType: AuditEventType,
         share: Share,

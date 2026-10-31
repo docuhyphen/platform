@@ -1,11 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest.acceptedfact
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactView
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.PromoteInformationRequestAcceptedFactCommand
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RevokeInformationRequestAcceptedFactCommand
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRepository
@@ -14,10 +18,12 @@ import com.docuhyphen.app.api.repository.informationrequest.party.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementDisclosure
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.privacy.InformationRequestSubjectRestrictionService
@@ -48,11 +54,13 @@ class InformationRequestAcceptedFactService @Inject constructor(
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
+    private val disclosure: InformationRequestRequirementDisclosure,
 )
 {
     @Transactional
     fun promote(command: PromoteInformationRequestAcceptedFactCommand): InformationRequestAcceptedFactView
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val purpose = command.purposeKey.trim().lowercase()
         val receipt = CommandReceiptRequest(
@@ -60,20 +68,18 @@ class InformationRequestAcceptedFactService @Inject constructor(
             operation = PROMOTE_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    PROMOTE_OPERATION,
-                    command.packageId,
-                    command.submissionItemId,
-                    purpose,
-                    command.policyBasisKey?.trim()?.lowercase() ?: "",
-                    command.evidenceVersionIds.sorted().joinToString(","),
-                    command.visibility,
-                    command.validFrom ?: "",
-                    command.validTo ?: "",
-                    command.expiresAt ?: "",
-                    command.supersedesFactId ?: "",
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                PROMOTE_OPERATION,
+                command.packageId,
+                command.submissionItemId,
+                purpose,
+                command.policyBasisKey?.trim()?.lowercase(),
+                command.evidenceVersionIds.sorted(),
+                command.visibility,
+                command.validFrom,
+                command.validTo,
+                command.expiresAt,
+                command.supersedesFactId,
             ),
         )
         return when (
@@ -94,7 +100,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
                     listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT),
                     command.requestId
                 )
-                facts.view(requireFact(command.requestId, decision.result.resourceId))
+                facts.view(readableFact(command.requestId, decision.result.resourceId, command.access))
             }
         }
     }
@@ -102,6 +108,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
     @Transactional
     fun revoke(command: RevokeInformationRequestAcceptedFactCommand): InformationRequestAcceptedFactView
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val reasonCode = command.reasonCode.trim()
         val receipt = CommandReceiptRequest(
@@ -109,7 +116,12 @@ class InformationRequestAcceptedFactService @Inject constructor(
             operation = REVOKE_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex("$REVOKE_OPERATION|${command.factId}|$reasonCode"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                REVOKE_OPERATION,
+                command.factId,
+                reasonCode,
+                command.narrative?.trim().orEmpty(),
+            ),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
@@ -126,13 +138,20 @@ class InformationRequestAcceptedFactService @Inject constructor(
             {
                 gate.authorizeRequest(
                     command.access,
-                    listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT),
+                    listOf(Action.INFORMATION_REQUEST_REVOKE_FACT),
                     command.requestId
                 )
-                facts.view(requireFact(command.requestId, decision.result.resourceId))
+                facts.view(readableFact(command.requestId, decision.result.resourceId, command.access))
             }
         }
     }
+
+    private fun readableFact(
+        requestId: UUID,
+        factId: UUID,
+        access: RequestAccessContext
+    ): InformationRequestAcceptedFact =
+        requireFact(requestId, factId).also { disclosure.requireContent(access, requestId, it.sourceRequirementId) }
 
     private fun promoteFact(
         locked: LockedInformationRequest,
@@ -141,8 +160,9 @@ class InformationRequestAcceptedFactService @Inject constructor(
     ): InformationRequestAcceptedFact
     {
         val request = locked.request
-        gate.requireMutation(locked, InformationRequestMutation.PROMOTE_FACT)
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), request.id)
+        gate.requireMutation(locked, InformationRequestMutation.PROMOTE_FACT)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
         if (!PURPOSE.matches(purpose)) throw InformationRequestCommandRequestException("A fact purpose is a lowercase machine key")
         val policyBasis = command.policyBasisKey?.trim()?.lowercase()
         if (policyBasis == null || !PURPOSE.matches(policyBasis))
@@ -152,8 +172,12 @@ class InformationRequestAcceptedFactService @Inject constructor(
         val submission = lockService.activePackages(request.id).firstOrNull { it.id == command.packageId }
             ?: refuse("An accepted fact is promoted from a current Submission Package")
         val view = packageReader.view(request.id, submission.id)
-        val item = view.items.firstOrNull { it.id == command.submissionItemId }?.takeIf(::answersField)
-            ?: refuse("An accepted fact is promoted from an answered typed-data item")
+        val item = view.items.firstOrNull { it.id == command.submissionItemId }
+            ?: throw io.quarkus.security.ForbiddenException("Access denied to this Information Request Requirement")
+        disclosure.requireContent(command.access, request.id, item.informationRequestRequirementId)
+        if (factRepository.correctedSourceItemIds(listOf(item.id)).isNotEmpty())
+            refuse("An accepted fact cannot be promoted from a corrected submitted item")
+        if (!answersField(item)) refuse("An accepted fact is promoted from an answered typed-data item")
         val selectedEvidence =
             evidenceReferences.select(view, item.informationRequestRequirementId, command.evidenceVersionIds)
         val (confidence, reviewId) = acceptanceOf(request, submission.id, submission.reviewRequired, item)
@@ -165,6 +189,13 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 InformationRequestErrorCatalog.ACCEPTED_FACT_SUBJECT_REQUIRED,
                 "An accepted fact is about the single subject of its source request",
             )
+        if (subjectsAnsweredFor(request.id, submission.submittedAt) != setOf(subject)) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCEPTED_FACT_SUBJECT_REQUIRED,
+                "An accepted fact is about the subject its package answered for",
+            )
+        }
+        restrictions.lockForProcessing(request.ownerType, ownerIdOf(request), subject)
         if (restrictions.isRestricted(request.ownerType, ownerIdOf(request), subject))
         {
             throw InformationRequestLifecycleException(
@@ -191,11 +222,16 @@ class InformationRequestAcceptedFactService @Inject constructor(
         val active =
             facts.activeForKey(request.ownerType, ownerIdOf(request), subject, listOf(fieldDefinitionId), purpose)
         command.supersedesFactId?.let { superseded ->
-            if (active.none { it.id == superseded })
-            {
-                throw InformationRequestLifecycleException(
+            val earlier = active.firstOrNull { it.id == superseded }
+                ?: throw InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.ACCEPTED_FACT_SUPERSESSION_INVALID,
                     "An accepted fact supersedes a current fact of the same subject, field, and purpose",
+                )
+            if (earlier.sourceInformationRequestId != request.id) {
+                gate.authorizeRequest(
+                    command.access,
+                    listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT),
+                    earlier.sourceInformationRequestId
                 )
             }
         }
@@ -242,8 +278,8 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.PROMOTE_FACT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.fact_promotion|${fact.id}|${command.idempotencyKey}",
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.fact_promotion|${fact.id}|${command.idempotencyKey}",
                 details = mapOf(
                     "acceptedFactId" to fact.id.toString(),
                     "purposeKey" to purpose,
@@ -265,10 +301,12 @@ class InformationRequestAcceptedFactService @Inject constructor(
     ): InformationRequestAcceptedFact
     {
         val request = locked.request
+        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_REVOKE_FACT), request.id)
         gate.requireMutation(locked, InformationRequestMutation.REVOKE_FACT)
-        gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_PROMOTE_FACT), request.id)
         if (reasonCode.isEmpty()) throw InformationRequestCommandRequestException("A revocation states its reason")
+        if (reasonCode.length > 128) throw InformationRequestCommandRequestException("A revocation reason has at most 128 characters")
         val fact = requireFact(request.id, command.factId)
+        disclosure.requireContent(command.access, request.id, fact.sourceRequirementId)
         factRepository.findByIdForUpdate(fact.id)
         if (revocationRepository.findForFacts(listOf(fact.id)).isNotEmpty())
         {
@@ -293,9 +331,9 @@ class InformationRequestAcceptedFactService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.REVOKE_FACT,
-                actor = command.access.principal,
+                actor = InformationRequestAuditActor.of(command.access),
                 reasonCode = reasonCode,
-                idempotencyKey = "information_request.fact_revocation|${fact.id}|${command.idempotencyKey}",
+                auditIdempotencyKey = "information_request.fact_revocation|${fact.id}|${command.idempotencyKey}",
                 details = mapOf("acceptedFactId" to fact.id.toString()),
             ),
         )
@@ -315,8 +353,19 @@ class InformationRequestAcceptedFactService @Inject constructor(
         val outcome = loader.snapshot(review).standing.itemOutcomes[item.id]
             ?: return InformationRequestAcceptedFactConfidence.DECLARED to null
         if (!outcome.passing) refuse("An accepted fact is promoted from an item its review accepted")
+        if (outcome == InformationRequestReviewOutcome.WAIVED) return InformationRequestAcceptedFactConfidence.DECLARED to null
         return InformationRequestAcceptedFactConfidence.REVIEWED to review.id
     }
+
+    private fun subjectsAnsweredFor(requestId: UUID, submittedAt: Timestamp): Set<UUID> =
+        partyRepository.findForRequest(requestId)
+            .filter { party ->
+                party.roleKey == InformationRequestShareRoleKey.SUBJECT &&
+                        !party.assignedAt.after(submittedAt) &&
+                        party.revokedAt?.after(submittedAt) ?: true
+            }
+            .mapNotNull { it.subjectIdentityRefId }
+            .toSet()
 
     private fun answersField(item: InformationRequestSubmissionItem): Boolean =
         item.requirementType == InformationRequestRequirementType.FIELD &&
@@ -330,10 +379,7 @@ class InformationRequestAcceptedFactService @Inject constructor(
 
     private fun requireFact(requestId: UUID, factId: UUID): InformationRequestAcceptedFact =
         factRepository.findById(factId)?.takeIf { it.sourceInformationRequestId == requestId }
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.NOT_FOUND,
-                "Accepted fact not found"
-            )
+            ?: throw io.quarkus.security.ForbiddenException("Access denied to this Information Request Requirement")
 
     private fun refuse(message: String): Nothing =
         throw InformationRequestLifecycleException(InformationRequestErrorCatalog.ACCEPTED_FACT_SOURCE_INVALID, message)

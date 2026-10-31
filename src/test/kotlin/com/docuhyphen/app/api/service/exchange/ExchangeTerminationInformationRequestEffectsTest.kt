@@ -1,11 +1,12 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.exception.WorkflowConflictException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.workflow.TriggerResult
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.resource.model.UpdateExchangeRequest
@@ -13,36 +14,26 @@ import com.docuhyphen.app.api.service.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import io.quarkus.security.ForbiddenException
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class ExchangeTerminationInformationRequestEffectsTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
     private val userId: UUID = UUID.randomUUID()
     private val principal = PrincipalRef.user(userId)
+    private val ownerContext = AuthorizationContext(sessionRef = "exchange-owner-session")
+    private val requestActor = InformationRequestAuditActor.of(RequestAccessContext(principal, ownerContext))
 
     @Test
     fun `rescinding an Exchange applies rescission to its Information Requests before revoking Exchange shares`()
@@ -52,7 +43,7 @@ class ExchangeTerminationInformationRequestEffectsTest
         fixture.service.rescindExchange(exchangeId.toString())
 
         val effects = inOrder(fixture.parentLifecycle, fixture.shareService)
-        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.RESCINDED, false, principal)
+        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.RESCINDED, false, requestActor)
         effects.verify(fixture.shareService)
             .revokeAllForResource(eq(ResourceType.EXCHANGE), eq(exchangeId), anyOrNull(), anyOrNull())
     }
@@ -65,7 +56,7 @@ class ExchangeTerminationInformationRequestEffectsTest
         fixture.service.deleteExchange(exchangeId.toString())
 
         val effects = inOrder(fixture.parentLifecycle, fixture.shareService)
-        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.ACCEPTED_STARTED, true, principal)
+        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.ACCEPTED_STARTED, true, requestActor)
         effects.verify(fixture.shareService)
             .revokeAllForResource(eq(ResourceType.EXCHANGE), eq(exchangeId), anyOrNull(), anyOrNull())
     }
@@ -77,7 +68,13 @@ class ExchangeTerminationInformationRequestEffectsTest
 
         fixture.service.decideAcceptance(exchangeId.toString(), accepted = false, reason = "not required")
 
-        verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.REJECTED, false, principal)
+        verify(fixture.parentLifecycle).apply(
+            exchangeId,
+            ExchangeStatus.REJECTED,
+            false,
+            requestActor,
+            ExchangeStatus.INITIATED
+        )
     }
 
     @Test
@@ -87,11 +84,17 @@ class ExchangeTerminationInformationRequestEffectsTest
 
         fixture.service.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ENDED))
 
-        verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.ENDED, false, principal)
+        verify(fixture.parentLifecycle).apply(
+            exchangeId,
+            ExchangeStatus.ENDED,
+            false,
+            requestActor,
+            ExchangeStatus.ACCEPTED_STARTED
+        )
     }
 
     @Test
-    fun `ending an Exchange asks its Information Requests first with the stated cancellation choice`()
+    fun `ending an Exchange directly checks its Information Requests first and cancels the remaining ones only as it ends`()
     {
         val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
 
@@ -100,40 +103,91 @@ class ExchangeTerminationInformationRequestEffectsTest
             UpdateExchangeRequest(status = ExchangeStatus.ENDED, cancelRemainingInformationRequests = true),
         )
 
-        val effects = inOrder(fixture.requestCompletion, fixture.workflowEngine, fixture.parentLifecycle)
-        effects.verify(fixture.requestCompletion).prepareEnding(fixture.exchange, principal, true)
+        val effects = inOrder(
+            fixture.requestCompletion,
+            fixture.workflowEngine,
+            fixture.exchangeRepository,
+            fixture.parentLifecycle
+        )
+        effects.verify(fixture.requestCompletion).checkEnding(eq(fixture.exchange), eq(true), anyOrNull())
         effects.verify(fixture.workflowEngine).trigger(any())
-        effects.verify(fixture.parentLifecycle).apply(exchangeId, ExchangeStatus.ENDED, false, principal)
+        effects.verify(fixture.requestCompletion)
+            .prepareEnding(eq(fixture.exchange), eq(requestActor), eq(true), anyOrNull(), isNull())
+        effects.verify(fixture.exchangeRepository).updateStatus(exchangeId, ExchangeStatus.ENDED)
+        effects.verify(fixture.parentLifecycle)
+            .apply(exchangeId, ExchangeStatus.ENDED, false, requestActor, ExchangeStatus.ACCEPTED_STARTED)
+        verify(fixture.endingIntents, never()).record(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `an ending Workflow that starts leaves every request unchanged and keeps the stated cancellation choice for its confirmation`() {
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
+        val instanceId = UUID.randomUUID()
+        whenever(fixture.workflowEngine.trigger(any()))
+            .thenReturn(TriggerResult(instanceId, UUID.randomUUID(), UUID.randomUUID(), emptyList()))
+
+        val held = assertThrows<WorkflowConflictException> {
+            fixture.service.updateExchange(
+                exchangeId.toString(),
+                UpdateExchangeRequest(status = ExchangeStatus.ENDED, cancelRemainingInformationRequests = true),
+            )
+        }
+
+        assertEquals(WorkflowConflictException.EXCHANGE_ENDING_HELD_BY_WORKFLOW, held.reasonCode)
+        verify(fixture.requestCompletion).checkEnding(eq(fixture.exchange), eq(true), anyOrNull())
+        verify(fixture.requestCompletion, never()).prepareEnding(any(), any(), any(), anyOrNull(), anyOrNull())
+        verify(fixture.endingIntents).record(exchangeId, instanceId, true, principal)
+        verify(fixture.exchangeRepository, never()).updateStatus(any(), any())
+        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any(), anyOrNull())
     }
 
     @Test
     fun `an Exchange whose Information Requests refuse ending neither starts an ending workflow nor ends`()
     {
         val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
-        whenever(fixture.requestCompletion.prepareEnding(any(), any(), any())).thenThrow(
+        doThrow(
             InformationRequestExchangeCompletionException(
                 InformationRequestErrorCatalog.COMPLETION_GATES_UNSATISFIED,
                 listOf(UUID.randomUUID()),
             ),
-        )
+        ).whenever(fixture.requestCompletion).checkEnding(any(), any(), anyOrNull())
 
         assertThrows<InformationRequestExchangeCompletionException> {
             fixture.service.updateExchange(exchangeId.toString(), UpdateExchangeRequest(status = ExchangeStatus.ENDED))
         }
 
         verify(fixture.workflowEngine, never()).trigger(any())
-        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any())
+        verify(fixture.requestCompletion, never()).prepareEnding(any(), any(), any(), anyOrNull(), anyOrNull())
+        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any(), anyOrNull())
         verify(fixture.exchangeRepository, never()).updateStatus(any(), any())
+    }
+
+    @Test
+    fun `requiring recipient sign-in cuts off the Exchange's Information Request access links`() {
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
+
+        fixture.service.updateExchange(exchangeId.toString(), UpdateExchangeRequest(requireRecipientSignIn = true))
+
+        verify(fixture.parentLifecycle).enforceRecipientSignIn(exchangeId, requestActor)
+    }
+
+    @Test
+    fun `allowing access without sign-in cuts nothing off`() {
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW, Action.EXCHANGE_EDIT)
+
+        fixture.service.updateExchange(exchangeId.toString(), UpdateExchangeRequest(requireRecipientSignIn = false))
+
+        verify(fixture.parentLifecycle, never()).enforceRecipientSignIn(any(), any())
     }
 
     @Test
     fun `a refused rescind applies no Information Request effects`()
     {
-        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED)
+        val fixture = Fixture(ExchangeStatus.ACCEPTED_STARTED, Action.EXCHANGE_VIEW)
 
         assertThrows<ForbiddenException> { fixture.service.rescindExchange(exchangeId.toString()) }
 
-        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any())
+        verify(fixture.parentLifecycle, never()).apply(any(), any(), any(), any(), anyOrNull())
     }
 
     private inner class Fixture(status: ExchangeStatus, vararg allowed: Action)
@@ -146,6 +200,7 @@ class ExchangeTerminationInformationRequestEffectsTest
         }
         val parentLifecycle = mock<InformationRequestParentLifecycleService>()
         val requestCompletion = mock<InformationRequestExchangeCompletionService>()
+        val endingIntents = mock<ExchangeEndingIntentService>()
         val workflowEngine = mock<WorkflowEngineService>()
         val shareService = mock<ShareService>()
         val exchangeRepository = mock<ExchangeRepository>()
@@ -166,7 +221,7 @@ class ExchangeTerminationInformationRequestEffectsTest
             }
             val authorizationContextFactory = mock<AuthorizationContextFactory>()
             whenever(authorizationContextFactory.currentPrincipal()).thenReturn(principal)
-            whenever(authorizationContextFactory.currentContext()).thenReturn(AuthorizationContext.ANONYMOUS)
+            whenever(authorizationContextFactory.currentContext()).thenReturn(ownerContext)
 
             val auditRecorder = mock<AuditRecorder>()
             whenever(auditRecorder.record(any()))
@@ -210,6 +265,7 @@ class ExchangeTerminationInformationRequestEffectsTest
                 documentThumbnailService = mock(),
                 requestParentLifecycle = parentLifecycle,
                 requestCompletion = requestCompletion,
+                endingIntents = endingIntents,
             )
         }
     }

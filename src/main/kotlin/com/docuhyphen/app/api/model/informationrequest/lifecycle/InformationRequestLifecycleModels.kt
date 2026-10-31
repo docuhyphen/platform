@@ -1,10 +1,11 @@
 package com.docuhyphen.app.api.model.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceTransition
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import java.util.*
 
 data class IssueInformationRequestCommand(
@@ -41,11 +42,12 @@ data class InformationRequestTransitionHistoryCommand(
     val fromState: InformationRequestState?,
     val toState: InformationRequestState,
     val mutation: InformationRequestMutation,
-    val actor: PrincipalRef,
+    val actor: InformationRequestAuditActor,
     val reasonCode: String? = null,
     val partyId: UUID? = null,
-    val commandReceiptId: UUID? = null,
-    val idempotencyKey: String? = null,
+    val auditIdempotencyKey: String? = null,
     val evidence: InformationRequestEvidenceTransition? = null,
     val details: Map<String, String> = emptyMap(),
+    val requireAuditCapture: Boolean = false,
+    val auditOutcome: AuditOutcome = AuditOutcome.SUCCESS,
 )

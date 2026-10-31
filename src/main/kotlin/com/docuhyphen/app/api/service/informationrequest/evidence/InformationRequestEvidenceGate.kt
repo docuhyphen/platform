@@ -1,25 +1,28 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceArtifactView
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
-import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
@@ -33,25 +36,30 @@ import java.util.*
 @ApplicationScoped
 class InformationRequestEvidenceGate @Inject constructor(
     private val requestRepository: InformationRequestRepository,
-    private val exchangeRepository: ExchangeRepository,
+    private val exchangeLookup: ExchangeLookupService,
     private val requirementRepository: InformationRequestRequirementRepository,
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val templateRequirementRepository: InformationRequestTemplateRequirementRepository,
     private val authorizationService: AuthorizationService,
-    private val entitlementGuard: InformationRequestEntitlementGuard,
-    private val executionGrantService: InformationRequestExecutionGrantService,
+    private val continuationGuard: InformationRequestContinuationGuard,
     private val lockService: InformationRequestSubmissionLockService,
+    private val requirementContext: InformationRequestRequirementAuthorizationContextProvider,
+    private val conditionVisibility: InformationRequestConditionVisibility,
 )
 {
     fun lock(requestId: UUID): LockedInformationRequest
     {
-        val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeRepository)
+        val exchange = lockParentExchangeOf(requestId, requestRepository, exchangeLookup)
         val request = requestRepository.findRequestByIdForUpdate(requestId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Information Request not found",
             )
         return LockedInformationRequest(exchange, request)
+    }
+
+    fun requireVisibleTarget(access: RequestAccessContext, requestId: UUID) {
+        InformationRequestReadAuthorization.requireVisibleTarget(authorizationService, requestId, access)
     }
 
     fun requireEvidenceOccurrence(request: InformationRequest, requirementId: UUID): InformationRequestRequirement
@@ -93,8 +101,19 @@ class InformationRequestEvidenceGate @Inject constructor(
         artifactId: UUID
     )
     {
-        lockService.requireEvidenceArtifactOpen(locked.request.id, requirement.id, artifactId)
+        requireArtifactOpen(locked.request, requirement, artifactId)
     }
+
+    fun requireArtifactOpen(request: InformationRequest, requirement: InformationRequestRequirement, artifactId: UUID) {
+        lockService.requireEvidenceArtifactOpen(request.id, requirement.id, artifactId)
+    }
+
+    fun requireShown(request: InformationRequest, requirement: InformationRequestRequirement) {
+        conditionVisibility.requireShown(request, listOf(requirement))
+    }
+
+    fun shows(request: InformationRequest, requirement: InformationRequestRequirement): Boolean =
+        conditionVisibility.shows(request, requirement)
 
     fun requireMutationAllowed(locked: LockedInformationRequest)
     {
@@ -116,23 +135,20 @@ class InformationRequestEvidenceGate @Inject constructor(
         }
     }
 
-    fun requireContinuationEntitlement(locked: LockedInformationRequest)
-    {
-        val grant = executionGrantService.findForRequest(locked.request.id)
-        if (grant == null)
-        {
-            entitlementGuard.requireRequestMutation(locked.exchange)
-            return
-        }
-        entitlementGuard.requireNotOperationallySuspended(locked.exchange)
-        if (grant.revokedAt != null)
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.EXECUTION_GRANT_REVOKED,
-                "This request's execution grant has been revoked",
-            )
-        }
+    fun requireContinuation(locked: LockedInformationRequest, action: InformationRequestContinuationAction) {
+        continuationGuard.requireContinuation(locked, action)
     }
+
+    fun requireRequestView(access: RequestAccessContext, requestId: UUID) {
+        InformationRequestReadAuthorization.requireView(authorizationService, requestId, access)
+    }
+
+    fun requireEvidenceTarget(access: RequestAccessContext, requirementId: UUID, actions: List<Action>) =
+        authorizeAny(
+            access,
+            listOf(Action.INFORMATION_REQUEST_EVIDENCE_MANAGE, Action.INFORMATION_REQUEST_EVIDENCE_VIEW) + actions,
+            requirementId,
+        )
 
     fun authorize(access: RequestAccessContext, action: Action, requirementId: UUID) =
         authorizeAny(access, listOf(action), requirementId)
@@ -144,6 +160,51 @@ class InformationRequestEvidenceGate @Inject constructor(
             throw ForbiddenException("Access denied to Information Request evidence")
         }
     }
+
+    fun changeableBy(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        artifact: InformationRequestEvidenceArtifact,
+    ): Boolean {
+        val provider = PrincipalRef(artifact.createdByPrincipalKind, artifact.createdByPrincipalId)
+        if (provider == access.principal) return true
+        val requirementId = artifact.informationRequestRequirementId
+        val providerParties = requirementContext.contributingPartyIds(request, requirementId, provider)
+        return providerParties.isEmpty() ||
+                requirementContext.contributingPartyIds(request, requirementId, access.principal)
+                    .any { it in providerParties }
+    }
+
+    fun requireChangeableBy(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        artifact: InformationRequestEvidenceArtifact,
+    ) {
+        if (!changeableBy(access, request, artifact)) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.EVIDENCE_PROVIDED_BY_ANOTHER_PARTY,
+                "Only the party that provided this file can replace, withdraw, or remove it",
+            )
+        }
+    }
+
+    fun forCaller(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        view: InformationRequestEvidenceArtifactView,
+    ): InformationRequestEvidenceArtifactView =
+        view.copy(
+            changeableByCaller = permits(
+                access,
+                Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW,
+                view.artifact.informationRequestRequirementId
+            ) &&
+                    changeableBy(access, request, view.artifact),
+        )
+
+    fun sees(access: RequestAccessContext, artifact: InformationRequestEvidenceArtifact): Boolean =
+        artifact.collectionState != InformationRequestEvidenceCollectionState.REMOVED ||
+                permits(access, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE, artifact.informationRequestRequirementId)
 
     fun permits(access: RequestAccessContext, action: Action, requirementId: UUID): Boolean =
         authorizationService.authorize(

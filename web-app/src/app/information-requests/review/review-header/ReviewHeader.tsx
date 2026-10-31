@@ -29,6 +29,12 @@ const ReviewHeader = ({review}: Props) =>
                         ? `Submitted part: ${humanizedKey(review.stageKey)}. Opened ${formatInformationRequestTime(review.openedAt)}.`
                         : `Opened ${formatInformationRequestTime(review.openedAt)}.`}
                 </Text>
+                {review.openingReason && (
+                    <Text id={"information-request-review-opening-reason"}
+                          className={styles.reason}>
+                        {`Reason given: ${review.openingReason}`}
+                    </Text>
+                )}
             </div>
             <Badge id={"information-request-review-state"}
                    appearance={"filled"}

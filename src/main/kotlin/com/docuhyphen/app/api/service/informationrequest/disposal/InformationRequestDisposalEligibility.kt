@@ -1,14 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.disposal
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
-import com.docuhyphen.app.api.model.entity.RecordPreservationHold
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalAssessment
 import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalObjectCandidate
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.disposal.InformationRequestDisposalRepository
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.recordpreservation.RecordDisposalService
@@ -18,19 +16,29 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Duration
 import java.time.Instant
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestDisposalEligibility @Inject constructor(
     private val disposalRepository: InformationRequestDisposalRepository,
+    private val requestRepository: InformationRequestRepository,
     private val schedules: RecordRetentionScheduleService,
     private val holds: RecordPreservationHoldService,
     private val disposals: RecordDisposalService,
 )
 {
+    fun lockForClaim(request: InformationRequest) {
+        disposalRepository.lockClaimBoundary(request.id)
+    }
+
+    fun referrers(requestId: UUID): Set<UUID> =
+        disposalRepository.references(requestId).mapNotNull { it.referrer }.toSet()
+
     fun assess(
         request: InformationRequest,
         basis: RecordDisposalBasis,
-        now: Instant
+        now: Instant,
+        companions: Set<UUID> = emptySet(),
     ): InformationRequestDisposalAssessment
     {
         val owner = ownerOf(request)
@@ -39,9 +47,10 @@ class InformationRequestDisposalEligibility @Inject constructor(
             code: String,
             detail: String,
             covering: List<RecordPreservationHold> = emptyList(),
-            from: Instant? = null
+            from: Instant? = null,
+            references: List<String> = emptyList(),
         ) =
-            InformationRequestDisposalAssessment.Refused(owner, schedule, covering, code, detail, from)
+            InformationRequestDisposalAssessment.Refused(owner, schedule, covering, code, detail, from, references)
 
         if (disposals.viewFor(RecordPreservationResourceTypes.INFORMATION_REQUEST, request.id) != null)
         {
@@ -81,7 +90,8 @@ class InformationRequestDisposalEligibility @Inject constructor(
             }
         }
         val objects = disposalRepository.storedObjects(request.id)
-        val keys = scopeKeys(request, objects)
+        val coSources = disposalRepository.exportCoSources(request.id).mapNotNull(requestRepository::findById)
+        val keys = scopeKeysOf(request, objects, coSources)
         val covering = holds.coveringHolds(owner, keys)
         if (covering.isNotEmpty())
         {
@@ -91,15 +101,50 @@ class InformationRequestDisposalEligibility @Inject constructor(
                 covering
             )
         }
-        val references = disposalRepository.liveReferences(request.id)
+        val references = disposalRepository.references(request.id)
+            .filter { it.referrer == null || it.referrer !in companions }
+            .map { it.kind }
+            .distinct() + listOfNotNull(
+            SHARED_RECORD_EXPORT.takeIf { coSources.any { needsSharedExport(it, owner, schedule, now) } },
+        )
         if (references.isNotEmpty())
         {
             return refused(
                 InformationRequestErrorCatalog.RECORD_REFERENCED,
                 "Another live record still refers to this request: ${references.joinToString()}",
+                references = references,
             )
         }
         return InformationRequestDisposalAssessment.Eligible(owner, schedule, keys, objects)
+    }
+
+    fun coveringHolds(request: InformationRequest): List<RecordPreservationHold> {
+        val coSources = disposalRepository.exportCoSources(request.id).mapNotNull(requestRepository::findById)
+        return holds.coveringHolds(
+            ownerOf(request),
+            scopeKeysOf(request, disposalRepository.storedObjects(request.id), coSources),
+        )
+    }
+
+    private fun scopeKeysOf(
+        request: InformationRequest,
+        objects: List<RecordDisposalObjectCandidate>,
+        coSources: List<InformationRequest>,
+    ): List<RecordPreservationKey> =
+        (scopeKeys(request, objects) + coSources.flatMap { scopeKeys(it, disposalRepository.storedObjects(it.id)) })
+            .distinct()
+
+    private fun needsSharedExport(
+        coSource: InformationRequest,
+        owner: RecordOwnerRef,
+        schedule: RecordRetentionSchedule?,
+        now: Instant,
+    ): Boolean {
+        if (ownerOf(coSource) != owner) return true
+        if (disposals.viewFor(RecordPreservationResourceTypes.INFORMATION_REQUEST, coSource.id) != null) return false
+        val finishedAt = finishedAt(coSource) ?: return true
+        val minimumDays = schedule?.minimumRetentionDays ?: return false
+        return now.isBefore(finishedAt.plus(Duration.ofDays(minimumDays.toLong())))
     }
 
     private fun scopeKeys(
@@ -148,6 +193,9 @@ class InformationRequestDisposalEligibility @Inject constructor(
                     )
                 )
             }
+            disposalRepository.ownedRecords(request.id).forEach { (resourceType, resourceId) ->
+                add(RecordPreservationKey(resourceType, resourceId, direct = true))
+            }
             objects.filter { it.retainedReason == null }.forEach {
                 add(
                     RecordPreservationKey(
@@ -168,6 +216,8 @@ class InformationRequestDisposalEligibility @Inject constructor(
 
     companion object
     {
+        const val SHARED_RECORD_EXPORT = "SHARED_RECORD_EXPORT"
+
         fun ownerOf(request: InformationRequest): RecordOwnerRef = when (request.ownerType)
         {
             InformationRequestOwnerType.ORGANIZATION -> RecordOwnerRef.organization(requireNotNull(request.ownerOrganizationId))

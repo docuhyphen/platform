@@ -1,10 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.parent
 
-import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.Share
-import com.docuhyphen.app.api.model.entity.ShareSource
-import com.docuhyphen.app.api.model.entity.ShareStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
@@ -12,21 +10,7 @@ import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepo
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.service.application.ApplicationService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicyRegistry
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyEvaluatorRegistry
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.informationrequest.access.ownerContext
+import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.enterprise.inject.Instance
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,15 +19,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * The Exchange owner's Share already carries INFORMATION_REQUEST_CREATE, READ, CANCEL, and ADMIN
- * (see InformationRequestAuthorizationVocabularyTest), but that Share is scoped to the Exchange
- * resource, not to any one request. This proves the aggregate resource kind must register that it
- * takes its parent Exchange's grants for that owner authoring capability to ever reach a decision
- * made directly against one request, such as cancellation.
- */
 class InformationRequestAggregateParentGrantInheritanceTest
 {
     private val userId = UUID.randomUUID()
@@ -94,9 +71,9 @@ class InformationRequestAggregateParentGrantInheritanceTest
         val contextRegistry = registryWith()
 
         val policyRegistry = ParentGrantInheritancePolicyRegistry()
-        val policies = mock<Instance<com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicy>>()
+        val policies = mock<Instance<ParentGrantInheritancePolicy>>()
         whenever(policies.iterator()).thenReturn(
-            mutableListOf<com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicy>(
+            mutableListOf<ParentGrantInheritancePolicy>(
                 InformationRequestParentGrantInheritancePolicy(),
             ).iterator(),
         )
@@ -121,7 +98,7 @@ class InformationRequestAggregateParentGrantInheritanceTest
             .thenAnswer { invocation ->
                 val kind = invocation.arguments[0] as PrincipalKind
                 val id = invocation.arguments[1] as UUID
-                val type = invocation.arguments[2] as com.docuhyphen.app.api.model.entity.ResourceType
+                val type = invocation.arguments[2] as ResourceType
                 val resourceId = invocation.arguments[3] as UUID
                 if (kind == PrincipalKind.USER && id == sharePrincipalId &&
                     type == exchangeRef.type && resourceId == exchangeRef.id
@@ -134,7 +111,7 @@ class InformationRequestAggregateParentGrantInheritanceTest
                     emptyList<Share>()
                 }
             }
-        whenever(shareRepository.findById(eq(share.id!!))).thenReturn(share)
+        whenever(shareRepository.findById(eq(share.id))).thenReturn(share)
 
         return DefaultAuthorizationService(
             shareRepository = shareRepository,
@@ -151,7 +128,7 @@ class InformationRequestAggregateParentGrantInheritanceTest
             principalGroupRepository = mock<PrincipalGroupRepository>(),
             applicationService = mock<ApplicationService>(),
             resourceContextRegistry = contextRegistry,
-            parentGrantInheritanceResolver = com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritanceResolver(
+            parentGrantInheritanceResolver = ParentGrantInheritanceResolver(
                 policyRegistry,
                 contextRegistry,
             ),

@@ -21,7 +21,7 @@ class DocumentVersion
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "document_id")
-    lateinit var document: Document
+    var document: Document? = null
 
     @Column(name = "file_name", nullable = false)
     lateinit var fileName: String

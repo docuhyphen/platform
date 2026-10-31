@@ -1,25 +1,13 @@
 package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
+import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * One writer records the platform-administered feature decisions of either kind of subscription
- * owner. The owner kind decides which column the decision is stored in and which rows a replacement
- * is allowed to touch, so an organization and an individual account never overwrite each other.
- */
 class SubscriptionFeatureEntitlementAdminServiceTest
 {
     private val organizationId: UUID = UUID.randomUUID()

@@ -1,12 +1,3 @@
-/**
- * Typed Axios wrappers for the configurable Fields and Business Schema engine.
- *
- * Covers:
- *   - Field type registry lookup
- *   - Field Definition + immutable Field Contract management (/fields/*)
- *   - Schema Definition draft/publish/version management (/schemas/*)
- *   - Exchange schema assignment + typed field values (/exchanges/{id}/schema, /fields)
- */
 import axios from 'axios';
 import apiClient from './apiClient';
 import {
@@ -20,12 +11,12 @@ import {
     ResolvedSchemaViewDto,
     ResponseError,
     SchemaAssignmentDto,
+    SchemaAssignmentStateDto,
     SchemaCompatibility,
     SchemaDefinitionDto,
+    SchemaTargetResourceType,
     SchemaVersionDto,
 } from '../app/models/models';
-
-// ── Request shapes ────────────────────────────────────────────────────────────
 
 export interface FieldContractRequest
 {
@@ -68,6 +59,7 @@ export interface CreateSchemaRequest
     displayName: string;
     description?: string;
     scopeKind?: FieldScopeKind;
+    targetResourceType?: SchemaTargetResourceType;
     bindings?: BindingRequest[];
 }
 
@@ -97,8 +89,6 @@ export interface AssignSchemaRequest
     schemaDefinitionId: string;
 }
 
-// ── Internal helper ───────────────────────────────────────────────────────────
-
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 {
     try
@@ -106,19 +96,14 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     catch (error: unknown)
     {
         throw error.response?.data || error.message;
     }
 };
 
-// ── Field type registry ─────────────────────────────────────────────────────
-
 export const listFieldTypes = (): Promise<FieldTypeInfoDto[]> =>
     executeRequest(() => apiClient.get('/fields/types'));
-
-// ── Field Definitions ─────────────────────────────────────────────────────────
 
 export interface ListFieldDefinitionsParams
 {
@@ -150,8 +135,6 @@ export const addFieldContractVersion = (
 export const retireFieldDefinition = (id: string): Promise<FieldDefinitionDto> =>
     executeRequest(() => apiClient.patch(`/fields/definitions/${id}/status`, {status: 'RETIRED'}));
 
-// ── Schema Definitions ──────────────────────────────────────────────────────
-
 export interface ListSchemasParams
 {
     scopeKind?: FieldScopeKind;
@@ -162,6 +145,9 @@ export const listSchemas = (params?: ListSchemasParams): Promise<SchemaDefinitio
 
 export const getSchema = (id: string): Promise<SchemaDefinitionDto> =>
     executeRequest(() => apiClient.get(`/schemas/definitions/${id}`));
+
+export const getSchemaVersion = (id: string): Promise<SchemaVersionDto> =>
+    executeRequest(() => apiClient.get(`/schemas/versions/${id}`));
 
 export const getResolvedSchema = (id: string): Promise<ResolvedSchemaViewDto> =>
     executeRequest(() => apiClient.get(`/schemas/definitions/${id}/resolved`));
@@ -187,34 +173,13 @@ export const createSchemaDraftVersion = (id: string): Promise<SchemaVersionDto> 
 export const retireSchema = (id: string): Promise<SchemaDefinitionDto> =>
     executeRequest(() => apiClient.patch(`/schemas/definitions/${id}/status`, {status: 'RETIRED'}));
 
-// ── Exchange schema assignment + values ─────────────────────────────────────
+export const getExchangeSchema = (exchangeId: string): Promise<SchemaAssignmentStateDto> =>
+    executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/schema`));
 
-/**
- * Fetch the exchange's current schema assignment and resolved values.
- * Returns null when no schema is assigned (server replies 204 No Content).
- */
-export const getExchangeSchema = async (
-    exchangeId: string,
-): Promise<SchemaAssignmentDto | null> =>
-{
-    try
-    {
-        const {data, status} = await apiClient.get<SchemaAssignmentDto>(
-            `/exchanges/${exchangeId}/schema`,
-        );
-        return status === 204 ? null : data;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    catch (error: unknown)
-    {
-        throw error.response?.data || error.message;
-    }
-};
-
-/** The header a conditional save states the version of the values it read in. */
 const IF_MATCH_HEADER = 'If-Match';
 
-/** The validator standing for whichever version is current, which excludes no version. */
+const IF_NONE_MATCH_HEADER = 'If-None-Match';
+
 const ANY_VERSION = '*';
 
 export const assignExchangeSchema = (
@@ -224,7 +189,7 @@ export const assignExchangeSchema = (
     executeRequest(() => apiClient.put(
         `/exchanges/${exchangeId}/schema`,
         request,
-        {headers: {[IF_MATCH_HEADER]: ANY_VERSION}},
+        {headers: {[IF_NONE_MATCH_HEADER]: ANY_VERSION}},
     ));
 
 export const unassignExchangeSchema = (exchangeId: string, expectedETag: string): Promise<void> =>
@@ -233,48 +198,27 @@ export const unassignExchangeSchema = (exchangeId: string, expectedETag: string)
         {headers: {[IF_MATCH_HEADER]: expectedETag}},
     ));
 
-/** The machine code the server states when the version a save named is no longer the current one. */
 const STALE_VERSION_CODE = 'FIELDS_PRECONDITION_STALE';
 
-/**
- * Whether a refused save was refused because the stored values moved past the version it named.
- * Both the status and the machine code are required, so a precondition refused for any other reason
- * is not mistaken for one a caller can recover from by reloading.
- */
 const namesAVersionThatMovedOn = (error: unknown): boolean =>
     axios.isAxiosError(error)
     && error.response?.status === 412
     && (error.response.data as ResponseError | undefined)?.reasonCode === STALE_VERSION_CODE;
 
-/** A refusal as the server stated it, falling back to whatever the transport could say. */
 const statedRefusal = (error: unknown): unknown =>
 {
     if (axios.isAxiosError(error)) return error.response?.data ?? error.message;
     return error instanceof Error ? error.message : error;
 };
 
-/** What a conditional save of an Exchange's field values was answered with. */
 export type SetFieldValuesResult =
     | { outcome: 'SAVED'; assignment: SchemaAssignmentDto }
     | { outcome: 'STALE' };
 
-/**
- * Saves only the values it carries, and only while the Exchange's stored values still stand in the
- * version [expectedETag] names.
- *
- * That validator is the one served with the values, or with the previous save, so a save built on
- * values that someone else has since changed is refused instead of silently discarding their change.
- * A read that served no validator has no version to name, which happens only where the resource
- * holds no set of values to be stale about; the save then states that it accepts whichever version
- * is current, which is the truth about what it read and is what keeps such a resource savable.
- *
- * A refusal for a version that has moved on is an answer rather than a failure, because reloading
- * and deciding is the caller's job. Every other refusal is thrown as the server stated it.
- */
 export const saveExchangeFieldValues = async (
     exchangeId: string,
     request: SetFieldValuesRequest,
-    expectedETag?: string,
+    expectedETag: string,
 ): Promise<SetFieldValuesResult> =>
 {
     try
@@ -282,7 +226,7 @@ export const saveExchangeFieldValues = async (
         const {data} = await apiClient.patch<SchemaAssignmentDto>(
             `/exchanges/${exchangeId}/fields`,
             request,
-            {headers: {[IF_MATCH_HEADER]: expectedETag ?? ANY_VERSION}},
+            {headers: {[IF_MATCH_HEADER]: expectedETag}},
         );
         return {outcome: 'SAVED', assignment: data};
     }

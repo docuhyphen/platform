@@ -141,12 +141,15 @@ enum class InformationRequestReconciliationOutcome
     DIFFERS,
     NO_ANSWER,
     NOT_COMPARABLE,
+    FIELD_CHANGED,
     EXPIRED,
 }
 
 sealed interface InformationRequestValueComparison
 {
     data object NotComparable : InformationRequestValueComparison
+
+    data object FieldChanged : InformationRequestValueComparison
 
     data object NoAnswer : InformationRequestValueComparison
 

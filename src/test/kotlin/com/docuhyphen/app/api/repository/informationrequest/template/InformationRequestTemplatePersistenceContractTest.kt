@@ -1,28 +1,6 @@
 package com.docuhyphen.app.api.repository.informationrequest.template
 
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingSubstitute
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidenceAcceptedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateSection
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityExecutorRegistry
@@ -33,16 +11,13 @@ import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 private class RequestTemplatePostgreSQLContainer(imageName: String) :
@@ -74,15 +49,6 @@ class RequestTemplatePostgreSQLResource : QuarkusTestResourceLifecycleManager
     }
 }
 
-/**
- * Reusable request configuration has to survive the round trip through the mapped entities, and
- * every lookup has to answer for the exact identity it was asked about.
- *
- * A key lookup that asks only about a scope kind and an organization answers for every person at
- * once, because they all share the absent organization. A version, section, requirement, or binding
- * lookup that ignores its parent answers for every Template in the deployment. Both mistakes hand
- * one owner's configuration to another, and neither is visible until it happens.
- */
 @QuarkusTest
 @QuarkusTestResource(RequestTemplatePostgreSQLResource::class)
 class InformationRequestTemplatePersistenceContractTest
@@ -242,7 +208,8 @@ class InformationRequestTemplatePersistenceContractTest
             )
             assertEquals(
                 definition.id,
-                requirementRepository.findByKey(definition.id, "recorded-note")?.templateDefinitionId,
+                requirementRepository.findAllByDefinition(definition.id)
+                    .single { it.requirementKey == "recorded-note" }.templateDefinitionId,
             )
             assertNull(versionRepository.findByNumber(definition.id, 2))
         }
@@ -331,7 +298,11 @@ class InformationRequestTemplatePersistenceContractTest
         }
         val requirement = QuarkusTransaction.requiringNew().call {
             requirementRepository.save(
-                requirement(definition.id, "recorded-assertion", InformationRequestRequirementType.RESPONSE_ATTESTATION),
+                requirement(
+                    definition.id,
+                    "recorded-assertion",
+                    InformationRequestRequirementType.RESPONSE_ATTESTATION
+                ),
             )
         }
         val binding = QuarkusTransaction.requiringNew().call {
@@ -369,13 +340,14 @@ class InformationRequestTemplatePersistenceContractTest
 
             assertEquals(
                 listOf(requirement.id),
-                requirementRepository.findAllByType(
-                    definition.id, InformationRequestRequirementType.RESPONSE_ATTESTATION,
-                ).map { it.id },
+                requirementRepository.findAllByDefinition(definition.id)
+                    .filter { it.requirementType == InformationRequestRequirementType.RESPONSE_ATTESTATION }
+                    .map { it.id },
             )
             assertEquals(
                 emptyList<UUID>(),
-                requirementRepository.findAllByType(definition.id, InformationRequestRequirementType.FIELD)
+                requirementRepository.findAllByDefinition(definition.id)
+                    .filter { it.requirementType == InformationRequestRequirementType.FIELD }
                     .map { it.id },
             )
         }
@@ -419,8 +391,6 @@ class InformationRequestTemplatePersistenceContractTest
         val requestedBinding = QuarkusTransaction.requiringNew().call {
             bindingRepository.save(binding(version.id, definition.id, requested.id, section.id, 2))
         }
-        // Another version asks its own question, so collecting the same field there is not the same
-        // answer being recorded twice.
         val otherVersionBinding = QuarkusTransaction.requiringNew().call {
             bindingRepository.save(
                 binding(otherVersion.id, definition.id, answered.id, otherSection.id, 1, collectedField),
@@ -457,15 +427,21 @@ class InformationRequestTemplatePersistenceContractTest
 
             assertEquals(
                 listOf(requestedBinding.id),
-                evidenceLinkRepository.findForBinding(answeredBinding.id).map { it.supportingTemplateBindingId },
+                evidenceLinkRepository.findForVersion(version.id)
+                    .filter { it.templateBindingId == answeredBinding.id }
+                    .map { it.supportingTemplateBindingId },
             )
             assertEquals(
                 listOf(answeredBinding.id),
-                evidenceLinkRepository.findSupportedBy(requestedBinding.id).map { it.templateBindingId },
+                evidenceLinkRepository.findForVersion(version.id)
+                    .filter { it.supportingTemplateBindingId == requestedBinding.id }
+                    .map { it.templateBindingId },
             )
             assertEquals(
                 emptyList<UUID>(),
-                evidenceLinkRepository.findSupportedBy(answeredBinding.id).map { it.id },
+                evidenceLinkRepository.findForVersion(version.id)
+                    .filter { it.supportingTemplateBindingId == answeredBinding.id }
+                    .map { it.id },
             )
             assertEquals(1, evidenceLinkRepository.findForVersion(version.id).size)
             assertEquals(0, evidenceLinkRepository.findForVersion(otherVersion.id).size)
@@ -582,9 +558,10 @@ class InformationRequestTemplatePersistenceContractTest
             assertEquals(3, acceptedValueRepository.findForPolicy(policy.id).size)
             assertEquals(
                 listOf("application/pdf", "image/png"),
-                acceptedValueRepository
-                    .findForPolicyAttribute(policy.id, InformationRequestEvidenceAttribute.CONTENT_TYPE)
-                    .map { it.acceptedValue },
+                acceptedValueRepository.findForPolicy(policy.id)
+                    .filter { it.attribute == InformationRequestEvidenceAttribute.CONTENT_TYPE }
+                    .map { it.acceptedValue }
+                    .sorted(),
             )
             assertEquals(
                 emptyList<UUID>(),
@@ -599,7 +576,9 @@ class InformationRequestTemplatePersistenceContractTest
             )
             assertEquals(
                 listOf(requestedBinding.id),
-                substituteRepository.findSubstitutedBy(alternateBinding.id).map { it.templateBindingId },
+                substituteRepository.findForVersion(version.id)
+                    .filter { it.substituteTemplateBindingId == alternateBinding.id }
+                    .map { it.templateBindingId },
             )
             assertEquals(
                 emptyList<UUID>(),
@@ -639,8 +618,6 @@ class InformationRequestTemplatePersistenceContractTest
         }
 
         QuarkusTransaction.requiringNew().run {
-            // The set belongs to the version that recorded it, so a lookup that ignored its parent
-            // would issue one version against another version's runtime.
             assertEquals(
                 listOf(
                     InformationRequestCapability.RESPONSE_REVIEW,
@@ -669,9 +646,6 @@ class InformationRequestTemplatePersistenceContractTest
                 capabilityGate.requirementsOf(version.id),
             )
 
-            // Every capability is installed, but this version was frozen against a review contract no
-            // installed executor honours, so it is valid but cannot be issued, and the refusal names
-            // only what is missing.
             assertEquals(
                 InformationRequestCapability.entries.toSet(),
                 executorRegistry.installedCapabilities(),
@@ -692,16 +666,22 @@ class InformationRequestTemplatePersistenceContractTest
             assertEquals(
                 listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_SUBMISSION, 2)),
                 executorRegistry.unserved(
-                    listOf(InformationRequestCapabilityRequirement(InformationRequestCapability.RESPONSE_SUBMISSION, 2)),
+                    listOf(
+                        InformationRequestCapabilityRequirement(
+                            InformationRequestCapability.RESPONSE_SUBMISSION,
+                            2
+                        )
+                    ),
                 ),
             )
 
-            // A version that recorded nothing needs nothing, so nothing stands in the way of it.
             val unrecorded = QuarkusTransaction.requiringNew().call {
                 versionRepository.save(draftVersion(definition.id, 3))
             }
-            assertEquals(emptyList<InformationRequestCapabilityRequirement>(),
-                capabilityGate.unservedRequirements(unrecorded.id))
+            assertEquals(
+                emptyList<InformationRequestCapabilityRequirement>(),
+                capabilityGate.unservedRequirements(unrecorded.id)
+            )
             capabilityGate.requireInstalledCapabilities(unrecorded.id)
         }
     }
@@ -715,6 +695,7 @@ class InformationRequestTemplatePersistenceContractTest
         capabilityKey = capability
         requiredContractVersion = contractVersion
     }
+
     private fun findPersonalByKey(owner: UUID, namespace: String): InformationRequestTemplateDefinition? =
         definitionRepository.findByKey(
             InformationRequestTemplateScopeKind.PERSONAL, null, owner, namespace, TEMPLATE_KEY,
@@ -749,7 +730,8 @@ class InformationRequestTemplatePersistenceContractTest
             versionNumber = number
             status = InformationRequestTemplateStatus.PUBLISHED
             publishedAt = Timestamp.from(Instant.now())
-            publishedByAppUserId = actorId
+            publishedByPrincipalKind = PrincipalKind.USER
+            publishedByPrincipalId = actorId
         }
 
     private fun section(versionId: UUID, key: String, order: Int) =
@@ -787,10 +769,6 @@ class InformationRequestTemplatePersistenceContractTest
         collectedFieldDefinitionId = collectedField
     }
 
-    /**
-     * One stable field a typed requirement can collect. Each call creates its own, because one
-     * version collects one field once.
-     */
     private fun collectableField(): UUID
     {
         val id = UUID.randomUUID()
@@ -830,7 +808,6 @@ class InformationRequestTemplatePersistenceContractTest
             templateVersionId = versionId
         }
 
-    /** Every bound and every captured attribute set, so a mismapped column cannot pass unnoticed. */
     private fun strictPolicy(bindingId: UUID, versionId: UUID) =
         InformationRequestTemplateEvidencePolicy().apply {
             templateBindingId = bindingId
@@ -856,7 +833,6 @@ class InformationRequestTemplatePersistenceContractTest
             conformancePolicy = InformationRequestEvidenceConformancePolicy.DEFICIENCY_REVIEWABLE
         }
 
-    /** The least restrictive policy a requested Document can be judged by. */
     private fun permissivePolicy(bindingId: UUID, versionId: UUID) =
         InformationRequestTemplateEvidencePolicy().apply {
             templateBindingId = bindingId
@@ -882,7 +858,6 @@ class InformationRequestTemplatePersistenceContractTest
             templateVersionId = versionId
         }
 
-    /** Namespaces are per test so one test's stored key never decides another's lookup. */
     private fun uniqueNamespace(): String = "process-${UUID.randomUUID().toString().take(8)}"
 
     private fun insertOwner(label: String): UUID

@@ -1,11 +1,13 @@
 package com.docuhyphen.app.api.resource.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestLineageDtoMapper
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateInformationRequestSuccessorCommand
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.lifecycle.operations.InformationRequestSuccessorResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestSuccessorRequest
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestHeaderProjectionService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLineageQueryService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestSuccessorService
@@ -17,6 +19,7 @@ class InformationRequestSuccessorResource @Inject constructor(
     private val successorService: InformationRequestSuccessorService,
     private val lineageQueryService: InformationRequestLineageQueryService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
+    private val headerProjection: InformationRequestHeaderProjectionService,
 ) : InformationRequestSuccessorResourceOperations
 {
     override fun lineage(id: String): Response
@@ -34,27 +37,34 @@ class InformationRequestSuccessorResource @Inject constructor(
 
     override fun create(
         id: String,
-        request: CreateInformationRequestSuccessorRequest,
+        request: CreateInformationRequestSuccessorRequest?,
         ifMatch: String?,
         idempotencyKey: String?,
     ): Response
     {
         return try
         {
+            val body = request ?: throw InformationRequestCommandRequestException("A follow-up request states its kind")
+            val access = accessContextFactory.currentAuthenticated()
             val result = successorService.create(
                 CreateInformationRequestSuccessorCommand(
                     sourceRequestId = requestId(id),
-                    kind = request.kind,
-                    targetTemplateVersionId = request.targetTemplateVersionId,
-                    sourcePackageId = request.sourcePackageId,
-                    reasonCode = request.reasonCode?.trim()?.ifBlank { null },
-                    access = accessContextFactory.currentAuthenticated(),
-                    precondition = CommandPreconditionHeader.required(ifMatch),
+                    kind = body.kind,
+                    targetTemplateVersionId = body.targetTemplateVersionId,
+                    sourcePackageId = body.sourcePackageId,
+                    reasonCode = body.reasonCode?.trim()?.ifBlank { null },
+                    access = access,
+                    precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                     idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
                 ),
             )
             Response.status(Response.Status.CREATED)
-                .entity(InformationRequestLineageDtoMapper.toDto(result))
+                .entity(
+                    InformationRequestLineageDtoMapper.toDto(
+                        result,
+                        headerProjection.headerOf(result.successor, access)
+                    )
+                )
                 .header("ETag", result.successorETag)
                 .build()
         }

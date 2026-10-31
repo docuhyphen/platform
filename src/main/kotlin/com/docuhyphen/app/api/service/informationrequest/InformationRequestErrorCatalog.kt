@@ -1,182 +1,134 @@
 package com.docuhyphen.app.api.service.informationrequest
 
-/**
- * Stable machine reasons for refusing a runtime Information Request operation.
- *
- * A refusal has to survive translation, prose changes, and a client that has to decide what to
- * do next, so each reason is a code rather than a message. Codes are additive: an existing one is
- * never renamed or reused for a different meaning once a client can observe it.
- *
- * Configuration-time refusals keep their own codes on the Template exceptions, because an author
- * choosing a Version and a respondent answering an issued request are different audiences.
- */
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
+
 object InformationRequestErrorCatalog
 {
-    /** No request with that identity is visible to the caller. */
     const val NOT_FOUND = "INFORMATION_REQUEST_NOT_FOUND"
 
-    /** The caller holds no capability for the operation on this request or occurrence. */
     const val FORBIDDEN = "INFORMATION_REQUEST_FORBIDDEN"
 
-    /**
-     * The authorization facts for the resource could not be resolved, so the decision was
-     * refused rather than guessed.
-     */
-    const val AUTHORIZATION_UNAVAILABLE = "INFORMATION_REQUEST_AUTHORIZATION_UNAVAILABLE"
+    const val TEMPLATE_INVALID = "INFORMATION_REQUEST_TEMPLATE_INVALID"
 
-    /** The request's own collection state forbids the operation. */
     const val STATE_INVALID = "INFORMATION_REQUEST_STATE_INVALID"
 
-    /** The parent Exchange's state forbids the operation. */
     const val PARENT_STATE_INVALID = "INFORMATION_REQUEST_PARENT_STATE_INVALID"
 
-    /** A parent Exchange state was not locked or rechecked in the authoritative mutation boundary. */
     const val PARENT_LOCK_REQUIRED = "INFORMATION_REQUEST_PARENT_LOCK_REQUIRED"
 
-    /** A configured Exchange completion gate has not been satisfied. */
     const val COMPLETION_GATES_UNSATISFIED = "INFORMATION_REQUEST_COMPLETION_GATES_UNSATISFIED"
 
-    /** Nongating requests must be explicitly ended before their parent Exchange ends. */
+    const val REMAINING_REQUESTS_NOT_CANCELLABLE = "INFORMATION_REQUEST_REMAINING_REQUESTS_NOT_CANCELLABLE"
     const val REMAINING_REQUESTS_REQUIRE_CANCELLATION =
         "INFORMATION_REQUEST_REMAINING_REQUESTS_REQUIRE_CANCELLATION"
 
-    /** The caller is not the party this occurrence nominates to act. */
     const val PARTY_NOT_ASSIGNED = "INFORMATION_REQUEST_PARTY_NOT_ASSIGNED"
 
-    /** The occurrence's response mode does not permit the requested operation. */
     const val RESPONSE_MODE_DENIED = "INFORMATION_REQUEST_RESPONSE_MODE_DENIED"
 
-    /** The pinned Template Version does not permit the supplied response disposition. */
     const val RESPONSE_DISPOSITION_NOT_PERMITTED = "INFORMATION_REQUEST_RESPONSE_DISPOSITION_NOT_PERMITTED"
 
-    /** The supplied response disposition needs a respondent narrative before it can be saved. */
     const val RESPONSE_NARRATIVE_REQUIRED = "INFORMATION_REQUEST_RESPONSE_NARRATIVE_REQUIRED"
 
-    /** A condition would clear response data, but the caller did not explicitly confirm that loss. */
+    const val RESPONDENT_CHANGED = "INFORMATION_REQUEST_RESPONDENT_CHANGED"
+
     const val HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED =
         "INFORMATION_REQUEST_HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED"
+    const val HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED = "INFORMATION_REQUEST_HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED"
+
+    const val REQUIREMENT_HIDDEN_BY_CONDITION = "INFORMATION_REQUEST_REQUIREMENT_HIDDEN_BY_CONDITION"
 
     const val STRUCTURED_RESPONSE_VALIDATION_FAILED =
         "INFORMATION_REQUEST_STRUCTURED_RESPONSE_VALIDATION_FAILED"
 
-    /** A repeatable group would fall outside the Template's authored minimum or maximum count. */
     const val GROUP_OCCURRENCE_CARDINALITY_INVALID =
         "INFORMATION_REQUEST_GROUP_OCCURRENCE_CARDINALITY_INVALID"
 
-    /** A nested group occurrence was supplied without the active parent its Template requires. */
     const val GROUP_OCCURRENCE_PARENT_INVALID = "INFORMATION_REQUEST_GROUP_OCCURRENCE_PARENT_INVALID"
 
-    /** A reorder command did not name exactly the active sibling occurrences for one group. */
     const val GROUP_OCCURRENCE_ORDER_INVALID = "INFORMATION_REQUEST_GROUP_OCCURRENCE_ORDER_INVALID"
 
-    /** The occurrence falls into a confidentiality compartment the caller cannot reach. */
     const val CONFIDENTIALITY_DENIED = "INFORMATION_REQUEST_CONFIDENTIALITY_DENIED"
 
-    /** The occurrence is not inside the open correction scope. */
     const val CORRECTION_SCOPE_DENIED = "INFORMATION_REQUEST_CORRECTION_SCOPE_DENIED"
 
-    /** A mutation arrived without the expected-revision precondition it requires. */
-    const val PRECONDITION_REQUIRED = "INFORMATION_REQUEST_PRECONDITION_REQUIRED"
+    const val CONSTRAINT_CONFLICT = "INFORMATION_REQUEST_CONSTRAINT_CONFLICT"
 
-    /** The supplied expected revision is no longer current. */
-    const val PRECONDITION_FAILED = "INFORMATION_REQUEST_PRECONDITION_FAILED"
-
-    /** The idempotency key was reused with a different request body. */
-    const val IDEMPOTENCY_CONFLICT = "INFORMATION_REQUEST_IDEMPOTENCY_CONFLICT"
-
-    /** The owner does not hold the commercial entitlement the operation needs. */
-    const val ENTITLEMENT_REQUIRED = "INFORMATION_REQUEST_ENTITLEMENT_REQUIRED"
-
-    /** This runtime cannot serve a capability the pinned Template Version requires. */
     const val CAPABILITY_NOT_INSTALLED = "INFORMATION_REQUEST_CAPABILITY_NOT_INSTALLED"
 
-    /**
-     * The parent Exchange requires recipients to sign in, so a no-auth bootstrap access link
-     * cannot be issued for it.
-     */
     const val RECIPIENT_SIGN_IN_REQUIRED = "INFORMATION_REQUEST_RECIPIENT_SIGN_IN_REQUIRED"
 
-    /**
-     * A retried access-link issuance matched a previous receipt. The original secret was never
-     * persisted and cannot be recovered; rotate the link instead of retrying issuance.
-     */
     const val ACCESS_LINK_ALREADY_ISSUED = "INFORMATION_REQUEST_ACCESS_LINK_ALREADY_ISSUED"
 
-    /** The presented bootstrap token does not resolve to a usable access link. */
     const val ACCESS_LINK_INVALID = "INFORMATION_REQUEST_ACCESS_LINK_INVALID"
 
-    /** The presented bootstrap token's access link has been revoked. */
     const val ACCESS_LINK_REVOKED = "INFORMATION_REQUEST_ACCESS_LINK_REVOKED"
 
-    /** The presented bootstrap token's access link has expired. */
     const val ACCESS_LINK_EXPIRED = "INFORMATION_REQUEST_ACCESS_LINK_EXPIRED"
 
-    /** The presented bootstrap token's access link has reached its usage limit. */
     const val ACCESS_LINK_EXHAUSTED = "INFORMATION_REQUEST_ACCESS_LINK_EXHAUSTED"
 
-    /**
-     * A retried access-link rotation matched a previous receipt. The new secret was never
-     * persisted and cannot be recovered; rotate the link again instead of retrying.
-     */
     const val ACCESS_LINK_ALREADY_ROTATED = "INFORMATION_REQUEST_ACCESS_LINK_ALREADY_ROTATED"
 
-    /**
-     * A retried access-link replacement matched a previous receipt. The new secret was never
-     * persisted and cannot be recovered; replace the link again instead of retrying.
-     */
     const val ACCESS_LINK_ALREADY_REPLACED = "INFORMATION_REQUEST_ACCESS_LINK_ALREADY_REPLACED"
 
-    /** No outstanding contact-proof code exists to verify, or none was supplied. */
+    const val ACCESS_LINK_PARTY_NOT_ELIGIBLE = "INFORMATION_REQUEST_ACCESS_LINK_PARTY_NOT_ELIGIBLE"
+
+    const val ACCESS_LINK_PARTY_ACCOUNT_LINKED = "INFORMATION_REQUEST_ACCESS_LINK_PARTY_ACCOUNT_LINKED"
+
+    const val ACCESS_LINK_LIMITS_INVALID = "INFORMATION_REQUEST_ACCESS_LINK_LIMITS_INVALID"
+
     const val CONTACT_PROOF_REQUIRED = "INFORMATION_REQUEST_CONTACT_PROOF_REQUIRED"
 
-    /** The presented contact-proof code does not match the one issued. */
     const val CONTACT_PROOF_INVALID = "INFORMATION_REQUEST_CONTACT_PROOF_INVALID"
 
-    /** Too many invalid contact-proof codes have been presented for the outstanding challenge. */
     const val CONTACT_PROOF_LOCKED = "INFORMATION_REQUEST_CONTACT_PROOF_LOCKED"
 
     const val CONTACT_PROOF_CHALLENGE_LIMIT = "INFORMATION_REQUEST_CONTACT_PROOF_CHALLENGE_LIMIT"
 
-    /** The outstanding contact-proof code has expired. */
     const val CONTACT_PROOF_EXPIRED = "INFORMATION_REQUEST_CONTACT_PROOF_EXPIRED"
 
-    /** The presented request access session has been revoked. */
     const val ACCESS_SESSION_REVOKED = "INFORMATION_REQUEST_ACCESS_SESSION_REVOKED"
 
-    /** The presented request access session has expired. */
     const val ACCESS_SESSION_EXPIRED = "INFORMATION_REQUEST_ACCESS_SESSION_EXPIRED"
 
-    /**
-     * The presented bootstrap token's access link is otherwise usable, but no request access
-     * session has ever been minted from it, or every session minted from it is no longer usable.
-     * Contact-proof verification must succeed again before this link can read request content.
-     */
     const val ACCESS_SESSION_REQUIRED = "INFORMATION_REQUEST_ACCESS_SESSION_REQUIRED"
 
-    /**
-     * The registering App User's email does not match the verified contact address on file for
-     * the participant it claims to upgrade.
-     */
     const val PARTICIPANT_ACCOUNT_EMAIL_MISMATCH = "INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_EMAIL_MISMATCH"
 
-    /** This participant is already linked to a different App User account. */
     const val PARTICIPANT_ACCOUNT_ALREADY_LINKED = "INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_ALREADY_LINKED"
+    const val PARTICIPANT_ACCOUNT_ACCESS_CONFLICT = "INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_ACCESS_CONFLICT"
+    const val PARTY_SHARING_NOT_PERMITTED = "INFORMATION_REQUEST_PARTY_SHARING_NOT_PERMITTED"
+    const val PARTY_ALREADY_ASSIGNED = "INFORMATION_REQUEST_PARTY_ALREADY_ASSIGNED"
+    const val PARTY_EMAIL_NOT_RECIPIENT = "INFORMATION_REQUEST_PARTY_EMAIL_NOT_RECIPIENT"
+    const val PARTY_ASSIGNMENT_INVALID = "INFORMATION_REQUEST_PARTY_ASSIGNMENT_INVALID"
+    const val PARTY_NOT_REASSIGNABLE = "INFORMATION_REQUEST_PARTY_NOT_REASSIGNABLE"
+    const val PARTY_ALREADY_REVOKED = "INFORMATION_REQUEST_PARTY_ALREADY_REVOKED"
+    const val DELEGATED_AUTHORITY_PARTY_INELIGIBLE = "INFORMATION_REQUEST_DELEGATED_AUTHORITY_PARTY_INELIGIBLE"
+    const val DELEGATED_AUTHORITY_WINDOW_INVALID = "INFORMATION_REQUEST_DELEGATED_AUTHORITY_WINDOW_INVALID"
+    const val DELEGATED_AUTHORITY_REQUIREMENT_INELIGIBLE =
+        "INFORMATION_REQUEST_DELEGATED_AUTHORITY_REQUIREMENT_INELIGIBLE"
+    const val DELEGATED_AUTHORITY_ALREADY_REVOKED = "INFORMATION_REQUEST_DELEGATED_AUTHORITY_ALREADY_REVOKED"
+    const val FIELD_OUTSIDE_AUDIENCE = "INFORMATION_REQUEST_FIELD_OUTSIDE_AUDIENCE"
 
-    /**
-     * The request's execution grant has been explicitly revoked. Distinct from an operational
-     * suspension or a lapsed subscription: this targets one specific request rather than every
-     * request its owner has open, and it is never lifted by a later change to the owner's plan.
-     */
     const val EXECUTION_GRANT_REVOKED = "INFORMATION_REQUEST_EXECUTION_GRANT_REVOKED"
 
-    /** A response Field patch entry names a Field the addressed Requirement does not collect. */
+    const val CONTINUATION_NOT_GRANTED = "INFORMATION_REQUEST_CONTINUATION_NOT_GRANTED"
+
     const val FIELD_ENTRY_NOT_BOUND = "INFORMATION_REQUEST_FIELD_ENTRY_NOT_BOUND"
 
+    const val FIELD_PRECONDITION_CONFLICT = "INFORMATION_REQUEST_FIELD_PRECONDITION_CONFLICT"
+    const val FIELD_VALUE_INVALID = "INFORMATION_REQUEST_FIELD_VALUE_INVALID"
+
     const val GROUP_OCCURRENCE_REMOVED = "INFORMATION_REQUEST_GROUP_OCCURRENCE_REMOVED"
+
+    const val EVIDENCE_REQUEST_INVALID = "INFORMATION_REQUEST_EVIDENCE_REQUEST_INVALID"
 
     const val EVIDENCE_NOT_COLLECTED = "INFORMATION_REQUEST_EVIDENCE_NOT_COLLECTED"
 
     const val EVIDENCE_ARTIFACT_INACTIVE = "INFORMATION_REQUEST_EVIDENCE_ARTIFACT_INACTIVE"
+
+    const val EVIDENCE_PROVIDED_BY_ANOTHER_PARTY = "INFORMATION_REQUEST_EVIDENCE_PROVIDED_BY_ANOTHER_PARTY"
 
     const val EVIDENCE_CONTENT_UNAVAILABLE = "INFORMATION_REQUEST_EVIDENCE_CONTENT_UNAVAILABLE"
 
@@ -190,9 +142,12 @@ object InformationRequestErrorCatalog
 
     const val EVIDENCE_UPLOAD_LIMIT_EXCEEDED = "INFORMATION_REQUEST_EVIDENCE_UPLOAD_LIMIT_EXCEEDED"
 
+    const val EVIDENCE_UPLOAD_LENGTH_REQUIRED = "INFORMATION_REQUEST_EVIDENCE_UPLOAD_LENGTH_REQUIRED"
+
     const val EVIDENCE_POLICY_REFUSED = "INFORMATION_REQUEST_EVIDENCE_POLICY_REFUSED"
 
     const val EVIDENCE_DUPLICATE_CONTENT = "INFORMATION_REQUEST_EVIDENCE_DUPLICATE_CONTENT"
+    const val EVIDENCE_OPAQUE_CONTENT_REFUSED = "INFORMATION_REQUEST_EVIDENCE_OPAQUE_CONTENT_REFUSED"
 
     const val SUBMISSION_STAGE_UNKNOWN = "INFORMATION_REQUEST_SUBMISSION_STAGE_UNKNOWN"
 
@@ -233,7 +188,18 @@ object InformationRequestErrorCatalog
 
     const val SUCCESSOR_SOURCE_INVALID = "INFORMATION_REQUEST_SUCCESSOR_SOURCE_INVALID"
 
+    const val SUCCESSOR_TARGET_INVALID = "INFORMATION_REQUEST_SUCCESSOR_TARGET_INVALID"
+
+    const val REASON_CODE_INVALID = "INFORMATION_REQUEST_REASON_CODE_INVALID"
+
     const val RECURRENCE_NOT_DUE = "INFORMATION_REQUEST_RECURRENCE_NOT_DUE"
+    const val RECURRENCE_COMPLETE = "INFORMATION_REQUEST_RECURRENCE_COMPLETE"
+    const val REFRESH_NOT_DUE = "INFORMATION_REQUEST_REFRESH_NOT_DUE"
+    const val REFRESH_ALREADY_CREATED = "INFORMATION_REQUEST_REFRESH_ALREADY_CREATED"
+    const val REFRESH_EXPIRY_NOT_CAPTURED = "INFORMATION_REQUEST_REFRESH_EXPIRY_NOT_CAPTURED"
+    const val FOLLOW_UP_SCHEDULE_INVALID = "INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE_INVALID"
+
+    const val REVIEW_INPUT_INVALID = "INFORMATION_REQUEST_REVIEW_INPUT_INVALID"
 
     const val REVIEW_SETTLED = "INFORMATION_REQUEST_REVIEW_SETTLED"
 
@@ -243,9 +209,13 @@ object InformationRequestErrorCatalog
 
     const val REVIEWER_NOT_ELIGIBLE = "INFORMATION_REQUEST_REVIEWER_NOT_ELIGIBLE"
 
+    const val REVIEWER_SIGN_IN_REQUIRED = "INFORMATION_REQUEST_REVIEWER_SIGN_IN_REQUIRED"
+
     const val REVIEWER_ALREADY_ASSIGNED = "INFORMATION_REQUEST_REVIEWER_ALREADY_ASSIGNED"
 
     const val REVIEW_ASSIGNMENT_INACTIVE = "INFORMATION_REQUEST_REVIEW_ASSIGNMENT_INACTIVE"
+
+    const val REVIEW_ASSIGNMENT_AMBIGUOUS = "INFORMATION_REQUEST_REVIEW_ASSIGNMENT_AMBIGUOUS"
 
     const val REVIEW_ALREADY_DECIDED = "INFORMATION_REQUEST_REVIEW_ALREADY_DECIDED"
 
@@ -297,6 +267,8 @@ object InformationRequestErrorCatalog
 
     const val CLOCK_POLICY_UNAVAILABLE = "INFORMATION_REQUEST_CLOCK_POLICY_UNAVAILABLE"
 
+    const val CLOCK_INPUT_INVALID = "INFORMATION_REQUEST_CLOCK_INPUT_INVALID"
+
     const val CLOCK_KEY_TAKEN = "INFORMATION_REQUEST_CLOCK_KEY_TAKEN"
 
     const val CLOCK_STATE_INVALID = "INFORMATION_REQUEST_CLOCK_STATE_INVALID"
@@ -324,36 +296,45 @@ object InformationRequestErrorCatalog
     const val TRUST_SUSPENDED = "INFORMATION_REQUEST_TRUST_SUSPENDED"
 
     const val TRUSTED_RECIPIENT_UNAVAILABLE = "INFORMATION_REQUEST_TRUSTED_RECIPIENT_UNAVAILABLE"
+    const val TRUSTED_RECIPIENT_SELECTION_REQUIRED = "INFORMATION_REQUEST_TRUSTED_RECIPIENT_SELECTION_REQUIRED"
 
     const val RATE_LIMITED = "INFORMATION_REQUEST_RATE_LIMITED"
 
     const val EXPORT_LIMIT_REACHED = "INFORMATION_REQUEST_EXPORT_LIMIT_REACHED"
+    const val RECORD_EXPORT_TOO_LARGE = "INFORMATION_REQUEST_RECORD_EXPORT_TOO_LARGE"
 
-    /** Every declared code, used to prove the catalog stays unique and namespaced. */
     fun allCodes(): List<String> = listOf(
         NOT_FOUND,
         FORBIDDEN,
-        AUTHORIZATION_UNAVAILABLE,
+        TEMPLATE_INVALID,
+        InformationRequestTemplateVersionUnavailableException.NOT_FOUND,
+        InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
+        InformationRequestTemplateVersionUnavailableException.RETIRED,
+        InformationRequestTemplateVersionUnavailableException.PLATFORM_COPY_REQUIRED,
+        InformationRequestTemplateVersionUnavailableException.OWNER_MISMATCH,
+        InformationRequestTemplateVersionUnavailableException.SCHEMA_UNAVAILABLE,
+        InformationRequestTemplateVersionUnavailableException.BLUEPRINT_UNAVAILABLE,
         STATE_INVALID,
         PARENT_STATE_INVALID,
         PARENT_LOCK_REQUIRED,
         COMPLETION_GATES_UNSATISFIED,
         REMAINING_REQUESTS_REQUIRE_CANCELLATION,
+        REMAINING_REQUESTS_NOT_CANCELLABLE,
         PARTY_NOT_ASSIGNED,
         RESPONSE_MODE_DENIED,
         RESPONSE_DISPOSITION_NOT_PERMITTED,
         RESPONSE_NARRATIVE_REQUIRED,
+        RESPONDENT_CHANGED,
         HIDDEN_RESPONSE_CLEAR_CONFIRMATION_REQUIRED,
+        HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED,
+        REQUIREMENT_HIDDEN_BY_CONDITION,
         STRUCTURED_RESPONSE_VALIDATION_FAILED,
         GROUP_OCCURRENCE_CARDINALITY_INVALID,
         GROUP_OCCURRENCE_PARENT_INVALID,
         GROUP_OCCURRENCE_ORDER_INVALID,
         CONFIDENTIALITY_DENIED,
         CORRECTION_SCOPE_DENIED,
-        PRECONDITION_REQUIRED,
-        PRECONDITION_FAILED,
-        IDEMPOTENCY_CONFLICT,
-        ENTITLEMENT_REQUIRED,
+        CONSTRAINT_CONFLICT,
         CAPABILITY_NOT_INSTALLED,
         RECIPIENT_SIGN_IN_REQUIRED,
         ACCESS_LINK_ALREADY_ISSUED,
@@ -363,6 +344,9 @@ object InformationRequestErrorCatalog
         ACCESS_LINK_EXHAUSTED,
         ACCESS_LINK_ALREADY_ROTATED,
         ACCESS_LINK_ALREADY_REPLACED,
+        ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+        ACCESS_LINK_PARTY_ACCOUNT_LINKED,
+        ACCESS_LINK_LIMITS_INVALID,
         CONTACT_PROOF_REQUIRED,
         CONTACT_PROOF_INVALID,
         CONTACT_PROOF_LOCKED,
@@ -373,19 +357,38 @@ object InformationRequestErrorCatalog
         ACCESS_SESSION_REQUIRED,
         PARTICIPANT_ACCOUNT_EMAIL_MISMATCH,
         PARTICIPANT_ACCOUNT_ALREADY_LINKED,
+        PARTICIPANT_ACCOUNT_ACCESS_CONFLICT,
+        PARTY_SHARING_NOT_PERMITTED,
+        PARTY_ALREADY_ASSIGNED,
+        PARTY_EMAIL_NOT_RECIPIENT,
+        PARTY_ASSIGNMENT_INVALID,
+        PARTY_NOT_REASSIGNABLE,
+        PARTY_ALREADY_REVOKED,
+        DELEGATED_AUTHORITY_PARTY_INELIGIBLE,
+        DELEGATED_AUTHORITY_WINDOW_INVALID,
+        DELEGATED_AUTHORITY_REQUIREMENT_INELIGIBLE,
+        DELEGATED_AUTHORITY_ALREADY_REVOKED,
+        FIELD_OUTSIDE_AUDIENCE,
         EXECUTION_GRANT_REVOKED,
+        CONTINUATION_NOT_GRANTED,
         FIELD_ENTRY_NOT_BOUND,
+        FIELD_PRECONDITION_CONFLICT,
+        FIELD_VALUE_INVALID,
         GROUP_OCCURRENCE_REMOVED,
+        EVIDENCE_REQUEST_INVALID,
         EVIDENCE_NOT_COLLECTED,
         EVIDENCE_ARTIFACT_INACTIVE,
+        EVIDENCE_PROVIDED_BY_ANOTHER_PARTY,
         EVIDENCE_CONTENT_UNAVAILABLE,
         EVIDENCE_PREVIEW_UNAVAILABLE,
         EVIDENCE_CONTENT_QUARANTINED,
         EVIDENCE_CONTENT_NOT_RELEASED,
         EVIDENCE_UPLOAD_UNAVAILABLE,
         EVIDENCE_UPLOAD_LIMIT_EXCEEDED,
+        EVIDENCE_UPLOAD_LENGTH_REQUIRED,
         EVIDENCE_POLICY_REFUSED,
         EVIDENCE_DUPLICATE_CONTENT,
+        EVIDENCE_OPAQUE_CONTENT_REFUSED,
         SUBMISSION_STAGE_UNKNOWN,
         SUBMISSION_LOCKED,
         SUBMISSION_ALREADY_SUBMITTED,
@@ -405,13 +408,23 @@ object InformationRequestErrorCatalog
         AMENDMENT_OCCURRENCE_STRUCTURE_CHANGED,
         AMENDMENT_SUBMITTED_SCOPE_CHANGED,
         SUCCESSOR_SOURCE_INVALID,
+        SUCCESSOR_TARGET_INVALID,
+        REASON_CODE_INVALID,
         RECURRENCE_NOT_DUE,
+        RECURRENCE_COMPLETE,
+        REFRESH_NOT_DUE,
+        REFRESH_ALREADY_CREATED,
+        REFRESH_EXPIRY_NOT_CAPTURED,
+        FOLLOW_UP_SCHEDULE_INVALID,
+        REVIEW_INPUT_INVALID,
         REVIEW_SETTLED,
         REVIEW_STAGE_UNKNOWN,
         REVIEW_STAGE_NOT_OPEN,
         REVIEWER_NOT_ELIGIBLE,
+        REVIEWER_SIGN_IN_REQUIRED,
         REVIEWER_ALREADY_ASSIGNED,
         REVIEW_ASSIGNMENT_INACTIVE,
+        REVIEW_ASSIGNMENT_AMBIGUOUS,
         REVIEW_ALREADY_DECIDED,
         REVIEW_WORKSHEET_INCOMPLETE,
         REVIEW_FINDING_REQUIRED,
@@ -437,6 +450,7 @@ object InformationRequestErrorCatalog
         BUSINESS_DECISION_PRIOR_INVALID,
         CLOCK_POLICY_KEY_TAKEN,
         CLOCK_POLICY_UNAVAILABLE,
+        CLOCK_INPUT_INVALID,
         CLOCK_KEY_TAKEN,
         CLOCK_STATE_INVALID,
         RECORD_HELD,
@@ -451,8 +465,10 @@ object InformationRequestErrorCatalog
         RECORD_REFERENCED,
         TRUST_SUSPENDED,
         TRUSTED_RECIPIENT_UNAVAILABLE,
+        TRUSTED_RECIPIENT_SELECTION_REQUIRED,
         RATE_LIMITED,
         EXPORT_LIMIT_REACHED,
+        RECORD_EXPORT_TOO_LARGE,
     )
 }
 

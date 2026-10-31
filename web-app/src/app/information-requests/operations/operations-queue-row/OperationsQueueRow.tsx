@@ -1,20 +1,11 @@
 import {Badge, Button, Checkbox, Text} from "@fluentui/react-components";
 import {useNavigate} from "react-router-dom";
-import {
-    InformationRequestNoticeDeliveryState,
-    InformationRequestOperationsException,
-    InformationRequestOperationsRowDto,
-} from "../../../models/models.tsx";
+import {InformationRequestOperationsRowDto} from "../../../models/models.tsx";
+import {executionStandingBadge, executionStandingNotice} from "../../shared/executionStandingText.ts";
+import OperationsRowHoldAction from "../operations-row-hold-action/OperationsRowHoldAction.tsx";
 import {assigneeLabel} from "../operationsCsv.ts";
-import {
-    exceptionLabels,
-    formattedDuration,
-    formattedTime,
-    noticeCountLabels,
-    requestStateLabels,
-    shortId,
-    slaStatusPresentation,
-} from "../operationsLabels.ts";
+import {requestStateLabels, shortId, slaStatusPresentation} from "../operationsLabels.ts";
+import {rowExceptionTexts, rowNoticeTexts, rowProgressText, rowTimingText} from "./operationsRowText.ts";
 import {useOperationsQueueRowStyles} from "./OperationsQueueRowStyles.tsx";
 
 interface OperationsQueueRowProps
@@ -22,21 +13,27 @@ interface OperationsQueueRowProps
     row: InformationRequestOperationsRowDto;
     selectable: boolean;
     selected: boolean;
+    selectionFull: boolean;
+    canPlaceHold: boolean;
     onToggle: () => void;
 }
 
-const OperationsQueueRow = ({row, selectable, selected, onToggle}: OperationsQueueRowProps) =>
+const OperationsQueueRow = ({
+                                row,
+                                selectable,
+                                selected,
+                                selectionFull,
+                                canPlaceHold,
+                                onToggle
+                            }: OperationsQueueRowProps) =>
 {
     const styles = useOperationsQueueRowStyles();
     const navigate = useNavigate();
     const id = `information-request-operations-row-${row.requestId}`;
     const sla = slaStatusPresentation[row.slaStatus];
-    const notices = Object.values(InformationRequestNoticeDeliveryState)
-        .filter(state => (row.noticeCounts[state] ?? 0) > 0)
-        .map(state => `${row.noticeCounts[state]} ${noticeCountLabels[state]}`);
-    const exceptions = Object.values(InformationRequestOperationsException)
-        .filter(exception => (row.exceptionCounts[exception] ?? 0) > 0)
-        .map(exception => `${row.exceptionCounts[exception]} ${exceptionLabels[exception]}`);
+    const standingBadge = executionStandingBadge(row.executionStanding);
+    const notices = rowNoticeTexts(row);
+    const exceptions = rowExceptionTexts(row);
 
     return (
         <li id={id}
@@ -44,6 +41,7 @@ const OperationsQueueRow = ({row, selectable, selected, onToggle}: OperationsQue
             {selectable && (
                 <Checkbox id={`${id}-select`}
                           checked={selected}
+                          disabled={selectionFull && !selected}
                           aria-label={`Select ${row.title}`}
                           onChange={onToggle}/>
             )}
@@ -59,9 +57,11 @@ const OperationsQueueRow = ({row, selectable, selected, onToggle}: OperationsQue
                 </Text>
                 <Text id={`${id}-timing`}
                       className={styles.detail}>
-                    {row.nearestDueAt
-                        ? `Open ${formattedDuration(row.ageSeconds)}, due ${formattedTime(row.nearestDueAt)}, ${row.reminderCount} reminders`
-                        : `Open ${formattedDuration(row.ageSeconds)}, ${row.reminderCount} reminders`}
+                    {rowTimingText(row)}
+                </Text>
+                <Text id={`${id}-progress`}
+                      className={styles.detail}>
+                    {rowProgressText(row)}
                 </Text>
                 {row.assignees.length > 0 && (
                     <Text id={`${id}-assignees`}
@@ -82,11 +82,24 @@ const OperationsQueueRow = ({row, selectable, selected, onToggle}: OperationsQue
                     </Text>
                 )}
             </div>
+            {standingBadge && (
+                <Badge id={`${id}-standing`}
+                       appearance={"tint"}
+                       color={"warning"}
+                       title={executionStandingNotice(row.executionStanding)?.text}>
+                    {standingBadge}
+                </Badge>
+            )}
             <Badge id={`${id}-sla`}
                    appearance={"outline"}
                    color={sla.color}>
                 {sla.label}
             </Badge>
+            {canPlaceHold && (
+                <OperationsRowHoldAction idPrefix={id}
+                                         requestId={row.requestId}
+                                         title={row.title}/>
+            )}
             <Button id={`${id}-open`}
                     appearance={"primary"}
                     shape={"circular"}

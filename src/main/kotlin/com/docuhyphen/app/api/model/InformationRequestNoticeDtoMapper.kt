@@ -18,7 +18,10 @@ object InformationRequestNoticeDtoMapper
             owedAt = view.intent.createdAt,
             noticeId = view.notice?.id,
             channel = view.notice?.channel,
-            maskedEndpoint = InformationRequestNoticeQueryService.maskedEndpoint(view.notice?.recipientEndpoint),
+            maskedEndpoint = view.notice?.recipientEndpoint
+                ?.takeUnless { view.recipientWithheld }
+                ?.let(InformationRequestNoticeQueryService::maskedEndpoint),
+            recipientWithheld = view.recipientWithheld,
             endpointState = view.notice?.endpointState,
             renderedSubject = view.notice?.renderedSubject,
             renderedBody = view.notice?.renderedBody,

@@ -1,10 +1,8 @@
 package com.docuhyphen.app.api.migration
 
+import com.docuhyphen.app.api.migration.model.RecordedFieldValueRevision
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -12,23 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class CanonicalProvenancePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<CanonicalProvenancePostgreSQLContainer>(imageName)
 
-/**
- * Authorship of a stored answer and of a Schema Assignment must name the canonical principal rather
- * than a registered user only. The released schema records authorship as a foreign key into
- * `app_user`, so an external participant, a link-verified recipient, a registered application, and a
- * service principal cannot be named at all, and a write attributed to one of them either names the
- * wrong table or fails that foreign key outright.
- *
- * A stored answer also has no history: the row is overwritten in place. These contract tests prove
- * that the canonical pair is filled from the trustworthy legacy key and then becomes the only
- * authorship a row carries, that authorship nobody recorded stays unrecorded, and that every stored
- * answer becomes addressable through an append-only revision that cannot be rewritten.
- */
 class FieldValueCanonicalProvenanceContractTest
 {
     private val releasedVersion = "79"
@@ -81,7 +67,6 @@ class FieldValueCanonicalProvenanceContractTest
                 assertEquals("USER", principalKindOf(connection, fixture.firstValueId))
                 assertEquals(fixture.appUserId, principalIdOf(connection, fixture.firstValueId))
 
-                // Authorship nobody recorded must stay unrecorded rather than be invented.
                 assertNull(principalKindOf(connection, fixture.secondValueId))
                 assertNull(principalIdOf(connection, fixture.secondValueId))
 
@@ -193,7 +178,6 @@ class FieldValueCanonicalProvenanceContractTest
                     "Expected two revisions to be refused the same number: ${duplicated.message}",
                 )
 
-                // A repetition answering the same question keeps its own numbering.
                 insertRevision(connection, fixture, fixture.occurrenceSetId, revisionNumber = 1)
 
                 val rewritten = assertThrows<SQLException> {
@@ -212,7 +196,6 @@ class FieldValueCanonicalProvenanceContractTest
         }
     }
 
-    /** Every principal the platform can authenticate must be recordable as an author. */
     private fun assertAcceptsEveryCanonicalPrincipalKind(connection: Connection, fixture: Fixture)
     {
         principalKinds.forEachIndexed { index, kind ->
@@ -291,18 +274,6 @@ class FieldValueCanonicalProvenanceContractTest
         }
     }
 
-    private data class RecordedRevision(
-        val id: UUID,
-        val valueSetId: UUID,
-        val fieldContractId: UUID,
-        val revisionNumber: Int,
-        val textValue: String?,
-        val isCleared: Boolean,
-        val principalKind: String?,
-        val principalId: UUID?,
-        val recordedAt: Timestamp,
-    )
-
     private fun hasColumn(connection: Connection, table: String, column: String): Boolean
     {
         connection.prepareStatement(
@@ -356,7 +327,7 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(1, fixture.organizationId)
             statement.setString(2, "Process Owner Org")
             statement.setString(3, "REG-PROCESS-PROVENANCE")
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -384,8 +355,8 @@ class FieldValueCanonicalProvenanceContractTest
         ).use { statement ->
             statement.setObject(1, fixture.schemaDefinitionId)
             statement.setObject(2, fixture.organizationId)
-            statement.setTimestamp(3, now)
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(3, now, utc())
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -398,8 +369,8 @@ class FieldValueCanonicalProvenanceContractTest
         ).use { statement ->
             statement.setObject(1, fixture.schemaVersionId)
             statement.setObject(2, fixture.schemaDefinitionId)
-            statement.setTimestamp(3, now)
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(3, now, utc())
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -429,7 +400,7 @@ class FieldValueCanonicalProvenanceContractTest
         ).use { statement ->
             statement.setObject(1, id)
             statement.setString(2, email)
-            statement.setTimestamp(3, Timestamp.from(Instant.now()))
+            statement.setTimestamp(3, Timestamp.from(Instant.now()), utc())
             statement.executeUpdate()
         }
     }
@@ -447,8 +418,8 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(1, id)
             statement.setObject(2, organizationId)
             statement.setString(3, key)
-            statement.setTimestamp(4, now)
-            statement.setTimestamp(5, now)
+            statement.setTimestamp(4, now, utc())
+            statement.setTimestamp(5, now, utc())
             statement.executeUpdate()
         }
     }
@@ -472,7 +443,7 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(2, definitionId)
             statement.setString(3, valueType)
             statement.setString(4, label)
-            statement.setTimestamp(5, Timestamp.from(Instant.now()))
+            statement.setTimestamp(5, Timestamp.from(Instant.now()), utc())
             statement.executeUpdate()
         }
     }
@@ -534,7 +505,7 @@ class FieldValueCanonicalProvenanceContractTest
                 statement.setObject(6, assignedByAppUserId)
                 7
             }
-            statement.setTimestamp(next, Timestamp.from(Instant.now()))
+            statement.setTimestamp(next, Timestamp.from(Instant.now()), utc())
             statement.executeUpdate()
         }
     }
@@ -589,8 +560,8 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(6, resourceId)
             statement.setString(7, valueType)
             statement.setString(8, text)
-            statement.setTimestamp(9, updatedAt)
-            statement.setTimestamp(10, updatedAt)
+            statement.setTimestamp(9, updatedAt, utc())
+            statement.setTimestamp(10, updatedAt, utc())
             var next = 11
             if (legacyShape)
             {
@@ -649,7 +620,7 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(6, fixture.textContractId)
             statement.setInt(7, revisionNumber)
             statement.setObject(8, fixture.appUserId)
-            statement.setTimestamp(9, Timestamp.from(Instant.now()))
+            statement.setTimestamp(9, Timestamp.from(Instant.now()), utc())
             statement.executeUpdate()
         }
         return id
@@ -675,8 +646,8 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(2, assignmentId)
             statement.setString(3, kind)
             statement.setString(4, occurrencePath)
-            statement.setTimestamp(5, now)
-            statement.setTimestamp(6, now)
+            statement.setTimestamp(5, now, utc())
+            statement.setTimestamp(6, now, utc())
             statement.executeUpdate()
         }
         return id
@@ -736,7 +707,7 @@ class FieldValueCanonicalProvenanceContractTest
             }
         }
 
-    private fun revisionOf(connection: Connection, valueId: UUID): RecordedRevision? =
+    private fun revisionOf(connection: Connection, valueId: UUID): RecordedFieldValueRevision? =
         connection.prepareStatement(
             """
             SELECT id, field_value_set_id, field_contract_id, revision_number, text_value, is_cleared,
@@ -749,7 +720,7 @@ class FieldValueCanonicalProvenanceContractTest
             statement.setObject(1, valueId)
             statement.executeQuery().use { rows ->
                 if (!rows.next()) null
-                else RecordedRevision(
+                else RecordedFieldValueRevision(
                     id = rows.getObject(1, UUID::class.java),
                     valueSetId = rows.getObject(2, UUID::class.java),
                     fieldContractId = rows.getObject(3, UUID::class.java),
@@ -758,7 +729,7 @@ class FieldValueCanonicalProvenanceContractTest
                     isCleared = rows.getBoolean(6),
                     principalKind = rows.getString(7),
                     principalId = rows.getObject(8, UUID::class.java),
-                    recordedAt = rows.getTimestamp(9),
+                    recordedAt = rows.getTimestamp(9, utc()),
                 )
             }
         }
@@ -779,3 +750,5 @@ class FieldValueCanonicalProvenanceContractTest
             }
         }
 }
+
+private fun utc(): Calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))

@@ -28,7 +28,7 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(
+            InformationRequestCommandHttp.withNoAuthRead(
                 readAccessService,
                 id,
                 accessLinkToken,
@@ -56,13 +56,14 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(
+            val submissionPackage = packageId(packageId)
+            InformationRequestCommandHttp.withNoAuthRead(
                 readAccessService,
                 id,
                 accessLinkToken,
                 sessionToken
             ) { requestId, access ->
-                handler.detail(requestId, packageId(packageId), access)
+                handler.detail(requestId, submissionPackage, access)
             }
         }
         catch (exception: Exception)
@@ -113,13 +114,14 @@ class InformationRequestNoAuthSubmissionResource @Inject constructor(
     {
         return try
         {
+            val submissionPackage = packageId(packageId)
             InformationRequestCommandHttp.withNoAuthAccess(
                 readAccessService,
                 id,
                 accessLinkToken,
                 sessionToken
             ) { requestId, access ->
-                handler.withdraw(requestId, packageId(packageId), request?.reasonCode, access, ifMatch, idempotencyKey)
+                handler.withdraw(requestId, submissionPackage, request?.reasonCode, access, ifMatch, idempotencyKey)
             }
         }
         catch (exception: Exception)

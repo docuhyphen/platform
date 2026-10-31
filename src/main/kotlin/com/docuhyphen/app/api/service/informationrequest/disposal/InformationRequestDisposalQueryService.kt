@@ -3,6 +3,8 @@ package com.docuhyphen.app.api.service.informationrequest.disposal
 import com.docuhyphen.app.api.model.entity.RecordDisposalBasis
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestDisposalStanding
+import com.docuhyphen.app.api.model.informationrequest.disposal.InformationRequestWithheldHold
+import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
@@ -10,6 +12,7 @@ import com.docuhyphen.app.api.service.informationrequest.InformationRequestError
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.recordpreservation.RecordDisposalService
+import com.docuhyphen.app.api.service.recordpreservation.RecordOwnerScopeAccess
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Clock
@@ -21,6 +24,7 @@ class InformationRequestDisposalQueryService @Inject constructor(
     private val requestRepository: InformationRequestRepository,
     private val eligibility: InformationRequestDisposalEligibility,
     private val disposals: RecordDisposalService,
+    private val holdReaders: RecordOwnerScopeAccess,
     private val clock: Clock,
 )
 {
@@ -39,6 +43,27 @@ class InformationRequestDisposalQueryService @Inject constructor(
             clock.instant()
         )
         else null
-        return InformationRequestDisposalStanding(requestId, assessment, disposal)
+        val (readable, withheld) = eligibility.coveringHolds(request).partition { hold ->
+            holdReaders.permits(
+                access.principal,
+                RecordOwnerRef(hold.ownerKind, hold.ownerId),
+                Action.ORG_READ_AUDIT,
+                access.authorization
+            )
+        }
+        return InformationRequestDisposalStanding(
+            requestId = requestId,
+            assessment = assessment,
+            disposal = disposal,
+            readableHolds = readable,
+            withheldHolds = withheld.map { hold ->
+                InformationRequestWithheldHold(
+                    hold.resourceType,
+                    hold.scope,
+                    hold.status,
+                    hold.effectiveFrom.toInstant()
+                )
+            },
+        )
     }
 }

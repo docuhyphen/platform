@@ -1,16 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.ParticipantAccountLink
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.PrincipalGroupMember
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementDelegatedAuthorityFact
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
@@ -24,23 +15,21 @@ import com.docuhyphen.app.api.repository.informationrequest.noauth.ParticipantAc
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestDelegatedAuthorityFactSource
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertSame
+import com.docuhyphen.app.api.service.organization.PrincipalGroupService
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
-import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import java.util.*
 
 class InformationRequestRequirementAuthorizationContextProviderTest
 {
@@ -136,10 +125,20 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         ).thenReturn(
             listOf(
                 InformationRequestRequirementDelegatedAuthorityFact(
-                    authorityId, fixture.assignedParty.id, delegate, fixture.request.id, fixture.requirement.id, active = true,
+                    authorityId,
+                    fixture.assignedParty.id,
+                    delegate,
+                    fixture.request.id,
+                    fixture.requirement.id,
+                    active = true,
                 ),
                 InformationRequestRequirementDelegatedAuthorityFact(
-                    UUID.randomUUID(), fixture.assignedParty.id, elsewhere, fixture.request.id, UUID.randomUUID(), active = true,
+                    UUID.randomUUID(),
+                    fixture.assignedParty.id,
+                    elsewhere,
+                    fixture.request.id,
+                    UUID.randomUUID(),
+                    active = true,
                 ),
             ),
         )
@@ -147,13 +146,16 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         val party = PrincipalRef(PrincipalKind.USER, fixture.assignedParty.principalId!!)
 
         val itself = fixture.provider.actingPartiesFor(fixture.request, roles, party, fixture.requirement.id).single()
-        val delegated = fixture.provider.actingPartiesFor(fixture.request, roles, delegate, fixture.requirement.id).single()
+        val delegated =
+            fixture.provider.actingPartiesFor(fixture.request, roles, delegate, fixture.requirement.id).single()
 
         assertEquals(null, itself.delegatedAuthorityId)
         assertEquals(authorityId, delegated.delegatedAuthorityId)
         assertEquals(fixture.assignedParty.id, delegated.party.id)
-        assertEquals(emptyList<InformationRequestActingParty>(),
-            fixture.provider.actingPartiesFor(fixture.request, roles, elsewhere, fixture.requirement.id))
+        assertEquals(
+            emptyList<InformationRequestActingParty>(),
+            fixture.provider.actingPartiesFor(fixture.request, roles, elsewhere, fixture.requirement.id)
+        )
     }
 
     @Test
@@ -182,6 +184,39 @@ class InformationRequestRequirementAuthorizationContextProviderTest
     }
 
     @Test
+    fun `linked identities join a participant, its registered account, and every participant linked to that account`() {
+        val fixture = Fixture()
+        val accountId = UUID.randomUUID()
+        val links = List(2) {
+            ParticipantAccountLink().apply {
+                participantId = UUID.randomUUID()
+                appUserId = accountId
+                linkedViaInformationRequestId = UUID.randomUUID()
+                linkedViaShareLinkId = UUID.randomUUID()
+            }
+        }
+        val participant = PrincipalRef.participant(links.first().participantId)
+        whenever(fixture.participantAccountLinkRepository.findByParticipantId(participant.id)).thenReturn(links.first())
+        whenever(fixture.participantAccountLinkRepository.findForAppUser(accountId)).thenReturn(links)
+        val identities = setOf(PrincipalRef.user(accountId)) + links.map { PrincipalRef.participant(it.participantId) }
+
+        assertEquals(identities, fixture.provider.linkedIdentitiesOf(participant))
+        assertEquals(identities, fixture.provider.linkedIdentitiesOf(PrincipalRef.user(accountId)))
+    }
+
+    @Test
+    fun `an identity without an account link stands alone`() {
+        val fixture = Fixture()
+        val participant = PrincipalRef.participant(UUID.randomUUID())
+        val account = PrincipalRef.user(UUID.randomUUID())
+        val group = PrincipalRef.group(UUID.randomUUID())
+
+        assertEquals(setOf(participant), fixture.provider.linkedIdentitiesOf(participant))
+        assertEquals(setOf(account), fixture.provider.linkedIdentitiesOf(account))
+        assertEquals(setOf(group), fixture.provider.linkedIdentitiesOf(group))
+    }
+
+    @Test
     fun `assigned group party facts include current active User members`()
     {
         val fixture = Fixture()
@@ -189,7 +224,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         val memberUserId = UUID.randomUUID()
         fixture.assignedParty.principalKind = PrincipalKind.PRINCIPAL_GROUP
         fixture.assignedParty.principalId = groupId
-        whenever(fixture.principalGroupMemberRepository.findActiveMembers(groupId)).thenReturn(
+        whenever(fixture.principalGroups.activeMembers(groupId)).thenReturn(
             listOf(
                 PrincipalGroupMember().apply {
                     principalGroupId = groupId
@@ -215,7 +250,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         val linkedUserId = UUID.randomUUID()
         fixture.assignedParty.principalKind = PrincipalKind.PRINCIPAL_GROUP
         fixture.assignedParty.principalId = groupId
-        whenever(fixture.principalGroupMemberRepository.findActiveMembers(groupId)).thenReturn(
+        whenever(fixture.principalGroups.activeMembers(groupId)).thenReturn(
             listOf(
                 PrincipalGroupMember().apply {
                     principalGroupId = groupId
@@ -250,7 +285,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         val groupId = UUID.randomUUID()
         fixture.assignedParty.principalKind = PrincipalKind.PRINCIPAL_GROUP
         fixture.assignedParty.principalId = groupId
-        whenever(fixture.principalGroupMemberRepository.findActiveMembers(groupId)).thenReturn(
+        whenever(fixture.principalGroups.activeMembers(groupId)).thenReturn(
             listOf(
                 PrincipalGroupMember().apply {
                     principalGroupId = groupId
@@ -268,18 +303,98 @@ class InformationRequestRequirementAuthorizationContextProviderTest
     }
 
     @Test
+    fun `assigned group party facts leave out the members its group Share holds back`() {
+        val fixture = Fixture()
+        val groupId = UUID.randomUUID()
+        val admittedUserId = UUID.randomUUID()
+        val heldBackUserId = UUID.randomUUID()
+        val heldBackParticipantId = UUID.randomUUID()
+        val heldBackLinkedUserId = UUID.randomUUID()
+        fixture.assignedParty.principalKind = PrincipalKind.PRINCIPAL_GROUP
+        fixture.assignedParty.principalId = groupId
+        whenever(fixture.principalGroups.activeMembers(groupId)).thenReturn(
+            listOf(
+                groupMember(groupId, PrincipalKind.USER, admittedUserId),
+                groupMember(groupId, PrincipalKind.USER, heldBackUserId),
+                groupMember(groupId, PrincipalKind.PARTICIPANT, heldBackParticipantId),
+            ),
+        )
+        whenever(fixture.participantAccountLinkRepository.findByParticipantId(heldBackParticipantId)).thenReturn(
+            ParticipantAccountLink().apply {
+                participantId = heldBackParticipantId
+                appUserId = heldBackLinkedUserId
+                linkedViaInformationRequestId = fixture.request.id
+                linkedViaShareLinkId = UUID.randomUUID()
+            },
+        )
+        whenever(
+            fixture.shareService.membersHeldBackFrom(
+                eq(requireNotNull(fixture.assignedParty.shareId)),
+                org.mockito.kotlin.any(),
+            ),
+        ).thenReturn(setOf(PrincipalRef.user(heldBackUserId), PrincipalRef.participant(heldBackParticipantId)))
+
+        val context = fixture.provider.resolve(fixture.requirement.id)
+
+        val facts = context!!.policyFacts as InformationRequestRequirementPolicyFacts
+        assertEquals(setOf(PrincipalRef.user(admittedUserId)), facts.assignedParties.single().equivalentPrincipals)
+        assertEquals(
+            setOf(PrincipalRef.group(groupId), PrincipalRef.user(admittedUserId)),
+            fixture.provider.principalsActingFor(fixture.assignedParty),
+        )
+        assertEquals(
+            emptyList<InformationRequestActingParty>(),
+            fixture.provider.actingPartiesFor(
+                fixture.request,
+                setOf(InformationRequestContributorRole.PREPARER),
+                PrincipalRef.user(heldBackLinkedUserId),
+                fixture.requirement.id,
+            ),
+        )
+        assertEquals(
+            listOf(fixture.assignedParty.id),
+            fixture.provider.actingPartiesFor(
+                fixture.request,
+                setOf(InformationRequestContributorRole.PREPARER),
+                PrincipalRef.user(admittedUserId),
+                fixture.requirement.id,
+            ).map { it.party.id },
+        )
+    }
+
+    private fun groupMember(groupId: UUID, kind: PrincipalKind, id: UUID): PrincipalGroupMember =
+        PrincipalGroupMember().apply {
+            principalGroupId = groupId
+            principalKind = kind
+            principalId = id
+            isActive = true
+        }
+
+    @Test
     fun `assigned group party facts omit removed members when current membership is empty`()
     {
         val fixture = Fixture()
         val groupId = UUID.randomUUID()
         fixture.assignedParty.principalKind = PrincipalKind.PRINCIPAL_GROUP
         fixture.assignedParty.principalId = groupId
-        whenever(fixture.principalGroupMemberRepository.findActiveMembers(groupId)).thenReturn(emptyList())
+        whenever(fixture.principalGroups.activeMembers(groupId)).thenReturn(emptyList())
 
         val context = fixture.provider.resolve(fixture.requirement.id)
 
         val facts = context!!.policyFacts as InformationRequestRequirementPolicyFacts
         assertEquals(emptySet<PrincipalRef>(), facts.assignedParties.single().equivalentPrincipals)
+    }
+
+    @Test
+    fun `a Requirement resolves through its current pointer even after that revision's interval closed`() {
+        val fixture = Fixture()
+        fixture.currentRevision.effectiveTo = java.sql.Timestamp.from(java.time.Instant.now())
+
+        val context = fixture.provider.resolve(fixture.requirement.id)
+
+        val facts = context!!.policyFacts as InformationRequestRequirementPolicyFacts
+        assertEquals(fixture.currentRevision.id, facts.currentRevisionId)
+        assertEquals(fixture.currentRevision.revisionNumber, facts.currentRevisionNumber)
     }
 
     @Test
@@ -375,7 +490,8 @@ class InformationRequestRequirementAuthorizationContextProviderTest
         private val bindingRepository = mock<InformationRequestTemplateRequirementBindingRepository>()
         private val partyRepository = mock<InformationRequestPartyRepository>()
         val participantAccountLinkRepository = mock<ParticipantAccountLinkRepository>()
-        val principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>()
+        val principalGroups = mock<PrincipalGroupService>()
+        val shareService = mock<ShareService>()
         val delegatedAuthorityFactSource = mock<InformationRequestDelegatedAuthorityFactSource>()
         val parentState = mock<ExchangeLifecycleStateService> {
             on { snapshot(org.mockito.kotlin.any()) }.thenReturn(InformationRequestParentSnapshot(com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED))
@@ -395,18 +511,24 @@ class InformationRequestRequirementAuthorizationContextProviderTest
             parentState,
             occurrenceRepository,
             participantAccountLinkRepository,
-            principalGroupMemberRepository,
+            principalGroups,
             mock<InformationRequestAttestationPolicyLoader>(),
             lockService,
+            shareService,
         )
 
         init
         {
             whenever(requirementRepository.findById(requirement.id)).thenReturn(requirement)
             whenever(requestRepository.findById(request.id)).thenReturn(request)
-            whenever(revisionRepository.findForRequirement(requirement.id)).thenReturn(listOf(currentRevision))
+            whenever(revisionRepository.findCurrentForRequirement(requirement.id)).thenReturn(currentRevision)
             whenever(bindingRepository.findById(currentRevision.sourceTemplateBindingId)).thenReturn(binding)
-            whenever(partyRepository.findActiveForRequestRole(eq(request.id), eq(InformationRequestShareRoleKey.PREPARER)))
+            whenever(
+                partyRepository.findActiveForRequestRole(
+                    eq(request.id),
+                    eq(InformationRequestShareRoleKey.PREPARER)
+                )
+            )
                 .thenReturn(listOf(assignedParty))
             whenever(
                 delegatedAuthorityFactSource.factsFor(
@@ -424,7 +546,7 @@ class InformationRequestRequirementAuthorizationContextProviderTest
                 ),
             )
             whenever(participantAccountLinkRepository.findByParticipantId(org.mockito.kotlin.any())).thenReturn(null)
-            whenever(principalGroupMemberRepository.findActiveMembers(org.mockito.kotlin.any())).thenReturn(emptyList())
+            whenever(principalGroups.activeMembers(org.mockito.kotlin.any())).thenReturn(emptyList())
         }
     }
 }

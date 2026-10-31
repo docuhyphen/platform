@@ -1,12 +1,16 @@
 import apiClient from "./apiClient.ts";
 import {
+    ACCESS_LINK_TOKEN_HEADER,
     getInformationRequestSessionToken,
+    IDEMPOTENCY_KEY_HEADER,
+    IF_MATCH_HEADER,
     informationRequestBasePath,
     informationRequestCommandHeaders,
     informationRequestReadHeaders,
     isStaleInformationRequestRefusal,
     RuntimeCommandOptions,
     RuntimeCommandResult,
+    SESSION_TOKEN_HEADER,
     statedInformationRequestRefusal,
 } from "./informationRequestRuntimeService.ts";
 import {
@@ -25,7 +29,7 @@ import {
 } from "../app/models/models.tsx";
 
 const execute = async <T>(
-    request: () => Promise<{data: T; headers: Record<string, string | undefined>}>,
+    request: () => Promise<{ data: T; headers: Record<string, string | undefined> }>,
 ): Promise<RuntimeCommandResult<T>> =>
 {
     try
@@ -40,7 +44,7 @@ const execute = async <T>(
     }
 };
 
-const read = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
+const read = async <T>(request: () => Promise<{ data: T }>): Promise<T> =>
 {
     try
     {
@@ -55,17 +59,20 @@ const read = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
 const keyedHeaders = (requestId: string, idempotencyKey: string, accessLinkToken?: string): Record<string, string> =>
     accessLinkToken
         ? {
-            "Idempotency-Key": idempotencyKey,
-            "X-Request-Access-Token": accessLinkToken,
-            "X-Request-Session-Token": getInformationRequestSessionToken(requestId),
+            [IDEMPOTENCY_KEY_HEADER]: idempotencyKey,
+            [ACCESS_LINK_TOKEN_HEADER]: accessLinkToken,
+            [SESSION_TOKEN_HEADER]: getInformationRequestSessionToken(requestId),
         }
-        : {"Idempotency-Key": idempotencyKey};
+        : {[IDEMPOTENCY_KEY_HEADER]: idempotencyKey};
 
 const reviewPath = (requestId: string, reviewId: string, accessLinkToken?: string): string =>
     `${informationRequestBasePath(requestId, accessLinkToken)}/reviews/${reviewId}`;
 
 export const getInformationRequestReview = (requestId: string, reviewId: string): Promise<InformationRequestReviewDto> =>
     read(() => apiClient.get(reviewPath(requestId, reviewId)));
+
+export const listInformationRequestReviews = (requestId: string): Promise<InformationRequestReviewDto[]> =>
+    read(() => apiClient.get(`${informationRequestBasePath(requestId)}/reviews`));
 
 export const getInformationRequestReviewQueue = (): Promise<InformationRequestReviewQueueEntryDto[]> =>
     read(() => apiClient.get("/information-request-reviews"));
@@ -88,7 +95,7 @@ export const saveInformationRequestReviewWorksheet = (
     execute(() => apiClient.patch(
         `${reviewPath(requestId, reviewId)}/assignments/${assignmentId}/worksheet`,
         request,
-        {headers: {"If-Match": expectedETag}},
+        {headers: {[IF_MATCH_HEADER]: expectedETag}},
     ));
 
 export const recordInformationRequestReviewDecisions = (
@@ -100,7 +107,7 @@ export const recordInformationRequestReviewDecisions = (
     execute(() => apiClient.post(
         `${reviewPath(requestId, reviewId)}/assignments/${assignmentId}/decisions`,
         undefined,
-        {headers: informationRequestCommandHeaders(requestId, options)},
+        {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
     ));
 
 export const overrideInformationRequestReviewItem = (
@@ -112,7 +119,7 @@ export const overrideInformationRequestReviewItem = (
     execute(() => apiClient.post(
         `${reviewPath(requestId, reviewId)}/overrides`,
         request,
-        {headers: informationRequestCommandHeaders(requestId, options)},
+        {headers: informationRequestCommandHeaders(requestId, {...options, accessLinkToken: undefined})},
     ));
 
 export const recordInformationRequestReviewFinding = (

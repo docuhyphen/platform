@@ -10,13 +10,20 @@ import java.util.*
 @RequestScoped
 class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
 {
-    /**
-     * Users belonging to an organization, resolved through `organization_membership`
-     * (the replacement for the retired `app_user.organization_id` join). Returns members
-     * with an ACTIVE membership, including users whose own `isActive` flag is false, since
-     * deactivation flips `AppUser.isActive` but leaves the membership ACTIVE so admins can
-     * still see/reactivate them.
-     */
+    fun hasRetainedAccountRecords(appUserId: UUID): Boolean =
+        entityManager.createNativeQuery(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM field_definition WHERE scope_user_id = :userId OR created_by_app_user_id = :userId
+                UNION ALL SELECT 1 FROM schema_definition WHERE scope_user_id = :userId OR created_by_app_user_id = :userId
+                UNION ALL SELECT 1 FROM information_request_template_definition WHERE scope_user_id = :userId
+                UNION ALL SELECT 1 FROM external_participant WHERE owner_app_user_id = :userId
+                UNION ALL SELECT 1 FROM participant_account_link WHERE app_user_id = :userId
+                UNION ALL SELECT 1 FROM information_request WHERE owner_user_id = :userId
+            )
+        """.trimIndent()
+        ).setParameter("userId", appUserId).singleResult as Boolean
+
     fun findByOrganizationId(organizationId: UUID): List<AppUser>
     {
         val query: TypedQuery<AppUser> = entityManager.createQuery(
@@ -51,11 +58,6 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         return query.resultList.firstOrNull()
     }
 
-    /**
-     * Variant that excludes temporary placeholder rows (created by the no-auth recipient
-     * flow when an initiator shares with an email that doesn't yet have an account). Used
-     * by the sign-up path so a temp row doesn't false-positive an "email already in use" check.
-     */
     fun findActiveByEmail(email: String): AppUser?
     {
         val query: TypedQuery<AppUser> = entityManager.createQuery(
@@ -66,7 +68,6 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         return query.resultList.firstOrNull()
     }
 
-    /** Returns a temp placeholder row if one exists for this email, otherwise null. */
     fun findTemporaryByEmail(email: String): AppUser?
     {
         val query: TypedQuery<AppUser> = entityManager.createQuery(
@@ -86,12 +87,6 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         return query.resultList
     }
 
-    /**
-     * Case-insensitive search across email + first/last name for the App
-     * Admins picker (admin-scope, audit-logged at the resource layer). Excludes temporary
-     * placeholder users since they can't be granted app-admin until they sign up. Returns
-     * at most [limit] rows (capped at 50 to keep the response small).
-     */
     fun searchActiveUsers(query: String, limit: Int = 20): List<AppUser>
     {
         val q = query.trim()
@@ -153,11 +148,6 @@ class AppUserRepository : BaseRepository<AppUser>(AppUser::class.java)
         entityManager.detach(user)
     }
 
-    /**
-     * Of the supplied user ids, returns the subset that currently has a stored profile
-     * picture. A single query keeps avatar enrichment of a contact/member list free of
-     * per-row lookups.
-     */
     fun findIdsWithAvatar(ids: Collection<UUID>): Set<UUID>
     {
         if (ids.isEmpty()) return emptySet()

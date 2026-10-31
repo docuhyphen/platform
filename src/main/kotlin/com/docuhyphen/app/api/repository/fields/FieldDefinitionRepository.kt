@@ -6,15 +6,16 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for [FieldDefinition]. Lookups are always scoped by owner (the platform, an
- * organization, or one user) so stable keys never collide across scopes.
- */
 @ApplicationScoped
 class FieldDefinitionRepository :
     BaseRepository<FieldDefinition>(FieldDefinition::class.java)
 {
-    /** All field definitions visible to an organization: its own plus PLATFORM-owned ones. */
+    fun findExistingIds(fieldDefinitionIds: Collection<UUID>): Set<UUID> =
+        entityManager.createQuery("SELECT f.id FROM FieldDefinition f WHERE f.id IN :ids", UUID::class.java)
+            .setParameter("ids", fieldDefinitionIds)
+            .resultList
+            .toSet()
+
     fun findAllForOrganization(organizationId: UUID): List<FieldDefinition> =
         entityManager.createQuery(
             """SELECT f FROM FieldDefinition f
@@ -27,7 +28,6 @@ class FieldDefinitionRepository :
             .setParameter("oid", organizationId)
             .resultList
 
-    /** All PLATFORM-owned field definitions. */
     fun findAllPlatform(): List<FieldDefinition> =
         entityManager.createQuery(
             """SELECT f FROM FieldDefinition f
@@ -36,7 +36,6 @@ class FieldDefinitionRepository :
             FieldDefinition::class.java,
         ).resultList
 
-    /** Finds a definition by its stable key within an owner scope, or null. */
     fun findByKey(
         scopeKind: FieldScopeKind,
         scopeOrgId: UUID?,

@@ -52,10 +52,12 @@ import {useExchangeInitiationStyles} from '../../exchange-initiation/ExchangeIni
 import {useBlueprintEditorStyles} from './BlueprintsTabStyles.tsx';
 import VariableTokenInput from '../../../components/variable-token-input/VariableTokenInput.tsx';
 import {getAvailableVariables} from '../../../services/variableService.ts';
-import DocumentLibraryPicker from '../../../app/exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx';
+import DocumentLibraryPicker
+    from '../../../app/exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx';
 import BlueprintBusinessFieldsTab from './blueprint-business-fields-tab/BlueprintBusinessFieldsTab.tsx';
 import BlueprintInformationRequestTab from './blueprint-information-request-tab/BlueprintInformationRequestTab.tsx';
 import {templateVersionChange} from './blueprint-information-request-tab/blueprintTemplateVersionChange.ts';
+import {normalizeApiError} from '../../../utils/apiErrorUtils.ts';
 
 interface BlueprintEditorDialogProps
 {
@@ -120,8 +122,11 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
             setSummary(blueprint.summary ?? '');
             setDescription((blueprint as BlueprintDefinitionDto).description ?? '');
             setTags(blueprint.generalTags);
-            try { setConfig(JSON.parse(blueprint.configJson)); }
-            catch { setConfig(emptyConfig()); }
+            try {
+                setConfig(JSON.parse(blueprint.configJson));
+            } catch {
+                setConfig(emptyConfig());
+            }
             setDocuments(blueprint.exchangeDocuments ?? []);
             setSchemaDefinitionId(blueprint.schemaDefinitionId);
             setFieldDefaults(blueprint.fieldDefaults ?? []);
@@ -216,7 +221,7 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
         }
         catch (e: unknown)
         {
-            setError(typeof e === 'string' ? e : 'Failed to save blueprint');
+            setError(normalizeApiError(e, 'Failed to save blueprint').message);
         }
         finally
         {
@@ -225,10 +230,15 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
     };
 
     return (
-        <Dialog open={open} onOpenChange={(_, {open: isOpen}) => { if (!isOpen) onClose(); }}>
-            <DialogSurface className={editorStyles.dialogSurface}>
-                <DialogBody>
+        <Dialog open={open}
+                onOpenChange={(_, {open: isOpen}) => {
+                    if (!isOpen) onClose();
+                }}>
+            <DialogSurface id={"blueprint-editor-dialog"}
+                           className={editorStyles.dialogSurface}>
+                <DialogBody id={"blueprint-editor-dialog-body"}>
                     <DialogTitle
+                        id={"blueprint-editor-dialog-title"}
                         action={effectiveScope !== 'PERSONAL' ? (
                             <Checkbox
                                 id={"checkbox-allow-edit-on-exchange-start"}
@@ -240,29 +250,49 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                     >
                         {blueprint ? 'Edit Blueprint' : 'Create Blueprint'}
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent id={"blueprint-editor-dialog-content"}>
                         <TabList
+                            id={"blueprint-editor-tabs"}
                             selectedValue={activeTab}
                             onTabSelect={(_, d) => setActiveTab(d.value as EditorTab)}
                             className={editorStyles.tabList}
                         >
-                            <Tab value="details">Details</Tab>
-                            <Tab value="documents">Documents</Tab>
-                            <Tab value="fields">Business Fields</Tab>
+                            <Tab id={"blueprint-editor-details-tab"}
+                                 value="details">
+                                Details
+                            </Tab>
+                            <Tab id={"blueprint-editor-documents-tab"}
+                                 value="documents">
+                                Documents
+                            </Tab>
+                            <Tab id={"blueprint-editor-fields-tab"}
+                                 value="fields">
+                                Business Fields
+                            </Tab>
                             <Tab id={"blueprint-editor-information-request-tab"}
                                  value="informationRequest">
                                 Information Request
                             </Tab>
-                            <Tab value="permissions">Permissions</Tab>
+                            <Tab id={"blueprint-editor-permissions-tab"}
+                                 value="permissions">
+                                Permissions
+                            </Tab>
                         </TabList>
 
                         {activeTab === 'details' && (
-                            <Accordion multiple defaultOpenItems={['blueprint']}>
-                                <AccordionItem value="blueprint">
-                                    <AccordionHeader>Blueprint Details</AccordionHeader>
-                                    <AccordionPanel>
-                                        <div className={editorStyles.accordionPanelContent}>
-                                            <Field label="Blueprint Name" required>
+                            <Accordion id={"blueprint-editor-accordion"}
+                                       multiple
+                                       defaultOpenItems={['blueprint']}>
+                                <AccordionItem id={"blueprint-editor-accordion-item"}
+                                               value="blueprint">
+                                    <AccordionHeader id={"blueprint-editor-blueprint-details-accordion-header"}>Blueprint
+                                        Details</AccordionHeader>
+                                    <AccordionPanel id={"blueprint-editor-accordion-panel"}>
+                                        <div id={"blueprint-editor-div"}
+                                             className={editorStyles.accordionPanelContent}>
+                                            <Field id={"blueprint-editor-blueprint-name-field"}
+                                                   label="Blueprint Name"
+                                                   required>
                                                 <Input
                                                     id={"input-blueprint-name"}
                                                     value={name}
@@ -270,7 +300,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     placeholder="Name shown in the blueprint list"
                                                 />
                                             </Field>
-                                            <Field label="Blueprint Summary">
+                                            <Field id={"blueprint-editor-blueprint-summary-field"}
+                                                   label="Blueprint Summary">
                                                 <Textarea
                                                     id={"textarea-blueprint-summary"}
                                                     value={summary}
@@ -279,10 +310,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     placeholder="Short description shown in the blueprint list"
                                                 />
                                             </Field>
-                                            <Field label="Tags">
-                                                <div className={styles.tagInput}>
+                                            <Field id={"blueprint-editor-tags-field"}
+                                                   label="Tags">
+                                                <div id={"blueprint-editor-tag-input"}
+                                                     className={styles.tagInput}>
                                                     {tags.map(tag => (
                                                         <Tag
+                                                            id={`blueprint-editor-tag-${tag}`}
                                                             key={tag}
                                                             size="small"
                                                             dismissible
@@ -297,7 +331,12 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                         placeholder="Add tag, press Enter"
                                                         value={tagInput}
                                                         onChange={(_, d) => setTagInput(d.value)}
-                                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                addTag();
+                                                            }
+                                                        }}
                                                         className={editorStyles.tagInputField}
                                                     />
                                                     <Button
@@ -314,11 +353,16 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                     </AccordionPanel>
                                 </AccordionItem>
 
-                                <AccordionItem value="exchange">
-                                    <AccordionHeader>Exchange Details</AccordionHeader>
-                                    <AccordionPanel>
-                                        <div className={editorStyles.accordionPanelContent}>
-                                            <Field label="Exchange Name" hint="Pre-fills the exchange name on initiation">
+                                <AccordionItem id={"blueprint-editor-accordion-item-2"}
+                                               value="exchange">
+                                    <AccordionHeader id={"blueprint-editor-exchange-details-accordion-header"}>Exchange
+                                        Details</AccordionHeader>
+                                    <AccordionPanel id={"blueprint-editor-accordion-panel-2"}>
+                                        <div id={"blueprint-editor-div-2"}
+                                             className={editorStyles.accordionPanelContent}>
+                                            <Field id={"blueprint-editor-exchange-name-field"}
+                                                   label="Exchange Name"
+                                                   hint="Pre-fills the Exchange name on initiation">
                                                 {availableVariables ? (
                                                     <VariableTokenInput
                                                         value={config.name ?? ''}
@@ -328,13 +372,19 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     />
                                                 ) : (
                                                     <Input
+                                                        id={"blueprint-editor-input"}
                                                         value={config.name ?? ''}
-                                                        onChange={(_, d) => setConfig(prev => ({...prev, name: d.value}))}
+                                                        onChange={(_, d) => setConfig(prev => ({
+                                                            ...prev,
+                                                            name: d.value
+                                                        }))}
                                                         placeholder="Exchange name"
                                                     />
                                                 )}
                                             </Field>
-                                            <Field label="Exchange Description" hint="Pre-fills the exchange description on initiation">
+                                            <Field id={"blueprint-editor-exchange-description-field"}
+                                                   label="Exchange Description"
+                                                   hint="Pre-fills the Exchange description on initiation">
                                                 {availableVariables ? (
                                                     <VariableTokenInput
                                                         value={config.description ?? ''}
@@ -345,26 +395,39 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     />
                                                 ) : (
                                                     <Textarea
+                                                        id={"blueprint-editor-textarea"}
                                                         value={config.description ?? ''}
-                                                        onChange={(_, d) => setConfig(prev => ({...prev, description: d.value}))}
+                                                        onChange={(_, d) => setConfig(prev => ({
+                                                            ...prev,
+                                                            description: d.value
+                                                        }))}
                                                         rows={3}
                                                         placeholder="Exchange description"
                                                     />
                                                 )}
                                             </Field>
-                                            <Field label="Initial Share Message" hint="Message shown to recipients when they open the exchange">
+                                            <Field id={"blueprint-editor-initial-share-message-field"}
+                                                   label="Initial Share Message"
+                                                   hint="Message shown to recipients when they open the Exchange">
                                                 {availableVariables ? (
                                                     <VariableTokenInput
                                                         value={config.initialShareMessage ?? ''}
-                                                        onChange={v => setConfig(prev => ({...prev, initialShareMessage: v}))}
+                                                        onChange={v => setConfig(prev => ({
+                                                            ...prev,
+                                                            initialShareMessage: v
+                                                        }))}
                                                         availableVariables={availableVariables}
                                                         multiline
-                                                        placeholder="Message shown to recipient when they open the exchange"
+                                                        placeholder="Message shown to recipient when they open the Exchange"
                                                     />
                                                 ) : (
                                                     <Textarea
+                                                        id={"blueprint-editor-textarea-2"}
                                                         value={config.initialShareMessage ?? ''}
-                                                        onChange={(_, d) => setConfig(prev => ({...prev, initialShareMessage: d.value}))}
+                                                        onChange={(_, d) => setConfig(prev => ({
+                                                            ...prev,
+                                                            initialShareMessage: d.value
+                                                        }))}
                                                         rows={2}
                                                         placeholder="Message shown to recipient"
                                                     />
@@ -377,15 +440,19 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                         )}
 
                         {activeTab === 'documents' && !pickerOpen && (
-                            <div className={styles.exchangeDocumentsTabContent}>
+                            <div id={"blueprint-editor-exchange-documents-tab-content"}
+                                 className={styles.exchangeDocumentsTabContent}>
                                 {documents.map((doc, i) => (
                                     <Card
+                                        id={`blueprint-editor-shading-exchange-document-card-${i}`}
                                         key={i}
                                         className={styles.shadingExchangeDocumentCard}
                                     >
-                                        <div>
-                                            <div className={styles.dialogTitle1}>
-                                                <Field className={styles.sharingDetailsInput}>
+                                        <div id={`blueprint-editor-div-3-${i}`}>
+                                            <div id={`blueprint-editor-dialog-title1-${i}`}
+                                                 className={styles.dialogTitle1}>
+                                                <Field id={`blueprint-editor-sharing-details-input-${i}`}
+                                                       className={styles.sharingDetailsInput}>
                                                     {availableVariables ? (
                                                         <VariableTokenInput
                                                             value={doc.title}
@@ -415,7 +482,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                 />
                                             </div>
                                             {doc.libraryDocumentId && (
-                                                <div className={editorStyles.linkedBadgeRow}>
+                                                <div id={`blueprint-editor-shading-exchange-document-card-div-${i}`}
+                                                     className={editorStyles.linkedBadgeRow}>
                                                     <Badge
                                                         id={`bp-doc-linked-badge-${i}`}
                                                         appearance="tint"
@@ -436,15 +504,22 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                     </Button>
                                                 </div>
                                             )}
-                                            <div className={styles.exchangeDocumentsRestriction}>
-                                                <div className={styles.exchangeDocumentsRestrictionField}>
-                                                    <Field label="">
+                                            <div id={`blueprint-editor-exchange-documents-restriction-${i}`}
+                                                 className={styles.exchangeDocumentsRestriction}>
+                                                <div id={`blueprint-editor-exchange-documents-restriction-field-${i}`}
+                                                     className={styles.exchangeDocumentsRestrictionField}>
+                                                    <Field
+                                                        id={`blueprint-editor-exchange-documents-restriction-field-field-${i}`}
+                                                        label="">
                                                         <Switch
                                                             id={`bp-doc-restrict-type-${i}`}
                                                             label="Restrict upload type"
                                                             checked={doc.restrictType ?? false}
                                                             disabled={!!doc.libraryDocumentId}
-                                                            onChange={(_, d) => updateDoc(i, {restrictType: d.checked, restrictedType: d.checked ? doc.restrictedType : undefined})}
+                                                            onChange={(_, d) => updateDoc(i, {
+                                                                restrictType: d.checked,
+                                                                restrictedType: d.checked ? doc.restrictedType : undefined
+                                                            })}
                                                         />
                                                     </Field>
                                                     <Dropdown
@@ -457,9 +532,11 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                         placeholder="Select allowed upload type"
                                                         onOptionSelect={(_, d) => updateDoc(i, {restrictedType: d.optionValue as string})}
                                                     >
-                                                        <OptionGroup label="Documents">
+                                                        <OptionGroup id={`blueprint-editor-documents-option-group-${i}`}
+                                                                     label="Documents">
                                                             {Object.values(DocumentType).map(opt => (
                                                                 <Option
+                                                                    id={`blueprint-editor-opt-option-${i}-${opt}`}
                                                                     key={opt}
                                                                     value={opt}
                                                                 >
@@ -467,9 +544,11 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                                                 </Option>
                                                             ))}
                                                         </OptionGroup>
-                                                        <OptionGroup label="Images">
+                                                        <OptionGroup id={`blueprint-editor-images-option-group-${i}`}
+                                                                     label="Images">
                                                             {Object.values(ImageType).map(opt => (
                                                                 <Option
+                                                                    id={`blueprint-editor-opt-option-2-${i}-${opt}`}
                                                                     key={opt}
                                                                     value={opt}
                                                                 >
@@ -490,7 +569,8 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                         </div>
                                     </Card>
                                 ))}
-                                <div className={styles.addDocumentButtonContainer}>
+                                <div id={"blueprint-editor-add-document-button-container"}
+                                     className={styles.addDocumentButtonContainer}>
                                     <Button
                                         id="bp-doc-add-btn"
                                         onClick={addDocument}
@@ -539,18 +619,25 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                                 initialSchemaDefinitionId={schemaDefinitionId}
                                 initialFieldDefaults={fieldDefaults}
                                 enforcedScope={enforcedScope}
-                                onChange={(id, defaults) => { setSchemaDefinitionId(id); setFieldDefaults(defaults); }}
+                                onChange={(id, defaults) => {
+                                    setSchemaDefinitionId(id);
+                                    setFieldDefaults(defaults);
+                                }}
                             />
                         )}
 
                         {activeTab === 'informationRequest' && (
                             <BlueprintInformationRequestTab scope={effectiveScope}
                                                             templateVersionId={templateVersionId}
+                                                            pinnedVersion={templateVersionId === blueprint?.informationRequestTemplateVersionId
+                                                                ? blueprint?.informationRequestTemplateVersion
+                                                                : undefined}
                                                             onChange={setTemplateVersionId}/>
                         )}
 
                         {activeTab === 'permissions' && (
-                            <div className={editorStyles.permissionsContent}>
+                            <div id={"blueprint-editor-div-4"}
+                                 className={editorStyles.permissionsContent}>
                                 <Checkbox
                                     id={"checkbox-request-recipient-sign-in"}
                                     label="Require recipient sign-in"
@@ -591,12 +678,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                         )}
 
                         {error && (
-                            <span className={editorStyles.errorSpan}>
+                            <span id={"blueprint-editor-error"}
+                                  className={editorStyles.errorSpan}>
                                 {error}
                             </span>
                         )}
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"blueprint-editor-dialog-actions"}>
                         <Button
                             id={"button-blueprint-save"}
                             appearance="primary"
@@ -604,10 +692,13 @@ const BlueprintEditorDialog: React.FC<BlueprintEditorDialogProps> = (
                             onClick={handleSave}
                             disabled={saving}
                         >
-                            {saving ? <><Spinner size="tiny"/> Saving…</> : (blueprint ? 'Save Changes' : 'Create Blueprint')}
+                            {saving ? <><Spinner
+                                id={"blueprint-editor-spinner"}
+                                size="tiny"/> Saving...</> : (blueprint ? 'Save Changes' : 'Create Blueprint')}
                         </Button>
                         <Button
                             id={"button-blueprint-cancel"}
+                            appearance="secondary"
                             shape={"circular"}
                             onClick={onClose}
                             disabled={saving}

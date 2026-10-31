@@ -1,24 +1,15 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.Communication
-import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
-import org.junit.jupiter.api.Assertions.assertDoesNotThrow
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 /**
  * Structural and referenced-resource validation for [WorkflowSpecValidator.validate]. Proves that a

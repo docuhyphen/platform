@@ -1,12 +1,8 @@
 import {useState} from "react";
 import {Button, Text} from "@fluentui/react-components";
-import {
-    InformationRequestReviewCommentDto,
-    InformationRequestReviewCommentRole,
-    InformationRequestReviewFindingDto,
-} from "../../../models/models.tsx";
+import {InformationRequestReviewCommentDto, InformationRequestReviewFindingDto} from "../../../models/models.tsx";
 import TextField from "../../shared/text-field/TextField.tsx";
-import {findingSeverityLabels} from "../reviewLabels.ts";
+import {commentAuthorLabel, findingSeverityLabels} from "../reviewLabels.ts";
 import {useRespondentFindingStyles} from "./RespondentFindingStyles.tsx";
 
 interface Props
@@ -17,16 +13,8 @@ interface Props
     comments: InformationRequestReviewCommentDto[];
     canReply: boolean;
     busy: boolean;
-    onReply: (finding: InformationRequestReviewFindingDto, body: string) => void;
+    onReply: (finding: InformationRequestReviewFindingDto, body: string) => Promise<boolean>;
 }
-
-const authorLabel = (comment: InformationRequestReviewCommentDto): string =>
-{
-    if (comment.authoredByCaller) return "You";
-    if (comment.authorRole === InformationRequestReviewCommentRole.REVIEWER) return "Reviewer";
-    if (comment.authorRole === InformationRequestReviewCommentRole.ADMINISTRATOR) return "Administrator";
-    return "Respondent";
-};
 
 const RespondentFinding = ({idPrefix, finding, label, comments, canReply, busy, onReply}: Props) =>
 {
@@ -50,7 +38,7 @@ const RespondentFinding = ({idPrefix, finding, label, comments, canReply, busy, 
                         <li key={comment.id}
                             id={`${id}-comment-${comment.id}`}
                             className={styles.comment}>
-                            {`${authorLabel(comment)}: ${comment.body}`}
+                            {`${commentAuthorLabel(comment)}: ${comment.body}`}
                         </li>
                     ))}
                 </ul>
@@ -80,12 +68,12 @@ const RespondentFinding = ({idPrefix, finding, label, comments, canReply, busy, 
                                 appearance={"primary"}
                                 shape={"circular"}
                                 disabled={busy || !body.trim()}
-                                onClick={() =>
+                                onClick={() => void onReply(finding, body.trim()).then(sent =>
                                 {
-                                    onReply(finding, body.trim());
+                                    if (!sent) return;
                                     setReplying(false);
                                     setBody("");
-                                }}>
+                                })}>
                             Send reply
                         </Button>
                         <Button id={`${id}-reply-cancel`}

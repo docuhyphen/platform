@@ -9,13 +9,17 @@ import com.docuhyphen.app.api.resource.informationrequest.externalsource.operati
 import com.docuhyphen.app.api.resource.model.DecideInformationRequestImportedValueRequest
 import com.docuhyphen.app.api.resource.model.ProposeInformationRequestImportedValueRequest
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueService
+import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueDecisionService
+import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueIntakeService
+import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueRecords
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
 class InformationRequestImportedValueResource @Inject constructor(
-    private val importedValues: InformationRequestImportedValueService,
+    private val importedValueRecords: InformationRequestImportedValueRecords,
+    private val importedValueIntake: InformationRequestImportedValueIntakeService,
+    private val importedValueDecisions: InformationRequestImportedValueDecisionService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestImportedValueResourceOperations
 {
@@ -24,7 +28,7 @@ class InformationRequestImportedValueResource @Inject constructor(
         return try
         {
             val access = accessContextFactory.currentAuthenticated()
-            val listed = importedValues.values(requestId(id), access)
+            val listed = importedValueRecords.values(requestId(id), access)
             Response.ok(listed.map { InformationRequestExternalSourceDtoMapper.toDto(it, access.principal) }
                 .toTypedArray()).build()
         }
@@ -47,7 +51,7 @@ class InformationRequestImportedValueResource @Inject constructor(
                 ?: throw InformationRequestCommandRequestException("An imported value names its Requirement, value, source, and provenance")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
-            val view = importedValues.propose(
+            val view = importedValueIntake.propose(
                 ProposeInformationRequestImportedValueCommand(
                     requestId = requestId,
                     requirementId = body.requirementId,
@@ -91,7 +95,7 @@ class InformationRequestImportedValueResource @Inject constructor(
                 request ?: throw InformationRequestCommandRequestException("A decision states its outcome and reason")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
-            val view = importedValues.decide(
+            val view = importedValueDecisions.decide(
                 DecideInformationRequestImportedValueCommand(
                     requestId,
                     importedValueId,

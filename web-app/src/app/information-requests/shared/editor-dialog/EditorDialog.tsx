@@ -7,6 +7,8 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
+    MessageBar,
+    MessageBarBody,
 } from "@fluentui/react-components";
 import {useEditorDialogStyles} from "./EditorDialogStyles.tsx";
 
@@ -16,6 +18,7 @@ interface EditorDialogProps
     title: string;
     readOnly?: boolean;
     busy?: boolean;
+    error?: string | null;
     confirmLabel?: string;
     dismissLabel?: string;
     confirmDisabled?: boolean;
@@ -26,31 +29,41 @@ interface EditorDialogProps
 }
 
 const EditorDialog = ({
-    id,
-    title,
-    readOnly,
-    busy,
-    confirmLabel = "Save",
-    dismissLabel = "Cancel",
-    confirmDisabled,
-    wide,
-    children,
-    onConfirm,
-    onDismiss,
-}: EditorDialogProps) =>
+                          id,
+                          title,
+                          readOnly,
+                          busy,
+                          error,
+                          confirmLabel = "Save",
+                          dismissLabel = "Cancel",
+                          confirmDisabled,
+                          wide,
+                          children,
+                          onConfirm,
+                          onDismiss,
+                      }: EditorDialogProps) =>
 {
     const styles = useEditorDialogStyles();
 
     return (
         <Dialog open={true}
-                onOpenChange={(_, data) => { if (!data.open) onDismiss(); }}>
+                onOpenChange={(_, data) => {
+                    if (!data.open && !busy) onDismiss();
+                }}>
             <DialogSurface id={id}
                            aria-labelledby={`${id}-title`}
                            className={wide ? styles.wideSurface : styles.surface}>
-                <DialogBody>
+                <DialogBody id={`${id}-dialog-body`}>
                     <DialogTitle id={`${id}-title`}>{title}</DialogTitle>
                     <DialogContent id={`${id}-content`}
                                    className={styles.content}>
+                        {error && (
+                            <MessageBar id={`${id}-error`}
+                                        intent={"error"}
+                                        role={"alert"}>
+                                <MessageBarBody id={`${id}-error-body`}>{error}</MessageBarBody>
+                            </MessageBar>
+                        )}
                         {children}
                     </DialogContent>
                     <DialogActions id={`${id}-actions`}

@@ -36,6 +36,7 @@ const capabilities = (ownerType: SubscriptionOwnerType): InformationRequestCapab
     personalTemplatesAvailable: true,
     assignedWork: false,
     holdsRequests: false,
+    quotas: {openRequests: 0, committedEvidenceBytes: 0},
 });
 
 describe("useInformationRequestCapabilities", () =>

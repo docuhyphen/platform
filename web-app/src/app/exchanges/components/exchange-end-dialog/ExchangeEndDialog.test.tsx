@@ -60,6 +60,21 @@ describe("ExchangeEndDialog", () =>
         await waitFor(() => expect(onExchangeEnded).toHaveBeenCalled());
     });
 
+    it("says as information that a Workflow must approve the ending and offers no second ending", async () => {
+        vi.mocked(exchangeApi.updateExchange).mockRejectedValueOnce({
+            errorMessage: "A completion workflow has been started. The Exchange will be closed when it completes.",
+            reasonCode: "EXCHANGE_ENDING_HELD_BY_WORKFLOW",
+        });
+        renderDialog();
+
+        fireEvent.click(screen.getByRole("button", {name: "End Exchange"}));
+
+        expect(await screen.findByText("A completion workflow has been started. The Exchange will be closed when it completes.")).toBeTruthy();
+        expect(screen.queryByText("Error ending Exchange")).toBeNull();
+        expect(document.getElementById("end-exchange-message")?.className).toContain("fui-MessageBar");
+        expect(screen.getByRole("button", {name: "End Exchange"}).hasAttribute("disabled")).toBe(true);
+    });
+
     it("keeps the Exchange open while requests that must finish first are incomplete", async () =>
     {
         vi.mocked(exchangeApi.updateExchange).mockRejectedValueOnce({
@@ -71,7 +86,7 @@ describe("ExchangeEndDialog", () =>
 
         fireEvent.click(screen.getByRole("button", {name: "End Exchange"}));
 
-        expect(await screen.findByText("This Exchange cannot end until 1 Information Requests that must finish first are complete.")).toBeTruthy();
+        expect(await screen.findByText("This Exchange cannot end until 1 Information Request that must finish first is complete.")).toBeTruthy();
         expect(screen.getByRole("button", {name: "End Exchange"}).hasAttribute("disabled")).toBe(true);
     });
 });

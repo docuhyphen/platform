@@ -3,144 +3,157 @@ package com.docuhyphen.app.api.resource.fields
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.fields.*
-import io.quarkus.security.ForbiddenException
+import com.docuhyphen.app.api.resource.fields.operations.SchemaResourceOperations
+import com.docuhyphen.app.api.resource.model.CreateSchemaRequest
+import com.docuhyphen.app.api.resource.model.FieldStatusRequest
+import com.docuhyphen.app.api.resource.model.PublishSchemaRequest
+import com.docuhyphen.app.api.resource.model.UpdateBindingsRequest
+import com.docuhyphen.app.api.service.fields.FieldValidationException
+import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.*
 
-/**
- * REST endpoints for Schema Definitions, their draft/published versions, and bindings.
- * All business logic is delegated to [SchemaDefinitionService].
- *
- *   GET   /schemas/definitions                       - list schemas in caller's scope
- *   POST  /schemas/definitions                       - create a schema + its first draft version
- *   GET   /schemas/definitions/{id}                  - get a schema (draft + latest published)
- *   GET   /schemas/definitions/{id}/resolved         - resolved view of latest published version
- *   PUT   /schemas/definitions/{id}/draft/bindings   - replace the draft version's bindings
- *   POST  /schemas/definitions/{id}/draft/publish    - publish the draft version
- *   POST  /schemas/definitions/{id}/versions         - open a new draft version
- *   PATCH /schemas/definitions/{id}/status           - retire a schema
- */
-@Path("/schemas")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class SchemaResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val schemaDefinitionService: SchemaDefinitionService,
-)
+) : SchemaResourceOperations
 {
-    companion object
+    override fun listSchemas(scopeKindParam: String?): Response
     {
-        private val logger = LoggerFactory.getLogger(SchemaResource::class.java)
-    }
-
-    @GET
-    @Path("/definitions")
-    fun listSchemas(@QueryParam("scopeKind") scopeKindParam: String?): Response = guard {
-        val scopeKind = scopeKindParam?.let { FieldScopeKind.valueOf(it.uppercase()) }
-        Response.ok(schemaDefinitionService.listSchemas(scopeKind).toTypedArray()).build()
-    }
-
-    @POST
-    @Path("/definitions")
-    fun createSchema(request: CreateSchemaRequest): Response = guard {
-        Response.status(CREATED).entity(schemaDefinitionService.createSchema(request)).build()
-    }
-
-    @GET
-    @Path("/definitions/{id}")
-    fun getSchema(@PathParam("id") id: String): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        Response.ok(schemaDefinitionService.getSchema(schemaId)).build()
-    }
-
-    @GET
-    @Path("/definitions/{id}/resolved")
-    fun getResolved(@PathParam("id") id: String): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        Response.ok(schemaDefinitionService.getResolvedLatestPublished(schemaId)).build()
-    }
-
-    @PUT
-    @Path("/definitions/{id}/draft/bindings")
-    fun updateDraftBindings(@PathParam("id") id: String, request: UpdateBindingsRequest): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        Response.ok(schemaDefinitionService.updateDraftBindings(schemaId, request.bindings)).build()
-    }
-
-    @POST
-    @Path("/definitions/{id}/draft/publish")
-    fun publishDraft(@PathParam("id") id: String, request: PublishSchemaRequest?): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        Response.ok(schemaDefinitionService.publishDraft(schemaId, request?.compatibility)).build()
-    }
-
-    @POST
-    @Path("/definitions/{id}/versions")
-    fun createDraftVersion(@PathParam("id") id: String): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        Response.status(CREATED).entity(schemaDefinitionService.createDraftVersion(schemaId)).build()
-    }
-
-    @PATCH
-    @Path("/definitions/{id}/status")
-    fun patchStatus(@PathParam("id") id: String, request: FieldStatusRequest): Response = guard {
-        val schemaId = parseUuid(id)
-            ?: return@guard Response.status(BAD_REQUEST).entity(ResponseError("Invalid schema id")).build()
-        if (request.status != FieldLifecycleStatus.RETIRED)
-            return@guard Response.status(BAD_REQUEST).entity(ResponseError("Only RETIRED is supported")).build()
-        Response.ok(schemaDefinitionService.retireSchema(schemaId)).build()
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private fun guard(block: () -> Response): Response
-    {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        return try
-        {
-            block()
-        }
-        catch (e: FieldValidationException)
-        {
-            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: IllegalStateException)
-        {
-            Response.status(CONFLICT).entity(ResponseError(e.message)).build()
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: SubscriptionDenialException)
-        {
-            logger.warn("Schema definition request refused by subscription policy", e)
-            throw e
-        }
-        catch (e: Exception)
-        {
-            logger.error("Schema request failed", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val scopeKind = FieldsHttp.scopeKind(scopeKindParam)
+            Response.ok(schemaDefinitionService.listSchemas(scopeKind).toTypedArray()).build()
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to list schemas for scope {}", scopeKindParam, exception)
+                FieldsHttp.failed()
+            }
         }
     }
 
-    private fun parseUuid(raw: String): UUID? = runCatching { UUID.fromString(raw) }.getOrNull()
+    override fun createSchema(request: CreateSchemaRequest): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            Response.status(Response.Status.CREATED).entity(schemaDefinitionService.createSchema(request)).build()
+        } catch (exception: SubscriptionDenialException) {
+            logger.warn("Schema creation refused by subscription policy")
+            throw exception
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to create a schema", exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun getSchema(id: String): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            Response.ok(schemaDefinitionService.getSchema(FieldsHttp.uuid(id, "schema id"))).build()
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to read schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun getVersion(versionId: String): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            Response.ok(schemaDefinitionService.getVersion(FieldsHttp.uuid(versionId, "schema version id"))).build()
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to read schema version {}", versionId, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun getResolved(id: String): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val resolved = schemaDefinitionService.getResolvedLatestPublished(FieldsHttp.uuid(id, "schema id"))
+            Response.ok(resolved).build()
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to read the resolved published version of schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun updateDraftBindings(id: String, request: UpdateBindingsRequest): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val schemaId = FieldsHttp.uuid(id, "schema id")
+            Response.ok(schemaDefinitionService.updateDraftBindings(schemaId, request.bindings)).build()
+        } catch (exception: SubscriptionDenialException) {
+            logger.warn("Draft binding change of schema {} refused by subscription policy", id)
+            throw exception
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to replace the draft bindings of schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun publishDraft(id: String, request: PublishSchemaRequest?): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val schemaId = FieldsHttp.uuid(id, "schema id")
+            Response.ok(schemaDefinitionService.publishDraft(schemaId, request?.compatibility)).build()
+        } catch (exception: SubscriptionDenialException) {
+            logger.warn("Draft publication of schema {} refused by subscription policy", id)
+            throw exception
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to publish the draft of schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun createDraftVersion(id: String): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val schemaId = FieldsHttp.uuid(id, "schema id")
+            Response.status(Response.Status.CREATED).entity(schemaDefinitionService.createDraftVersion(schemaId))
+                .build()
+        } catch (exception: SubscriptionDenialException) {
+            logger.warn("New draft version of schema {} refused by subscription policy", id)
+            throw exception
+        } catch (exception: Exception) {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to open a new draft version of schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    override fun patchStatus(id: String, request: FieldStatusRequest): Response {
+        return try {
+            FieldsHttp.requireUser(authTokenContext)
+            val schemaId = FieldsHttp.uuid(id, "schema id")
+            if (request.status != FieldLifecycleStatus.RETIRED)
+                throw FieldValidationException("Only RETIRED is supported")
+            Response.ok(schemaDefinitionService.retireSchema(schemaId)).build()
+        } catch (exception: SubscriptionDenialException) {
+            logger.warn("Status change of schema {} refused by subscription policy", id)
+            throw exception
+        } catch (exception: Exception)
+        {
+            FieldsHttp.refusal(exception) ?: run {
+                logger.error("Failed to change the status of schema {}", id, exception)
+                FieldsHttp.failed()
+            }
+        }
+    }
+
+    private companion object {
+        val logger = LoggerFactory.getLogger(SchemaResource::class.java)
+    }
 }

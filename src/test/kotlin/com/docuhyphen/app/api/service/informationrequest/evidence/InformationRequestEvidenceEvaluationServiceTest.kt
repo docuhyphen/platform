@@ -2,25 +2,10 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingSubstitute
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidenceAcceptedValue
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateEvidencePolicy
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
+import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
@@ -28,21 +13,20 @@ import com.docuhyphen.app.api.repository.informationrequest.evidence.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceEvaluationServiceTest
 {
@@ -59,6 +43,8 @@ class InformationRequestEvidenceEvaluationServiceTest
     private val assessmentRepository: InformationRequestEvidenceAssessmentRepository = mock()
     private val recordingService: DocumentVersionRecordingService = mock()
     private val deploymentPolicy: InformationRequestEvidenceDeploymentPolicy = mock()
+    private val bindingRepository: InformationRequestTemplateRequirementBindingRepository = mock()
+    private val conditionEvaluationService: InformationRequestConditionEvaluationService = mock()
 
     private val requirements = mutableListOf<InformationRequestRequirement>()
     private val artifacts = mutableListOf<InformationRequestEvidenceArtifact>()
@@ -75,7 +61,15 @@ class InformationRequestEvidenceEvaluationServiceTest
         assessmentRepository = assessmentRepository,
         documentVersionRecordingService = recordingService,
         deploymentPolicy = deploymentPolicy,
+        bindingRepository = bindingRepository,
+        conditionEvaluationService = conditionEvaluationService,
         clock = clock,
+        factsReader = InformationRequestEvidenceFactsReader(
+            artifactRepository,
+            versionRepository,
+            assessmentRepository,
+            recordingService,
+        ),
     )
 
     init
@@ -95,6 +89,7 @@ class InformationRequestEvidenceEvaluationServiceTest
         }
         whenever(recordingService.findVersion(any())).thenAnswer { invocation -> contents[invocation.arguments[0]] }
         whenever(deploymentPolicy.malwareScanRequired()).thenReturn(true)
+        whenever(conditionEvaluationService.evaluate(requestId)).thenReturn(emptyList())
     }
 
     @Test
@@ -139,7 +134,6 @@ class InformationRequestEvidenceEvaluationServiceTest
 
         val facts = service.facts(requirement).single()
 
-        assertTrue(facts.fileBacked)
         assertEquals(DocumentVersionContentVerification.VERIFIED, facts.contentVerification)
         assertEquals(3L, facts.contentLength)
         assertEquals("application/pdf", facts.declaredMediaType)
@@ -222,6 +216,58 @@ class InformationRequestEvidenceEvaluationServiceTest
     }
 
     @Test
+    fun `a substitute that always applies is judged without evaluating any condition`() {
+        val (primary, _) = substitutedRequirement(InformationRequestRequiredness.OPTIONAL)
+
+        assertEquals(InformationRequestEvidenceRequirementState.SATISFIED, service.evaluate(primary)?.state)
+        verify(conditionEvaluationService, never()).evaluate(any())
+    }
+
+    @Test
+    fun `a substitute whose condition is true satisfies the Requirement`() {
+        val (primary, _) = substitutedRequirement(InformationRequestRequiredness.CONDITIONAL)
+        givenCondition(InformationRequestConditionEvaluationState.TRUE)
+
+        val evaluation = service.evaluate(primary)
+
+        assertEquals(InformationRequestEvidenceRequirementState.SATISFIED, evaluation?.state)
+        assertTrue(evaluation?.satisfiedBySubstitute == true)
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = InformationRequestConditionEvaluationState::class, names = ["FALSE", "UNKNOWN"])
+    fun `a substitute whose condition is not true never satisfies the Requirement`(state: InformationRequestConditionEvaluationState) {
+        val (primary, substitute) = substitutedRequirement(InformationRequestRequiredness.CONDITIONAL)
+        givenCondition(state)
+
+        val evaluation = service.evaluate(primary)
+
+        assertEquals(InformationRequestEvidenceRequirementState.NOT_PROVIDED, evaluation?.state)
+        assertFalse(evaluation?.satisfiedBySubstitute == true)
+        assertEquals(InformationRequestEvidenceRequirementState.SATISFIED, service.evaluate(substitute)?.state)
+    }
+
+    @Test
+    fun `a substitute whose condition has not been evaluated never satisfies the Requirement`() {
+        val (primary, _) = substitutedRequirement(InformationRequestRequiredness.CONDITIONAL)
+
+        assertEquals(InformationRequestEvidenceRequirementState.NOT_PROVIDED, service.evaluate(primary)?.state)
+    }
+
+    @Test
+    fun `a substitute at an occurrence follows its condition at that occurrence, else at the root`() {
+        val (primary, _) = substitutedRequirement(InformationRequestRequiredness.CONDITIONAL, path = "reported-item[1]")
+        givenCondition(InformationRequestConditionEvaluationState.TRUE)
+        assertEquals(InformationRequestEvidenceRequirementState.SATISFIED, service.evaluate(primary)?.state)
+
+        givenCondition(
+            InformationRequestConditionEvaluationState.TRUE,
+            InformationRequestConditionEvaluationState.FALSE to "reported-item[1]",
+        )
+        assertEquals(InformationRequestEvidenceRequirementState.NOT_PROVIDED, service.evaluate(primary)?.state)
+    }
+
+    @Test
     fun `validity is judged as of the configured clock's date`()
     {
         val requirement = requirement("root", policy())
@@ -230,6 +276,52 @@ class InformationRequestEvidenceEvaluationServiceTest
         scan(version, "CLEAN", productionEligible = true, minutes = 1)
 
         assertEquals(InformationRequestEvidenceRequirementState.DEFICIENT, service.evaluate(requirement)?.state)
+    }
+
+    private fun substitutedRequirement(
+        requiredness: InformationRequestRequiredness,
+        path: String = "root",
+    ): Pair<InformationRequestRequirement, InformationRequestRequirement> {
+        val primary = requirement(path, policy())
+        val substitute = requirement(path, policy())
+        whenever(substituteRepository.findForBinding(primary.sourceTemplateBindingId)).thenReturn(
+            listOf(
+                InformationRequestTemplateBindingSubstitute().apply {
+                    templateBindingId = primary.sourceTemplateBindingId
+                    substituteTemplateBindingId = substitute.sourceTemplateBindingId
+                    templateVersionId = primary.sourceTemplateVersionId
+                },
+            ),
+        )
+        whenever(bindingRepository.findById(substitute.sourceTemplateBindingId)).thenReturn(
+            InformationRequestTemplateRequirementBinding().apply {
+                id = substitute.sourceTemplateBindingId
+                this.requiredness = requiredness
+                conditionalRuleKey =
+                    if (requiredness == InformationRequestRequiredness.CONDITIONAL) SUBSTITUTE_RULE else null
+            },
+        )
+        val version = fileVersion(artifact(substitute), 1)
+        inspect(version, "INSPECTED", pages = 1, minutes = 0)
+        scan(version, "CLEAN", productionEligible = true, minutes = 1)
+        return primary to substitute
+    }
+
+    private fun givenCondition(
+        rootState: InformationRequestConditionEvaluationState,
+        vararg occurrenceStates: Pair<InformationRequestConditionEvaluationState, String>,
+    ) {
+        val evaluations = (listOf(rootState to "root") + occurrenceStates).map { (state, path) ->
+            InformationRequestConditionEvaluationProjection(
+                ruleKey = SUBSTITUTE_RULE,
+                expressionVersion = 1,
+                state = state,
+                sourceRequirementKeys = setOf("alternate-selection"),
+                fieldDefinitionIds = emptySet(),
+                occurrencePath = path,
+            )
+        }
+        whenever(conditionEvaluationService.evaluate(requestId)).thenReturn(evaluations)
     }
 
     private fun policy() = InformationRequestTemplateEvidencePolicy().apply {
@@ -320,5 +412,9 @@ class InformationRequestEvidenceEvaluationServiceTest
         contentLength = 3
         assessedAt = Timestamp.from(Instant.parse("2026-09-25T08:00:00Z").plusSeconds(minutes * 60))
         createdAt = assessedAt
+    }
+
+    private companion object {
+        const val SUBSTITUTE_RULE = "alternate-applies"
     }
 }

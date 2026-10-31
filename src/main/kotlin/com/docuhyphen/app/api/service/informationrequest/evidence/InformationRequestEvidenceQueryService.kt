@@ -1,14 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.exception.DocumentVersionContentIntegrityException
-import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
@@ -25,25 +23,43 @@ class InformationRequestEvidenceQueryService @Inject constructor(
     private val gate: InformationRequestEvidenceGate,
     private val artifactRepository: InformationRequestEvidenceArtifactRepository,
     private val versionRepository: InformationRequestEvidenceVersionRepository,
-    private val documentVersionRecordingService: DocumentVersionRecordingService,
     private val viewLoader: InformationRequestEvidenceViewLoader,
-    private val accessAudit: InformationRequestEvidenceAccessAudit,
     private val contentRelease: InformationRequestEvidenceContentRelease,
     private val evaluationService: InformationRequestEvidenceEvaluationService,
     private val responseStore: InformationRequestResponseStore,
+    private val contentOpener: InformationRequestEvidenceContentOpener,
 )
 {
     fun list(requestId: UUID, requirementId: UUID, access: RequestAccessContext): InformationRequestEvidenceList
     {
         val reader = reader(requestId, requirementId, access)
         val artifacts = artifactRepository.findForRequirement(requirementId)
+        val shown = if (gate.shows(reader.request, reader.requirement)) artifacts.filter(reader::sees) else emptyList()
 
         return InformationRequestEvidenceList(
             requirementId = requirementId,
             evidenceETag = InformationRequestETag.evidenceOf(requirementId, artifacts),
-            artifacts = artifacts.filter(reader::sees).map { viewLoader.view(it) },
+            artifacts = shown.map { gate.forCaller(access, reader.request, viewLoader.view(it)) },
             evaluation = evaluationService.evaluate(reader.requirement, currentDisposition(requestId, requirementId)),
         )
+    }
+
+    fun attachedFileCounts(
+        requestId: UUID,
+        requirementIds: Collection<UUID>,
+        access: RequestAccessContext
+    ): Map<UUID, Int> {
+        val readable = requirementIds.filter { requirementId ->
+            gate.permits(access, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE, requirementId) ||
+                    gate.permits(access, Action.INFORMATION_REQUEST_EVIDENCE_VIEW, requirementId)
+        }.toSet()
+        if (readable.isEmpty()) return emptyMap()
+        val attached = artifactRepository.findForRequest(requestId)
+            .filter { it.informationRequestRequirementId in readable }
+            .filter { it.collectionState == InformationRequestEvidenceCollectionState.ACTIVE }
+            .groupingBy { it.informationRequestRequirementId }
+            .eachCount()
+        return readable.associateWith { attached[it] ?: 0 }
     }
 
     fun artifact(
@@ -54,7 +70,12 @@ class InformationRequestEvidenceQueryService @Inject constructor(
     ): InformationRequestEvidenceArtifactView
     {
         val reader = reader(requestId, requirementId, access)
-        return viewLoader.view(visibleArtifact(reader, requirementId, artifactId))
+        if (!gate.shows(reader.request, reader.requirement)) throw notFound()
+        return gate.forCaller(
+            access,
+            reader.request,
+            viewLoader.view(visibleArtifact(reader, requirementId, artifactId))
+        )
     }
 
     fun openContent(
@@ -64,62 +85,50 @@ class InformationRequestEvidenceQueryService @Inject constructor(
         versionId: UUID,
         access: RequestAccessContext,
         use: InformationRequestEvidenceContentUse,
-    ): InformationRequestEvidenceContent
+    ): InformationRequestEvidenceContent =
+        contentOpener.open(requestId, access, use) { current ->
+            releasable(requestId, requirementId, artifactId, versionId, current)
+        }
+
+    fun versionRecords(versionIds: Collection<UUID>): Map<UUID, InformationRequestEvidenceVersionRecord> =
+        versionRepository.findForIds(versionIds.toSet()).associate { version ->
+            version.id to InformationRequestEvidenceVersionRecord(
+                evidenceVersionId = version.id,
+                evidenceArtifactId = version.evidenceArtifactId,
+                versionNumber = version.versionNumber,
+                declaredFileName = version.declaredFileName,
+                createdBy = PrincipalRef(version.createdByPrincipalKind, version.createdByPrincipalId),
+            )
+        }
+
+    private fun releasable(
+        requestId: UUID,
+        requirementId: UUID,
+        artifactId: UUID,
+        versionId: UUID,
+        access: RequestAccessContext,
+    ): InformationRequestEvidenceRelease
     {
         val reader = reader(requestId, requirementId, access)
+        if (!gate.shows(reader.request, reader.requirement)) throw notFound()
         val artifact = visibleArtifact(reader, requirementId, artifactId)
         val version = versionRepository.findById(versionId)
             ?.takeIf { it.evidenceArtifactId == artifact.id }
             ?: throw notFound()
-        val documentVersionId = when (val source = InformationRequestEvidenceVersionSourceMapper.read(version))
-        {
-            is InformationRequestDocumentVersionEvidenceSource -> source.documentVersionId
-            is InformationRequestExternalEvidenceSource -> throw contentUnavailable()
-        }
+        val documentVersionId = InformationRequestEvidenceVersionSourceMapper.read(version).documentVersionId
         contentRelease.requireReleasable(version, access)
-        val documentVersion =
-            documentVersionRecordingService.findVersion(documentVersionId) ?: throw contentUnavailable()
-        val content = try
-        {
-            documentVersionRecordingService.open(documentVersion)
-        }
-        catch (_: DocumentVersionContentIntegrityException)
-        {
-            throw contentUnavailable()
-        }
-        catch (_: DocumentVersionContentNotFoundException)
-        {
-            throw contentUnavailable()
-        }
-
-        val mediaType = InformationRequestEvidenceMediaTypes.detect(content.file)
-        val inline = use == InformationRequestEvidenceContentUse.PREVIEW
-        if (inline && !InformationRequestEvidenceMediaTypes.isInlineSafe(mediaType))
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.EVIDENCE_PREVIEW_UNAVAILABLE,
-                "This evidence cannot be previewed; download it instead",
-            )
-        }
-
-        accessAudit.record(reader.request, access, use, version, requirementId)
-        return InformationRequestEvidenceContent(
-            file = content.file,
-            fileName = version.declaredFileName ?: content.fileName,
-            mediaType = mediaType,
-            inline = inline,
-        )
+        return InformationRequestEvidenceRelease(reader.request, version, documentVersionId, access, requirementId)
     }
 
     private fun reader(requestId: UUID, requirementId: UUID, access: RequestAccessContext): EvidenceReader
     {
         val request = queryService.findById(requestId, access)
-        val requirement = gate.requireEvidenceOccurrence(request, requirementId)
         val manages = gate.permits(access, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE, requirementId)
         if (!manages && !gate.permits(access, Action.INFORMATION_REQUEST_EVIDENCE_VIEW, requirementId))
         {
             throw ForbiddenException("Access denied to Information Request evidence")
         }
+        val requirement = gate.requireEvidenceOccurrence(request, requirementId)
         return EvidenceReader(request, requirement, manages)
     }
 
@@ -141,12 +150,6 @@ class InformationRequestEvidenceQueryService @Inject constructor(
         InformationRequestLifecycleException(
             InformationRequestErrorCatalog.NOT_FOUND,
             "Information Request evidence not found"
-        )
-
-    private fun contentUnavailable() =
-        InformationRequestLifecycleException(
-            InformationRequestErrorCatalog.EVIDENCE_CONTENT_UNAVAILABLE,
-            "This evidence content is not available",
         )
 
     private class EvidenceReader(

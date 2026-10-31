@@ -8,9 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Append-only policy snapshot for a runtime Requirement occurrence.
- */
 @Entity
 @Table(name = "information_request_requirement_revision")
 class InformationRequestRequirementRevision

@@ -5,11 +5,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Persistence for [InformationRequestTemplateBindingDisposition]. Permitted answers are read for one
- * binding when resolving a single requirement, and for a whole version when projecting the
- * configuration a request was issued against.
- */
 @ApplicationScoped
 class InformationRequestTemplateBindingDispositionRepository :
     BaseRepository<InformationRequestTemplateBindingDisposition>(
@@ -42,11 +37,6 @@ class InformationRequestTemplateBindingDispositionRepository :
             .setParameter("versionId", templateVersionId)
             .resultList
 
-    /**
-     * Clears this part of one draft version's configuration so the whole document can be rewritten.
-     * The stored freeze rule refuses the same statement against a version that is no longer a
-     * draft, so a frozen version cannot lose configuration this way.
-     */
     fun deleteForVersion(templateVersionId: UUID): Int =
         entityManager.createQuery(
             """

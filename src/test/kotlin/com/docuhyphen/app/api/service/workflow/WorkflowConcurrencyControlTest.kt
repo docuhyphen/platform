@@ -1,45 +1,19 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepAssignee
-import com.docuhyphen.app.api.model.entity.WorkflowStepDecision
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.*
+import com.docuhyphen.app.api.repository.workflow.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.atLeastOnce
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * Verifies the engine's transaction-level concurrency control: decision recording, SLA escalation,
- * and cancellation take a pessimistic write lock on the parent instance and the current step in a
- * fixed order and re-read the locked state before acting, so a race between two of these paths
- * resolves deterministically to a single outcome. These are pure-logic unit tests: the mocked
- * repositories stand in for the row-locking reads (`findByIdForUpdate`) whose real serialization is
- * enforced by Postgres, so they assert the engine's decision-after-relock behavior rather than the
- * database's lock semantics.
- */
 class WorkflowConcurrencyControlTest
 {
     private val definitionRepository: com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository = mock()
@@ -53,8 +27,6 @@ class WorkflowConcurrencyControlTest
 
     private val instanceId = UUID.randomUUID()
     private val decider = PrincipalRef(PrincipalKind.USER, UUID.randomUUID())
-
-    // ── decision idempotency: the race loser records no second side effect ────────────
 
     @Test
     fun `a decision on an already-resolved step returns the recorded outcome with no side effects`()
@@ -72,7 +44,7 @@ class WorkflowConcurrencyControlTest
         verify(transitionRepository, never()).save(any())
         verify(decisionRepository, never()).save(any())
         verify(decisionRepository, never()).update(any())
-        verify(eventPublisher, never()).publish(any())
+        verify(eventPublisher, never()).publish(any(), any())
     }
 
     @Test
@@ -88,7 +60,7 @@ class WorkflowConcurrencyControlTest
         assertEquals(WorkflowInstanceStatus.CANCELLED, result.instanceStatus)
         verify(transitionRepository, never()).save(any())
         verify(decisionRepository, never()).save(any())
-        verify(eventPublisher, never()).publish(any())
+        verify(eventPublisher, never()).publish(any(), any())
     }
 
     @Test
@@ -124,7 +96,7 @@ class WorkflowConcurrencyControlTest
         }
 
         verify(decisionRepository, never()).save(any())
-        verify(eventPublisher, never()).publish(any())
+        verify(eventPublisher, never()).publish(any(), any())
     }
 
     @Test
@@ -133,7 +105,6 @@ class WorkflowConcurrencyControlTest
         val inst = instance(WorkflowInstanceStatus.RUNNING, snapshot = snapshotOf(approvalToEnd()))
         val step = stepInstance(status = WorkflowStepStatus.PENDING)
         lockStubs(inst, step)
-        // Two assignees, so a single approval leaves the 2-of-2 quorum unmet and the step PENDING.
         whenever(assigneeRepository.findAllByStepInstanceId(step.id))
             .thenReturn(listOf(assigneeFor(decider), assigneeFor(PrincipalRef(PrincipalKind.USER, UUID.randomUUID()))))
         val prior = WorkflowStepDecision().apply {
@@ -161,8 +132,6 @@ class WorkflowConcurrencyControlTest
         assertEquals(WorkflowInstanceStatus.RUNNING, inst.status)
     }
 
-    // ── escalation: the scheduler re-reads under the lock ─────────────────────────────
-
     @Test
     fun `escalateOverdue skips a step a concurrent decision already completed`()
     {
@@ -175,7 +144,7 @@ class WorkflowConcurrencyControlTest
         val escalated = newEngine().escalateOverdue(now())
 
         assertEquals(0, escalated)
-        verify(eventPublisher, never()).publish(any())
+        verify(eventPublisher, never()).publish(any(), any())
         verify(stepRepository, never()).update(any())
     }
 
@@ -191,7 +160,7 @@ class WorkflowConcurrencyControlTest
         val escalated = newEngine().escalateOverdue(now())
 
         assertEquals(0, escalated)
-        verify(eventPublisher, never()).publish(any())
+        verify(eventPublisher, never()).publish(any(), any())
     }
 
     @Test
@@ -221,20 +190,17 @@ class WorkflowConcurrencyControlTest
         assertEquals(WorkflowInstanceStatus.ESCALATED, inst.status)
         assertNotNull(candidate.escalatedAt)
         val events = argumentCaptor<DomainEvent>()
-        verify(eventPublisher, atLeastOnce()).publish(events.capture())
+        verify(eventPublisher, atLeastOnce()).publish(events.capture(), any())
         assertEquals("workflow.escalated", events.allValues.single().type)
         verify(stepRepository).update(candidate)
         verify(instanceRepository).update(inst)
     }
-
-    // ── cancellation: re-reads each step under its lock ───────────────────────────────
 
     @Test
     fun `cancel skips a step that is no longer pending on re-read`()
     {
         val inst = instance(WorkflowInstanceStatus.RUNNING)
         val staleView = stepInstance(status = WorkflowStepStatus.PENDING)
-        // The locked re-read observes the step already completed by a racing advancement.
         val lockedView = stepInstance(status = WorkflowStepStatus.COMPLETED).apply { id = staleView.id }
         whenever(instanceRepository.findByIdForUpdate(instanceId)).thenReturn(inst)
         whenever(stepRepository.findByInstance(instanceId)).thenReturn(listOf(staleView))
@@ -246,8 +212,6 @@ class WorkflowConcurrencyControlTest
         assertEquals(WorkflowStepStatus.COMPLETED, lockedView.status)
         verify(stepRepository, never()).update(any())
     }
-
-    // ── harness ───────────────────────────────────────────────────────────────────────
 
     private fun lockStubs(inst: WorkflowInstance, step: WorkflowStepInstance)
     {

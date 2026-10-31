@@ -3,9 +3,8 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.model.document.DocumentVersionCreatorMapper
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
+import com.docuhyphen.app.api.repository.document.DocumentVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
@@ -15,14 +14,8 @@ import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.sql.Timestamp
-import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * A stored version states, as one canonical principal, the principal its upload was authorized as.
- * Every kind of principal is stored the same way, and what is stored is exactly what reads back.
- */
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class ExchangeDocumentVersionCreatorContractTest
@@ -78,19 +71,7 @@ class ExchangeDocumentVersionCreatorContractTest
             )
         }
 
-    private fun storedDocument(): UUID
-    {
-        val document = Document().apply {
-            title = "Process record"
-            type = DocumentType.PDF
-            createdDate = Timestamp.from(Instant.now())
-            updateDate = Timestamp.from(Instant.now())
-        }
-
-        QuarkusTransaction.requiringNew().run { entityManager.persist(document) }
-
-        return document.id
-    }
+    private fun storedDocument(): UUID = ExchangeHeldDocument.stored(entityManager)
 
     private fun uploadedFile(): File
     {

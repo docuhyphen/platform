@@ -1,29 +1,25 @@
 package com.docuhyphen.app.api.service.informationrequest.capability
 
+import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestCreationStanding
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestOwnerStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestPlanQuotas
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestCallerPartyResolver
+import com.docuhyphen.app.api.service.subscription.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestCapabilityServiceTest
 {
@@ -31,9 +27,15 @@ class InformationRequestCapabilityServiceTest
     private val organizationId = UUID.randomUUID()
     private val standingService = mock<InformationRequestExecutionStandingService>()
     private val subscriptionAccessService = mock<SubscriptionAccessService>()
-    private val shareService = mock<ShareService>()
+    private val callerParties = mock<InformationRequestCallerPartyResolver>()
     private val requestRepository = mock<InformationRequestRepository>()
-    private val service = InformationRequestCapabilityService(standingService, subscriptionAccessService, shareService, requestRepository)
+    private val service =
+        InformationRequestCapabilityService(
+            standingService,
+            subscriptionAccessService,
+            callerParties,
+            requestRepository
+        )
 
     init
     {
@@ -63,9 +65,15 @@ class InformationRequestCapabilityServiceTest
     @Test
     fun `a scope that already holds requests says so whatever its plan now allows`()
     {
-        given(SubscriptionContext.forOrganization(organizationId), PlanCode.BUSINESS, InformationRequestStandingReason.FEATURE_NOT_INCLUDED)
+        given(
+            SubscriptionContext.forOrganization(organizationId),
+            PlanCode.BUSINESS,
+            InformationRequestStandingReason.FEATURE_NOT_INCLUDED
+        )
         given(SubscriptionContext.forUser(userId), PlanCode.FREE, InformationRequestStandingReason.FEATURE_NOT_INCLUDED)
-        whenever(requestRepository.existsForOwner(InformationRequestOwnerType.ORGANIZATION, organizationId)).thenReturn(true)
+        whenever(requestRepository.existsForOwner(InformationRequestOwnerType.ORGANIZATION, organizationId)).thenReturn(
+            true
+        )
 
         val capabilities = service.forCaller(access(organizationId))
 
@@ -105,7 +113,10 @@ class InformationRequestCapabilityServiceTest
     fun `a person without the feature is told why and can still hold assigned work`()
     {
         given(SubscriptionContext.forUser(userId), PlanCode.FREE, InformationRequestStandingReason.FEATURE_NOT_INCLUDED)
-        whenever(shareService.holdsActiveShareOn(ResourceType.INFORMATION_REQUEST, PrincipalRef.user(userId))).thenReturn(true)
+        val open = InformationRequest().apply { state = InformationRequestState.IN_PROGRESS }
+        whenever(callerParties.activePartiesActedFor(PrincipalRef.user(userId)))
+            .thenReturn(listOf(InformationRequestParty().apply { informationRequestId = open.id }))
+        whenever(requestRepository.findById(open.id)).thenReturn(open)
 
         val capabilities = service.forCaller(access(null))
 
@@ -118,19 +129,54 @@ class InformationRequestCapabilityServiceTest
     private fun access(activeOrgId: UUID?) =
         RequestAccessContext(PrincipalRef.user(userId), AuthorizationContext(activeOrgId = activeOrgId))
 
-    private fun given(owner: SubscriptionContext, plan: PlanCode, reason: InformationRequestStandingReason?)
+    @Test
+    fun `a scope whose open requests fill the plan allowance offers no new work and states its quotas`()
     {
-        whenever(standingService.ownerStanding(owner)).thenReturn(
-            InformationRequestOwnerStanding(
-                ownerType = owner.ownerType,
-                ownerId = owner.ownerId,
-                planCode = plan,
-                status = SubscriptionStatus.ACTIVE,
-                enforcementMode = SubscriptionEnforcementMode.ENFORCE,
-                featureIncluded = reason != InformationRequestStandingReason.FEATURE_NOT_INCLUDED,
-                operationallySuspended = false,
-                newWorkUnavailableReason = reason,
-            ),
+        given(
+            SubscriptionContext.forUser(userId),
+            PlanCode.PERSONAL,
+            null,
+            creationReason = InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED
+        )
+
+        val capabilities = service.forCaller(access(null))
+
+        assertFalse(capabilities.newWorkAvailable)
+        assertEquals(InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED, capabilities.newWorkUnavailableReason)
+        assertTrue(capabilities.scope.newWorkAvailable)
+        assertTrue(capabilities.personalTemplatesAvailable)
+        assertEquals(quotas, capabilities.quotas)
+    }
+
+    private val quotas = InformationRequestPlanQuotas(
+        maxOpenRequests = 25,
+        openRequests = 25,
+        maxActingPartiesPerRequest = 10,
+        maxEvidenceFilesPerRequest = 100,
+        maxEvidenceBytesPerRequest = 1_024,
+        maxCommittedEvidenceBytes = 4_096,
+        committedEvidenceBytes = 2_048,
+    )
+
+    private fun given(
+        owner: SubscriptionContext,
+        plan: PlanCode,
+        reason: InformationRequestStandingReason?,
+        creationReason: InformationRequestStandingReason? = reason,
+    ) {
+        val standing = InformationRequestOwnerStanding(
+            ownerType = owner.ownerType,
+            ownerId = owner.ownerId,
+            planCode = plan,
+            status = SubscriptionStatus.ACTIVE,
+            enforcementMode = SubscriptionEnforcementMode.ENFORCE,
+            featureIncluded = reason != InformationRequestStandingReason.FEATURE_NOT_INCLUDED,
+            operationallySuspended = false,
+            newWorkUnavailableReason = reason,
+        )
+        whenever(standingService.ownerStanding(owner)).thenReturn(standing)
+        whenever(standingService.creationStanding(owner)).thenReturn(
+            InformationRequestCreationStanding(standing, quotas, creationReason),
         )
     }
 }

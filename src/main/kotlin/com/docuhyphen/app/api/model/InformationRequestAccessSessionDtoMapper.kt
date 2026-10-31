@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestAccessSessionDto
+import com.docuhyphen.app.api.model.dto.InformationRequestAccessSessionStepUpDto
+import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAccessSessionStepUp
 import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
 
 object InformationRequestAccessSessionDtoMapper
@@ -10,8 +12,11 @@ object InformationRequestAccessSessionDtoMapper
             sessionId = id,
             verificationStrength = verificationStrength,
             issuedAt = issuedAt,
-            expiresAt = requireNotNull(expiresAt),
+            expiresAt = expiresAt,
             sessionToken = issued.sessionToken,
         )
     }
+
+    fun toDto(stepUp: InformationRequestAccessSessionStepUp): InformationRequestAccessSessionStepUpDto =
+        InformationRequestAccessSessionStepUpDto(sessionId = stepUp.sessionId, verifiedUntil = stepUp.verifiedUntil)
 }

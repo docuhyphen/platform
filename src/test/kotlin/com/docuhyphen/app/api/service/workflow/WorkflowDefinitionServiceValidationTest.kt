@@ -1,35 +1,22 @@
 package com.docuhyphen.app.api.service.workflow
 
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.WorkflowDefinition
-import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
-import com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
+import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.fields.ExchangeFieldQueryService
 import com.docuhyphen.app.api.service.fields.FieldTypeRegistry
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * Verifies that condition-predicate validation is enforced through the definition service's
- * create, update, and clone paths, using the same validator and predicate contract that the
- * runtime engine uses. This proves save-time rejection happens before persistence rather than
- * only inside the isolated validator.
- */
 class WorkflowDefinitionServiceValidationTest
 {
     private val definitionRepository: WorkflowDefinitionRepository = mock()
@@ -173,7 +160,7 @@ class WorkflowDefinitionServiceValidationTest
                     RequirementConditionSpec(
                         templateRequirementId = UUID.randomUUID().toString(),
                         valueType = com.docuhyphen.app.api.model.entity.FieldValueType.SHORT_TEXT,
-                        operator = com.docuhyphen.app.api.service.fields.FieldOperator.IS_NOT_EMPTY,
+                        operator = com.docuhyphen.app.api.model.fields.FieldOperator.IS_NOT_EMPTY,
                     ),
                 ),
             ),

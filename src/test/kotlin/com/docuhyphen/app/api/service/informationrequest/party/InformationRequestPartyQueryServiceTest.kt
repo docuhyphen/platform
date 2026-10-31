@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.identity.PrincipalDisplay
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
@@ -10,6 +11,7 @@ import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
+import com.docuhyphen.app.api.service.informationrequest.privacy.InformationRequestSubjectRestrictionService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -46,6 +48,7 @@ class InformationRequestPartyQueryServiceTest
     private val principalDisplayService = mock<PrincipalDisplayService>()
     private val identifierRepository = mock<SubjectIdentityExternalIdentifierRepository>()
     private val exchangeRecipientService = mock<ExchangeRecipientService>()
+    private val restrictions = mock<InformationRequestSubjectRestrictionService>()
     private val service = InformationRequestPartyQueryService(
         requestRepository = requestRepository,
         partyRepository = partyRepository,
@@ -53,6 +56,7 @@ class InformationRequestPartyQueryServiceTest
         principalDisplayService = principalDisplayService,
         identifierRepository = identifierRepository,
         exchangeRecipientService = exchangeRecipientService,
+        restrictions = restrictions,
     )
 
     @Test
@@ -61,13 +65,47 @@ class InformationRequestPartyQueryServiceTest
         whenever(requestRepository.findById(requestId)).thenReturn(request)
         whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any())).thenReturn(Decision.Allow())
         whenever(partyRepository.findActiveForRequest(requestId)).thenReturn(listOf(viewerParty, peerParty))
-        whenever(principalDisplayService.display(any())).thenReturn(PrincipalDisplay(name = "Person", email = "person@example.test"))
+        whenever(principalDisplayService.display(any())).thenReturn(
+            PrincipalDisplay(
+                name = "Person",
+                email = "person@example.test"
+            )
+        )
         whenever(exchangeRecipientService.trustSuspended(peerParty.exchangeRecipientId!!)).thenReturn(true)
 
         val listing = service.listForManagement(requestId, access)
 
         assertTrue(listing.parties.single { it.id == peerParty.id }.trustSuspended)
         assertFalse(listing.parties.single { it.id == viewerParty.id }.trustSuspended)
+    }
+
+    @Test
+    fun `the management listing marks a subject whose processing is restricted`() {
+        val subjectId = UUID.randomUUID()
+        val subject = InformationRequestParty().apply {
+            informationRequestId = requestId
+            roleKey = InformationRequestShareRoleKey.SUBJECT
+            subjectIdentityRefId = subjectId
+        }
+        request.ownerOrganizationId = UUID.randomUUID()
+        whenever(requestRepository.findById(requestId)).thenReturn(request)
+        whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any())).thenReturn(Decision.Allow())
+        whenever(partyRepository.findActiveForRequest(requestId)).thenReturn(listOf(viewerParty, subject))
+        whenever(principalDisplayService.display(any())).thenReturn(
+            PrincipalDisplay(name = "Person", email = "person@example.test")
+        )
+        whenever(
+            restrictions.isRestricted(
+                request.ownerType,
+                request.ownerOrganizationId!!,
+                subjectId
+            )
+        ).thenReturn(true)
+
+        val listing = service.listForManagement(requestId, access)
+
+        assertTrue(listing.parties.single { it.id == subject.id }.processingRestricted)
+        assertFalse(listing.parties.single { it.id == viewerParty.id }.processingRestricted)
     }
 
     @Test
@@ -112,7 +150,7 @@ class InformationRequestPartyQueryServiceTest
         whenever(
             authorizationService.authorize(
                 access.principal,
-                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 ResourceRef.informationRequest(requestId),
                 access.authorization,
             ),
@@ -146,14 +184,20 @@ class InformationRequestPartyQueryServiceTest
         whenever(
             authorizationService.authorize(
                 access.principal,
-                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 ResourceRef.informationRequest(requestId),
                 access.authorization,
             ),
         ).thenReturn(Decision.Deny("reason", "not a manager"))
         whenever(partyRepository.findActiveForRequest(requestId)).thenReturn(listOf(viewerParty, peerParty))
+        whenever(principalDisplayService.display(any())).thenReturn(
+            PrincipalDisplay(
+                name = "Person",
+                email = "person@example.test"
+            )
+        )
 
-        val result = service.listForRequest(requestId, access)
+        val result = service.listForManagement(requestId, access).parties
 
         val ownRow = result.single { it.id == viewerParty.id }
         assertEquals(viewerUserId, ownRow.principalId)
@@ -181,14 +225,20 @@ class InformationRequestPartyQueryServiceTest
         whenever(
             authorizationService.authorize(
                 access.principal,
-                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 ResourceRef.informationRequest(requestId),
                 access.authorization,
             ),
         ).thenReturn(Decision.Allow())
         whenever(partyRepository.findActiveForRequest(requestId)).thenReturn(listOf(viewerParty, peerParty))
+        whenever(principalDisplayService.display(any())).thenReturn(
+            PrincipalDisplay(
+                name = "Person",
+                email = "person@example.test"
+            )
+        )
 
-        val result = service.listForRequest(requestId, access)
+        val result = service.listForManagement(requestId, access).parties
 
         val peerRow = result.single { it.id == peerParty.id }
         assertEquals(peerUserId, peerRow.principalId)
@@ -208,7 +258,7 @@ class InformationRequestPartyQueryServiceTest
             ),
         ).thenReturn(Decision.Deny("reason", "denied"))
 
-        assertThrows(ForbiddenException::class.java) { service.listForRequest(requestId, access) }
+        assertThrows(ForbiddenException::class.java) { service.listForManagement(requestId, access) }
 
         verify(partyRepository, never()).findActiveForRequest(any())
     }
@@ -218,6 +268,30 @@ class InformationRequestPartyQueryServiceTest
     {
         whenever(requestRepository.findById(requestId)).thenReturn(null)
 
-        assertThrows(IllegalArgumentException::class.java) { service.listForRequest(requestId, access) }
+        assertThrows(IllegalArgumentException::class.java) { service.listForManagement(requestId, access) }
+    }
+
+    @Test
+    fun `every party of a request is read for internal policy, including revoked ones, without authorization`() {
+        val revokedParty = InformationRequestParty().apply {
+            informationRequestId = requestId
+            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR
+            principalKind = PrincipalKind.PARTICIPANT
+            principalId = UUID.randomUUID()
+            active = false
+        }
+        whenever(partyRepository.findForRequest(requestId)).thenReturn(listOf(viewerParty, revokedParty))
+
+        assertEquals(listOf(viewerParty, revokedParty), service.partiesOf(requestId))
+        verifyNoInteractions(authorizationService)
+    }
+
+    @Test
+    fun `one party is read by its identity`() {
+        whenever(partyRepository.findById(peerParty.id)).thenReturn(peerParty)
+
+        assertSame(peerParty, service.findParty(peerParty.id))
+        assertNull(service.findParty(UUID.randomUUID()))
+        verifyNoInteractions(authorizationService)
     }
 }

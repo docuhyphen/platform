@@ -1,9 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestItemProblem
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.review.*
@@ -15,19 +19,20 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.command.canonicalForm
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementDisclosure
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
-import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
 
@@ -47,15 +52,17 @@ class InformationRequestReviewDecisionService @Inject constructor(
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
     private val entityManager: EntityManager,
+    private val disclosure: InformationRequestRequirementDisclosure,
 )
 {
     @Transactional
     fun saveDraft(command: SaveInformationRequestReviewDraftCommand): InformationRequestReviewDraftResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
-        gate.requireMutation(locked, InformationRequestMutation.SAVE_REVIEW_DRAFT)
-        gate.requireContinuationEntitlement(locked)
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_REVIEW), command.requestId)
+        gate.requireMutation(locked, InformationRequestMutation.SAVE_REVIEW_DRAFT)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
         val review = loader.requireReview(command.requestId, command.reviewId)
         access.requireOpen(review)
         val assignment = access.requireAssignment(review, command.assignmentId)
@@ -65,6 +72,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
         val snapshot = loader.snapshot(review)
         requireStageOpen(snapshot, assignment.stageKey)
         val covered = openItems(snapshot, assignment.stageKey).toSet()
+        InformationRequestReviewInputLimits.requireWorksheet(command.patches)
         val existing = draftRepository.findForAssignment(assignment.id).associateBy { it.submissionItemId }
         val now = Timestamp.from(clock.instant())
         command.patches.forEach { patch ->
@@ -103,7 +111,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
         record(
             locked,
             InformationRequestMutation.SAVE_REVIEW_DRAFT,
-            command.access.principal,
+            InformationRequestAuditActor.of(command.access),
             "information_request.review_draft|${assignment.id}|${assignment.draftRevision}",
             mapOf(
                 "reviewId" to review.id.toString(),
@@ -113,7 +121,10 @@ class InformationRequestReviewDecisionService @Inject constructor(
         )
         return InformationRequestReviewDraftResult(
             assignment = assignment,
-            items = draftRepository.findForAssignment(assignment.id),
+            items = draftRepository.findForAssignment(assignment.id).filter { entry ->
+                snapshot.item(entry.submissionItemId)
+                    ?.let { access.permitsItemReview(command.access, it.informationRequestRequirementId) } == true
+            },
             draftETag = loader.draftETag(assignment),
         )
     }
@@ -121,18 +132,23 @@ class InformationRequestReviewDecisionService @Inject constructor(
     @Transactional
     fun recordDecisions(command: RecordInformationRequestReviewDecisionsCommand): InformationRequestReviewCommandResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             ResourceRef(ResourceType.INFORMATION_REQUEST_REVIEW_ASSIGNMENT, command.assignmentId),
             RECORD_OPERATION,
             command.access,
             command.idempotencyKey,
-            command.precondition.toString(),
+            listOf(command.precondition.canonicalForm()),
         )
-        return run(locked, command.access, receipt) {
-            gate.requireMutation(locked, InformationRequestMutation.RECORD_REVIEW_DECISION)
-            gate.requireContinuationEntitlement(locked)
+        return run(
+            locked,
+            command.access,
+            receipt,
+            { review -> access.requireAssignment(review, command.assignmentId) }) {
             gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_REVIEW), command.requestId)
+            gate.requireMutation(locked, InformationRequestMutation.RECORD_REVIEW_DECISION)
+            gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
             val review = loader.requireReview(command.requestId, command.reviewId)
             access.requireOpen(review)
             val assignment = access.requireAssignment(review, command.assignmentId)
@@ -142,13 +158,15 @@ class InformationRequestReviewDecisionService @Inject constructor(
             val snapshot = loader.snapshot(review)
             val stage = requireStageOpen(snapshot, assignment.stageKey)
             separation.requireMayReview(snapshot, stage, setOf(command.access.principal))
+            requireFirstDecisionInStage(snapshot, stage.stageKey, assignment.id, command.access)
             val covered = openItems(snapshot, stage.stageKey)
             val drafts = draftRepository.findForAssignment(assignment.id).associateBy { it.submissionItemId }
-            if (covered.any { it !in drafts })
-            {
-                throw InformationRequestLifecycleException(
-                    InformationRequestErrorCatalog.REVIEW_WORKSHEET_INCOMPLETE,
-                    "Every item this stage reviews needs an outcome before the worksheet is recorded",
+            covered.firstOrNull { it !in drafts }?.let { missing ->
+                val item = requireNotNull(snapshot.item(missing))
+                requireItemReview(command.access, item)
+                refuseItem(
+                    item, InformationRequestErrorCatalog.REVIEW_WORKSHEET_INCOMPLETE,
+                    "Every item this stage reviews needs an outcome before the worksheet is recorded"
                 )
             }
             val now = Timestamp.from(clock.instant())
@@ -182,7 +200,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
             record(
                 locked,
                 InformationRequestMutation.RECORD_REVIEW_DECISION,
-                command.access.principal,
+                InformationRequestAuditActor.of(command.access),
                 "information_request.review_decision|${assignment.id}|${command.idempotencyKey}",
                 mapOf(
                     "reviewId" to review.id.toString(),
@@ -191,7 +209,12 @@ class InformationRequestReviewDecisionService @Inject constructor(
                     "decisionCount" to covered.size.toString(),
                 ),
             )
-            settlement.settleIfDecided(locked, review, command.access.principal, command.idempotencyKey)
+            settlement.settleIfDecided(
+                locked,
+                review,
+                InformationRequestAuditActor.of(command.access),
+                command.idempotencyKey
+            )
             result(locked, review, assignment)
         }
     }
@@ -199,22 +222,29 @@ class InformationRequestReviewDecisionService @Inject constructor(
     @Transactional
     fun override(command: OverrideInformationRequestReviewItemCommand): InformationRequestReviewCommandResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
-        val narrativeHash = sha256Hex(command.narrative.trim())
         val receipt = receipt(
             ResourceRef(ResourceType.INFORMATION_REQUEST_REVIEW, command.reviewId),
             OVERRIDE_OPERATION,
             command.access,
             command.idempotencyKey,
-            "${command.stageKey.trim()}|${command.submissionItemId}|${command.outcome}|$narrativeHash",
+            listOf(
+                command.stageKey.trim(),
+                command.submissionItemId,
+                command.outcome,
+                command.narrative.trim(),
+                command.precondition.canonicalForm(),
+            ),
         )
-        return run(locked, command.access, receipt) {
-            gate.requireMutation(locked, InformationRequestMutation.RECORD_REVIEW_DECISION)
-            gate.requireContinuationEntitlement(locked)
+        return run(locked, command.access, receipt, { null }) {
             gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_MANAGE_REVIEWS), command.requestId)
+            gate.requireMutation(locked, InformationRequestMutation.RECORD_REVIEW_DECISION)
+            gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
             val review = loader.requireReview(command.requestId, command.reviewId)
             access.requireOpen(review)
             command.precondition.requireSatisfiedBy(loader.reviewETag(review))
+            InformationRequestReviewInputLimits.requireText(command.narrative, "An override narrative")
             val snapshot = loader.snapshot(review)
             val stage = requireStageOpen(snapshot, command.stageKey.trim())
             if (!stage.overridePermitted)
@@ -248,6 +278,11 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 )
             }
             val item = requireNotNull(snapshot.item(command.submissionItemId))
+            disclosure.requireRecentVerification(
+                command.access,
+                command.requestId,
+                item.informationRequestRequirementId
+            )
             requireOutcomeSupported(snapshot, item, command.outcome, narrative, null)
             val now = Timestamp.from(clock.instant())
             decisionRepository.save(
@@ -268,7 +303,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
             record(
                 locked,
                 InformationRequestMutation.RECORD_REVIEW_DECISION,
-                command.access.principal,
+                InformationRequestAuditActor.of(command.access),
                 "information_request.review_override|${review.id}|${command.idempotencyKey}",
                 mapOf(
                     "reviewId" to review.id.toString(),
@@ -278,7 +313,12 @@ class InformationRequestReviewDecisionService @Inject constructor(
                     "reviewOutcome" to command.outcome.name,
                 ),
             )
-            settlement.settleIfDecided(locked, review, command.access.principal, command.idempotencyKey)
+            settlement.settleIfDecided(
+                locked,
+                review,
+                InformationRequestAuditActor.of(command.access),
+                command.idempotencyKey
+            )
             result(locked, review, null)
         }
     }
@@ -312,14 +352,44 @@ class InformationRequestReviewDecisionService @Inject constructor(
         return stage
     }
 
-    private fun requireItemReview(requestAccess: RequestAccessContext, item: InformationRequestSubmissionItem)
+    private fun requireFirstDecisionInStage(
+        snapshot: InformationRequestReviewSnapshot,
+        stageKey: String,
+        assignmentId: java.util.UUID,
+        requestAccess: RequestAccessContext,
+    )
     {
-        if (!access.permitsItemReview(requestAccess, item.informationRequestRequirementId))
+        val decidedElsewhere = snapshot.decisions.any {
+            it.stageKey == stageKey &&
+                    it.kind == InformationRequestReviewDecisionKind.REVIEWER &&
+                    it.assignmentId != assignmentId &&
+                    it.decidedByPrincipalKind == requestAccess.principal.kind &&
+                    it.decidedByPrincipalId == requestAccess.principal.id
+        }
+        if (decidedElsewhere)
         {
-            throw ForbiddenException("Access denied to review this Information Request Requirement")
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.REVIEW_ALREADY_DECIDED,
+                "This reviewer already decided this stage through another assignment",
+            )
         }
     }
 
+    private fun requireItemReview(requestAccess: RequestAccessContext, item: InformationRequestSubmissionItem) =
+        access.requireItemReview(requestAccess, item.informationRequestRequirementId)
+
+    private fun refuseItem(item: InformationRequestSubmissionItem, code: String, message: String): Nothing =
+        throw InformationRequestItemRefusalException(
+            code, message,
+            listOf(
+                InformationRequestItemProblem(
+                    code,
+                    message,
+                    item.informationRequestRequirementId,
+                    item.occurrencePath
+                )
+            )
+        )
     private fun requireOutcomeSupported(
         snapshot: InformationRequestReviewSnapshot,
         item: InformationRequestSubmissionItem,
@@ -334,7 +404,8 @@ class InformationRequestReviewDecisionService @Inject constructor(
             InformationRequestReviewOutcome.REJECTED,
                 -> if (assignment != null && snapshot.findings.none { it.submissionItemId == item.id && it.assignmentId == assignment.id })
             {
-                throw InformationRequestLifecycleException(
+                refuseItem(
+                    item,
                     InformationRequestErrorCatalog.REVIEW_FINDING_REQUIRED,
                     "Returning or rejecting an item needs a finding that says why",
                 )
@@ -344,7 +415,8 @@ class InformationRequestReviewDecisionService @Inject constructor(
             InformationRequestReviewOutcome.WAIVED,
                 -> if (narrative.isNullOrBlank())
             {
-                throw InformationRequestLifecycleException(
+                refuseItem(
+                    item,
                     InformationRequestErrorCatalog.REVIEW_NARRATIVE_REQUIRED,
                     "Accepting an item with an exception or a waiver states why",
                 )
@@ -357,7 +429,8 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 .none { it.disposition == InformationRequestResponseDisposition.WAIVED }
         )
         {
-            throw InformationRequestLifecycleException(
+            refuseItem(
+                item,
                 InformationRequestErrorCatalog.REVIEW_OUTCOME_NOT_PERMITTED,
                 "This requirement does not permit a waiver",
             )
@@ -393,7 +466,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
     private fun record(
         locked: LockedInformationRequest,
         mutation: InformationRequestMutation,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
         details: Map<String, String>,
     )
@@ -406,7 +479,7 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 toState = request.state,
                 mutation = mutation,
                 actor = actor,
-                idempotencyKey = idempotencyKey,
+                auditIdempotencyKey = idempotencyKey,
                 details = details,
             ),
         )
@@ -417,19 +490,20 @@ class InformationRequestReviewDecisionService @Inject constructor(
         operation: String,
         requestAccess: RequestAccessContext,
         idempotencyKey: String,
-        material: String,
+        material: List<Any?>,
     ) = CommandReceiptRequest(
         resource = resource,
         operation = operation,
         actor = CommandActorRef.principal(requestAccess.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex("$operation|${resource.id}|$material"),
+        requestFingerprint = CommandRequestFingerprint.of(operation, resource.id, *material.toTypedArray()),
     )
 
     private fun run(
         locked: LockedInformationRequest,
         requestAccess: RequestAccessContext,
         receipt: CommandReceiptRequest,
+        replayedAssignment: (InformationRequestReview) -> InformationRequestReviewAssignment?,
         mutation: () -> InformationRequestReviewCommandResult,
     ): InformationRequestReviewCommandResult =
         when (val decision = commandReceiptService.runOnce(receipt) {
@@ -451,13 +525,9 @@ class InformationRequestReviewDecisionService @Inject constructor(
                 require(decision.result.resourceType == ResourceType.INFORMATION_REQUEST_REVIEW) {
                     "Command receipt does not reference a review"
                 }
-                gate.authorizeRequest(
-                    requestAccess,
-                    listOf(Action.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_MANAGE_REVIEWS),
-                    locked.request.id,
-                )
+                access.requireReviewReader(requestAccess, locked.request.id)
                 val review = loader.requireReview(locked.request.id, decision.result.resourceId)
-                result(locked, review, access.callerAssignments(review, requestAccess).firstOrNull())
+                result(locked, review, replayedAssignment(review))
             }
         }
 
@@ -473,11 +543,6 @@ class InformationRequestReviewDecisionService @Inject constructor(
         assignment = assignment,
         draftETag = assignment?.let(loader::draftETag),
     )
-
-    private fun sha256Hex(material: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(material.toByteArray(StandardCharsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
 
     private companion object
     {

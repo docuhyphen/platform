@@ -5,22 +5,22 @@ import com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStren
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.informationrequest.noauth.RequestAccessSessionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
+import com.docuhyphen.app.api.service.informationrequest.noauth.model.CredentialCommandCutoffCase
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
+import org.mockito.kotlin.*
+import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 class RequestAccessSessionServiceTest
 {
@@ -49,6 +49,70 @@ class RequestAccessSessionServiceTest
     }
 
     @Test
+    fun `a session is only issued to a participant identified by contact proof`() {
+        val fixture = Fixture()
+
+        val refusal =
+            org.junit.jupiter.api.assertThrows<InformationRequestLifecycleException> {
+                fixture.service.issue(
+                    shareLink = fixture.bootstrapLink,
+                    participant = PrincipalRef.user(UUID.randomUUID()),
+                    verificationStrength = RequestAccessSessionVerificationStrength.EMAIL_OTP,
+                    expiresAt = null,
+                )
+            }
+
+        assertEquals(
+            InformationRequestErrorCatalog.ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+            refusal.reasonCode,
+        )
+        assertTrue(fixture.saved.isEmpty())
+    }
+
+    @Test
+    fun `no session is issued or honoured once its parent Exchange requires recipient sign-in`() {
+        val fixture = Fixture()
+        val session = fixture.existingSession()
+        whenever(fixture.sessionRepository.recipientSignInRequired(fixture.bootstrapLink.id)).thenReturn(true)
+
+        val issuing = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.issue(
+                shareLink = fixture.bootstrapLink,
+                participant = PrincipalRef.participant(UUID.randomUUID()),
+                verificationStrength = RequestAccessSessionVerificationStrength.EMAIL_OTP,
+                expiresAt = null,
+            )
+        }
+        val using = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.requireActive(session.id)
+        }
+
+        assertEquals(InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED, issuing.reasonCode)
+        assertEquals(InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED, using.reasonCode)
+        assertEquals(listOf(session.id), fixture.saved.keys.toList())
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource(CredentialCommandCutoffCase.SOURCE)
+    fun `no session is issued once the request or its parent Exchange takes no new sessions`(case: CredentialCommandCutoffCase) {
+        val fixture = Fixture()
+        fixture.requestState = case.requestState
+        fixture.parent = case.parentSnapshot
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.issue(
+                shareLink = fixture.bootstrapLink,
+                participant = PrincipalRef.participant(UUID.randomUUID()),
+                verificationStrength = RequestAccessSessionVerificationStrength.EMAIL_OTP,
+                expiresAt = null,
+            )
+        }
+
+        assertEquals(case.reasonCode, refusal.reasonCode)
+        assertTrue(fixture.saved.isEmpty())
+    }
+
+    @Test
     fun `issuing a session against a direct-grant ShareLink is refused`()
     {
         val fixture = Fixture()
@@ -70,18 +134,35 @@ class RequestAccessSessionServiceTest
     }
 
     @Test
-    fun `revoking an active session stamps revokedAt once`()
+    fun `a credential with the wrong secret is refused before the session or its Exchange is locked`() {
+        val fixture = Fixture()
+        val session = fixture.existingSession().apply { credentialHash = sha256("b".repeat(43)) }
+        whenever(fixture.sessionRepository.findById(session.id)).thenReturn(session)
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            fixture.service.verifyCredential("${session.id}.${"a".repeat(43)}")
+        }
+
+        assertEquals(InformationRequestErrorCatalog.ACCESS_SESSION_REQUIRED, refusal.reasonCode)
+        verify(fixture.sessionRepository, never()).findSessionByIdForUpdate(any())
+        verify(fixture.sessionRepository, never()).lockParentForShare(any())
+    }
+
+    @Test
+    fun `a credential with the right secret locks and answers its session`()
     {
         val fixture = Fixture()
-        val session = fixture.existingSession()
+        val session = fixture.existingSession().apply { credentialHash = sha256("a".repeat(43)) }
+        whenever(fixture.sessionRepository.findById(session.id)).thenReturn(session)
 
-        val revoked = fixture.service.revoke(session.id)
-        assertNotNull(revoked.revokedAt)
+        val verified = fixture.service.verifyCredential("${session.id}.${"a".repeat(43)}")
 
-        val firstRevokedAt = revoked.revokedAt
-        val revokedAgain = fixture.service.revoke(session.id)
-        assertEquals(firstRevokedAt, revokedAgain.revokedAt)
+        assertEquals(session.id, verified.id)
+        verify(fixture.sessionRepository).findSessionByIdForUpdate(session.id)
     }
+
+    private fun sha256(secret: String): String = MessageDigest.getInstance("SHA-256")
+        .digest(secret.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
     @Test
     fun `touching use increments the atomic use count and stamps last use`()
@@ -154,11 +235,17 @@ class RequestAccessSessionServiceTest
         }
         val sessionRepository = mock<RequestAccessSessionRepository>()
         val service = RequestAccessSessionService(sessionRepository)
+        var requestState = InformationRequestState.ISSUED
+        var parent = InformationRequestParentSnapshot(
+            com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED,
+            lockedForUpdate = true,
+        )
 
         init
         {
-            whenever(sessionRepository.lockParentForShare(any())).thenReturn(InformationRequestParentSnapshot(com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED, lockedForUpdate = true))
-        whenever(sessionRepository.save(any())).thenAnswer {
+            whenever(sessionRepository.lockParentForShare(any())).thenAnswer { parent }
+            whenever(sessionRepository.requestStateForShare(any())).thenAnswer { requestState }
+            whenever(sessionRepository.save(any())).thenAnswer {
                 it.getArgument<RequestAccessSession>(0).also { session -> saved[session.id] = session }
             }
             whenever(sessionRepository.update(any())).thenAnswer {

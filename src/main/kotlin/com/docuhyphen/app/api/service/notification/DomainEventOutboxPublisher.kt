@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.DomainEventOutboxEntry
+import com.docuhyphen.app.api.model.notification.DomainEventOwnerColumns
 import com.docuhyphen.app.api.repository.notification.DomainEventOutboxRepository
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import jakarta.enterprise.context.ApplicationScoped
@@ -10,16 +11,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Durable [DomainEventPublisher] for required domain events. Rather than routing an event
- * synchronously on the caller's transaction, it serializes the envelope into a
- * `workflow_event_outbox` row in that same transaction. The row commits atomically with the
- * authoritative state mutation, so a required event can never be lost by a crash between the state
- * commit and routing. [DomainEventDispatcher] delivers committed rows after commit.
- *
- * Selected by the [TransactionalEventSink] qualifier so callers opt into durable delivery; every other
- * service keeps the default in-process publisher.
- */
 @ApplicationScoped
 @TransactionalEventSink
 class DomainEventOutboxPublisher : DomainEventPublisher
@@ -37,8 +28,6 @@ class DomainEventOutboxPublisher : DomainEventPublisher
     {
         val eventId = runCatching { event.eventUuid() }.getOrElse { UUID.randomUUID() }
 
-        // Belt-and-braces dedup: a repeated enqueue for the same occurrence must not write twice.
-        // The event_id unique constraint is the authoritative guard.
         if (outboxRepository.findByEventId(eventId) != null)
         {
             logger.debug("Domain event id={} type={} already enqueued; skipping", event.id, event.type)
@@ -51,7 +40,6 @@ class DomainEventOutboxPublisher : DomainEventPublisher
             this.eventId = eventId
             idempotencyKey = DomainEventOutboxIdempotencyKey.forEvent(event)
             eventType = event.type
-            organizationId = ownerColumns.organizationId
             ownerKind = ownerColumns.ownerKind
             ownerId = ownerColumns.ownerId
             orderingKey = event.orderingKey?.trim()?.takeIf { it.isNotBlank() }
@@ -69,16 +57,10 @@ class DomainEventOutboxPublisher : DomainEventPublisher
             ?.let(AuditOwnerScope::Organization)
             ?: AuditOwnerScope.Platform
 
-    private fun ownerColumns(owner: AuditOwnerScope): OwnerColumns = when (owner)
+    private fun ownerColumns(owner: AuditOwnerScope): DomainEventOwnerColumns = when (owner)
     {
-        AuditOwnerScope.Platform -> OwnerColumns("PLATFORM", null, null)
-        is AuditOwnerScope.Organization -> OwnerColumns("ORGANIZATION", owner.organizationId, owner.organizationId)
-        is AuditOwnerScope.Personal -> OwnerColumns("USER", owner.userId, null)
+        AuditOwnerScope.Platform -> DomainEventOwnerColumns("PLATFORM", null)
+        is AuditOwnerScope.Organization -> DomainEventOwnerColumns("ORGANIZATION", owner.organizationId)
+        is AuditOwnerScope.Personal -> DomainEventOwnerColumns("USER", owner.userId)
     }
-
-    private data class OwnerColumns(
-        val ownerKind: String,
-        val ownerId: UUID?,
-        val organizationId: UUID?,
-    )
 }

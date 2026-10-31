@@ -115,11 +115,33 @@ class InformationRequestPrivacyRequestRepository :
 class InformationRequestSubjectRestrictionRepository :
     BaseRepository<InformationRequestSubjectRestriction>(InformationRequestSubjectRestriction::class.java)
 {
+    fun lockSubject(ownerKind: RecordOwnerKind, ownerId: UUID, subjectIdentityRefId: UUID) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:subjectKey, 0))")
+            .setParameter(
+                "subjectKey",
+                "information_request_subject_restriction:$ownerKind:$ownerId:$subjectIdentityRefId",
+            )
+            .singleResult
+    }
+
     fun findActive(
         ownerKind: RecordOwnerKind,
         ownerId: UUID,
         subjectIdentityRefId: UUID
     ): InformationRequestSubjectRestriction? =
+        activeQuery(ownerKind, ownerId, subjectIdentityRefId).resultList.firstOrNull()
+
+    fun findActiveForUpdate(
+        ownerKind: RecordOwnerKind,
+        ownerId: UUID,
+        subjectIdentityRefId: UUID
+    ): InformationRequestSubjectRestriction? =
+        activeQuery(ownerKind, ownerId, subjectIdentityRefId)
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
+            .resultList
+            .firstOrNull()
+
+    private fun activeQuery(ownerKind: RecordOwnerKind, ownerId: UUID, subjectIdentityRefId: UUID) =
         entityManager.createQuery(
             """
             SELECT restriction
@@ -134,9 +156,12 @@ class InformationRequestSubjectRestrictionRepository :
             .setParameter("ownerKind", ownerKind)
             .setParameter("ownerId", ownerId)
             .setParameter("subject", subjectIdentityRefId)
-            .resultList
-            .firstOrNull()
 
+    fun findForPrivacyRequest(privacyRequestId: UUID): InformationRequestSubjectRestriction? =
+        entityManager.createQuery(
+            "SELECT restriction FROM InformationRequestSubjectRestriction restriction WHERE restriction.privacyRequestId = :request",
+            InformationRequestSubjectRestriction::class.java,
+        ).setParameter("request", privacyRequestId).resultList.firstOrNull()
     fun findForOwner(ownerKind: RecordOwnerKind, ownerId: UUID): List<InformationRequestSubjectRestriction> =
         entityManager.createQuery(
             """

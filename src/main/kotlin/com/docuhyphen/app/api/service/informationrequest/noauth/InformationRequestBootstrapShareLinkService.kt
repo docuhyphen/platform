@@ -1,21 +1,31 @@
 package com.docuhyphen.app.api.service.informationrequest.noauth
 
+import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestPolicyDecision
 import com.docuhyphen.app.api.model.informationrequest.noauth.*
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestAccessLinkView
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.exchange.ShareLinkService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -26,21 +36,18 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Issues, rotates, replaces, and revokes a [ShareLinkMode.VERIFICATION_BOOTSTRAP] [ShareLink] bound
- * to one acting request party's existing request-party Share, so that Share stays the sole
- * capability grant and this link only ever proves recipient contact for it.
- */
 @ApplicationScoped
 class InformationRequestBootstrapShareLinkService @Inject constructor(
     private val requestRepository: InformationRequestRepository,
     private val partyRepository: InformationRequestPartyRepository,
-    private val exchangeRepository: ExchangeRepository,
-    private val shareLinkRepository: ShareLinkRepository,
+    private val exchangeLookup: ExchangeLookupService,
+    private val shareLinks: ShareLinkService,
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
     private val requestAccessSessionService: RequestAccessSessionService,
     private val abuseLimits: InformationRequestAbuseLimits,
+    private val accessLinkRecorder: InformationRequestAccessLinkRecorder,
+    private val continuationGuard: InformationRequestContinuationGuard,
 )
 {
     @Transactional
@@ -48,6 +55,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         command: IssueInformationRequestBootstrapShareLinkCommand,
     ): InformationRequestBootstrapShareLinkIssuance
     {
+        val request = lockRequest(command.requestId, command.access)
         val receiptRequest = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = ISSUE_OPERATION,
@@ -57,7 +65,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         )
         return when (
             val decision = commandReceiptService.runOnce(receiptRequest) {
-                val result = issueMutation(command)
+                val result = issueMutation(command, request)
                 CommandMutationResult(result, result.commandResultReference())
             }
         )
@@ -73,50 +81,44 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
 
     fun links(requestId: UUID, access: RequestAccessContext): List<InformationRequestAccessLinkView>
     {
-        requestRepository.findById(requestId) ?: throw IllegalArgumentException("Information Request not found")
         authorize(access, requestId)
+        requestRepository.findById(requestId) ?: throw IllegalArgumentException("Information Request not found")
         val partyByShare = partyRepository.findForRequest(requestId)
             .mapNotNull { party -> party.shareId?.let { it to party.id } }
             .toMap()
-        return shareLinkRepository.findBootstrapLinksForShares(partyByShare.keys)
+        return shareLinks.bootstrapLinksForShares(partyByShare.keys)
             .map { InformationRequestAccessLinkView(it, partyByShare.getValue(it.shareId)) }
     }
 
     private fun issueMutation(
         command: IssueInformationRequestBootstrapShareLinkCommand,
+        request: InformationRequest,
     ): InformationRequestBootstrapShareLinkIssuance
     {
-        val request = requestRepository.findById(command.requestId)
-            ?: throw IllegalArgumentException("Information Request not found")
-
-        authorize(command.access, request.id)
-
-        val exchange = exchangeRepository.findById(request.exchangeId)
-            ?: throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
-                "Parent Exchange not found",
-            )
-        if (exchange.requireRecipientSignIn)
-        {
-            throw InformationRequestLifecycleException(
-                InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED,
-                "This Exchange requires recipients to sign in; issue authenticated access instead " +
-                        "of a bootstrap access link",
-            )
-        }
+        requireLimits(command.expiresAt, command.maxUses)
+        requireLinkChangeAllowed(request, InformationRequestMutation.ISSUE_ACCESS_LINK)
 
         val party = partyRepository.findByIdForUpdate(command.partyId)
             ?: throw IllegalArgumentException("Information Request party not found")
         require(party.informationRequestId == request.id) { "Information Request party not found" }
         command.precondition.requireSatisfiedBy(InformationRequestETag.partyOf(party))
-        require(party.active) { "Information Request party is already revoked" }
-        require(party.roleKey != InformationRequestShareRoleKey.SUBJECT) {
-            "A subject party cannot receive a bootstrap access link"
+        if (!party.active) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARTY_ALREADY_REVOKED,
+                "This party was removed from the request, so it cannot receive an access link",
+            )
         }
-        val shareId = requireNotNull(party.shareId) {
-            "An acting party must already hold a request-party Share before a bootstrap access link " +
-                    "can be issued"
+        if (party.roleKey == InformationRequestShareRoleKey.SUBJECT) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+                "A subject party cannot receive an access link",
+            )
         }
+        val shareId = party.shareId ?: throw InformationRequestLifecycleException(
+            InformationRequestErrorCatalog.ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+            "This party does not hold access to the request yet, so it cannot receive an access link",
+        )
+        requireEligibleParty(party)
 
         val rawToken = generateToken()
         val now = Timestamp.from(Instant.now())
@@ -124,28 +126,33 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             this.shareId = shareId
             tokenHash = hash(rawToken)
             linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP
+            verificationStrength = RequestAccessSessionVerificationStrength.EMAIL_OTP
             expiresAt = command.expiresAt ?: defaultExpiry()
             maxUses = command.maxUses ?: abuseLimits.accessLinkUses
             status = ShareLinkStatus.ACTIVE
-            createdByAppUserId = command.access.principal.id.takeIf {
-                command.access.principal.kind == PrincipalKind.USER
-            }
+            createdByPrincipalKind = command.access.principal.kind
+            createdByPrincipalId = command.access.principal.id
             createdAt = now
         }
-        return InformationRequestBootstrapShareLinkIssuance(shareLinkRepository.save(shareLink), rawToken)
+        val saved = shareLinks.create(shareLink)
+        advancePartyRevision(party, now)
+        accessLinkRecorder.record(
+            request,
+            party,
+            saved,
+            InformationRequestMutation.ISSUE_ACCESS_LINK,
+            command.access,
+            command.idempotencyKey
+        )
+        return InformationRequestBootstrapShareLinkIssuance(saved, rawToken, InformationRequestETag.partyOf(party))
     }
 
-    /**
-     * Replaces this link's secret in place, resetting its use count and clearing any outstanding
-     * contact-proof challenge, without changing its identity or any other constraint. Any session
-     * already minted from this link is revoked, since a rotated secret must not leave a prior
-     * session still usable.
-     */
     @Transactional
     fun rotate(
         command: RotateInformationRequestBootstrapShareLinkCommand,
     ): InformationRequestBootstrapShareLinkIssuance
     {
+        val request = lockRequest(command.requestId, command.access)
         val receiptRequest = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = ROTATE_OPERATION,
@@ -155,7 +162,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         )
         return when (
             val decision = commandReceiptService.runOnce(receiptRequest) {
-                val result = rotateMutation(command)
+                val result = rotateMutation(command, request)
                 CommandMutationResult(result, result.commandResultReference())
             }
         )
@@ -171,11 +178,13 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
 
     private fun rotateMutation(
         command: RotateInformationRequestBootstrapShareLinkCommand,
+        request: InformationRequest,
     ): InformationRequestBootstrapShareLinkIssuance
     {
-        authorize(command.access, command.requestId)
+        requireLinkChangeAllowed(request, InformationRequestMutation.ROTATE_ACCESS_LINK)
         val (shareLink, party) = resolveBootstrapShareLink(command.requestId, command.shareLinkId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partyOf(party))
+        requireEligibleParty(party)
         requireActive(shareLink)
 
         requestAccessSessionService.revokeAllForShareLink(shareLink.id)
@@ -191,20 +200,25 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         shareLink.contactOtpLockedUntil = null
         shareLink.rotatedAt = now
         shareLink.rotationCount += 1
-        return InformationRequestBootstrapShareLinkIssuance(shareLinkRepository.update(shareLink), rawToken)
+        val saved = shareLinks.update(shareLink)
+        advancePartyRevision(party, now)
+        accessLinkRecorder.record(
+            request,
+            party,
+            saved,
+            InformationRequestMutation.ROTATE_ACCESS_LINK,
+            command.access,
+            command.idempotencyKey
+        )
+        return InformationRequestBootstrapShareLinkIssuance(saved, rawToken, InformationRequestETag.partyOf(party))
     }
 
-    /**
-     * Revokes this link and issues a brand new bootstrap link bound to the same request-party
-     * Share, recording which link it replaced. Used instead of [rotate] when the link's own
-     * constraints (expiry, use limit) must change rather than only its secret. Any session already
-     * minted from the old link is revoked.
-     */
     @Transactional
     fun replace(
         command: ReplaceInformationRequestBootstrapShareLinkCommand,
     ): InformationRequestBootstrapShareLinkIssuance
     {
+        val request = lockRequest(command.requestId, command.access)
         val receiptRequest = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = REPLACE_OPERATION,
@@ -214,7 +228,7 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         )
         return when (
             val decision = commandReceiptService.runOnce(receiptRequest) {
-                val result = replaceMutation(command)
+                val result = replaceMutation(command, request)
                 CommandMutationResult(result, result.commandResultReference())
             }
         )
@@ -230,42 +244,53 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
 
     private fun replaceMutation(
         command: ReplaceInformationRequestBootstrapShareLinkCommand,
+        request: InformationRequest,
     ): InformationRequestBootstrapShareLinkIssuance
     {
-        authorize(command.access, command.requestId)
+        requireLimits(command.expiresAt, command.maxUses)
+        requireLinkChangeAllowed(request, InformationRequestMutation.REPLACE_ACCESS_LINK)
         val (oldShareLink, party) = resolveBootstrapShareLink(command.requestId, command.shareLinkId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partyOf(party))
+        requireEligibleParty(party)
         requireActive(oldShareLink)
 
+        val now = Timestamp.from(Instant.now())
         requestAccessSessionService.revokeAllForShareLink(oldShareLink.id)
         oldShareLink.status = ShareLinkStatus.REVOKED
-        shareLinkRepository.update(oldShareLink)
+        oldShareLink.revokedAt = now
+        shareLinks.update(oldShareLink)
 
         val rawToken = generateToken()
-        val now = Timestamp.from(Instant.now())
         val newShareLink = ShareLink().apply {
             shareId = oldShareLink.shareId
             tokenHash = hash(rawToken)
             linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP
+            verificationStrength = RequestAccessSessionVerificationStrength.EMAIL_OTP
             expiresAt = command.expiresAt ?: defaultExpiry()
             maxUses = command.maxUses ?: abuseLimits.accessLinkUses
             status = ShareLinkStatus.ACTIVE
             replacesShareLinkId = oldShareLink.id
-            createdByAppUserId = command.access.principal.id.takeIf {
-                command.access.principal.kind == PrincipalKind.USER
-            }
+            createdByPrincipalKind = command.access.principal.kind
+            createdByPrincipalId = command.access.principal.id
             createdAt = now
         }
-        return InformationRequestBootstrapShareLinkIssuance(shareLinkRepository.save(newShareLink), rawToken)
+        val saved = shareLinks.create(newShareLink)
+        advancePartyRevision(party, now)
+        accessLinkRecorder.record(
+            request,
+            party,
+            saved,
+            InformationRequestMutation.REPLACE_ACCESS_LINK,
+            command.access,
+            command.idempotencyKey
+        )
+        return InformationRequestBootstrapShareLinkIssuance(saved, rawToken, InformationRequestETag.partyOf(party))
     }
 
-    /**
-     * Revokes this link outright, along with every session already minted from it. Unlike [rotate]
-     * or [replace], no new link is issued.
-     */
     @Transactional
-    fun revoke(command: RevokeInformationRequestBootstrapShareLinkCommand): ShareLink
+    fun revoke(command: RevokeInformationRequestBootstrapShareLinkCommand): InformationRequestBootstrapShareLinkRevocation
     {
+        val request = lockRequest(command.requestId, command.access)
         val receiptRequest = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = REVOKE_OPERATION,
@@ -275,43 +300,99 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         )
         return when (
             val decision = commandReceiptService.runOnce(receiptRequest) {
-                val result = revokeMutation(command)
+                val result = revokeMutation(command, request)
                 CommandMutationResult(
                     result,
-                    CommandResultReference(ResourceType.INFORMATION_REQUEST_ACCESS_LINK, result.id),
+                    CommandResultReference(
+                        ResourceType.INFORMATION_REQUEST_ACCESS_LINK,
+                        result.shareLink.id,
+                        etag = result.partyETag
+                    ),
                 )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed -> shareLinkRepository.findById(decision.result.resourceId)
-                ?: throw IllegalArgumentException("Information Request access link not found")
+            is CommandReceiptDecision.Replayed ->
+                resolveBootstrapShareLink(command.requestId, decision.result.resourceId).let { (shareLink, party) ->
+                    InformationRequestBootstrapShareLinkRevocation(shareLink, InformationRequestETag.partyOf(party))
+                }
         }
     }
 
-    @Transactional
-    fun revokeAllForShare(shareId: UUID): List<ShareLink>
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun revokeAllForRequest(request: InformationRequest, cutoff: InformationRequestCredentialCutoff): List<ShareLink> =
+        partiesOf(request).flatMap { party -> revokeLinks(request, party, cutoff, revokeSessions = true) }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun revokeLinksKeepingSessions(
+        request: InformationRequest,
+        cutoff: InformationRequestCredentialCutoff
+    ): List<ShareLink> =
+        partiesOf(request).flatMap { party -> revokeLinks(request, party, cutoff, revokeSessions = false) }
+
+    @Transactional(Transactional.TxType.MANDATORY)
+    fun revokeAllForParty(
+        request: InformationRequest,
+        party: InformationRequestParty,
+        cutoff: InformationRequestCredentialCutoff,
+    ): List<ShareLink> = revokeLinks(request, party, cutoff, revokeSessions = true)
+
+    private fun partiesOf(request: InformationRequest): List<InformationRequestParty> =
+        partyRepository.findForRequest(request.id)
+            .sortedWith(compareBy<InformationRequestParty>({ it.createdAt }, { it.id }))
+
+    private fun revokeLinks(
+        request: InformationRequest,
+        party: InformationRequestParty,
+        cutoff: InformationRequestCredentialCutoff,
+        revokeSessions: Boolean,
+    ): List<ShareLink>
     {
-        return shareLinkRepository.findActiveBootstrapLinksForShare(shareId).map { shareLink ->
-            requestAccessSessionService.revokeAllForShareLink(shareLink.id)
-            shareLink.status = ShareLinkStatus.REVOKED
-            shareLinkRepository.update(shareLink)
-        }
+        val shareId = party.shareId ?: return emptyList()
+        return shareLinks.activeBootstrapLinksForShare(shareId)
+            .sortedWith(compareBy<ShareLink>({ it.createdAt }, { it.id }))
+            .map { shareLink ->
+                if (revokeSessions) requestAccessSessionService.revokeAllForShareLink(shareLink.id)
+                shareLink.status = ShareLinkStatus.REVOKED
+                shareLink.revokedAt = Timestamp.from(Instant.now())
+                shareLinks.update(shareLink).also { accessLinkRecorder.recordCutoff(request, party, it, cutoff) }
+            }
     }
 
-    private fun revokeMutation(command: RevokeInformationRequestBootstrapShareLinkCommand): ShareLink
+    private fun revokeMutation(
+        command: RevokeInformationRequestBootstrapShareLinkCommand,
+        request: InformationRequest,
+    ): InformationRequestBootstrapShareLinkRevocation
     {
-        authorize(command.access, command.requestId)
         val (shareLink, party) = resolveBootstrapShareLink(command.requestId, command.shareLinkId)
         command.precondition.requireSatisfiedBy(InformationRequestETag.partyOf(party))
 
         requestAccessSessionService.revokeAllForShareLink(shareLink.id)
         if (shareLink.status == ShareLinkStatus.REVOKED)
         {
-            return shareLink
+            return InformationRequestBootstrapShareLinkRevocation(shareLink, InformationRequestETag.partyOf(party))
         }
+        val now = Timestamp.from(Instant.now())
         shareLink.status = ShareLinkStatus.REVOKED
-        return shareLinkRepository.update(shareLink)
+        shareLink.revokedAt = now
+        val saved = shareLinks.update(shareLink)
+        advancePartyRevision(party, now)
+        accessLinkRecorder.record(
+            request,
+            party,
+            saved,
+            InformationRequestMutation.REVOKE_ACCESS_LINK,
+            command.access,
+            command.idempotencyKey
+        )
+        return InformationRequestBootstrapShareLinkRevocation(saved, InformationRequestETag.partyOf(party))
+    }
+
+    private fun lockRequest(requestId: UUID, access: RequestAccessContext): InformationRequest {
+        authorize(access, requestId)
+        return requestRepository.findRequestByIdForUpdate(requestId)
+            ?: throw IllegalArgumentException("Information Request not found")
     }
 
     private fun resolveBootstrapShareLink(
@@ -319,15 +400,53 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
         shareLinkId: UUID,
     ): Pair<ShareLink, InformationRequestParty>
     {
-        val shareLink = shareLinkRepository.findByIdForUpdate(shareLinkId)
-            ?: throw IllegalArgumentException("Information Request access link not found")
-        require(shareLink.linkMode == ShareLinkMode.VERIFICATION_BOOTSTRAP) {
-            "Only a bootstrap access link can be rotated, replaced, or revoked through this operation"
+        val candidate = shareLinks.findShareLink(shareLinkId) ?: throw linkNotFound()
+        val boundParty = partyRepository.findByShareId(candidate.shareId)
+            ?.takeIf { it.informationRequestId == requestId }
+            ?: throw linkNotFound()
+        if (candidate.linkMode != ShareLinkMode.VERIFICATION_BOOTSTRAP) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_LINK_INVALID,
+                "Only a bootstrap access link can be rotated, replaced, or revoked through this operation",
+            )
         }
-        val party = partyRepository.findByShareId(shareLink.shareId)
-            ?: throw IllegalArgumentException("Information Request party not found")
-        require(party.informationRequestId == requestId) { "Information Request access link not found" }
+        val party = partyRepository.findByIdForUpdate(boundParty.id) ?: throw linkNotFound()
+        val shareLink = shareLinks.lockShareLinkForUpdate(shareLinkId) ?: throw linkNotFound()
         return shareLink to party
+    }
+
+    private fun linkNotFound(): IllegalArgumentException =
+        IllegalArgumentException("Information Request access link not found")
+
+    private fun advancePartyRevision(party: InformationRequestParty, now: Timestamp) {
+        party.partyRevision += 1
+        party.updatedAt = now
+        partyRepository.update(party)
+    }
+
+    private fun requireEligibleParty(party: InformationRequestParty) {
+        if (party.principalKind != PrincipalKind.PARTICIPANT) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_LINK_PARTY_NOT_ELIGIBLE,
+                "Access links are only for parties identified by a contact address; account holders sign in",
+            )
+        }
+        if (party.linkedUserShareId != null) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.ACCESS_LINK_PARTY_ACCOUNT_LINKED,
+                "This participant linked the request to an account and now signs in to respond",
+            )
+        }
+    }
+
+    private fun requireLimits(expiresAt: Timestamp?, maxUses: Int?) {
+        val expiryInvalid = expiresAt != null && !expiresAt.after(Timestamp.from(Instant.now()))
+        if (expiryInvalid || (maxUses != null && maxUses < 1)) {
+            throw InformationRequestCommandRequestException(
+                "An access link must expire in the future and allow at least one use",
+                InformationRequestErrorCatalog.ACCESS_LINK_LIMITS_INVALID,
+            )
+        }
     }
 
     private fun requireActive(shareLink: ShareLink)
@@ -352,27 +471,19 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
     }
 
     private fun rotateFingerprint(command: RotateInformationRequestBootstrapShareLinkCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(ROTATE_OPERATION, command.requestId.toString(), command.shareLinkId.toString())
-                .joinToString("|"),
-        )
+        CommandRequestFingerprint.of(ROTATE_OPERATION, command.requestId, command.shareLinkId)
 
     private fun replaceFingerprint(command: ReplaceInformationRequestBootstrapShareLinkCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(
-                REPLACE_OPERATION,
-                command.requestId.toString(),
-                command.shareLinkId.toString(),
-                command.expiresAt?.toInstant()?.toString().orEmpty(),
-                command.maxUses?.toString().orEmpty(),
-            ).joinToString("|"),
+        CommandRequestFingerprint.of(
+            REPLACE_OPERATION,
+            command.requestId,
+            command.shareLinkId,
+            command.expiresAt,
+            command.maxUses,
         )
 
     private fun revokeFingerprint(command: RevokeInformationRequestBootstrapShareLinkCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(REVOKE_OPERATION, command.requestId.toString(), command.shareLinkId.toString())
-                .joinToString("|"),
-        )
+        CommandRequestFingerprint.of(REVOKE_OPERATION, command.requestId, command.shareLinkId)
 
     private fun authorize(access: RequestAccessContext, requestId: UUID)
     {
@@ -390,6 +501,37 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
 
     private fun defaultExpiry(): Timestamp = Timestamp.from(Instant.now().plus(abuseLimits.accessLinkLifetime))
 
+    private fun requireLinkChangeAllowed(request: InformationRequest, mutation: InformationRequestMutation) {
+        val exchange = exchangeLookup.findExchange(request.exchangeId)
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARENT_STATE_INVALID,
+                "Parent Exchange not found",
+            )
+        val decision = InformationRequestTransitionMatrix.canMutate(
+            InformationRequestParentSnapshot(
+                status = exchange.status,
+                deleted = exchange.isDeleted,
+                lockedForUpdate = true,
+            ),
+            request.state,
+            mutation,
+        )
+        if (decision is InformationRequestPolicyDecision.Deny) {
+            throw InformationRequestLifecycleException(decision.reasonCode, "This access link change is not allowed")
+        }
+        if (exchange.requireRecipientSignIn) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.RECIPIENT_SIGN_IN_REQUIRED,
+                "This Exchange requires recipients to sign in; issue authenticated access instead " +
+                        "of a bootstrap access link",
+            )
+        }
+        continuationGuard.requireContinuation(
+            LockedInformationRequest(exchange, request),
+            InformationRequestContinuationAction.ASSIGN_PARTY_WITHIN_CAP,
+        )
+    }
+
     private fun generateToken(): String
     {
         val bytes = ByteArray(32)
@@ -402,14 +544,12 @@ class InformationRequestBootstrapShareLinkService @Inject constructor(
             .joinToString("") { "%02x".format(it) }
 
     private fun issueFingerprint(command: IssueInformationRequestBootstrapShareLinkCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(
-                ISSUE_OPERATION,
-                command.requestId.toString(),
-                command.partyId.toString(),
-                command.expiresAt?.toInstant()?.toString().orEmpty(),
-                command.maxUses?.toString().orEmpty(),
-            ).joinToString("|"),
+        CommandRequestFingerprint.of(
+            ISSUE_OPERATION,
+            command.requestId,
+            command.partyId,
+            command.expiresAt,
+            command.maxUses,
         )
 
     private fun InformationRequestBootstrapShareLinkIssuance.commandResultReference(): CommandResultReference =

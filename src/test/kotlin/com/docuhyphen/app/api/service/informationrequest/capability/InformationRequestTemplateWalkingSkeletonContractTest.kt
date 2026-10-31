@@ -7,6 +7,9 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.RequestTemplatePostgreSQLResource
+import com.docuhyphen.app.api.service.informationrequest.capability.model.InformationRequestTemplateWalkingSkeletonFixture
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonDraft
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateProjectionLoader
 import io.quarkus.narayana.jta.QuarkusTransaction
@@ -16,7 +19,7 @@ import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest

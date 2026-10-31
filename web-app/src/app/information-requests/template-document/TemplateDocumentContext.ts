@@ -1,5 +1,5 @@
 import {createContext, useContext} from "react";
-import {SchemaDefinitionDto, SchemaFieldBindingDto} from "../../models/models.tsx";
+import {SchemaDefinitionDto, SchemaFieldBindingDto, SchemaVersionDto} from "../../models/models.tsx";
 import {TemplateDraftDocument} from "./templateDraftDocument.ts";
 import {TemplateDraftProblem, TemplateDraftTarget} from "./templateDraftRules.ts";
 
@@ -9,6 +9,7 @@ export interface TemplateDocumentState
     readOnly: boolean;
     schemas: SchemaDefinitionDto[];
     fieldBindings: SchemaFieldBindingDto[];
+    fieldBindingsError: string | null;
     problems: TemplateDraftProblem[];
     focus: TemplateDraftTarget | null;
     update: (change: (document: TemplateDraftDocument) => TemplateDraftDocument) => void;
@@ -27,9 +28,8 @@ export const useTemplateDocument = (): TemplateDocumentState =>
 export const requestSchemasOf = (schemas: SchemaDefinitionDto[]): SchemaDefinitionDto[] =>
     schemas.filter(schema => schema.targetResourceType === "INFORMATION_REQUEST" && Boolean(schema.latestPublishedVersion));
 
-export const bindingsForVersion = (schemas: SchemaDefinitionDto[], schemaVersionId?: string): SchemaFieldBindingDto[] =>
-    requestSchemasOf(schemas).find(schema => schema.latestPublishedVersion?.id === schemaVersionId)
-        ?.latestPublishedVersion?.bindings ?? [];
+export const listedSchemaVersion = (schemas: SchemaDefinitionDto[], schemaVersionId?: string): SchemaVersionDto | undefined =>
+    requestSchemasOf(schemas).find(schema => schema.latestPublishedVersion?.id === schemaVersionId)?.latestPublishedVersion;
 
 export const problemsAt = (problems: TemplateDraftProblem[], sectionIndex: number, requirementIndex?: number): TemplateDraftProblem[] =>
     problems.filter(problem => problem.target.panel === "sections"

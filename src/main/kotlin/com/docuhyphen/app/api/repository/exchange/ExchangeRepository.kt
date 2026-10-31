@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.repository.exchange
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.BaseRepository
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository.Companion.SEARCH_PREDICATE
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
@@ -13,11 +12,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 {
     companion object
     {
-        /**
-         * An Exchange is accessible when the user initiated it, holds an active USER Share, or is
-         * the pending primary recipient. Pending primary visibility is limited to the exact Share
-         * referenced by the primary recipient binding, so pending participant Shares stay hidden.
-         */
         private const val PENDING_PRIMARY_ACCESS =
             "EXISTS (SELECT er FROM ExchangeRecipient er, Share psh " +
                     "WHERE er.exchangeId = s.id AND er.purpose = :primaryPurpose " +
@@ -47,21 +41,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
 
         private const val ACCESSIBLE_OR_ARCHIVED = "($ACCESSIBLE OR $ARCHIVED_VISIBLE)"
 
-        /**
-         * Visibility predicate for INITIATED (draft) exchanges in [searchSessions] /
-         * [countSearchResults]. A draft exchange is visible to the user when at least one of:
-         *  - the exchange is not in draft state (status != INITIATED)
-         *  - the user is the initiator
-         *  - the user holds an active USER Share with a role other than PARTICIPANT
-         *  - the user is the pending primary recipient
-         *
-         * This prevents pure participant-role users (co-witnesses added at creation) from seeing
-         * an exchange before the primary recipient has accepted, while correctly showing it to
-         * users with elevated roles such as MANAGER - even when they also carry an inherited
-         * PARTICIPANT share from a group that is itself a participant on the exchange.
-         *
-         * Requires :initiatedStatus, :srt, :upk, :ass, :appUserId (all bound by the callers).
-         */
         private const val DRAFT_VISIBLE =
             "(s.status <> :initiatedStatus OR s.initiator.id = :appUserId OR EXISTS (" +
                     "SELECT sh2 FROM Share sh2 WHERE sh2.resourceType = :srt AND sh2.resourceId = s.id " +
@@ -69,15 +48,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                     "AND (sh2.expiresAt IS NULL OR sh2.expiresAt > CURRENT_TIMESTAMP) " +
                     "AND sh2.roleName <> 'PARTICIPANT') OR " + PENDING_PRIMARY_ACCESS + ")"
 
-        /**
-         * Free-text predicate for [searchSessions] / [countSearchResults]. Matches the session's
-         * own fields plus its recipients, which under the unified model live in `share` rows keyed
-         * by a polymorphic `principalId` (no JPA relationship), so each recipient kind is reached
-         * via a correlated subquery: USER shares map to [com.docuhyphen.app.api.model.entity.AppUser]
-         * email, PARTICIPANT shares map to [com.docuhyphen.app.api.model.entity.ExternalParticipant]
-         * email/name, and PRINCIPAL_GROUP shares map to [com.docuhyphen.app.api.model.entity.PrincipalGroup]
-         * name. Requires :query, :srt, :upk, :ass (bound by [bindAccess]) plus :ppk, :gpk.
-         */
         private const val SEARCH_PREDICATE =
             " AND (" +
                     "LOWER(s.name) LIKE LOWER(:query) " +
@@ -99,7 +69,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
                     ")"
     }
 
-    /** Binds the extra principal-kind params used by [SEARCH_PREDICATE]. */
     private fun bindSearchKinds(query: jakarta.persistence.TypedQuery<*>)
     {
         query.setParameter("ppk", PrincipalKind.PARTICIPANT)
@@ -146,7 +115,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         return count > 0
     }
 
-    /** Sessions where the user is a recipient, i.e. holds a non-OWNER active USER share. */
     fun findByRecipientId(recipient: UUID): List<Exchange> =
         bindAccess(
             entityManager.createQuery(
@@ -191,6 +159,8 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
         query.setParameter("exchangeId", exchangeId)
         query.executeUpdate()
     }
+
+    fun refresh(exchange: Exchange) = entityManager.refresh(exchange)
 
     @Transactional
     fun updateStatus(exchangeId: UUID, status: ExchangeStatus)
@@ -501,10 +471,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .firstOrNull()
     }
 
-    /**
-     * Exchanges owned personally by a user and created inside the given half-open window.
-     * Organization-owned Exchanges are excluded because the organization pays for those.
-     */
     fun countCreatedByOwnerUserBetween(
         ownerUserId: UUID,
         fromInclusive: Timestamp,
@@ -530,7 +496,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .toLong()
     }
 
-    /** Exchanges owned by an organization and created inside the given half-open window. */
     fun countCreatedByOwnerOrganizationBetween(
         ownerOrganizationId: UUID,
         fromInclusive: Timestamp,
@@ -555,7 +520,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .toLong()
     }
 
-    /** Exchanges owned personally by a user that currently hold one of the given statuses. */
     fun countByOwnerUserAndStatuses(
         ownerUserId: UUID,
         statuses: Collection<ExchangeStatus>,
@@ -583,7 +547,6 @@ class ExchangeRepository : BaseRepository<Exchange>(Exchange::class.java)
             .toLong()
     }
 
-    /** Exchanges owned by an organization that currently hold one of the given statuses. */
     fun countByOwnerOrganizationAndStatuses(
         ownerOrganizationId: UUID,
         statuses: Collection<ExchangeStatus>,

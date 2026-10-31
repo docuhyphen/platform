@@ -2,28 +2,25 @@ package com.docuhyphen.app.api.service.informationrequest.amendment
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentGroupChange
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentPlan
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentRequirementChange
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAmendmentGuardTest
 {
@@ -31,7 +28,9 @@ class InformationRequestAmendmentGuardTest
     private val requirementRepository: InformationRequestRequirementRepository = mock()
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository = mock()
     private val lockService: InformationRequestSubmissionLockService = mock()
-    private val guard = InformationRequestAmendmentGuard(requirementRepository, occurrenceRepository, lockService)
+    private val fieldsReader: FieldsReadFacade = mock()
+    private val guard =
+        InformationRequestAmendmentGuard(requirementRepository, occurrenceRepository, lockService, fieldsReader)
 
     private val lineItems = InformationRequestTemplateGroupDto(UUID.randomUUID(), "line-items", null, 0, 5)
     private val answered = UUID.randomUUID()
@@ -56,9 +55,40 @@ class InformationRequestAmendmentGuardTest
     }
 
     @Test
+    fun `a change to what an answer given once in a withdrawn submission means is refused, while rewording it is accepted`() {
+        whenever(lockService.givenOnceRequirementIds(request.id)).thenReturn(setOf(runtime.id))
+
+        assertRefused(
+            InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED,
+            plan(change(answered, InformationRequestAmendmentChangeKind.MEANING_CHANGED)),
+        )
+        assertRefused(
+            InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED,
+            plan(change(answered, InformationRequestAmendmentChangeKind.REMOVED)),
+        )
+        guard.requireAmendable(
+            request,
+            version(),
+            plan(change(answered, InformationRequestAmendmentChangeKind.PRESENTATION_CHANGED))
+        )
+    }
+
+    @Test
     fun `another Schema Version is refused`()
     {
         assertRefused(InformationRequestErrorCatalog.AMENDMENT_SCHEMA_CHANGED, plan(schemaChanged = true))
+    }
+
+    @Test
+    fun `a Version that starts collecting Field answers is refused while the request has no Schema`() {
+        assertRefused(InformationRequestErrorCatalog.AMENDMENT_SCHEMA_CHANGED, plan(targetCollectsFields = true))
+    }
+
+    @Test
+    fun `a Version that collects Field answers is accepted once the request has a Schema`() {
+        whenever(fieldsReader.assignmentFor(any())).thenReturn(SchemaAssignment())
+
+        guard.requireAmendable(request, version(), plan(targetCollectsFields = true))
     }
 
     @Test
@@ -119,7 +149,14 @@ class InformationRequestAmendmentGuardTest
         groupChanges: List<InformationRequestAmendmentGroupChange> = emptyList(),
         schemaChanged: Boolean = false,
         submissionPolicyChanged: Boolean = false,
-    ) = InformationRequestAmendmentPlan(changes.toList(), groupChanges, schemaChanged, submissionPolicyChanged)
+        targetCollectsFields: Boolean = false,
+    ) = InformationRequestAmendmentPlan(
+        changes.toList(),
+        groupChanges,
+        schemaChanged,
+        submissionPolicyChanged,
+        targetCollectsFields = targetCollectsFields,
+    )
 
     @Suppress("LongParameterList")
     private fun change(

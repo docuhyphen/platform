@@ -5,46 +5,30 @@ import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestEntitlementSource
 import com.docuhyphen.app.api.repository.informationrequest.execution.RequestExecutionGrantRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.service.subscription.BillingFrequency
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.PlanLimits
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertSame
+import com.docuhyphen.app.api.service.subscription.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 class InformationRequestExecutionGrantServiceTest
 {
     private val subscriptionAccessService: SubscriptionAccessService = mock()
     private val grantRepository: RequestExecutionGrantRepository = mock()
     private val requirementBindingRepository: InformationRequestTemplateRequirementBindingRepository = mock()
+    private val trialService: SubscriptionTrialService = mock()
     private val service = InformationRequestExecutionGrantService(
         subscriptionAccessService,
         grantRepository,
         requirementBindingRepository,
+        trialService,
     )
 
     init
@@ -86,6 +70,105 @@ class InformationRequestExecutionGrantServiceTest
         assertEquals(200L, grant.evidenceFileAllowance)
         assertEquals(500L * MEBIBYTE, grant.evidenceByteAllowance)
         assertNull(grant.revokedAt)
+    }
+
+    @Test
+    fun `a grant on a paid plan records the policy version, its paid source, the features it was issued with, and every continuation action`() {
+        val organizationId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(subscriptionAccessService.resolve(SubscriptionContext.forOrganization(organizationId)))
+            .thenReturn(subscription(SubscriptionOwnerType.ORGANIZATION, organizationId, SubscriptionStatus.ACTIVE))
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+        whenever(grantRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
+
+        val grant = service.issueGrant(request, organizationExchange(organizationId))
+
+        assertEquals(PlanCatalog.POLICY_VERSION, grant.policyVersion)
+        assertEquals(InformationRequestEntitlementSource.PAID, grant.entitlementSource)
+        assertNull(grant.trialGrantId)
+        assertEquals(listOf(PlanFeature.INFORMATION_REQUESTS.name), grant.grantedFeatures.toList())
+        assertEquals(
+            InformationRequestContinuationAction.entries.map { it.name }.sorted(),
+            grant.continuationActions.toList()
+        )
+    }
+
+    @Test
+    fun `a trialing owner's grant names the trial that granted it and typed answers are recorded when Business Fields is reachable`() {
+        val organizationId = UUID.randomUUID()
+        val trialGrantId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(subscriptionAccessService.resolve(SubscriptionContext.forOrganization(organizationId))).thenReturn(
+            subscription(
+                SubscriptionOwnerType.ORGANIZATION,
+                organizationId,
+                SubscriptionStatus.TRIALING,
+                currentPeriodEnd = Instant.now().plus(5, ChronoUnit.DAYS),
+                features = setOf(PlanFeature.INFORMATION_REQUESTS, PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS),
+            ),
+        )
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+        whenever(
+            trialService.activeTrialGrantId(
+                eq(SubscriptionOwnerType.ORGANIZATION),
+                eq(organizationId),
+                any()
+            )
+        ).thenReturn(trialGrantId)
+        whenever(grantRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
+
+        val grant = service.issueGrant(request, organizationExchange(organizationId))
+
+        assertEquals(InformationRequestEntitlementSource.TRIAL, grant.entitlementSource)
+        assertEquals(trialGrantId, grant.trialGrantId)
+        assertEquals(
+            listOf(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS.name, PlanFeature.INFORMATION_REQUESTS.name),
+            grant.grantedFeatures.toList(),
+        )
+    }
+
+    @Test
+    fun `a feature that reaches the owner only through an override is recorded as an override and personal requests include typed answers`() {
+        val userId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(subscriptionAccessService.resolve(SubscriptionContext.forUser(userId))).thenReturn(
+            subscription(
+                SubscriptionOwnerType.USER,
+                userId,
+                SubscriptionStatus.ACTIVE,
+                planCode = PlanCode.FREE,
+                features = setOf(PlanFeature.INFORMATION_REQUESTS),
+            ),
+        )
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.ENFORCE)
+        whenever(grantRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
+
+        val grant = service.issueGrant(request, personalExchange(userId))
+
+        assertEquals(InformationRequestEntitlementSource.OVERRIDE, grant.entitlementSource)
+        assertEquals(
+            listOf(PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS.name, PlanFeature.INFORMATION_REQUESTS.name),
+            grant.grantedFeatures.toList(),
+        )
+    }
+
+    @Test
+    fun `a grant issued while enforcement does not refuse is recorded as unenforced`() {
+        val organizationId = UUID.randomUUID()
+        val request = requestFor(UUID.randomUUID())
+        whenever(grantRepository.findByRequestId(request.id)).thenReturn(null)
+        whenever(subscriptionAccessService.resolve(SubscriptionContext.forOrganization(organizationId)))
+            .thenReturn(subscription(SubscriptionOwnerType.ORGANIZATION, organizationId, SubscriptionStatus.TRIALING))
+        whenever(subscriptionAccessService.enforcementMode()).thenReturn(SubscriptionEnforcementMode.REPORT_ONLY)
+        whenever(grantRepository.insertNow(any())).thenAnswer { it.getArgument(0) }
+
+        val grant = service.issueGrant(request, organizationExchange(organizationId))
+
+        assertEquals(InformationRequestEntitlementSource.UNENFORCED, grant.entitlementSource)
+        assertEquals(PlanCatalog.POLICY_VERSION, grant.policyVersion)
     }
 
     @Test
@@ -415,12 +498,14 @@ class InformationRequestExecutionGrantServiceTest
         limits: PlanLimits = planLimits(),
         currentPeriodEnd: Instant? = null,
         gracePeriodEnd: Instant? = null,
+        planCode: PlanCode = if (ownerType == SubscriptionOwnerType.ORGANIZATION) PlanCode.BUSINESS else PlanCode.PERSONAL,
+        features: Set<PlanFeature> = emptySet(),
     ) = EffectiveSubscription(
-        planCode = if (ownerType == SubscriptionOwnerType.ORGANIZATION) PlanCode.BUSINESS else PlanCode.PERSONAL,
+        planCode = planCode,
         ownerType = ownerType,
         ownerId = ownerId,
         status = status,
-        features = emptySet(),
+        features = features,
         limits = limits,
         billingFrequency = BillingFrequency.MONTHLY,
         currentPeriodStart = null,

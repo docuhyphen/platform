@@ -1,9 +1,7 @@
 package com.docuhyphen.app.api.migration
 
 import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.testcontainers.containers.PostgreSQLContainer
@@ -11,21 +9,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class CollectedFieldPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<CollectedFieldPostgreSQLContainer>(imageName)
 
-/**
- * A requirement that asks for typed data says which field the answer is recorded against.
- *
- * Three separate questions are settled here, and each is asked at the point where it can be
- * answered. Whether a requirement of this kind names a field at all is a fact about one row, so the
- * write settles it. Whether one version names the same field twice is a fact about the version, so
- * the index settles it. Whether the version's own typed-data contract carries that field is a fact
- * about two independently written halves of one authored document, so publication settles it, which
- * is also the last point at which the author can still change either half.
- */
 class InformationRequestTemplateCollectedFieldContractTest
 {
     private val baselineVersion = "90"
@@ -52,8 +40,6 @@ class InformationRequestTemplateCollectedFieldContractTest
                     collectedField(connection, fixture.fieldBindingId),
                 )
 
-                // The reference is to a stable field identity, so it cannot name something that is
-                // not one.
                 refused(connection, "request_template_binding_collected_field_fkey") {
                     fixture.bindSecondFieldRequirement(connection, collectedField = UUID.randomUUID())
                 }
@@ -75,8 +61,6 @@ class InformationRequestTemplateCollectedFieldContractTest
                     fixture.bindSecondFieldRequirement(connection, collectedField = fixture.fieldDefinitionId)
                 }
 
-                // Another version of the same definition asks its own question, so the same field
-                // being collected there is not the same answer being recorded twice.
                 fixture.bindFieldRequirementInOtherVersion(connection, fixture.fieldDefinitionId)
                 assertEquals(
                     fixture.fieldDefinitionId,
@@ -98,11 +82,11 @@ class InformationRequestTemplateCollectedFieldContractTest
                 fixture.nameSchemaVersion(connection)
 
                 refused(connection, "does not bind") {
-                    publish(connection, fixture.versionId, fixture.userId)
+                    publish(connection, fixture.versionId)
                 }
 
                 fixture.bindFieldIntoSchemaVersion(connection)
-                publish(connection, fixture.versionId, fixture.userId)
+                publish(connection, fixture.versionId)
                 assertEquals("PUBLISHED", versionStatus(connection, fixture.versionId))
             }
         }
@@ -125,12 +109,6 @@ class InformationRequestTemplateCollectedFieldContractTest
         }
     }
 
-    // ── Fixture ───────────────────────────────────────────────────────────────
-
-    /**
-     * One organization-owned template with two versions and one section, plus the typed-data
-     * contract a version may resolve against and one stable field it may carry.
-     */
     private inner class Fixture(connection: Connection)
     {
         val organizationId: UUID = UUID.randomUUID()
@@ -228,8 +206,6 @@ class InformationRequestTemplateCollectedFieldContractTest
             }
         }
     }
-
-    // ── Storage helpers ───────────────────────────────────────────────────────
 
     private fun insertOrganization(connection: Connection, id: UUID, name: String)
     {
@@ -432,8 +408,6 @@ class InformationRequestTemplateCollectedFieldContractTest
         collectedField: UUID?,
     )
     {
-        // The collected field is the last column so a baseline that predates it can insert the
-        // same row without it.
         val columns = if (collectedFieldColumnExists(connection)) ", collected_field_definition_id" else ""
         val value = if (collectedFieldColumnExists(connection)) ", ?" else ""
         connection.prepareStatement(
@@ -465,11 +439,7 @@ class InformationRequestTemplateCollectedFieldContractTest
         }
     }
 
-    /**
-     * Publication requires the version to have recorded the runtime capabilities its configuration
-     * needs, which is not what these tests are about, so the set is derived and recorded here.
-     */
-    private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
+    private fun publish(connection: Connection, versionId: UUID)
     {
         connection.prepareStatement(
             """
@@ -493,13 +463,12 @@ class InformationRequestTemplateCollectedFieldContractTest
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
             statement.setTimestamp(1, Timestamp.from(Instant.now()))
-            statement.setObject(2, actorId)
-            statement.setObject(3, versionId)
+            statement.setObject(2, versionId)
             statement.executeUpdate()
         }
     }

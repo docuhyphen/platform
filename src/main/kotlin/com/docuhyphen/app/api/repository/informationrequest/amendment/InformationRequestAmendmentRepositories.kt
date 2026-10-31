@@ -76,34 +76,41 @@ class InformationRequestNoticeIntentRepository :
             .resultList
     }
 
-    fun findUnclaimedIds(limit: Int): List<UUID> =
-        entityManager.createQuery(
+    fun findUnclaimedIds(limit: Int, maximumRenderFailures: Int = Int.MAX_VALUE): List<UUID> =
+        entityManager.createNativeQuery(
             """
             SELECT intent.id
-            FROM InformationRequestNoticeIntent intent
-            WHERE NOT EXISTS (
-                SELECT 1 FROM InformationRequestNoticeClaim claim WHERE claim.noticeIntentId = intent.id
-            )
-            ORDER BY intent.createdAt, intent.id
+            FROM information_request_notice_intent intent
+                     LEFT JOIN (SELECT notice_intent_id, COUNT(*) AS failures
+                                FROM information_request_notice_render_failure
+                                GROUP BY notice_intent_id) failed ON failed.notice_intent_id = intent.id
+            WHERE NOT EXISTS (SELECT 1 FROM information_request_notice_claim claim WHERE claim.notice_intent_id = intent.id)
+              AND COALESCE(failed.failures, 0) < :maximum
+            ORDER BY COALESCE(failed.failures, 0), intent.created_at, intent.id
+            LIMIT :limit
             """.trimIndent(),
-            UUID::class.java,
         )
-            .setMaxResults(limit)
+            .setParameter("maximum", maximumRenderFailures)
+            .setParameter("limit", limit)
             .resultList
+            .map { it as UUID }
 
-    fun findUnclaimedIdsForRequest(requestId: UUID): List<UUID> =
-        entityManager.createQuery(
+    fun findUnclaimedIdsForRequest(requestId: UUID, maximumRenderFailures: Int = Int.MAX_VALUE): List<UUID> =
+        entityManager.createNativeQuery(
             """
             SELECT intent.id
-            FROM InformationRequestNoticeIntent intent
-            WHERE intent.informationRequestId = :requestId
-              AND NOT EXISTS (
-                SELECT 1 FROM InformationRequestNoticeClaim claim WHERE claim.noticeIntentId = intent.id
-            )
-            ORDER BY intent.createdAt, intent.id
+            FROM information_request_notice_intent intent
+                     LEFT JOIN (SELECT notice_intent_id, COUNT(*) AS failures
+                                FROM information_request_notice_render_failure
+                                GROUP BY notice_intent_id) failed ON failed.notice_intent_id = intent.id
+            WHERE intent.information_request_id = :requestId
+              AND NOT EXISTS (SELECT 1 FROM information_request_notice_claim claim WHERE claim.notice_intent_id = intent.id)
+              AND COALESCE(failed.failures, 0) < :maximum
+            ORDER BY COALESCE(failed.failures, 0), intent.created_at, intent.id
             """.trimIndent(),
-            UUID::class.java,
         )
             .setParameter("requestId", requestId)
+            .setParameter("maximum", maximumRenderFailures)
             .resultList
+            .map { it as UUID }
 }

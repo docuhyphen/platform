@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.CanonicalLedgerEnvelope
+import com.docuhyphen.app.api.model.audit.LedgerDrainResult
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
@@ -8,7 +10,6 @@ import com.docuhyphen.app.api.repository.audit.StreamHeadRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.nio.charset.StandardCharsets
@@ -17,25 +18,8 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.*
 
-/**
- * Outcome of a [LedgerProcessor.drain] pass.
- */
-data class LedgerDrainResult(val appended: Int, val alreadyLedgered: Int, val failed: Int)
-
-/**
- * Turns committed `audit_outbox` intents into an ordered, hash-chained, per-stream ledger
- * from durable outbox rows.
- *
- * `@ApplicationScoped`: unlike [AuditRecorder], this has no per-request context to derive - it
- * only reads already-durable outbox rows and appends ledger rows, so it can run from a scheduled
- * background job ([LedgerProcessorScheduler]) rather than within an inbound HTTP request.
- *
- * `audit_outbox` rows are never mutated (the append-only trigger from `V41__audit_outbox.sql`
- * denies it unconditionally), so "already drained" is tracked by existence in
- * `audit_ledger_event` ([AuditLedgerEventRepository.existsByEventId]), not by an outbox status
- * flag because the outbox is append-only.
- */
 @ApplicationScoped
 class LedgerProcessor @Inject constructor(
     private val auditOutboxRepository: AuditOutboxRepository,
@@ -50,46 +34,36 @@ class LedgerProcessor @Inject constructor(
         private val STREAM_MONTH_FORMAT: DateTimeFormatter =
             DateTimeFormatter.ofPattern("yyyy-MM").withZone(ZoneOffset.UTC)
 
-        /**
-         * Stream = owner scope + time partition. This exact partitioning is one of the
-         * compliance and legal teams have not yet finalized stream partitioning and segment-closing
-         * policy. `<organizationId-or-"platform">:<UTC yyyy-MM>` is a documented placeholder
-         * default, not a final policy, chosen so streams stay small enough to append to quickly
-         * without being reconsidered per event.
-         */
         fun resolveStreamId(entry: AuditOutboxEntry): String
         {
-            val effectiveOwnerType = entry.ownerType.takeUnless {
-                it == "PLATFORM" && entry.ownerId == null && entry.organizationId != null
-            } ?: "ORGANIZATION"
-            val effectiveOwnerId = entry.ownerId ?: entry.organizationId
-            val owner = when (effectiveOwnerType)
+            val owner = when (entry.ownerType)
             {
-                "PLATFORM" -> "platform"
-                "ORGANIZATION" -> requireNotNull(effectiveOwnerId).toString()
-                "USER" -> "user:${requireNotNull(effectiveOwnerId)}"
-                else -> error("Unsupported audit owner type $effectiveOwnerType")
+                "PLATFORM" -> PLATFORM_STREAM_OWNER
+                "ORGANIZATION" -> requireNotNull(entry.ownerId).toString()
+                "USER" -> "$PERSONAL_STREAM_PREFIX${requireNotNull(entry.ownerId)}"
+                else -> error("Unsupported audit owner type ${entry.ownerType}")
             }
             val month = STREAM_MONTH_FORMAT.format(entry.occurredAt.toInstant())
             return "$owner:$month"
         }
 
-        /**
-         * Actor-kind resolution. Prefer
-         * the explicit [AuditOutboxEntry.actorKind] set by call sites migrated onto
-         * [com.docuhyphen.app.api.service.audit.catalog.AuditActorKind]; only fall back to the
-         * coarse `HUMAN`/`SYSTEM` guess (by [AuditOutboxEntry.actorId] presence) for older/
-         * unmigrated call sites that leave it null.
-         */
+        fun ownerOfStream(streamId: String): AuditOwnerScope {
+            val owner = streamId.substringBeforeLast(':')
+            return when {
+                owner == PLATFORM_STREAM_OWNER -> AuditOwnerScope.Platform
+                owner.startsWith(PERSONAL_STREAM_PREFIX) ->
+                    AuditOwnerScope.Personal(UUID.fromString(owner.removePrefix(PERSONAL_STREAM_PREFIX)))
+
+                else -> AuditOwnerScope.Organization(UUID.fromString(owner))
+            }
+        }
+
+        private const val PLATFORM_STREAM_OWNER = "platform"
+        private const val PERSONAL_STREAM_PREFIX = "user:"
+
         fun resolveActorKind(entry: AuditOutboxEntry): String =
             entry.actorKind ?: if (entry.actorId != null) "HUMAN" else "SYSTEM"
 
-        /**
-         * Deterministic JSON encoding of the canonical envelope fields that participate in the
-         * hash chain (excludes [streamSequence]/[prevHash], which [computeHash] appends
-         * separately per the architecture's `eventHash = sha256(canonicalEvent || sequence ||
-         * prevHash)` formula).
-         */
         fun canonicalize(entry: AuditOutboxEntry, streamId: String, actorKind: String): String = canonicalEnvelopeJson(
             eventId = entry.eventId.toString(),
             eventTypeKey = entry.eventTypeKey,
@@ -116,14 +90,6 @@ class LedgerProcessor @Inject constructor(
             payloadJson = entry.payloadJson,
         )
 
-        /**
-         * Builds the same canonical envelope JSON as [canonicalize], but from raw field values
-         * rather than an [AuditOutboxEntry]. This is the one canonical serializer shared by
-         * ledger append ([canonicalize]) and archive verification
-         * ([com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier]), so a re-downloaded
-         * archived record can have its [computeHash] independently recomputed and compared against
-         * the hash it was archived with, instead of that hash being trusted at face value.
-         */
         fun canonicalEnvelopeJson(
             eventId: String,
             eventTypeKey: String,
@@ -178,7 +144,6 @@ class LedgerProcessor @Inject constructor(
             return Json.encodeToString(CanonicalLedgerEnvelope.serializer(), envelope)
         }
 
-        /** `sha256(canonicalEventJson || streamSequence || prevHash)`, hex-encoded. */
         fun computeHash(canonicalJson: String, streamSequence: Long, prevHash: String?): String
         {
             val payload = "$canonicalJson|$streamSequence|${prevHash.orEmpty()}"
@@ -187,12 +152,6 @@ class LedgerProcessor @Inject constructor(
         }
     }
 
-    /**
-     * Drains up to [batchSize] of the oldest outbox rows, appending exactly one ledger event for
-     * each row not already ledgered. Safe to call repeatedly/concurrently: rows already ledgered
-     * (by this call or a concurrent one) are skipped, and per-stream ordering is serialized by
-     * [StreamHeadRepository.lockOrCreate]'s row lock, never by this method's own iteration order.
-     */
     fun drain(batchSize: Int = 200): LedgerDrainResult
     {
         val candidates = auditOutboxRepository.findOldestUnledgeredByRecordedAt(batchSize)
@@ -221,11 +180,6 @@ class LedgerProcessor @Inject constructor(
             }
             catch (e: Exception)
             {
-                // A unique-constraint violation here means a concurrent drain pass already
-                // ledgered this event_id between our existence check and our insert; that is
-                // "already ledgered", not a real failure. Anything else is a genuine failure that
-                // must not silently disappear - it is logged and retried on the next drain pass
-                // (the outbox row is untouched, so nothing is lost).
                 logger.error("LedgerProcessor failed to append eventId={}: {}", entry.eventId, e.message, e)
                 failed++
             }
@@ -234,19 +188,12 @@ class LedgerProcessor @Inject constructor(
         return LedgerDrainResult(appended, alreadyLedgered, failed)
     }
 
-    /**
-     * Appends exactly one ledger event for [entry], or returns `false` if a concurrent drain pass
-     * already ledgered it. Runs in its own transaction so the [StreamHeadRepository] row lock is
-     * held only for the duration of this single append, not the whole batch.
-     */
     @Transactional
     open fun appendOne(entry: AuditOutboxEntry): Boolean
     {
         val streamId = resolveStreamId(entry)
         val streamHead = streamHeadRepository.lockOrCreate(streamId)
 
-        // The stream-head lock serializes duplicate checks with concurrent appenders for this
-        // stream, while the event_id unique constraint remains the final database guard.
         if (auditLedgerEventRepository.existsByEventId(entry.eventId))
         {
             return false
@@ -277,10 +224,8 @@ class LedgerProcessor @Inject constructor(
             correlationId = entry.correlationId
             causationId = entry.causationId
             organizationId = entry.organizationId
-            ownerType = entry.ownerType.takeUnless {
-                it == "PLATFORM" && entry.ownerId == null && entry.organizationId != null
-            } ?: "ORGANIZATION"
-            ownerId = entry.ownerId ?: entry.organizationId
+            ownerType = entry.ownerType
+            ownerId = entry.ownerId
             organizationLabel = entry.organizationLabel
             targetType = entry.targetType
             targetId = entry.targetId
@@ -300,36 +245,3 @@ class LedgerProcessor @Inject constructor(
         return true
     }
 }
-
-/**
- * Canonical, deterministically-serialized subset of ledger fields that participate in
- * [LedgerProcessor.computeHash]. Field order is fixed by declaration order (kotlinx.serialization
- * always encodes `@Serializable` properties in declaration order), so encoding the same logical
- * event always produces byte-identical JSON, which is what makes the hash chain meaningful.
- */
-@Serializable
-data class CanonicalLedgerEnvelope(
-    val eventId: String,
-    val eventTypeKey: String,
-    val category: String,
-    val outcome: String,
-    val schemaVersion: Int,
-    val occurredAt: String,
-    val recordedAt: String,
-    val streamId: String,
-    val actorKind: String,
-    val actorId: String?,
-    val actorRole: String?,
-    val actorLabel: String?,
-    val sessionId: String?,
-    val serverTraceId: String?,
-    val correlationId: String?,
-    val causationId: String?,
-    val organizationId: String?,
-    val organizationLabel: String?,
-    val targetType: String?,
-    val targetId: String?,
-    val targetLabel: String?,
-    val reason: String?,
-    val payloadJson: String,
-)

@@ -11,3 +11,8 @@ annotation class Local
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.CLASS)
 annotation class Aws
+
+@Qualifier
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.CLASS)
+annotation class DocumentVersionObjectStore

@@ -34,7 +34,7 @@ const EvidenceWithdrawDialog = ({id, fileName, busy, onConfirm, onDismiss}: Prop
                 onOpenChange={(_, data) => { if (!data.open) onDismiss(); }}>
             <DialogSurface id={id}
                            className={styles.surface}>
-                <DialogBody>
+                <DialogBody id={`${id}-body`}>
                     <DialogTitle id={`${id}-title`}>Withdraw file</DialogTitle>
                     <DialogContent id={`${id}-content`}
                                    className={styles.content}>

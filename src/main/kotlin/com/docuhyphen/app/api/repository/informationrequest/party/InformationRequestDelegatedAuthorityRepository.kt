@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.repository.informationrequest.party
 import com.docuhyphen.app.api.model.entity.InformationRequestDelegatedAuthority
 import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
+import jakarta.persistence.LockModeType
 import java.util.*
 
 @ApplicationScoped
@@ -20,5 +21,20 @@ class InformationRequestDelegatedAuthorityRepository :
             InformationRequestDelegatedAuthority::class.java,
         )
             .setParameter("requestId", requestId)
+            .resultList
+
+    fun findActiveForPartyForUpdate(partyId: UUID): List<InformationRequestDelegatedAuthority> =
+        entityManager.createQuery(
+            """
+            SELECT authority
+            FROM InformationRequestDelegatedAuthority authority
+            WHERE authority.assignedPartyId = :partyId
+              AND authority.active = TRUE
+            ORDER BY authority.recordedAt, authority.id
+            """.trimIndent(),
+            InformationRequestDelegatedAuthority::class.java,
+        )
+            .setParameter("partyId", partyId)
+            .setLockMode(LockModeType.PESSIMISTIC_WRITE)
             .resultList
 }

@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.Grant
+
 /**
  * Single entry point for "may this principal perform this action on this resource?".
  *

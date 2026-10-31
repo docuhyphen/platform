@@ -1,13 +1,17 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -15,7 +19,6 @@ import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -258,7 +261,7 @@ class ExchangeAccessManagementMutationTest
                 shareService = shareService,
                 shareQueryService = mock<ShareQueryService>(),
                 appUserService = mock<AppUserService>(),
-                externalParticipantRepository = mock(),
+                externalParticipants = mock(),
                 organizationGroupService = mock<OrganizationGroupService>(),
                 exchangeRecipientService = mock<ExchangeRecipientService>(),
                 exchangeRecipientSelectionResolver = mock<ExchangeRecipientSelectionResolver>(),
@@ -278,6 +281,7 @@ class ExchangeAccessManagementMutationTest
                 },
                 exchangeNotificationDeliveryService = mock<ExchangeNotificationDeliveryService>(),
                 exchangeFeatureSubscriptionGuard = mock<ExchangeFeatureSubscriptionGuard>(),
+                requestParentLifecycle = mock(),
             )
         }
     }

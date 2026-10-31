@@ -1,11 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
+import com.docuhyphen.app.api.model.InformationRequestTemplateConfigurationMapper
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
+import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMediaTypes
 
 internal object InformationRequestTemplatePublicationReadiness
 {
@@ -15,6 +18,10 @@ internal object InformationRequestTemplatePublicationReadiness
         version.sections.forEach { section ->
             section.requirements.forEach { requirement -> requireReady(version, section, requirement) }
         }
+        val document = InformationRequestTemplateConfigurationMapper.toRequest(version)
+        InformationRequestTemplateSubmissionPolicyValidator.requireSubstituteStages(document)
+        InformationRequestTemplateSubmissionPolicyValidator.requireConditionStages(document)
+        InformationRequestTemplateConditionValidator.requireRemovalWithinRole(document)
     }
 
     private fun requireReady(
@@ -24,6 +31,13 @@ internal object InformationRequestTemplatePublicationReadiness
     )
     {
         val key = requirement.requirementKey
+        InformationRequestTemplateRoleValidator.validate(
+            section.sectionKey,
+            key,
+            requirement.requirementType,
+            requirement.contributorRole,
+            requirement.attestationPolicy?.requiredRoles.orEmpty(),
+        )
         if (requirement.requirementType == InformationRequestRequirementType.FIELD && version.schemaVersionId == null)
         {
             refuse(
@@ -40,6 +54,17 @@ internal object InformationRequestTemplatePublicationReadiness
                 requirement,
             )
         }
+        requirement.evidencePolicy?.acceptedValues.orEmpty()
+            .filter { it.attribute == InformationRequestEvidenceAttribute.CONTENT_TYPE }
+            .firstOrNull { InformationRequestEvidenceMediaTypes.mediaTypeOrNull(it.acceptedValue) != it.acceptedValue }
+            ?.let { accepted ->
+                refuse(
+                    "Requirement $key accepts '${accepted.acceptedValue}' as a file type, which is not a media type such as " +
+                            "application/pdf",
+                    section,
+                    requirement,
+                )
+            }
         val waiver = requirement.evidencePolicy?.waiverPolicy ?: return
         val permitsWaiver = InformationRequestResponseDisposition.WAIVED in requirement.permittedDispositions
         if (waiver != InformationRequestEvidenceWaiverPolicy.NOT_PERMITTED && !permitsWaiver)

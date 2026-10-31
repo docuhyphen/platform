@@ -8,10 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Current revision pointer for a runtime Requirement occurrence. Advancing this row does not
- * rewrite the append-only revisions it points at.
- */
 @Entity
 @Table(name = "information_request_requirement_current")
 class InformationRequestRequirementCurrent

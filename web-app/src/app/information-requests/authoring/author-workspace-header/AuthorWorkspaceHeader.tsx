@@ -10,10 +10,11 @@ interface Props
     title: string;
     state: InformationRequestState;
     exchangeId: string;
+    canPreview: boolean;
     onPreview: () => void;
 }
 
-const AuthorWorkspaceHeader = ({title, state, exchangeId, onPreview}: Props) =>
+const AuthorWorkspaceHeader = ({title, state, exchangeId, canPreview, onPreview}: Props) =>
 {
     const styles = useAuthorWorkspaceHeaderStyles();
     const navigate = useNavigate();
@@ -44,16 +45,18 @@ const AuthorWorkspaceHeader = ({title, state, exchangeId, onPreview}: Props) =>
                     </Badge>
                 </div>
             </div>
-            <div id={"information-request-author-header-actions"}
-                 className={styles.actions}>
-                <Button id={"information-request-author-preview"}
-                        appearance={"secondary"}
-                        shape={"circular"}
-                        icon={<EyeRegular/>}
-                        onClick={onPreview}>
-                    Preview as recipient
-                </Button>
-            </div>
+            {canPreview && (
+                <div id={"information-request-author-header-actions"}
+                     className={styles.actions}>
+                    <Button id={"information-request-author-preview"}
+                            appearance={"secondary"}
+                            shape={"circular"}
+                            icon={<EyeRegular/>}
+                            onClick={onPreview}>
+                        Preview as recipient
+                    </Button>
+                </div>
+            )}
         </header>
     );
 };

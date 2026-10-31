@@ -131,6 +131,28 @@ class InformationRequestNoticeSequenceAllocation
 }
 
 @Entity
+@Table(name = "information_request_notice_render_failure")
+class InformationRequestNoticeRenderFailure {
+    @Id
+    var id: UUID = UUID.randomUUID()
+
+    @Column(name = "notice_intent_id", nullable = false)
+    lateinit var noticeIntentId: UUID
+
+    @Column(name = "information_request_id", nullable = false)
+    lateinit var informationRequestId: UUID
+
+    @Column(name = "attempt_number", nullable = false)
+    var attemptNumber: Int = 1
+
+    @Column(name = "failure_code", nullable = false, length = 128)
+    lateinit var failureCode: String
+
+    @Column(name = "failed_at", nullable = false)
+    var failedAt: Timestamp = Timestamp.from(Instant.now())
+}
+
+@Entity
 @Table(name = "information_request_notice_delivery_attempt")
 class InformationRequestNoticeDeliveryAttempt
 {

@@ -119,8 +119,9 @@ internal class NoAuthOtpVerificationFixture(
             noAuthExchangeAccessWindowService = NoAuthExchangeAccessWindowService(repository, mock()),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
-        requestParentLifecycle = mock(),
-        requestCompletion = mock(),
+            requestParentLifecycle = mock(),
+            requestCompletion = mock(),
+            endingIntents = mock(),
         )
     }
 

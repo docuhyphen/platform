@@ -1,15 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.occurrence
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
@@ -21,36 +13,63 @@ import com.docuhyphen.app.api.repository.informationrequest.noauth.ParticipantAc
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementPolicyEvaluator
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestDelegatedAuthorityFactSource
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
+import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestGroupAuthorizationServiceTest
 {
     @Test
-    fun `authorizeOccurrenceScope authorizes only the Requirements addressed by the given occurrence paths`()
+    fun `an occurrence is visible only while it holds a Requirement the caller may see, or holds none`() {
+        val fixture = Fixture()
+        val shown = fixture.requirement("items[0]")
+        val hidden = fixture.requirement("items[1]")
+        val nested = fixture.requirement("items[3]/entries[0]")
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(
+            listOf(
+                shown,
+                hidden,
+                nested
+            )
+        )
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+        whenever(
+            fixture.authorizationService.authorize(
+                any(),
+                any(),
+                eq(ResourceRef.informationRequestRequirement(hidden.id)),
+                any()
+            ),
+        ).thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "Assigned to another party"))
+        val occurrences = listOf("items[0]", "items[1]", "items[2]", "items[3]").mapIndexed { index, path ->
+            InformationRequestGroupOccurrence().apply {
+                informationRequestId = fixture.request.id
+                sourceTemplateGroupId = UUID.randomUUID()
+                occurrenceIndex = index
+                occurrencePath = path
+            }
+        }
+
+        val visible = fixture.service.visibleOccurrences(fixture.access, fixture.request.id, occurrences)
+
+        assertEquals(listOf("items[0]", "items[2]", "items[3]"), visible.map { it.occurrencePath })
+    }
+
+    @Test
+    fun `an occurrence change authorizes only the Requirements addressed by the given occurrence paths`()
     {
         val fixture = Fixture()
         val inScope = fixture.requirement("items[0]")
@@ -59,7 +78,7 @@ class InformationRequestGroupAuthorizationServiceTest
             .thenReturn(listOf(inScope, outOfScope))
         whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
 
-        fixture.service.authorizeOccurrenceScope(fixture.access, fixture.request.id, setOf("items[0]"))
+        fixture.service.authorizeOccurrenceChange(fixture.access, fixture.request, setOf("items[0]"), emptyList())
 
         verify(fixture.authorizationService).authorize(
             fixture.access.principal,
@@ -73,7 +92,7 @@ class InformationRequestGroupAuthorizationServiceTest
     }
 
     @Test
-    fun `authorizeOccurrenceScope refuses when any addressed Requirement denies the actor`()
+    fun `an occurrence change refuses when any addressed Requirement denies the actor`()
     {
         val fixture = Fixture()
         val inScope = fixture.requirement("items[0]")
@@ -82,12 +101,51 @@ class InformationRequestGroupAuthorizationServiceTest
             .thenReturn(Decision.Deny(InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED, "denied"))
 
         assertThrows<ForbiddenException> {
-            fixture.service.authorizeOccurrenceScope(fixture.access, fixture.request.id, setOf("items[0]"))
+            fixture.service.authorizeOccurrenceChange(fixture.access, fixture.request, setOf("items[0]"), emptyList())
         }
     }
 
     @Test
-    fun `authorizeMaterializedBindings evaluates authored creation policy even when the binding already exists`()
+    fun `an occurrence change leaves out the Requirements of a removed nested occurrence`() {
+        val fixture = Fixture()
+        val parent = fixture.requirement("items[0]")
+        val removedChild = fixture.requirement("items[0]/entries[0]")
+        fixture.removedPaths += removedChild.occurrencePath
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(
+            listOf(
+                parent,
+                removedChild
+            )
+        )
+        whenever(
+            fixture.authorizationService.authorize(
+                any(),
+                any(),
+                eq(ResourceRef.informationRequestRequirement(removedChild.id)),
+                any(),
+            ),
+        ).thenReturn(Decision.Deny(InformationRequestErrorCatalog.GROUP_OCCURRENCE_REMOVED, "removed"))
+        whenever(
+            fixture.authorizationService.authorize(
+                any(),
+                any(),
+                eq(ResourceRef.informationRequestRequirement(parent.id)),
+                any(),
+            ),
+        ).thenReturn(Decision.Allow())
+
+        fixture.service.authorizeOccurrenceChange(fixture.access, fixture.request, setOf("items[0]"), emptyList())
+
+        verify(fixture.authorizationService, never()).authorize(
+            any(),
+            any(),
+            eq(ResourceRef.informationRequestRequirement(removedChild.id)),
+            any(),
+        )
+    }
+
+    @Test
+    fun `group creation evaluates authored creation policy even when the binding already exists`()
     {
         val fixture = Fixture()
         val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
@@ -96,13 +154,13 @@ class InformationRequestGroupAuthorizationServiceTest
             .thenReturn(Decision.Deny(InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED, "denied"))
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
-        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+        fixture.service.authorizeGroupCreation(fixture.access, fixture.request, listOf(fixture.binding), emptyList())
 
         verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
     }
 
     @Test
-    fun `authorizeMaterializedBindings refuses an exact Requirement delegate when creating a new occurrence`()
+    fun `group creation refuses an exact Requirement delegate when creating a new occurrence`()
     {
         val fixture = Fixture()
         val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
@@ -111,14 +169,19 @@ class InformationRequestGroupAuthorizationServiceTest
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, PrincipalRef.user(UUID.randomUUID()))
 
         assertThrows<ForbiddenException> {
-            fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                listOf(fixture.binding),
+                emptyList()
+            )
         }
 
         verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
     }
 
     @Test
-    fun `authorizeMaterializedBindings permits the assigned party to recreate a removed zero minimum occurrence`()
+    fun `group creation permits the assigned party to recreate a removed zero minimum occurrence`()
     {
         val fixture = Fixture()
         val removed = fixture.requirement("items[0]", bindingId = fixture.binding.id)
@@ -127,39 +190,44 @@ class InformationRequestGroupAuthorizationServiceTest
             .thenReturn(Decision.Deny(InformationRequestErrorCatalog.GROUP_OCCURRENCE_REMOVED, "removed"))
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
-        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+        fixture.service.authorizeGroupCreation(fixture.access, fixture.request, listOf(fixture.binding), emptyList())
 
         verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
     }
 
     @Test
-    fun `authorizeMaterializedBindings permits the assigned party for a binding with no materialized occurrence yet`()
+    fun `group creation permits the assigned party for a binding with no materialized occurrence yet`()
     {
         val fixture = Fixture()
         whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
-        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+        fixture.service.authorizeGroupCreation(fixture.access, fixture.request, listOf(fixture.binding), emptyList())
 
         verify(fixture.authorizationService, never()).authorize(any(), any(), any(), any())
     }
 
     @Test
-    fun `authorizeMaterializedBindings refuses an actor not assigned to the binding's authored party role`()
+    fun `group creation refuses an actor not assigned to the binding's authored party role`()
     {
         val fixture = Fixture()
         whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, PrincipalRef.user(UUID.randomUUID()))
 
         val failure = assertThrows<ForbiddenException> {
-            fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                listOf(fixture.binding),
+                emptyList()
+            )
         }
 
         assertEquals("Access denied to change Information Request group occurrences", failure.message)
     }
 
     @Test
-    fun `authorizeMaterializedBindings refuses a not disclosed binding even for its own assigned party`()
+    fun `group creation refuses a not disclosed binding even for its own assigned party`()
     {
         val fixture = Fixture()
         fixture.binding.responseMode = InformationRequestResponseMode.NOT_DISCLOSED
@@ -167,12 +235,17 @@ class InformationRequestGroupAuthorizationServiceTest
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
         assertThrows<ForbiddenException> {
-            fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                listOf(fixture.binding),
+                emptyList()
+            )
         }
     }
 
     @Test
-    fun `authorizeMaterializedBindings refuses a protected binding without a stepped up session`()
+    fun `group creation refuses a protected binding without a stepped up session`()
     {
         val fixture = Fixture()
         fixture.binding.confidentialityCompartmentKey = "restricted-response"
@@ -180,31 +253,161 @@ class InformationRequestGroupAuthorizationServiceTest
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
         assertThrows<ForbiddenException> {
-            fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                listOf(fixture.binding),
+                emptyList()
+            )
         }
     }
 
     @Test
-    fun `authorizeMaterializedBindings permits a protected binding once the session is stepped up`()
+    fun `group creation permits a protected binding once the session is stepped up`()
     {
         val fixture = Fixture(mfaSatisfied = true)
         fixture.binding.confidentialityCompartmentKey = "restricted-response"
         whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
         fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
 
-        fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+        fixture.service.authorizeGroupCreation(fixture.access, fixture.request, listOf(fixture.binding), emptyList())
     }
 
     @Test
-    fun `authorizeMaterializedBindings fails closed when the authored policy context cannot be resolved`()
+    fun `group creation fails closed when the authored policy context cannot be resolved`()
     {
         val fixture = Fixture()
         whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
         whenever(fixture.parentState.snapshot(fixture.request.exchangeId)).thenReturn(null)
 
         assertThrows<ForbiddenException> {
-            fixture.service.authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.binding))
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                listOf(fixture.binding),
+                emptyList()
+            )
         }
+    }
+
+    @Test
+    fun `group creation is refused when the group's scope holds no binding at all`() {
+        val fixture = Fixture()
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+
+        assertThrows<ForbiddenException> {
+            fixture.service.authorizeGroupCreation(fixture.access, fixture.request, emptyList(), emptyList())
+        }
+    }
+
+    @Test
+    fun `group creation with nothing materialized falls back to every binding authored beneath the group`() {
+        val fixture = Fixture()
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, PrincipalRef.user(UUID.randomUUID()))
+
+        assertThrows<ForbiddenException> {
+            fixture.service.authorizeGroupCreation(
+                fixture.access,
+                fixture.request,
+                emptyList(),
+                listOf(fixture.binding)
+            )
+        }
+    }
+
+    @Test
+    fun `group creation through optional child groups is permitted to the party assigned to those bindings`() {
+        val fixture = Fixture()
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+
+        fixture.service.authorizeGroupCreation(fixture.access, fixture.request, emptyList(), listOf(fixture.binding))
+    }
+
+    @Test
+    fun `an occurrence change authorizes the Requirements beneath every changed occurrence`() {
+        val fixture = Fixture()
+        val nested = fixture.requirement("items[1]/entries[0]", bindingId = fixture.binding.id)
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(listOf(nested))
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any()))
+            .thenReturn(Decision.Deny(InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED, "denied"))
+
+        assertThrows<ForbiddenException> {
+            fixture.service.authorizeOccurrenceChange(
+                fixture.access,
+                fixture.request,
+                setOf("items[1]"),
+                listOf(fixture.binding)
+            )
+        }
+    }
+
+    @Test
+    fun `an occurrence change is refused when nothing at or beneath it and nothing authored for its group is in scope`() {
+        val fixture = Fixture()
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+
+        assertThrows<ForbiddenException> {
+            fixture.service.authorizeOccurrenceChange(fixture.access, fixture.request, setOf("items[0]"), emptyList())
+        }
+    }
+
+    @Test
+    fun `an occurrence change also needs the authored creation policy of the group's bindings`() {
+        val fixture = Fixture()
+        val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(listOf(existing))
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, PrincipalRef.user(UUID.randomUUID()))
+
+        assertThrows<ForbiddenException> {
+            fixture.service.authorizeOccurrenceChange(
+                fixture.access,
+                fixture.request,
+                setOf("items[0]"),
+                listOf(fixture.binding)
+            )
+        }
+    }
+
+    @Test
+    fun `an occurrence change is permitted when every Requirement beneath it and every authored binding allow the actor`() {
+        val fixture = Fixture()
+        val existing = fixture.requirement("items[0]", bindingId = fixture.binding.id)
+        val nested = fixture.requirement("items[0]/entries[0]", bindingId = fixture.binding.id)
+        val sibling = fixture.requirement("items[10]", bindingId = fixture.binding.id)
+        whenever(fixture.requirementRepository.findForRequest(fixture.request.id)).thenReturn(
+            listOf(
+                existing,
+                nested,
+                sibling
+            )
+        )
+        whenever(fixture.authorizationService.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+        fixture.assignParty(InformationRequestShareRoleKey.PREPARER, fixture.access.principal)
+
+        fixture.service.authorizeOccurrenceChange(
+            fixture.access,
+            fixture.request,
+            setOf("items[0]"),
+            listOf(fixture.binding)
+        )
+
+        listOf(existing, nested).forEach { requirement ->
+            verify(fixture.authorizationService).authorize(
+                fixture.access.principal,
+                Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+                ResourceRef.informationRequestRequirement(requirement.id),
+                fixture.access.authorization,
+            )
+        }
+        verify(fixture.authorizationService, never()).authorize(
+            any(), any(), eq(ResourceRef.informationRequestRequirement(sibling.id)), any(),
+        )
     }
 
     private class Fixture(mfaSatisfied: Boolean = false)
@@ -237,6 +440,22 @@ class InformationRequestGroupAuthorizationServiceTest
 
         val authorizationService = mock<AuthorizationService>()
         val requirementRepository = mock<InformationRequestRequirementRepository>()
+        val removedPaths = mutableSetOf<String>()
+        val occurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>().also { repository ->
+            whenever(repository.findForRequest(any())).thenAnswer { invocation ->
+                requirementRepository.findForRequest(invocation.arguments[0] as UUID)
+                    .map { it.occurrencePath }
+                    .filter { it != InformationRequestOccurrencePath.ROOT && it !in removedPaths }
+                    .distinct()
+                    .map { path ->
+                        InformationRequestGroupOccurrence().apply {
+                            informationRequestId = request.id
+                            sourceTemplateGroupId = UUID.randomUUID()
+                            occurrencePath = path
+                        }
+                    }
+            }
+        }
         private val requestRepository = mock<InformationRequestRepository> {
             on { findById(request.id) }.thenReturn(request)
         }
@@ -263,18 +482,20 @@ class InformationRequestGroupAuthorizationServiceTest
             participantAccountLinkRepository = mock<ParticipantAccountLinkRepository>().also {
                 whenever(it.findByParticipantId(any())).thenReturn(null)
             },
-            principalGroupMemberRepository = mock<PrincipalGroupMemberRepository>().also {
-                whenever(it.findActiveMembers(any())).thenReturn(emptyList())
+            principalGroups = mock<PrincipalGroupService>().also {
+                whenever(it.activeMembers(any())).thenReturn(emptyList())
             },
             attestationPolicies = mock<InformationRequestAttestationPolicyLoader>(),
             lockService = mock<InformationRequestSubmissionLockService>().also {
                 whenever(it.correctionScopeOf(any(), any())).thenReturn(InformationRequestRequirementCorrectionScope.NORMAL_RESPONSE)
             },
+            shareService = mock<ShareService>(),
         )
         private val requirementPolicyEvaluator = InformationRequestRequirementPolicyEvaluator()
         val service = InformationRequestGroupAuthorizationService(
             authorizationService = authorizationService,
             requirementRepository = requirementRepository,
+            occurrenceRepository = occurrenceRepository,
             contextProvider = contextProvider,
             requirementPolicyEvaluator = requirementPolicyEvaluator,
         )

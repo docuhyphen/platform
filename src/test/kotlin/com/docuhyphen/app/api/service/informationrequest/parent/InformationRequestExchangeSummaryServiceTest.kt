@@ -1,18 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.parent
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestClock
-import com.docuhyphen.app.api.model.entity.InformationRequestClockState
-import com.docuhyphen.app.api.model.entity.InformationRequestReview
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestOwnerStanding
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
+import com.docuhyphen.app.api.model.informationrequest.execution.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestCallerStanding
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestNextAction
@@ -21,14 +13,9 @@ import com.docuhyphen.app.api.model.informationrequest.response.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestProgressProjection
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewQueueEntry
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestTitleReader
@@ -38,8 +25,8 @@ import com.docuhyphen.app.api.service.informationrequest.response.InformationReq
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewQueryService
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -48,7 +35,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestExchangeSummaryServiceTest
 {
@@ -58,7 +45,7 @@ class InformationRequestExchangeSummaryServiceTest
         status = ExchangeStatus.ACCEPTED_STARTED
     }
     private val queryService = mock<InformationRequestQueryService>()
-    private val exchangeRepository = mock<ExchangeRepository>()
+    private val exchangeLookup = mock<ExchangeLookupService>()
     private val titleReader = mock<InformationRequestTitleReader>()
     private val clockRepository = mock<InformationRequestClockRepository>()
     private val progressService = mock<InformationRequestCompletenessProgressService>()
@@ -68,8 +55,18 @@ class InformationRequestExchangeSummaryServiceTest
     private val authorizationService = mock<AuthorizationService>()
     private val standingService = mock<InformationRequestExecutionStandingService>()
     private val service = InformationRequestExchangeSummaryService(
-        queryService, exchangeRepository, titleReader, clockRepository, progressService, callerStanding,
-        reviewQueryService, gate, authorizationService, standingService,
+        queryService,
+        exchangeLookup,
+        InformationRequestSummaryAssembler(
+            titleReader,
+            clockRepository,
+            progressService,
+            callerStanding,
+            reviewQueryService,
+            gate
+        ),
+        authorizationService,
+        standingService,
     )
     private val continuing = InformationRequestExecutionStanding(
         InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
@@ -83,11 +80,12 @@ class InformationRequestExchangeSummaryServiceTest
 
     init
     {
-        whenever(exchangeRepository.findById(exchange.id)).thenReturn(exchange)
-        whenever(reviewQueryService.queue(access)).thenReturn(emptyList())
+        whenever(exchangeLookup.findExchange(exchange.id)).thenReturn(exchange)
+        whenever(reviewQueryService.queue(eq(access), any())).thenReturn(emptyList())
         whenever(clockRepository.findForRequests(any())).thenReturn(emptyList())
         whenever(authorizationService.authorize(any(), any(), any<ResourceRef>(), any())).thenReturn(Decision.Allow())
         whenever(standingService.ownerStanding(exchange)).thenReturn(owner(null))
+        whenever(standingService.creationStanding(exchange)).thenReturn(creation(owner(null), null))
         whenever(standingService.standingOf(any(), any())).thenReturn(continuing)
     }
 
@@ -100,7 +98,12 @@ class InformationRequestExchangeSummaryServiceTest
         val visibleOpen = UUID.randomUUID()
         val hiddenDone = UUID.randomUUID()
         whenever(queryService.listForExchange(exchange.id, access)).thenReturn(listOf(issued, draft))
-        whenever(titleReader.titlesOf(listOf(issued, draft))).thenReturn(mapOf(issued.id to "Periodic records request", draft.id to "Draft request"))
+        whenever(titleReader.titlesOf(listOf(issued, draft))).thenReturn(
+            mapOf(
+                issued.id to "Periodic records request",
+                draft.id to "Draft request"
+            )
+        )
         whenever(clockRepository.findForRequests(any())).thenReturn(
             listOf(
                 clock(issued, InformationRequestClockState.RUNNING, START.plusSeconds(7200)),
@@ -118,8 +121,16 @@ class InformationRequestExchangeSummaryServiceTest
             ),
         )
         whenever(progressService.evaluate(draft.id)).thenReturn(progress())
-        whenever(gate.permitsRequirement(eq(access), eq(Action.INFORMATION_REQUEST_REQUIREMENT_VIEW), any())).thenReturn(true)
-        whenever(gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, hiddenDone)).thenReturn(false)
+        whenever(
+            gate.permitsRequirement(
+                eq(access),
+                eq(Action.INFORMATION_REQUEST_REQUIREMENT_VIEW),
+                any()
+            )
+        ).thenReturn(true)
+        whenever(gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, hiddenDone)).thenReturn(
+            false
+        )
         whenever(callerStanding.standingOf(any(), eq(access), any())).thenReturn(standing)
 
         val listing = service.listForExchange(exchange.id, access)
@@ -131,7 +142,10 @@ class InformationRequestExchangeSummaryServiceTest
         assertEquals(2, summary.completedCount)
         assertEquals(3, summary.requiredCount)
         assertEquals(standing, summary.standing)
-        assertEquals(InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE), summary.executionStanding)
+        assertEquals(
+            InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE),
+            summary.executionStanding
+        )
         assertEquals(null, listing.requests.last().nextDueAt)
         assertEquals(0, listing.requests.last().requiredCount)
     }
@@ -142,7 +156,12 @@ class InformationRequestExchangeSummaryServiceTest
         val issued = request(InformationRequestState.IN_PROGRESS)
         val suspended = request(InformationRequestState.IN_PROGRESS)
         whenever(queryService.listForExchange(exchange.id, access)).thenReturn(listOf(issued, suspended))
-        whenever(titleReader.titlesOf(listOf(issued, suspended))).thenReturn(mapOf(issued.id to "Records", suspended.id to "Records"))
+        whenever(titleReader.titlesOf(listOf(issued, suspended))).thenReturn(
+            mapOf(
+                issued.id to "Records",
+                suspended.id to "Records"
+            )
+        )
         whenever(progressService.evaluate(any())).thenReturn(progress())
         val managing = standing.copy(permissions = standing.permissions.copy(canManage = true))
         whenever(callerStanding.standingOf(eq(issued), eq(access), any())).thenReturn(managing)
@@ -170,15 +189,19 @@ class InformationRequestExchangeSummaryServiceTest
         whenever(queryService.listForExchange(exchange.id, access)).thenReturn(listOf(issued))
         whenever(titleReader.titlesOf(listOf(issued))).thenReturn(mapOf(issued.id to "Periodic records request"))
         whenever(progressService.evaluate(issued.id)).thenReturn(progress())
-        whenever(reviewQueryService.queue(access)).thenReturn(
+        whenever(reviewQueryService.queue(access, setOf(issued.id))).thenReturn(
             listOf(
                 InformationRequestReviewQueueEntry(
                     assignment = InformationRequestReviewAssignment(),
                     review = InformationRequestReview(),
                     request = issued,
                     packageNumber = 1,
+                    requestTitle = "Periodic records request",
+                    exchangeName = exchange.name,
+                    reviewStageTitle = "Content review",
                     stageKey = null,
                     itemCount = 1,
+                    executionStanding = InformationRequestExecutionStanding(InformationRequestExecutionStandingKind.ACTIVE),
                 ),
             ),
         )
@@ -196,14 +219,35 @@ class InformationRequestExchangeSummaryServiceTest
         whenever(titleReader.titlesOf(emptyList())).thenReturn(emptyMap())
 
         val offered = service.listForExchange(exchange.id, access).canCreate
-        whenever(authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_CREATE, ResourceRef.exchange(exchange.id), access.authorization))
+        whenever(
+            authorizationService.authorize(
+                access.principal,
+                Action.INFORMATION_REQUEST_CREATE,
+                ResourceRef.exchange(exchange.id),
+                access.authorization
+            )
+        )
             .thenReturn(Decision.Deny("DENIED", "denied"))
         val denied = service.listForExchange(exchange.id, access).canCreate
-        whenever(authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_CREATE, ResourceRef.exchange(exchange.id), access.authorization))
+        whenever(
+            authorizationService.authorize(
+                access.principal,
+                Action.INFORMATION_REQUEST_CREATE,
+                ResourceRef.exchange(exchange.id),
+                access.authorization
+            )
+        )
             .thenReturn(Decision.Allow())
-        whenever(standingService.ownerStanding(exchange)).thenReturn(owner(InformationRequestStandingReason.FEATURE_NOT_INCLUDED))
+        val lapsedOwner = owner(InformationRequestStandingReason.FEATURE_NOT_INCLUDED)
+        whenever(standingService.ownerStanding(exchange)).thenReturn(lapsedOwner)
+        whenever(standingService.creationStanding(exchange))
+            .thenReturn(creation(lapsedOwner, InformationRequestStandingReason.FEATURE_NOT_INCLUDED))
         val lapsed = service.listForExchange(exchange.id, access)
         whenever(standingService.ownerStanding(exchange)).thenReturn(owner(null))
+        whenever(standingService.creationStanding(exchange))
+            .thenReturn(creation(owner(null), InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED))
+        val full = service.listForExchange(exchange.id, access)
+        whenever(standingService.creationStanding(exchange)).thenReturn(creation(owner(null), null))
         exchange.status = ExchangeStatus.ENDED
         val ended = service.listForExchange(exchange.id, access)
 
@@ -211,10 +255,72 @@ class InformationRequestExchangeSummaryServiceTest
         assertEquals(false, denied)
         assertEquals(false, lapsed.canCreate)
         assertEquals(InformationRequestStandingReason.FEATURE_NOT_INCLUDED, lapsed.creationUnavailableReason)
+        assertEquals(false, full.canCreate)
+        assertEquals(InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED, full.creationUnavailableReason)
         assertEquals(false, ended.canCreate)
         assertEquals(null, ended.creationUnavailableReason)
         assertEquals(emptyList<Any>(), service.listForExchange(exchange.id, access).requests)
     }
+
+    @Test
+    fun `a caller who may create here learns the owner a new request takes, and nobody else does`() {
+        whenever(queryService.listForExchange(exchange.id, access)).thenReturn(emptyList())
+        whenever(titleReader.titlesOf(emptyList())).thenReturn(emptyMap())
+        val organizationOwned = service.listForExchange(exchange.id, access).creationOwner
+        val lapsedOwner = owner(InformationRequestStandingReason.FEATURE_NOT_INCLUDED)
+        whenever(standingService.creationStanding(exchange))
+            .thenReturn(creation(lapsedOwner, InformationRequestStandingReason.FEATURE_NOT_INCLUDED))
+        val unavailable = service.listForExchange(exchange.id, access)
+        val personalOwner = UUID.randomUUID()
+        val organizationId = exchange.ownerOrganizationId
+        exchange.ownerOrganizationId = null
+        exchange.ownerUserId = personalOwner
+        val personallyOwned = service.listForExchange(exchange.id, access).creationOwner
+        whenever(
+            authorizationService.authorize(
+                access.principal,
+                Action.INFORMATION_REQUEST_CREATE,
+                ResourceRef.exchange(exchange.id),
+                access.authorization
+            )
+        )
+            .thenReturn(Decision.Deny("DENIED", "denied"))
+        val denied = service.listForExchange(exchange.id, access)
+
+        assertEquals(
+            InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, organizationId!!),
+            organizationOwned
+        )
+        assertEquals(false, unavailable.canCreate)
+        assertEquals(
+            InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, organizationId),
+            unavailable.creationOwner
+        )
+        assertEquals(InformationRequestOwnerRef(InformationRequestOwnerType.USER, personalOwner), personallyOwned)
+        assertEquals(false, denied.canCreate)
+        assertEquals(null, denied.creationOwner)
+    }
+
+    @Test
+    fun `a request that has finished reports no next due instant`() {
+        val closed = request(InformationRequestState.CLOSED)
+        whenever(queryService.listForExchange(exchange.id, access)).thenReturn(listOf(closed))
+        whenever(titleReader.titlesOf(listOf(closed))).thenReturn(mapOf(closed.id to "Records"))
+        whenever(progressService.evaluate(closed.id)).thenReturn(progress())
+        whenever(callerStanding.standingOf(any(), eq(access), any())).thenReturn(standing)
+        whenever(clockRepository.findForRequests(any())).thenReturn(
+            listOf(clock(closed, InformationRequestClockState.RUNNING, START.plusSeconds(3600))),
+        )
+
+        assertEquals(null, service.listForExchange(exchange.id, access).requests.single().nextDueAt)
+    }
+
+    private fun creation(owner: InformationRequestOwnerStanding, reason: InformationRequestStandingReason?) =
+        InformationRequestCreationStanding(
+            owner,
+            InformationRequestPlanQuotas(null, 0, null, null, null, null, 0),
+            reason
+        )
 
     private fun request(requestState: InformationRequestState) = InformationRequest().apply {
         exchangeId = exchange.id
@@ -230,7 +336,12 @@ class InformationRequestExchangeSummaryServiceTest
             dueAt = Timestamp.from(due)
         }
 
-    private fun item(requirementId: UUID?, itemState: InformationRequestCompletenessItemState, counted: Boolean, done: Boolean) =
+    private fun item(
+        requirementId: UUID?,
+        itemState: InformationRequestCompletenessItemState,
+        counted: Boolean,
+        done: Boolean
+    ) =
         InformationRequestCompletenessContribution(
             itemKey = "item-${requirementId ?: "request"}",
             requirementId = requirementId,
@@ -239,12 +350,13 @@ class InformationRequestExchangeSummaryServiceTest
             contributesToNumerator = done,
         )
 
-    private fun progress(vararg items: InformationRequestCompletenessContribution) = InformationRequestProgressProjection(
-        completedCount = items.count { it.contributesToNumerator },
-        totalCount = items.count { it.contributesToDenominator },
-        percentComplete = 0,
-        items = items.toList(),
-    )
+    private fun progress(vararg items: InformationRequestCompletenessContribution) =
+        InformationRequestProgressProjection(
+            completedCount = items.count { it.contributesToNumerator },
+            totalCount = items.count { it.contributesToDenominator },
+            percentComplete = 0,
+            items = items.toList(),
+        )
 
     private fun owner(reason: InformationRequestStandingReason?) = InformationRequestOwnerStanding(
         ownerType = SubscriptionOwnerType.ORGANIZATION,

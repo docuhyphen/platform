@@ -5,11 +5,9 @@ import com.docuhyphen.app.api.migration.queryInt
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
@@ -17,11 +15,9 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.PublishedSchemaAssignmentCommand
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestTemplateWalkingSkeletonStore
+import com.docuhyphen.app.api.service.informationrequest.template.model.MaterializationDraftRequest
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
@@ -30,24 +26,45 @@ import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestTemplateMaterializationTransactionTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
-    @Inject lateinit var versionRepository: InformationRequestTemplateVersionRepository
-    @Inject lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
-    @Inject lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
-    @Inject lateinit var materializer: InformationRequestTemplateMaterializer
-    @Inject lateinit var schemaAssignmentService: SchemaAssignmentService
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
+
+    @Inject
+    lateinit var versionRepository: InformationRequestTemplateVersionRepository
+
+    @Inject
+    lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
+
+    @Inject
+    lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
+
+    @Inject
+    lateinit var materializer: InformationRequestTemplateMaterializer
+
+    @Inject
+    lateinit var schemaAssignmentService: SchemaAssignmentService
 
     private val store by lazy {
-        InformationRequestTemplateWalkingSkeletonStore(dataSource, definitionRepository, versionRepository, capabilityRepository, configurationWriter)
+        InformationRequestTemplateWalkingSkeletonStore(
+            dataSource,
+            definitionRepository,
+            versionRepository,
+            capabilityRepository,
+            configurationWriter
+        )
     }
 
     @Test
@@ -80,18 +97,19 @@ class InformationRequestTemplateMaterializationTransactionTest
 
         assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                schemaAssignmentService.assignPublishedSchemaVersion(
-                    PublishedSchemaAssignmentCommand(
+                schemaAssignmentService.applySchemaAssignment(
+                    com.docuhyphen.app.api.model.fields.SchemaAssignmentCommand(
                         resource = FieldsResourceRef("INFORMATION_REQUEST", draft.requestId),
                         access = draft.ownerAccess,
-                        schemaVersionId = draft.schemaVersionId,
+                        operation = com.docuhyphen.app.api.model.fields.SchemaAssignmentOperation.ASSIGN,
+                        schemaDefinitionId = UUID.randomUUID(),
                     ),
                 )
             }
         }
     }
 
-    private fun draftRequest(): DraftRequest
+    private fun draftRequest(): MaterializationDraftRequest
     {
         val owner = store.insertOwner()
         val field = store.insertTextField("recorded-note")
@@ -160,16 +178,13 @@ class InformationRequestTemplateMaterializationTransactionTest
                 owner,
             )
         }
-        return DraftRequest(
+        return MaterializationDraftRequest(
             requestId = requestId,
             schemaVersionId = schemaVersionId,
-            ownerAccess = FieldsAccessContext(PrincipalRef.user(owner), AuthorizationContext(sessionRef = "owner-session")),
+            ownerAccess = FieldsAccessContext(
+                PrincipalRef.user(owner),
+                AuthorizationContext(sessionRef = "owner-session")
+            ),
         )
     }
-
-    private data class DraftRequest(
-        val requestId: UUID,
-        val schemaVersionId: UUID,
-        val ownerAccess: FieldsAccessContext,
-    )
 }

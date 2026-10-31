@@ -7,7 +7,7 @@ import {
 } from "../../../models/models.tsx";
 import {subjectKindLabels} from "../../shared/informationRequestLabels.ts";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {shortId} from "../operationsLabels.ts";
+import {countedText, shortId} from "../operationsLabels.ts";
 
 export const privacyKindLabels: Record<InformationRequestPrivacyRequestKind, string> = {
     [InformationRequestPrivacyRequestKind.ACCESS]: "Access",
@@ -29,6 +29,7 @@ const outcomeVerbs: Record<InformationRequestPrivacyTargetOutcome, string> = {
     [InformationRequestPrivacyTargetOutcome.RESTRICTED]: "restricted",
     [InformationRequestPrivacyTargetOutcome.DISPOSAL_CLAIMED]: "claimed for disposal",
     [InformationRequestPrivacyTargetOutcome.REFUSED]: "refused",
+    [InformationRequestPrivacyTargetOutcome.SKIPPED_OPEN]: "kept because still open",
 };
 
 export const subjectLabel = (subject: InformationRequestSubjectDto): string =>
@@ -43,7 +44,7 @@ export const targetSummary = (request: InformationRequestPrivacyRequestDto): str
     Object.values(InformationRequestPrivacyTargetOutcome)
         .map(outcome => ({outcome, count: request.targets.filter(target => target.outcome === outcome).length}))
         .filter(entry => entry.count > 0)
-        .map(entry => `${entry.count} ${entry.count === 1 ? "request" : "requests"} ${outcomeVerbs[entry.outcome]}`)
+        .map(entry => `${countedText(entry.count, "request", "requests")} ${outcomeVerbs[entry.outcome]}`)
         .join(", ");
 
 export const recordedSentence = (request: InformationRequestPrivacyRequestDto): string =>

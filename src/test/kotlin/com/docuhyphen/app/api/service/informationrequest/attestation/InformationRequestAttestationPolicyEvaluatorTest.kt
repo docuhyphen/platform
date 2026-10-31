@@ -1,12 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationPolicy
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestingParty
@@ -15,7 +9,7 @@ import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAttestationPolicyEvaluatorTest
 {
@@ -70,6 +64,24 @@ class InformationRequestAttestationPolicyEvaluatorTest
         )
         assertEquals(InformationRequestAttestationState.SATISFIED, reconsidered.state)
         assertEquals(2, reconsidered.counted.size)
+    }
+
+    @Test
+    fun `a refusal keeps blocking past the validity window, and an expired later assent never brings an earlier refusal back`() {
+        val expiring = policy(validityHours = 1)
+        val lapsedRefusal = evaluate(
+            expiring,
+            listOf(assent(preparer), refusal(attestor, expiresAt = now.minusSeconds(60)), assent(secondAttestor)),
+        )
+        val expiredReconsideration = evaluate(
+            expiring,
+            listOf(assent(preparer), refusal(attestor), assent(attestor, expiresAt = now.minusSeconds(60))),
+        )
+
+        assertEquals(InformationRequestAttestationState.REFUSED, lapsedRefusal.state)
+        assertEquals(listOf(attestor.partyId), lapsedRefusal.refusals.map { it.partyId })
+        assertEquals(InformationRequestAttestationState.PENDING, expiredReconsideration.state)
+        assertEquals(emptyList<UUID>(), expiredReconsideration.refusals.map { it.partyId })
     }
 
     @Test
@@ -169,12 +181,12 @@ class InformationRequestAttestationPolicyEvaluatorTest
         reference: String? = null,
     ) = attestation(party, InformationRequestAttestationDecision.ASSENTED, content, expiresAt, strength, reference)
 
-    private fun refusal(party: InformationRequestAttestingParty) =
+    private fun refusal(party: InformationRequestAttestingParty, expiresAt: Instant? = null) =
         attestation(
             party,
             InformationRequestAttestationDecision.REFUSED,
             content,
-            null,
+            expiresAt,
             InformationRequestAuthenticationStrength.ACCOUNT_SIGN_IN,
             null,
         ).apply { refusalReason = "The recorded items are incomplete" }

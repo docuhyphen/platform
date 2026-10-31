@@ -15,6 +15,7 @@ import com.docuhyphen.app.api.service.informationrequest.access.InformationReque
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockCalculator
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockPolicyService
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestSlaCalculator
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
@@ -24,6 +25,7 @@ import jakarta.transaction.Transactional
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestOperationsService @Inject constructor(
@@ -38,6 +40,7 @@ class InformationRequestOperationsService @Inject constructor(
     private val titleReader: InformationRequestTitleReader,
     private val partyRepository: InformationRequestPartyRepository,
     private val principalDisplayService: PrincipalDisplayService,
+    private val standingService: InformationRequestExecutionStandingService,
 )
 {
     @Transactional
@@ -45,42 +48,59 @@ class InformationRequestOperationsService @Inject constructor(
     {
         val owner = ownerAccess.currentOwner()
         ownerAccess.requireAccess(owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)
-        val candidates = requestRepository.findForOwner(owner.ownerType, owner.ownerId)
-            .filter { filter.states.isEmpty() || it.state in filter.states }
-            .filter { filter.exchangeId == null || it.exchangeId == filter.exchangeId }
-        val titles = titleReader.titlesOf(candidates)
-        val parties = partyRepository.findActiveForRequests(candidates.map { it.id })
-            .filter { it.principalKind != null && it.principalId != null }
-            .groupBy { it.informationRequestId }
-        val requests = candidates
-            .filter { matchesSearch(it, titles.getValue(it.id), filter.search) }
-            .filter { request ->
-                filter.assigneeId == null || parties[request.id].orEmpty().any { it.principalId == filter.assigneeId }
-            }
-        val inputs = inputsFor(requests)
+        val criteria = InformationRequestOperationsCriteria(
+            owner.ownerType,
+            owner.ownerId,
+            filter.states,
+            filter.exchangeId,
+            filter.search,
+            filter.assigneeId,
+        )
         val now = clock.instant()
-        val rows = requests.map { rowOf(it, titles.getValue(it.id), inputs, now) }
-            .filter { filter.slaStatuses.isEmpty() || it.standing.status in filter.slaStatuses }
-            .filter { row ->
-                filter.exceptions.isEmpty() || filter.exceptions.any {
-                    (row.exceptionCounts[it] ?: 0) > 0
-                }
-            }
-            .filter { !filter.exceptionsOnly || it.exceptionCounts.isNotEmpty() }
-            .sortedWith(
-                compareBy<InformationRequestOperationsRow, Instant?>(nullsLast()) { it.standing.nearestDueAt }
-                    .thenBy { it.request.createdAt }
-                    .thenBy { it.request.id },
+        if (!filtersComputedValues(filter)) {
+            val rows = rowsOf(requestRepository.findOperationsQueueIds(criteria, filter.limit, filter.offset), now)
+            return InformationRequestOperationsPage(
+                withAssignees(rows),
+                requestRepository.countOperationsQueue(criteria),
+                filter.limit,
+                filter.offset,
             )
-        val page = rows.drop(filter.offset).take(filter.limit)
-            .map { row -> row.copy(assignees = assigneesOf(parties[row.request.id].orEmpty())) }
-        return InformationRequestOperationsPage(page, rows.size, filter.limit, filter.offset)
+        }
+        var total = 0
+        val page = mutableListOf<InformationRequestOperationsRow>()
+        requestRepository.findOperationsQueueIds(criteria, null, 0).chunked(COMPUTED_FILTER_CHUNK).forEach { chunk ->
+            rowsOf(chunk, now).filter { matchesComputedFilters(it, filter) }.forEach { row ->
+                if (total >= filter.offset && page.size < filter.limit) page += row
+                total++
+            }
+        }
+        return InformationRequestOperationsPage(withAssignees(page), total, filter.limit, filter.offset)
     }
 
-    private fun matchesSearch(request: InformationRequest, title: String, search: String?): Boolean
-    {
-        val term = search?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return true
-        return title.lowercase().contains(term) || request.id.toString().startsWith(term)
+    private fun filtersComputedValues(filter: InformationRequestOperationsFilter): Boolean =
+        filter.slaStatuses.isNotEmpty() || filter.exceptions.isNotEmpty() || filter.exceptionsOnly
+
+    private fun matchesComputedFilters(
+        row: InformationRequestOperationsRow,
+        filter: InformationRequestOperationsFilter
+    ): Boolean =
+        (filter.slaStatuses.isEmpty() || row.standing.status in filter.slaStatuses) &&
+                (filter.exceptions.isEmpty() || filter.exceptions.any { (row.exceptionCounts[it] ?: 0) > 0 }) &&
+                (!filter.exceptionsOnly || row.exceptionCounts.isNotEmpty())
+
+    private fun rowsOf(requestIds: List<UUID>, now: Instant): List<InformationRequestOperationsRow> {
+        val byId = requestRepository.findForIds(requestIds).associateBy { it.id }
+        val requests = requestIds.mapNotNull(byId::get)
+        val titles = titleReader.titlesOf(requests)
+        val inputs = inputsFor(requests)
+        return requests.map { rowOf(it, titles.getValue(it.id), inputs, now) }
+    }
+
+    private fun withAssignees(rows: List<InformationRequestOperationsRow>): List<InformationRequestOperationsRow> {
+        val parties = partyRepository.findActiveForRequests(rows.map { it.request.id })
+            .filter { it.principalKind != null && it.principalId != null }
+            .groupBy { it.informationRequestId }
+        return rows.map { row -> row.copy(assignees = assigneesOf(parties[row.request.id].orEmpty())) }
     }
 
     private fun assigneesOf(parties: List<InformationRequestParty>): List<InformationRequestOperationsAssignee> =
@@ -105,6 +125,7 @@ class InformationRequestOperationsService @Inject constructor(
             versions = allClocks.map { it.policyVersionId }.distinct().associateWith { policies.versionView(it) },
             notices = noticeStates.statesForRequests(requestIds),
             deliveries = deliveries.standings(requestIds.map(InformationRequestTransitionHistoryService::orderingKeyOf)),
+            executionStandings = standingService.standingsOf(requests),
         )
     }
 
@@ -145,6 +166,7 @@ class InformationRequestOperationsService @Inject constructor(
                 InformationRequestOperationsException.AUTOMATION_SKIPPED to (delivery?.skippedConsumptions ?: 0),
                 InformationRequestOperationsException.EVENT_DELIVERY_FAILING to (delivery?.failingDeliveries ?: 0),
             ).filterValues { it > 0 },
+            executionStanding = inputs.executionStandings.getValue(request.id),
         )
     }
 
@@ -171,5 +193,6 @@ class InformationRequestOperationsService @Inject constructor(
     private companion object
     {
         const val SECONDS_PER_MINUTE = 60L
+        const val COMPUTED_FILTER_CHUNK = 500
     }
 }

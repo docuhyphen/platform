@@ -1,28 +1,16 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateConfigurationMapper
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateSection
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateSectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.RequestTemplatePostgreSQLResource
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.informationrequest.template.model.PublicationStoredDraft
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
@@ -36,7 +24,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -71,6 +59,9 @@ class InformationRequestTemplatePublicationContractTest
     lateinit var projectionLoader: InformationRequestTemplateProjectionLoader
 
     @Inject
+    lateinit var commandReceiptService: CommandReceiptService
+
+    @Inject
     lateinit var dataSource: DataSource
 
     @Test
@@ -80,7 +71,11 @@ class InformationRequestTemplatePublicationContractTest
         val service = publicationService(fixture)
 
         QuarkusTransaction.requiringNew().run {
-            service.publishTemplate(fixture.definitionId)
+            service.publishTemplate(
+                fixture.definitionId,
+                CommandPrecondition.Unconditioned,
+                UUID.randomUUID().toString()
+            )
         }
 
         QuarkusTransaction.requiringNew().run {
@@ -115,7 +110,11 @@ class InformationRequestTemplatePublicationContractTest
 
         assertThrows<RuntimeException> {
             QuarkusTransaction.requiringNew().run {
-                service.publishTemplate(fixture.definitionId)
+                service.publishTemplate(
+                    fixture.definitionId,
+                    CommandPrecondition.Unconditioned,
+                    UUID.randomUUID().toString()
+                )
             }
         }
 
@@ -133,15 +132,45 @@ class InformationRequestTemplatePublicationContractTest
     }
 
     @Test
+    fun `a publication retried under one key with another precondition is refused rather than replayed`() {
+        val fixture = insertDraft(InformationRequestRequirementType.RESPONSE_ATTESTATION)
+        val service = publicationService(fixture)
+        val draftTag = QuarkusTransaction.requiringNew().call {
+            InformationRequestTemplateETag.draftOf(requireNotNull(versionRepository.findById(fixture.versionId)))
+        }
+        QuarkusTransaction.requiringNew().run {
+            service.publishTemplate(
+                fixture.definitionId,
+                CommandPrecondition.ExpectedRevision(draftTag),
+                "publish-once"
+            )
+        }
+
+        assertThrows<CommandReceiptConflictException> {
+            QuarkusTransaction.requiringNew().run {
+                service.publishTemplate(
+                    fixture.definitionId,
+                    CommandPrecondition.ExpectedRevision("\"${UUID.randomUUID()}:1\""),
+                    "publish-once"
+                )
+            }
+        }
+    }
+
+    @Test
     fun `a published configuration becomes a fresh draft without copied capability rows`()
     {
         val fixture = insertDraft(InformationRequestRequirementType.RESPONSE_ATTESTATION)
         QuarkusTransaction.requiringNew().run {
-            publicationService(fixture).publishTemplate(fixture.definitionId)
+            publicationService(fixture).publishTemplate(
+                fixture.definitionId,
+                CommandPrecondition.Unconditioned,
+                UUID.randomUUID().toString()
+            )
         }
 
         QuarkusTransaction.requiringNew().run {
-            lifecycleService(fixture).createDraftVersion(fixture.definitionId, 1)
+            lifecycleService(fixture).createDraftVersion(fixture.definitionId, 1, UUID.randomUUID().toString())
         }
 
         QuarkusTransaction.requiringNew().run {
@@ -161,10 +190,17 @@ class InformationRequestTemplatePublicationContractTest
             )
             assertEquals(emptyList<InformationRequestCapability>(),
                 capabilityRepository.findForVersion(draft.id).map { it.capabilityKey })
+            val sourceHash = projectionLoader.loadVersion(source).contentHashSha256
+            assertEquals(true, sourceHash?.matches(Regex("^[0-9a-f]{64}$")), "content hash $sourceHash")
+            assertEquals(sourceHash, projectionLoader.loadVersion(draft).contentHashSha256)
+            assertEquals(
+                InformationRequestTemplateVersionContentHash.of(projectionLoader.loadVersion(source)),
+                sourceHash,
+            )
         }
     }
 
-    private fun publicationService(fixture: StoredDraft): InformationRequestTemplatePublicationService
+    private fun publicationService(fixture: PublicationStoredDraft): InformationRequestTemplatePublicationService
     {
         val definition = QuarkusTransaction.requiringNew().call {
             definitionRepository.findById(fixture.definitionId)
@@ -176,13 +212,21 @@ class InformationRequestTemplatePublicationContractTest
         whenever(authoringService.projectTemplate(any())).thenReturn(mock<InformationRequestTemplateDto>())
         return InformationRequestTemplatePublicationService(
             authoringService,
-            definitionRepository,
             versionRepository,
-            capabilityRepository,
+            InformationRequestTemplateVersionFreezer(
+                definitionRepository,
+                versionRepository,
+                capabilityRepository,
+                mock(),
+                mock(),
+                mock(),
+                mock(),
+            ),
+            commandReceiptService,
         )
     }
 
-    private fun lifecycleService(fixture: StoredDraft): InformationRequestTemplateLifecycleService
+    private fun lifecycleService(fixture: PublicationStoredDraft): InformationRequestTemplateLifecycleService
     {
         val definition = QuarkusTransaction.requiringNew().call {
             definitionRepository.findById(fixture.definitionId)
@@ -198,10 +242,11 @@ class InformationRequestTemplatePublicationContractTest
             versionRepository,
             configurationWriter,
             projectionLoader,
+            commandReceiptService,
         )
     }
 
-    private fun insertDraft(type: InformationRequestRequirementType): StoredDraft
+    private fun insertDraft(type: InformationRequestRequirementType): PublicationStoredDraft
     {
         val actorId = insertOwner()
         return QuarkusTransaction.requiringNew().call {
@@ -212,14 +257,16 @@ class InformationRequestTemplatePublicationContractTest
                     namespace = "process-${UUID.randomUUID().toString().take(8)}"
                     templateKey = "collection-pattern"
                     displayName = "Collection pattern"
-                    createdByAppUserId = actorId
+                    createdByPrincipalKind = PrincipalKind.USER
+                    createdByPrincipalId = actorId
                 },
             )
             val version = versionRepository.save(
                 InformationRequestTemplateVersion().apply {
                     templateDefinitionId = definition.id
                     versionNumber = 1
-                    createdByAppUserId = actorId
+                    createdByPrincipalKind = PrincipalKind.USER
+                    createdByPrincipalId = actorId
                 },
             )
             val section = sectionRepository.save(
@@ -249,8 +296,6 @@ class InformationRequestTemplatePublicationContractTest
                         if (type == InformationRequestRequirementType.FIELD) insertFieldDefinition() else null
                 },
             )
-            // The authored path stores the plain provided answer for a requirement whose party can
-            // answer, so the fixture states it too and a copy of this version reads back unchanged.
             dispositionRepository.save(
                 InformationRequestTemplateBindingDisposition().apply {
                     templateBindingId = binding.id
@@ -258,14 +303,10 @@ class InformationRequestTemplatePublicationContractTest
                     disposition = InformationRequestResponseDisposition.PROVIDED
                 },
             )
-            StoredDraft(definition.id, version.id, actorId)
+            PublicationStoredDraft(definition.id, version.id, actorId)
         }
     }
 
-    /**
-     * A typed requirement has to name the field it collects before it can be stored at all, which
-     * is a separate rule from the publication rules these tests are about.
-     */
     private fun insertFieldDefinition(): UUID
     {
         val id = UUID.randomUUID()
@@ -309,10 +350,4 @@ class InformationRequestTemplatePublicationContractTest
         }
         return id
     }
-
-    private data class StoredDraft(
-        val definitionId: UUID,
-        val versionId: UUID,
-        val actorId: UUID,
-    )
 }

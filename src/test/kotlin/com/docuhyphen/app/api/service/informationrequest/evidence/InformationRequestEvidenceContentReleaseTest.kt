@@ -14,9 +14,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceContentReleaseTest
 {
@@ -72,6 +73,26 @@ class InformationRequestEvidenceContentReleaseTest
         scan("CLEAN", productionEligible = false, minutes = 5)
         assertNotReleasedToReviewer()
         assertDoesNotThrow { fixture.contentRelease.requireReleasable(version, uploaderAccess) }
+    }
+
+    @Test
+    fun `where malware scanning is required, unscanned content is released to the account its uploader linked and to no one else`() {
+        fixture.malwareScanRequired = true
+        val linkedAccount = PrincipalRef.user(UUID.randomUUID())
+        whenever(fixture.requirementContext.linkedIdentitiesOf(linkedAccount)).thenReturn(
+            setOf(
+                linkedAccount,
+                uploader
+            )
+        )
+
+        assertDoesNotThrow {
+            fixture.contentRelease.requireReleasable(
+                version,
+                RequestAccessContext(linkedAccount, AuthorizationContext())
+            )
+        }
+        assertNotReleasedToReviewer()
     }
 
     @Test

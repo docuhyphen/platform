@@ -6,15 +6,6 @@ export const useFollowUpPanelStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
     },
-    list: {
-        listStyleType: "none",
-        marginTop: 0,
-        marginBottom: 0,
-        paddingLeft: 0,
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalS,
-    },
     row: {
         display: "flex",
         alignItems: "center",

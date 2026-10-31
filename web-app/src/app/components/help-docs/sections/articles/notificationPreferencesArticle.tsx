@@ -1,25 +1,25 @@
 export const notificationPreferencesArticle = (
     <>
-        <p>
+        <p id={"notification-preferences-intro-paragraph"}>
             Notification preferences let you choose how DocuHyphen contacts you for each
             Exchange and document event.
         </p>
 
-        <h3>Choosing delivery channels</h3>
-        <ol>
+        <h3 id={"notification-preferences-choosing-delivery-channels-heading"}>Choosing delivery channels</h3>
+        <ol id={"notification-preferences-choosing-delivery-channels-list"}>
             <li>Open <b>Settings</b> and select <b>Preferences</b>.</li>
             <li>Under Notifications, open the channel dropdown beside an event.</li>
             <li>Select <b>Email</b>, <b>Push</b>, both channels, or neither channel.</li>
         </ol>
-        <p>
+        <p id={"notification-preferences-choosing-delivery-channels-paragraph"}>
             Selected channels appear as tags when the dropdown is closed. Email sends the
             notification to your account email address. Push delivers it through the
             DocuHyphen in-app notification channel. To also receive native browser alerts
-            on the current device, select <b>Enable</b> beside <b>Browser notifications</b>
+            on the current device, select <b>Enable</b> beside <b>Browser notifications</b>{" "}
             and approve the browser permission prompt. Selecting no channels disables that
             event notification for your account.
         </p>
-        <p>
+        <p id={"notification-preferences-choosing-delivery-channels-paragraph-2"}>
             Browser permission applies only to the browser and device where you grant it.
             If permission is blocked, enable notifications for the DocuHyphen site in your
             browser settings, return to Preferences, and select <b>Request again</b>. In-app
@@ -27,8 +27,8 @@ export const notificationPreferencesArticle = (
             are blocked or unsupported.
         </p>
 
-        <h3>Notification bell</h3>
-        <p>
+        <h3 id={"notification-preferences-notification-bell-heading"}>Notification bell</h3>
+        <p id={"notification-preferences-notification-bell-paragraph"}>
             The notification bell in the header shows unread in-app notifications and
             pending approvals. Recent notifications load when you sign in, and new
             notifications or approval assignments appear automatically while the app is
@@ -36,29 +36,29 @@ export const notificationPreferencesArticle = (
             new Exchange becomes available to you. Approval notifications identify the
             Exchange and requester by name when that context is available, while internal
             resource codes and identifiers remain hidden. Older notifications load in
-            batches as you scroll to the bottom of the list. You can also select
+            batches as you scroll to the bottom of the list. You can also select{" "}
             <b>Load more</b> when it is shown.
         </p>
-        <p>
+        <p id={"notification-preferences-notification-bell-paragraph-2"}>
             Select an Exchange notification to open that Exchange. Notifications about a
             specific document open the Exchange with that document selected. The same
             navigation applies when you select a native browser alert.
         </p>
-        <p>
+        <p id={"notification-preferences-notification-bell-paragraph-3"}>
             Opening a notified item directly also clears its unread notification when
             you view its workflow or document comments.
         </p>
 
-        <h3>Exchange notifications</h3>
-        <ul>
+        <h3 id={"notification-preferences-exchange-notifications-heading"}>Exchange notifications</h3>
+        <ul id={"notification-preferences-exchange-notifications-list"}>
             <li><b>Exchange initiated</b> covers Exchanges sent to you.</li>
             <li><b>Exchange accepted</b> covers recipient acceptance of an Exchange you initiated.</li>
             <li><b>Exchange declined</b> covers recipient rejection of an Exchange you initiated.</li>
             <li><b>Exchange ended</b> covers Exchanges that move to their completed state.</li>
         </ul>
 
-        <h3>Document notifications</h3>
-        <ul>
+        <h3 id={"notification-preferences-document-notifications-heading"}>Document notifications</h3>
+        <ul id={"notification-preferences-document-notifications-list"}>
             <li>
                 <b>Document notes and comments</b> covers new shared collaboration notes or comments.
                 Notifications identify the commenter, document, and Exchange when that context is
@@ -69,16 +69,17 @@ export const notificationPreferencesArticle = (
             <li><b>Document uploaded</b> covers initial files and newly uploaded file versions.</li>
         </ul>
 
-        <h3>Trusted Organization administration</h3>
-        <p>
+        <h3 id={"notification-preferences-trusted-organization-administration-heading"}>Trusted Organization
+            administration</h3>
+        <p id={"notification-preferences-trusted-organization-administration-paragraph"}>
             Active organization administrators receive email and in-app notifications for
             Trusted Organization requests, decisions, policy changes, suspensions, resumptions,
             and endings. These administrative notifications are not controlled by the Exchange
             and document event preferences above.
         </p>
 
-        <h3>Trial request administration</h3>
-        <p>
+        <h3 id={"notification-preferences-trial-request-administration-heading"}>Trial request administration</h3>
+        <p id={"notification-preferences-trial-request-administration-paragraph"}>
             Active App Administrators receive an in-app notification when an eligible user or
             organization billing user requests a trial. The earliest effective App Administrator also
             receives an email. The requester receives an in-app notification after approval or rejection.
@@ -87,7 +88,7 @@ export const notificationPreferencesArticle = (
             Trial Requests; selecting a decision notification opens Billing.
         </p>
 
-        <p>
+        <p id={"notification-preferences-trial-request-administration-paragraph-2"}>
             Changes save immediately. Available events still respect your Exchange access
             and organization permissions. You can manage your personal notification preferences
             whether or not your account belongs to an organization.

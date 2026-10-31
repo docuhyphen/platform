@@ -7,11 +7,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-/**
- * Returned only from issuance, rotation, and replacement, the three operations that mint a brand
- * new secret. [accessToken] is the one and only time that secret is ever readable; it is not
- * stored and cannot be recovered afterward.
- */
 @Serializable
 data class InformationRequestAccessLinkIssuedDto(
     @Serializable(with = UUIDSerializer::class) val shareLinkId: UUID,
@@ -20,9 +15,9 @@ data class InformationRequestAccessLinkIssuedDto(
     @Serializable(with = TimestampSerializer::class) val expiresAt: Timestamp? = null,
     val maxUses: Int? = null,
     val rotationCount: Int,
+    val partyETag: String? = null,
 )
 
-/** The non-secret projection of a bootstrap access link, returned from revocation. */
 @Serializable
 data class InformationRequestAccessLinkDto(
     @Serializable(with = UUIDSerializer::class) val shareLinkId: UUID,
@@ -32,4 +27,5 @@ data class InformationRequestAccessLinkDto(
     val rotationCount: Int,
     @Serializable(with = UUIDSerializer::class) val partyId: UUID? = null,
     @Serializable(with = TimestampSerializer::class) val createdAt: Timestamp? = null,
+    val partyETag: String? = null,
 )

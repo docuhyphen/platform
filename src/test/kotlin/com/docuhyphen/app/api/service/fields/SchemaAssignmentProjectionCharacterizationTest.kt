@@ -2,26 +2,15 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import org.junit.jupiter.api.assertThrows
+import java.util.*
 
-/**
- * What a caller is handed when it reads the answers a resource holds: one entry per question the
- * schema asks, in the order the schema asks them, each naming the question by its stable identity
- * and carrying the answer in the canonical form of its type, wrapped in an envelope naming the
- * schema, the version of it in force, and the exact state the answers stand in.
- *
- * These are the guarantees a consumer builds against, so they are pinned here independently of
- * which class assembles them, and they hold for the projection a read returns and for the one a
- * save returns alike.
- */
 class SchemaAssignmentProjectionCharacterizationTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())
@@ -81,7 +70,7 @@ class SchemaAssignmentProjectionCharacterizationTest
             principal = author,
             rootAnswers = mapOf(
                 SchemaAssignmentFieldsFixture.Question.NOTE to
-                    SchemaAssignmentFieldsFixture.StoredAnswer("Recorded answer", author),
+                        StoredAnswer("Recorded answer", author),
             ),
         )
 
@@ -99,8 +88,6 @@ class SchemaAssignmentProjectionCharacterizationTest
 
         val options = requireNotNull(fixture.read()).fields.single { it.fieldContractId == fixture.optionsContractId }
 
-        // The order a caller chose in is not the order it reads back in: the codes are stored in the
-        // order the schema offers them, so the same selection always projects identically.
         assertFalse(options.isEmpty)
         assertEquals(JsonArray(listOf(JsonPrimitive("first-option"), JsonPrimitive("third-option"))), options.value)
     }
@@ -131,14 +118,11 @@ class SchemaAssignmentProjectionCharacterizationTest
     }
 
     @Test
-    fun `an assignment holding no set of answers is projected without a validator`()
+    fun `an assignment that has lost the set it answers with is refused rather than projected without a validator`()
     {
         val fixture = SchemaAssignmentFieldsFixture(principal = author, rootSetExists = false)
 
-        val projection = requireNotNull(fixture.read())
-
-        assertNull(projection.etag)
-        assertTrue(projection.fields.all { it.isEmpty }, "every question reads as unanswered")
+        assertThrows<IllegalStateException> { fixture.read() }
     }
 
     @Test

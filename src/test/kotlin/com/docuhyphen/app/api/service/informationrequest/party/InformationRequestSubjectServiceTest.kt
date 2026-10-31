@@ -1,13 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.SubjectIdentityExternalIdentifier
-import com.docuhyphen.app.api.model.entity.SubjectIdentityOwnerType
-import com.docuhyphen.app.api.model.entity.SubjectIdentityRef
-import com.docuhyphen.app.api.model.entity.SubjectKind
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
@@ -17,25 +12,15 @@ import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestS
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityExternalIdentifierRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityRefRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestSubjectServiceTest
 {
@@ -53,17 +38,19 @@ class InformationRequestSubjectServiceTest
     private val requestRepository = mock<InformationRequestRepository>()
     private val subjectRepository = mock<SubjectIdentityRefRepository>()
     private val identifierRepository = mock<SubjectIdentityExternalIdentifierRepository>()
-    private val partyService = mock<InformationRequestPartyService>()
+    private val partyAssignments = mock<InformationRequestPartyAssignmentService>()
     private val authorizationService = mock<AuthorizationService>()
     private val ownerScopeAccess = mock<InformationRequestOwnerScopeAccess>()
+    private val gate = mock<InformationRequestMutationGate>()
     private val saved = mutableListOf<SubjectIdentityRef>()
     private val service = InformationRequestSubjectService(
         requestRepository = requestRepository,
         subjectRepository = subjectRepository,
         identifierRepository = identifierRepository,
-        partyService = partyService,
+        partyAssignments = partyAssignments,
         authorizationService = authorizationService,
         ownerScopeAccess = ownerScopeAccess,
+        gate = gate,
     )
 
     init
@@ -83,7 +70,8 @@ class InformationRequestSubjectServiceTest
         whenever(subjectRepository.findById(any())).thenAnswer { invocation ->
             saved.firstOrNull { it.id == invocation.getArgument<UUID>(0) }
         }
-        whenever(partyService.assign(any())).thenAnswer {
+        permitPrivacyManagement(true)
+        whenever(partyAssignments.assign(any())).thenAnswer {
             InformationRequestPartyAssignmentResult(
                 party = InformationRequestParty().apply {
                     informationRequestId = request.id
@@ -95,14 +83,84 @@ class InformationRequestSubjectServiceTest
         }
     }
 
-    private fun command(key: String = "assign-subject", withReference: Boolean = true) = AssignInformationRequestSubjectCommand(
-        requestId = request.id,
-        subjectKind = SubjectKind.RECORD,
-        reference = reference.takeIf { withReference },
-        access = access,
-        precondition = CommandPrecondition.ExpectedRevision(setOf("\"parties-1\"")),
-        idempotencyKey = key,
-    )
+    private fun permitPrivacyManagement(permitted: Boolean) {
+        whenever(
+            ownerScopeAccess.permits(
+                actor,
+                InformationRequestOwnerRef(InformationRequestOwnerType.ORGANIZATION, organizationId),
+                Action.INFORMATION_REQUEST_MANAGE_PRIVACY,
+                access.authorization,
+            ),
+        ).thenReturn(permitted)
+    }
+
+    private fun knownSubjectCommand(subjectId: UUID) =
+        AssignInformationRequestPartyCommand(
+            requestId = request.id,
+            roleKey = InformationRequestShareRoleKey.SUBJECT,
+            subjectIdentityRefId = subjectId,
+            access = access,
+            precondition = CommandPrecondition.ExpectedRevision(setOf("\"parties-1\"")),
+            idempotencyKey = "choose-known-subject",
+        )
+
+    @Test
+    fun `a new subject is looked up and created only under the request lock, so a same-key retry waits and replays`() {
+        service.assignSubject(command())
+
+        val order = inOrder(gate, subjectRepository)
+        order.verify(gate).lock(request.id)
+        order.verify(subjectRepository).findById(any())
+        order.verify(subjectRepository).save(any())
+    }
+
+    @Test
+    fun `naming a subject by its reference needs privacy management before any reference is looked up`() {
+        permitPrivacyManagement(false)
+
+        assertThrows<ForbiddenException> { service.assignSubject(command()) }
+
+        verifyNoInteractions(identifierRepository)
+        verify(subjectRepository, never()).save(any())
+        verify(partyAssignments, never()).assign(any())
+    }
+
+    @Test
+    fun `a party manager without privacy management still names a new subject by its kind`() {
+        permitPrivacyManagement(false)
+
+        service.assignSubject(command(withReference = false))
+
+        assertEquals(1, saved.size)
+        verifyNoInteractions(identifierRepository)
+        verify(partyAssignments).assign(any())
+    }
+
+    @Test
+    fun `choosing a known subject needs privacy management`() {
+        val known = UUID.randomUUID()
+        permitPrivacyManagement(false)
+
+        assertThrows<ForbiddenException> { service.assignKnownSubject(knownSubjectCommand(known)) }
+        verify(partyAssignments, never()).assign(any())
+
+        permitPrivacyManagement(true)
+        service.assignKnownSubject(knownSubjectCommand(known))
+
+        val assigned = argumentCaptor<AssignInformationRequestPartyCommand>()
+        verify(partyAssignments).assign(assigned.capture())
+        assertEquals(known, assigned.firstValue.subjectIdentityRefId)
+    }
+
+    private fun command(key: String = "assign-subject", withReference: Boolean = true) =
+        AssignInformationRequestSubjectCommand(
+            requestId = request.id,
+            subjectKind = SubjectKind.RECORD,
+            reference = reference.takeIf { withReference },
+            access = access,
+            precondition = CommandPrecondition.ExpectedRevision(setOf("\"parties-1\"")),
+            idempotencyKey = key,
+        )
 
     @Test
     fun `a new subject is created in the request owner's scope with its reference and assigned as the subject party`()
@@ -119,7 +177,7 @@ class InformationRequestSubjectServiceTest
         assertEquals("A-100", identifier.firstValue.identifierValue)
         assertEquals(actor.id, identifier.firstValue.authorizedByPrincipalId)
         val assigned = argumentCaptor<AssignInformationRequestPartyCommand>()
-        verify(partyService).assign(assigned.capture())
+        verify(partyAssignments).assign(assigned.capture())
         assertEquals(InformationRequestShareRoleKey.SUBJECT, assigned.firstValue.roleKey)
         assertEquals(subject.id, assigned.firstValue.subjectIdentityRefId)
         assertEquals("assign-subject", assigned.firstValue.idempotencyKey)
@@ -129,14 +187,22 @@ class InformationRequestSubjectServiceTest
     fun `a reference the owner already knows names the same subject`()
     {
         val known = UUID.randomUUID()
-        whenever(identifierRepository.findByTenantValue(SubjectIdentityOwnerType.ORGANIZATION, organizationId, "Records office", "Account", "A-100"))
+        whenever(
+            identifierRepository.findByTenantValue(
+                SubjectIdentityOwnerType.ORGANIZATION,
+                organizationId,
+                "Records office",
+                "Account",
+                "A-100"
+            )
+        )
             .thenReturn(SubjectIdentityExternalIdentifier().apply { subjectIdentityRefId = known })
 
         service.assignSubject(command())
 
         verify(subjectRepository, never()).save(any())
         val assigned = argumentCaptor<AssignInformationRequestPartyCommand>()
-        verify(partyService).assign(assigned.capture())
+        verify(partyAssignments).assign(assigned.capture())
         assertEquals(known, assigned.firstValue.subjectIdentityRefId)
     }
 
@@ -148,8 +214,48 @@ class InformationRequestSubjectServiceTest
 
         assertEquals(1, saved.size)
         val assigned = argumentCaptor<AssignInformationRequestPartyCommand>()
-        verify(partyService, org.mockito.kotlin.times(2)).assign(assigned.capture())
+        verify(partyAssignments, times(2)).assign(assigned.capture())
         assertEquals(assigned.firstValue.subjectIdentityRefId, assigned.secondValue.subjectIdentityRefId)
+    }
+
+    @Test
+    fun `references that only move a separator between their parts name different subjects under one key`() {
+        service.assignSubject(
+            command().copy(reference = InformationRequestSubjectReference("Records|office", "Account", "A-100")),
+        )
+        service.assignSubject(
+            command().copy(reference = InformationRequestSubjectReference("Records", "office|Account", "A-100")),
+        )
+
+        assertEquals(2, saved.size)
+        assertEquals(2, saved.map { it.id }.toSet().size)
+    }
+
+    @Test
+    fun `another caller's command under the same key names its own new subject`() {
+        val colleague = RequestAccessContext(
+            PrincipalRef.user(UUID.randomUUID()),
+            AuthorizationContext(activeOrgId = organizationId)
+        )
+        whenever(
+            authorizationService.authorize(
+                colleague.principal,
+                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                ResourceRef.informationRequest(request.id),
+                colleague.authorization,
+            ),
+        ).thenReturn(Decision.Allow())
+
+        service.assignSubject(command(withReference = false))
+        service.assignSubject(command(withReference = false).copy(access = colleague, subjectKind = SubjectKind.PERSON))
+
+        assertEquals(2, saved.size)
+        val assigned = argumentCaptor<AssignInformationRequestPartyCommand>()
+        verify(partyAssignments, times(2)).assign(assigned.capture())
+        assertEquals(
+            saved.map { it.id },
+            listOf(assigned.firstValue.subjectIdentityRefId, assigned.secondValue.subjectIdentityRefId)
+        )
     }
 
     @Test
@@ -167,7 +273,7 @@ class InformationRequestSubjectServiceTest
         assertThrows<ForbiddenException> { service.assignSubject(command()) }
 
         verify(subjectRepository, never()).save(any())
-        verify(partyService, never()).assign(any())
+        verify(partyAssignments, never()).assign(any())
     }
 
     @Test
@@ -180,8 +286,12 @@ class InformationRequestSubjectServiceTest
             subjectKind = SubjectKind.PERSON
         }
         whenever(ownerScopeAccess.currentOwner()).thenReturn(owner)
-        whenever(ownerScopeAccess.requireAccess(owner, Action.INFORMATION_REQUEST_MANAGE_PRIVACY)).thenReturn(actor)
-        whenever(subjectRepository.findForOwner(SubjectIdentityOwnerType.ORGANIZATION, organizationId)).thenReturn(listOf(subject))
+        whenever(ownerScopeAccess.requireAccess(owner, Action.INFORMATION_REQUEST_MANAGE_PRIVACY)).thenReturn(
+            RequestAccessContext(actor, AuthorizationContext(sessionRef = "owner-session"))
+        )
+        whenever(subjectRepository.findForOwner(SubjectIdentityOwnerType.ORGANIZATION, organizationId)).thenReturn(
+            listOf(subject)
+        )
         whenever(identifierRepository.findForSubjects(listOf(subject.id))).thenReturn(
             listOf(SubjectIdentityExternalIdentifier().apply {
                 subjectIdentityRefId = subject.id

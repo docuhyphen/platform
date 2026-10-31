@@ -1,11 +1,15 @@
 import {useState} from "react";
 import {Button, Text} from "@fluentui/react-components";
-import {InformationRequestBusinessDecisionDto, InformationRequestBusinessDecisionKind} from "../../../models/models.tsx";
+import {
+    InformationRequestBusinessDecisionDto,
+    InformationRequestBusinessDecisionKind
+} from "../../../models/models.tsx";
 import BusinessDecisionRow from "../business-decision-row/BusinessDecisionRow.tsx";
 import RecordDecisionDialog from "../record-decision-dialog/RecordDecisionDialog.tsx";
 import {latestDecisionIds} from "../request-outcomes-panel/outcomeLabels.ts";
 import {RequestOutcomes} from "../request-outcomes-panel/useRequestOutcomes.ts";
 import {useBusinessDecisionsSectionStyles} from "./BusinessDecisionsSectionStyles.tsx";
+import {useDialogCommand} from "../../shared/useDialogCommand.ts";
 
 interface Props
 {
@@ -23,6 +27,7 @@ const BusinessDecisionsSection = ({outcomes, editable}: Props) =>
 {
     const styles = useBusinessDecisionsSectionStyles();
     const [pending, setPending] = useState<PendingDecision | null>(null);
+    const command = useDialogCommand(outcomes.error, outcomes.notice);
     const latest = latestDecisionIds(outcomes.decisions);
     const ordered = [...outcomes.decisions].sort((first, second) =>
         first.owningProcessKey.localeCompare(second.owningProcessKey) || first.decisionRevision - second.decisionRevision);
@@ -45,7 +50,10 @@ const BusinessDecisionsSection = ({outcomes, editable}: Props) =>
                             appearance={"secondary"}
                             shape={"circular"}
                             disabled={outcomes.busy}
-                            onClick={() => setPending({kind: InformationRequestBusinessDecisionKind.ORIGINAL})}>
+                            onClick={() => {
+                                command.reset();
+                                setPending({kind: InformationRequestBusinessDecisionKind.ORIGINAL});
+                            }}>
                         Record decision
                     </Button>
                 )}
@@ -69,19 +77,19 @@ const BusinessDecisionsSection = ({outcomes, editable}: Props) =>
                                              decision={decision}
                                              canFollowUp={editable && latest.has(decision.id)}
                                              busy={outcomes.busy}
-                                             onFollowUp={kind => setPending({kind, prior: decision})}/>
+                                             onFollowUp={kind => {
+                                                 command.reset();
+                                                 setPending({kind, prior: decision});
+                                             }}/>
                     ))}
                 </ul>
             )}
             {pending && (
                 <RecordDecisionDialog kind={pending.kind}
                                       prior={pending.prior}
-                                      busy={outcomes.busy}
-                                      onConfirm={request =>
-                                      {
-                                          setPending(null);
-                                          void outcomes.record(request);
-                                      }}
+                                      busy={outcomes.busy || command.busy}
+                                      error={command.error}
+                                      onConfirm={request => void command.run(() => outcomes.record(request), () => setPending(null))}
                                       onDismiss={() => setPending(null)}/>
             )}
         </section>

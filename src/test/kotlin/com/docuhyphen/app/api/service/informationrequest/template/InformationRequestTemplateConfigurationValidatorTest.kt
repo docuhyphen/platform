@@ -1,45 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestConditionHiddenDataPolicy
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import org.junit.jupiter.api.assertTimeoutPreemptively
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import java.time.Duration
+import java.util.*
 
-/**
- * A draft is authored as one document, so the document has to hold together on its own terms before
- * any of it reaches storage.
- *
- * The database refuses an incoherent write, but it refuses it as a constraint name in the middle of
- * a multi-table transaction, which tells an author nothing about which requirement they got wrong.
- * These are the refusals that name the offending key, plus the normalization that makes a document
- * mean exactly one thing: positions come from the order things are listed in rather than from
- * authored numbers, a repeated answer is one answer, and surrounding whitespace never becomes part
- * of a machine identifier.
- *
- * Bounds that contradict each other are not checked here. Those are single-column and pair-column
- * facts the stored policy already refuses, and duplicating them would create a second, drifting
- * statement of the same rule.
- */
 class InformationRequestTemplateConfigurationValidatorTest
 {
     private val validator = InformationRequestTemplateConfigurationValidator()
@@ -268,6 +240,55 @@ class InformationRequestTemplateConfigurationValidatorTest
     }
 
     @Test
+    fun `a condition rule cannot read a confirmation`() {
+        val refusal = refusalFor(
+            ruleReadingSource(
+                requirement(
+                    "recorded-assertion",
+                    InformationRequestRequirementType.RESPONSE_ATTESTATION
+                )
+            )
+        )
+
+        assertTrue(
+            refusal.contains("when-recorded-note-applies") && refusal.contains("recorded-assertion") &&
+                    refusal.contains("confirmation"),
+            "The refusal names the rule and the confirmation it reads: $refusal",
+        )
+    }
+
+    @Test
+    fun `a condition rule may read a requested document`() {
+        val normalized = validator.normalize(ruleReadingSource(documentRequirement("supporting-record")))
+
+        assertEquals("supporting-record", normalized.conditionRules.single().predicates.single().sourceRequirementKey)
+    }
+
+    private fun ruleReadingSource(source: InformationRequestTemplateRequirementRequest) =
+        configuration(
+            section(
+                "collected-data",
+                source,
+                requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                    requiredness = InformationRequestRequiredness.CONDITIONAL,
+                    conditionalRuleKey = "when-recorded-note-applies",
+                ),
+            ),
+        ).copy(
+            conditionRules = listOf(
+                InformationRequestTemplateConditionRuleRequest(
+                    ruleKey = "when-recorded-note-applies",
+                    predicates = listOf(
+                        InformationRequestTemplateConditionPredicateRequest(
+                            sourceRequirementKey = source.requirementKey,
+                            operator = FieldOperator.IS_NOT_EMPTY,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+    @Test
     fun `a condition rule defaults hidden response data policy to retain securely`()
     {
         val normalized = validator.normalize(
@@ -351,6 +372,76 @@ class InformationRequestTemplateConfigurationValidatorTest
     }
 
     @Test
+    fun `a deep layered condition graph without a cycle is checked in linear time`() {
+        val layered = layeredConditions(layers = 60)
+
+        val normalized = assertTimeoutPreemptively(Duration.ofSeconds(10)) { validator.normalize(layered) }
+
+        assertEquals(121, normalized.sections.single().requirements.size)
+    }
+
+    @Test
+    fun `a cycle through a deep layered condition graph is still refused`() {
+        val layered = layeredConditions(layers = 60)
+        val closed = layered.copy(
+            conditionRules = layered.conditionRules.map { rule ->
+                if (rule.ruleKey != "layer-0-applies") rule
+                else rule.copy(
+                    predicates = rule.predicates + InformationRequestTemplateConditionPredicateRequest(
+                        fieldDefinitionId = fieldOf("layer-59-first"),
+                        valueType = FieldValueType.SHORT_TEXT,
+                        operator = FieldOperator.IS_NOT_EMPTY,
+                    ),
+                )
+            },
+        )
+
+        val refusal = assertTimeoutPreemptively(Duration.ofSeconds(10)) { refusalFor(closed) }
+
+        assertTrue(refusal.contains("depend on each other"), refusal)
+        assertTrue(refusal.contains("layer-59-first") && refusal.contains("layer-0-first"), refusal)
+    }
+
+    @Test
+    fun `a template version states a bounded number of requirements, condition rules and predicates`() {
+        val crowded = configuration(
+            section(
+                "collected-data",
+                *(1..501).map { requirement("record-$it", InformationRequestRequirementType.FIELD) }.toTypedArray()
+            ),
+        )
+        assertTrue(refusalFor(crowded).contains("at most 500 requirements"), refusalFor(crowded))
+        validator.normalize(
+            configuration(
+                section(
+                    "collected-data",
+                    *(1..500).map { requirement("record-$it", InformationRequestRequirementType.FIELD) }.toTypedArray()
+                ),
+            ),
+        )
+
+        val ruled = configuration(
+            section(
+                "collected-data",
+                requirement("recorded-note", InformationRequestRequirementType.FIELD)
+            )
+        )
+            .copy(conditionRules = (1..501).map { rule("rule-$it", "recorded-note") })
+        assertTrue(refusalFor(ruled).contains("at most 500 condition rules"), refusalFor(ruled))
+
+        val predicated = configuration(
+            section(
+                "collected-data",
+                requirement("recorded-note", InformationRequestRequirementType.FIELD)
+            )
+        )
+            .copy(conditionRules = listOf(rule("crowded-rule", *Array(51) { "recorded-note" })))
+        val refusal = assertThrows<InformationRequestTemplateValidationException> { validator.normalize(predicated) }
+        assertTrue(refusal.message.contains("at most 50 predicates"), refusal.message)
+        assertEquals("crowded-rule", refusal.conditionRuleKey)
+    }
+
+    @Test
     fun `an evidence policy belongs to a requested document`()
     {
         val refusal = refusalFor(
@@ -365,6 +456,44 @@ class InformationRequestTemplateConfigurationValidatorTest
         )
 
         assertTrue(refusal.contains("recorded-note"), "The refusal names the requirement: $refusal")
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(
+        strings = [
+            "no-files", "fewer-allowed", "empty-file", "empty-total", "small-total", "no-pages", "empty-page-limit",
+            "fewer-pages", "short-age", "uncaptured-issue", "negative-validity", "uncaptured-expiry", "short-coverage",
+            "uncaptured-coverage", "uncaptured-continuity",
+        ],
+    )
+    fun `evidence bounds the database refuses are refused with the section and requirement they belong to`(case: String) {
+        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(
+                configuration(
+                    section(
+                        "supporting-data",
+                        documentRequirement("supporting-record").copy(evidencePolicy = unboundedPolicy(case))
+                    ),
+                ),
+            )
+        }
+
+        assertEquals("supporting-data", refusal.sectionKey)
+        assertEquals("supporting-record", refusal.requirementKey)
+    }
+
+    @Test
+    fun `evidence bounds within every database rule are kept`() {
+        val normalized = validator.normalize(
+            configuration(
+                section(
+                    "supporting-data",
+                    documentRequirement("supporting-record").copy(evidencePolicy = boundedPolicy())
+                )
+            ),
+        )
+
+        assertEquals(boundedPolicy(), normalized.sections.single().requirements.single().evidencePolicy)
     }
 
     @Test
@@ -430,6 +559,56 @@ class InformationRequestTemplateConfigurationValidatorTest
         )
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = ["PDF", ".pdf", "application", "application/", "image/*"])
+    fun `a file type that is not a media type is refused with the requirement it restricts`(value: String) {
+        val refusal = refusalFor(configuration(section("supporting-data", fileTypeRestricted(value))))
+
+        assertTrue(
+            refusal.contains("supporting-record") && refusal.contains(value),
+            "The refusal names the requirement and the value: $refusal"
+        )
+    }
+
+    @Test
+    fun `a file type with parameters is refused and the refusal names its section`() {
+        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(
+                configuration(
+                    section(
+                        "supporting-data",
+                        fileTypeRestricted("application/pdf; charset=binary")
+                    )
+                )
+            )
+        }
+
+        assertEquals("supporting-data", refusal.sectionKey)
+        assertEquals("supporting-record", refusal.requirementKey)
+    }
+
+    @Test
+    fun `a file type is kept in its canonical lower case form`() {
+        val normalized =
+            validator.normalize(configuration(section("supporting-data", fileTypeRestricted(" Application/PDF "))))
+
+        assertEquals(
+            listOf("application/pdf"),
+            normalized.sections.single().requirements.single().evidencePolicy?.acceptedValues?.map { it.acceptedValue },
+        )
+    }
+
+    private fun fileTypeRestricted(value: String) = documentRequirement("supporting-record").copy(
+        evidencePolicy = InformationRequestTemplateEvidencePolicyRequest(
+            acceptedValues = listOf(
+                InformationRequestTemplateAcceptedValueRequest(
+                    InformationRequestEvidenceAttribute.CONTENT_TYPE,
+                    value
+                )
+            ),
+        ),
+    )
+
     @Test
     fun `supporting evidence has to be a requested document stated in the same document`()
     {
@@ -460,6 +639,86 @@ class InformationRequestTemplateConfigurationValidatorTest
             notADocument.contains("recorded-assertion"),
             "The refusal names the key that is not a requested document: $notADocument",
         )
+    }
+
+    @Test
+    fun `a reference that resolves to nothing or to no document is refused against the Requirement that holds it`() {
+        val holding = requirement("recorded-note", InformationRequestRequirementType.FIELD)
+        val refusals = listOf(
+            configuration(
+                section(
+                    "collected-data",
+                    holding.copy(supportingEvidenceRequirementKeys = listOf("absent-record"))
+                )
+            ),
+            configuration(
+                section(
+                    "collected-data",
+                    holding.copy(supportingEvidenceRequirementKeys = listOf("recorded-assertion")),
+                    requirement("recorded-assertion", InformationRequestRequirementType.RESPONSE_ATTESTATION),
+                ),
+            ),
+        ).map { assertThrows<InformationRequestTemplateValidationException> { validator.normalize(it) } }
+
+        refusals.forEach { assertEquals("recorded-note", it.requirementKey) }
+        assertTrue(refusals[0].message.contains("absent-record"), refusals[0].message)
+        assertTrue(refusals[1].message.contains("recorded-assertion"), refusals[1].message)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["section-title", "section-help", "prompt", "requirement-help", "requirement-key", "accepted-value"])
+    fun `text longer than the record keeps is refused with where it is and how long it may be`(case: String) {
+        val document = documentRequirement("supporting-record")
+        val long = { length: Int -> "a".repeat(length) }
+        val section = when (case) {
+            "section-title" -> section("supporting-data", document).copy(title = long(256))
+            "section-help" -> section("supporting-data", document).copy(helpText = long(2049))
+            "prompt" -> section("supporting-data", document.copy(prompt = long(1025)))
+            "requirement-help" -> section("supporting-data", document.copy(helpText = long(2049)))
+            "requirement-key" -> section("supporting-data", document.copy(requirementKey = long(129)))
+            else -> section(
+                "supporting-data",
+                document.copy(
+                    evidencePolicy = boundedPolicy().copy(
+                        issuerRequirement = InformationRequestEvidenceAttributeRequirement.REQUIRED,
+                        acceptedValues = listOf(
+                            InformationRequestTemplateAcceptedValueRequest(
+                                InformationRequestEvidenceAttribute.ISSUER,
+                                long(256)
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        val refusal =
+            assertThrows<InformationRequestTemplateValidationException> { validator.normalize(configuration(section)) }
+
+        assertEquals("supporting-data", refusal.sectionKey)
+        val requirementCase = case !in setOf("section-title", "section-help")
+        assertEquals(
+            if (requirementCase) section.requirements.single().requirementKey else null,
+            refusal.requirementKey
+        )
+        assertTrue(Regex("is longer than [0-9]+ characters$").containsMatchIn(refusal.message), refusal.message)
+    }
+
+    @Test
+    fun `text at the length the record keeps is accepted`() {
+        val document =
+            documentRequirement("supporting-record").copy(prompt = "a".repeat(1024), helpText = "b".repeat(2048))
+
+        val normalized = validator.normalize(
+            configuration(
+                section("supporting-data", document).copy(
+                    title = "c".repeat(255),
+                    helpText = "d".repeat(2048)
+                )
+            ),
+        )
+
+        assertEquals(1024, normalized.sections.single().requirements.single().prompt.length)
     }
 
     @Test
@@ -716,7 +975,8 @@ class InformationRequestTemplateConfigurationValidatorTest
     @Test
     fun `a section with no requirements is refused because nothing would ever render it`()
     {
-        val refusal = refusalFor(configuration(InformationRequestTemplateSectionRequest("collected-data", "Collected data")))
+        val refusal =
+            refusalFor(configuration(InformationRequestTemplateSectionRequest("collected-data", "Collected data")))
 
         assertTrue(refusal.contains("collected-data"), "The refusal names the empty section: $refusal")
     }
@@ -785,7 +1045,7 @@ class InformationRequestTemplateConfigurationValidatorTest
             listOf(InformationRequestResponseDisposition.PROVIDED),
             answerable.sections.single().requirements.single().permittedDispositions,
             "The stored waiver rule reads the set as an allowlist, so the reading is stored rather " +
-                "than left to whoever asks next",
+                    "than left to whoever asks next",
         )
 
         val unanswerable = validator.normalize(
@@ -965,6 +1225,276 @@ class InformationRequestTemplateConfigurationValidatorTest
     }
 
     @Test
+    fun `a repeatable group whose subtree anchors no requirement is refused by name`() {
+        val refusal = refusalFor(
+            InformationRequestTemplateConfigurationRequest(
+                groups = listOf(
+                    InformationRequestTemplateGroupRequest(groupKey = "reported-item"),
+                    InformationRequestTemplateGroupRequest(groupKey = "unanswered-group"),
+                ),
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            occurrenceAnchorKey = "reported-item",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(refusal.contains("unanswered-group"), "The refusal names the empty group: $refusal")
+    }
+
+    @Test
+    fun `a group that anchors nothing itself is accepted when a nested group beneath it anchors a requirement`() {
+        val normalized = validator.normalize(
+            InformationRequestTemplateConfigurationRequest(
+                groups = listOf(
+                    InformationRequestTemplateGroupRequest(groupKey = "reported-item"),
+                    InformationRequestTemplateGroupRequest(
+                        groupKey = "reported-detail",
+                        parentGroupKey = "reported-item"
+                    ),
+                ),
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            occurrenceAnchorKey = "reported-detail",
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(setOf("reported-item", "reported-detail"), normalized.groups.map { it.groupKey }.toSet())
+    }
+
+    @Test
+    fun `a condition rule on a requirement that is not conditional is refused by name`() {
+        listOf(
+            InformationRequestRequiredness.REQUIRED,
+            InformationRequestRequiredness.OPTIONAL
+        ).forEach { requiredness ->
+            val refusal = refusalFor(
+                configuration(
+                    section(
+                        "collected-data",
+                        requirement("recorded-control", InformationRequestRequirementType.FIELD),
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            requiredness = requiredness,
+                            conditionalRuleKey = "when-recorded-note-applies",
+                        ),
+                    ),
+                ).copy(
+                    conditionRules = listOf(
+                        InformationRequestTemplateConditionRuleRequest(
+                            ruleKey = "when-recorded-note-applies",
+                            predicates = listOf(
+                                InformationRequestTemplateConditionPredicateRequest(
+                                    fieldDefinitionId = fieldOf("recorded-control"),
+                                    valueType = FieldValueType.SHORT_TEXT,
+                                    operator = FieldOperator.IS_NOT_EMPTY,
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+            assertTrue(
+                refusal.contains("recorded-note") && refusal.contains("when-recorded-note-applies"),
+                "A $requiredness requirement naming a rule should be refused by name: $refusal",
+            )
+        }
+    }
+
+    @Test
+    fun `a template version states at most one hundred repeatable groups`() {
+        val refusal = refusalFor(
+            InformationRequestTemplateConfigurationRequest(
+                groups = (0..100).map { InformationRequestTemplateGroupRequest(groupKey = "reported-item-$it") },
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD)
+                    )
+                ),
+            ),
+        )
+
+        assertTrue(refusal.contains("at most 100 repeatable groups"), refusal)
+    }
+
+    @Test
+    fun `repeatable groups nest at most five deep`() {
+        val accepted = validator.normalize(nestedGroups(5, "reported-level"))
+        assertEquals(5, accepted.groups.size)
+
+        val refusal = refusalFor(nestedGroups(6, "reported-level"))
+
+        assertTrue(refusal.contains("reported-level-5") && refusal.contains("five"), refusal)
+    }
+
+    @Test
+    fun `a nesting whose longest occurrence path would not fit is refused naming the deepest group`() {
+        val refusal = refusalFor(nestedGroups(4, "a".repeat(118)))
+
+        assertTrue(refusal.contains("a".repeat(118) + "-3") && refusal.contains("512"), refusal)
+    }
+
+    @Test
+    fun `occurrence counts are bounded so creating a request materializes a bounded number of occurrences`() {
+        val tooManyRequired = refusalFor(nestedGroups(1, "reported-item", minimum = 101))
+        val tooManyAllowed = refusalFor(nestedGroups(1, "reported-item", maximum = 1001))
+        val tooManyAtCreation = refusalFor(nestedGroups(3, "reported-item", minimum = 10))
+
+        assertTrue(tooManyRequired.contains("at most 100"), tooManyRequired)
+        assertTrue(tooManyAllowed.contains("at most 1000"), tooManyAllowed)
+        assertTrue(tooManyAtCreation.contains("500"), tooManyAtCreation)
+    }
+
+    @Test
+    fun `a requirement's rule key and occurrence anchor are lowercased like the keys they name`() {
+        val normalized = validator.normalize(
+            InformationRequestTemplateConfigurationRequest(
+                groups = listOf(InformationRequestTemplateGroupRequest(groupKey = "Reported-Item")),
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        requirement("recorded-control", InformationRequestRequirementType.FIELD),
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            requiredness = InformationRequestRequiredness.CONDITIONAL,
+                            conditionalRuleKey = " When-Note-Applies ",
+                        ),
+                        requirement("recorded-entry", InformationRequestRequirementType.FIELD).copy(
+                            occurrenceAnchorKey = " Reported-Item ",
+                        ),
+                    ),
+                ),
+                conditionRules = listOf(
+                    InformationRequestTemplateConditionRuleRequest(
+                        ruleKey = "When-Note-Applies",
+                        predicates = listOf(
+                            InformationRequestTemplateConditionPredicateRequest(
+                                fieldDefinitionId = fieldOf("recorded-control"),
+                                valueType = FieldValueType.SHORT_TEXT,
+                                operator = FieldOperator.IS_NOT_EMPTY,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val requirements = normalized.sections.single().requirements.associateBy { it.requirementKey }
+        assertEquals("when-note-applies", requirements.getValue("recorded-note").conditionalRuleKey)
+        assertEquals("reported-item", requirements.getValue("recorded-entry").occurrenceAnchorKey)
+    }
+
+    @Test
+    fun `a rule reads only answers at the top level or in the decided requirement's own or enclosing group`() {
+        fun ruleOn(decidedAnchor: String?, sourceAnchor: String?) = InformationRequestTemplateConfigurationRequest(
+            groups = listOf(
+                InformationRequestTemplateGroupRequest(groupKey = "reported-item"),
+                InformationRequestTemplateGroupRequest(groupKey = "reported-detail", parentGroupKey = "reported-item"),
+                InformationRequestTemplateGroupRequest(groupKey = "reported-other"),
+            ),
+            sections = listOf(
+                section(
+                    "collected-data",
+                    requirement(
+                        "recorded-control",
+                        InformationRequestRequirementType.FIELD
+                    ).copy(occurrenceAnchorKey = sourceAnchor),
+                    requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                        requiredness = InformationRequestRequiredness.CONDITIONAL,
+                        conditionalRuleKey = "when-control-is-stated",
+                        occurrenceAnchorKey = decidedAnchor,
+                    ),
+                    requirement(
+                        "recorded-item",
+                        InformationRequestRequirementType.FIELD
+                    ).copy(occurrenceAnchorKey = "reported-item"),
+                    requirement(
+                        "recorded-detail",
+                        InformationRequestRequirementType.FIELD
+                    ).copy(occurrenceAnchorKey = "reported-detail"),
+                    requirement(
+                        "recorded-other",
+                        InformationRequestRequirementType.FIELD
+                    ).copy(occurrenceAnchorKey = "reported-other"),
+                ),
+            ),
+            conditionRules = listOf(
+                InformationRequestTemplateConditionRuleRequest(
+                    ruleKey = "when-control-is-stated",
+                    predicates = listOf(
+                        InformationRequestTemplateConditionPredicateRequest(
+                            fieldDefinitionId = fieldOf("recorded-control"),
+                            valueType = FieldValueType.SHORT_TEXT,
+                            operator = FieldOperator.IS_NOT_EMPTY,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        validator.normalize(ruleOn(decidedAnchor = null, sourceAnchor = null))
+        validator.normalize(ruleOn(decidedAnchor = "reported-detail", sourceAnchor = "reported-item"))
+        validator.normalize(ruleOn(decidedAnchor = "reported-detail", sourceAnchor = null))
+        val fromGroupToTop = refusalFor(ruleOn(decidedAnchor = null, sourceAnchor = "reported-item"))
+        val fromSibling = refusalFor(ruleOn(decidedAnchor = "reported-detail", sourceAnchor = "reported-other"))
+
+        listOf(fromGroupToTop, fromSibling).forEach { refusal ->
+            assertTrue(refusal.contains("when-control-is-stated") && refusal.contains("recorded-note"), refusal)
+        }
+    }
+
+    @Test
+    fun `a substitute is found only at the top level or in the document's own group`() {
+        fun substituted(documentAnchor: String?, substituteAnchor: String?) =
+            InformationRequestTemplateConfigurationRequest(
+                groups = listOf(
+                    InformationRequestTemplateGroupRequest(groupKey = "reported-item"),
+                    InformationRequestTemplateGroupRequest(
+                        groupKey = "reported-detail",
+                        parentGroupKey = "reported-item"
+                    ),
+                ),
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        documentRequirement("supporting-record").copy(
+                            substituteRequirementKeys = listOf("alternative-record"),
+                            occurrenceAnchorKey = documentAnchor,
+                        ),
+                        documentRequirement("alternative-record").copy(occurrenceAnchorKey = substituteAnchor),
+                        requirement(
+                            "recorded-item",
+                            InformationRequestRequirementType.FIELD
+                        ).copy(occurrenceAnchorKey = "reported-item"),
+                        requirement(
+                            "recorded-detail",
+                            InformationRequestRequirementType.FIELD
+                        ).copy(occurrenceAnchorKey = "reported-detail"),
+                    ),
+                ),
+            )
+
+        validator.normalize(substituted(documentAnchor = null, substituteAnchor = null))
+        validator.normalize(substituted(documentAnchor = "reported-item", substituteAnchor = "reported-item"))
+        validator.normalize(substituted(documentAnchor = "reported-item", substituteAnchor = null))
+        val fromGroupToTop = refusalFor(substituted(documentAnchor = null, substituteAnchor = "reported-item"))
+        val fromParent = refusalFor(substituted(documentAnchor = "reported-detail", substituteAnchor = "reported-item"))
+
+        listOf(fromGroupToTop, fromParent).forEach { refusal ->
+            assertTrue(refusal.contains("supporting-record") && refusal.contains("alternative-record"), refusal)
+        }
+    }
+
+    @Test
     fun `nested repeatable groups normalize together`()
     {
         val normalized = validator.normalize(
@@ -977,12 +1507,77 @@ class InformationRequestTemplateConfigurationValidatorTest
                         minOccurrences = 1,
                     ),
                 ),
+                sections = listOf(
+                    section(
+                        "collected-data",
+                        requirement("recorded-note", InformationRequestRequirementType.FIELD).copy(
+                            occurrenceAnchorKey = "reported-detail",
+                        ),
+                    ),
+                ),
             ),
         )
 
         assertEquals(
             mapOf("reported-item" to null, "reported-detail" to "reported-item"),
             normalized.groups.associate { it.groupKey to it.parentGroupKey },
+        )
+    }
+
+    private fun layeredConditions(layers: Int): InformationRequestTemplateConfigurationRequest {
+        val root = requirement("layer-root", InformationRequestRequirementType.FIELD)
+        val conditional = (0 until layers).flatMap { layer ->
+            listOf("first", "second").map { position ->
+                requirement("layer-$layer-$position", InformationRequestRequirementType.FIELD).copy(
+                    requiredness = InformationRequestRequiredness.CONDITIONAL,
+                    conditionalRuleKey = "layer-$layer-applies",
+                )
+            }
+        }
+        val rules = (0 until layers).map { layer ->
+            if (layer == 0) rule("layer-0-applies", "layer-root")
+            else rule("layer-$layer-applies", "layer-${layer - 1}-first", "layer-${layer - 1}-second")
+        }
+        return configuration(section("collected-data", root, *conditional.toTypedArray())).copy(conditionRules = rules)
+    }
+
+    private fun rule(key: String, vararg sourceRequirementKeys: String) =
+        InformationRequestTemplateConditionRuleRequest(
+            ruleKey = key,
+            predicates = sourceRequirementKeys.map { source ->
+                InformationRequestTemplateConditionPredicateRequest(
+                    fieldDefinitionId = fieldOf(source),
+                    valueType = FieldValueType.SHORT_TEXT,
+                    operator = FieldOperator.IS_NOT_EMPTY,
+                )
+            },
+        )
+
+    private fun nestedGroups(
+        levels: Int,
+        keyStem: String,
+        minimum: Int = 0,
+        maximum: Int? = null,
+    ): InformationRequestTemplateConfigurationRequest {
+        val keys = (0 until levels).map { "$keyStem-$it" }
+        return InformationRequestTemplateConfigurationRequest(
+            groups = keys.mapIndexed { level, key ->
+                InformationRequestTemplateGroupRequest(
+                    groupKey = key,
+                    parentGroupKey = keys.getOrNull(level - 1),
+                    minOccurrences = minimum,
+                    maxOccurrences = maximum,
+                )
+            },
+            sections = listOf(
+                section(
+                    "collected-data",
+                    requirement(
+                        "recorded-note",
+                        InformationRequestRequirementType.FIELD
+                    ).copy(occurrenceAnchorKey = keys.last()),
+                ),
+            ),
         )
     }
 
@@ -999,10 +1594,6 @@ class InformationRequestTemplateConfigurationValidatorTest
             requirements = requirements.toList(),
         )
 
-    /**
-     * A typed requirement has to name the field it collects, so the fixture derives one field per
-     * requirement key. Two requirements only collide when a test says they do.
-     */
     private fun requirement(key: String, type: InformationRequestRequirementType) =
         InformationRequestTemplateRequirementRequest(
             requirementKey = key,
@@ -1017,4 +1608,72 @@ class InformationRequestTemplateConfigurationValidatorTest
 
     private fun documentRequirement(key: String) =
         requirement(key, InformationRequestRequirementType.DOCUMENT)
+
+    private fun boundedPolicy() = InformationRequestTemplateEvidencePolicyRequest(
+        minimumFileCount = 1,
+        maximumFileCount = 3,
+        maximumFileSizeBytes = 1024,
+        maximumTotalSizeBytes = 1024,
+        minimumPageCount = 1,
+        maximumPageCount = 1,
+        issueDateRequirement = InformationRequestEvidenceAttributeRequirement.REQUIRED,
+        expiryDateRequirement = InformationRequestEvidenceAttributeRequirement.REQUIRED,
+        coveragePeriodRequirement = InformationRequestEvidenceAttributeRequirement.REQUIRED,
+        maximumIssueAgeDays = 1,
+        minimumRemainingValidityDays = 0,
+        minimumCoverageDays = 1,
+        coverageContinuityRequired = true,
+    )
+
+    private fun unboundedPolicy(case: String): InformationRequestTemplateEvidencePolicyRequest {
+        val required = InformationRequestEvidenceAttributeRequirement.REQUIRED
+        val optional = InformationRequestEvidenceAttributeRequirement.OPTIONAL
+        return when (case) {
+            "no-files" -> InformationRequestTemplateEvidencePolicyRequest(minimumFileCount = 0)
+            "fewer-allowed" -> InformationRequestTemplateEvidencePolicyRequest(
+                minimumFileCount = 2,
+                maximumFileCount = 1
+            )
+
+            "empty-file" -> InformationRequestTemplateEvidencePolicyRequest(maximumFileSizeBytes = 0)
+            "empty-total" -> InformationRequestTemplateEvidencePolicyRequest(maximumTotalSizeBytes = 0)
+            "small-total" -> InformationRequestTemplateEvidencePolicyRequest(
+                maximumFileSizeBytes = 2048,
+                maximumTotalSizeBytes = 1024
+            )
+
+            "no-pages" -> InformationRequestTemplateEvidencePolicyRequest(minimumPageCount = 0)
+            "empty-page-limit" -> InformationRequestTemplateEvidencePolicyRequest(maximumPageCount = 0)
+            "fewer-pages" -> InformationRequestTemplateEvidencePolicyRequest(minimumPageCount = 3, maximumPageCount = 2)
+            "short-age" -> InformationRequestTemplateEvidencePolicyRequest(
+                maximumIssueAgeDays = 0,
+                issueDateRequirement = required
+            )
+
+            "uncaptured-issue" -> InformationRequestTemplateEvidencePolicyRequest(
+                maximumIssueAgeDays = 30,
+                issueDateRequirement = optional
+            )
+
+            "negative-validity" ->
+                InformationRequestTemplateEvidencePolicyRequest(
+                    minimumRemainingValidityDays = -1,
+                    expiryDateRequirement = required
+                )
+
+            "uncaptured-expiry" -> InformationRequestTemplateEvidencePolicyRequest(minimumRemainingValidityDays = 10)
+            "short-coverage" -> InformationRequestTemplateEvidencePolicyRequest(
+                minimumCoverageDays = 0,
+                coveragePeriodRequirement = required
+            )
+
+            "uncaptured-coverage" ->
+                InformationRequestTemplateEvidencePolicyRequest(
+                    minimumCoverageDays = 30,
+                    coveragePeriodRequirement = optional
+                )
+
+            else -> InformationRequestTemplateEvidencePolicyRequest(coverageContinuityRequired = true)
+        }
+    }
 }

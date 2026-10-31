@@ -1,21 +1,15 @@
 package com.docuhyphen.app.api.resource.fields
 
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
+import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 
-/**
- * `If-Match` is a header before it is a precondition, and the header has more shapes than the
- * engine's one idea of a stated version. A caller may name one validator, several, a validator it
- * marks as weak, or the wildcard that stands for whichever version is current, and a surface that
- * requires a stated version has to tell a caller that named none from a caller that named a version
- * the data has moved past. These are the shapes the Fields write surface is reached with.
- */
 class FieldsPreconditionHeaderTest
 {
     private val current = "\"${UUID.randomUUID()}:7\""
@@ -80,5 +74,35 @@ class FieldsPreconditionHeaderTest
             precondition.requireSatisfiedBy(current)
         }
         assertEquals(FieldsPreconditionException.Kind.STALE, refusal.kind)
+    }
+
+    @Test
+    fun `a schema change stating If-None-Match star expects that no schema is assigned yet`() {
+        val precondition = FieldsPreconditionHeader.assignment(null, " * ")
+
+        assertEquals(FieldsPrecondition.ExpectedAbsent, precondition)
+        assertDoesNotThrow { precondition.requireSatisfiedBy(null) }
+        val refusal = assertThrows<FieldsPreconditionException> { precondition.requireSatisfiedBy(current) }
+        assertEquals(FieldsPreconditionException.Kind.STALE, refusal.kind)
+        assertEquals(current, refusal.currentETag)
+    }
+
+    @Test
+    fun `a schema change stating If-Match alone is conditioned on the version it names`() {
+        assertEquals(
+            FieldsPrecondition.ExpectedRevision(setOf(current)),
+            FieldsPreconditionHeader.assignment(current, null)
+        )
+        assertEquals(FieldsPrecondition.Absent, FieldsPreconditionHeader.assignment(null, null))
+    }
+
+    @Test
+    fun `a schema change stating both If-Match and If-None-Match is refused as malformed`() {
+        assertThrows<FieldValidationException> { FieldsPreconditionHeader.assignment(current, "*") }
+    }
+
+    @Test
+    fun `a schema change stating If-None-Match with a validator is refused as malformed`() {
+        assertThrows<FieldValidationException> { FieldsPreconditionHeader.assignment(null, current) }
     }
 }

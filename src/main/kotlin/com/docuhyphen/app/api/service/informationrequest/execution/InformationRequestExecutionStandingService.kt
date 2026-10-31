@@ -2,28 +2,58 @@ package com.docuhyphen.app.api.service.informationrequest.execution
 
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestOwnerStanding
-import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
+import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
+import com.docuhyphen.app.api.model.informationrequest.execution.*
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.subscription.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
+import java.util.*
 
 @ApplicationScoped
 class InformationRequestExecutionStandingService @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
     private val executionGrantService: InformationRequestExecutionGrantService,
+    private val requestRepository: InformationRequestRepository,
 )
 {
+    fun creationStanding(exchange: Exchange): InformationRequestCreationStanding = creationStanding(ownerOf(exchange))
+
+    fun creationStanding(owner: SubscriptionContext): InformationRequestCreationStanding {
+        val subscription = subscriptionAccessService.resolve(owner)
+        val standing = ownerStandingOf(subscription)
+        val limits = subscription.limits
+        val openRequests = requestRepository.countOpenForOwner(requestOwnerTypeOf(owner), owner.ownerId)
+        val quotas = InformationRequestPlanQuotas(
+            maxOpenRequests = limits.maxOpenInformationRequests,
+            openRequests = openRequests,
+            maxActingPartiesPerRequest = limits.maxActingPartiesPerInformationRequest,
+            maxEvidenceFilesPerRequest = limits.maxEvidenceFilesPerInformationRequest,
+            maxEvidenceBytesPerRequest = limits.maxEvidenceBytesPerInformationRequest,
+            maxCommittedEvidenceBytes = limits.maxCommittedEvidenceBytes,
+            committedEvidenceBytes = executionGrantService.committedEvidenceBytes(owner),
+        )
+        val openRequestLimitReached = standing.enforcementMode.refusesDeniedRequests &&
+                limits.maxOpenInformationRequests?.let { openRequests >= it } == true
+        return InformationRequestCreationStanding(
+            owner = standing,
+            quotas = quotas,
+            unavailableReason = standing.newWorkUnavailableReason
+                ?: InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED.takeIf { openRequestLimitReached },
+        )
+    }
+
     fun ownerStanding(exchange: Exchange): InformationRequestOwnerStanding = ownerStanding(ownerOf(exchange))
 
     fun ownerStanding(request: InformationRequest): InformationRequestOwnerStanding = ownerStanding(ownerOf(request))
 
-    fun ownerStanding(owner: SubscriptionContext): InformationRequestOwnerStanding
+    fun ownerStanding(owner: SubscriptionContext): InformationRequestOwnerStanding =
+        ownerStandingOf(subscriptionAccessService.resolve(owner))
+
+    private fun ownerStandingOf(subscription: EffectiveSubscription): InformationRequestOwnerStanding
     {
-        val subscription = subscriptionAccessService.resolve(owner)
         val mode = subscriptionAccessService.enforcementMode()
         val suspended = subscription.status == SubscriptionStatus.SUSPENDED
         return InformationRequestOwnerStanding(
@@ -38,12 +68,28 @@ class InformationRequestExecutionStandingService @Inject constructor(
         )
     }
 
+    fun standingFor(request: InformationRequest): InformationRequestExecutionStanding =
+        standingOf(request, ownerStanding(request))
+
+    fun standingsOf(requests: Collection<InformationRequest>): Map<UUID, InformationRequestExecutionStanding> {
+        if (requests.isEmpty()) return emptyMap()
+        val grants = executionGrantService.findForRequests(requests.map { it.id }.toSet())
+        val owners = requests.map { ownerOf(it) }.distinct().associateWith { ownerStanding(it) }
+        return requests.associate { request ->
+            request.id to standingFrom(owners.getValue(ownerOf(request)), grants[request.id])
+        }
+    }
+
     fun standingOf(
         request: InformationRequest,
         owner: InformationRequestOwnerStanding
+    ): InformationRequestExecutionStanding = standingFrom(owner, executionGrantService.findForRequest(request.id))
+
+    private fun standingFrom(
+        owner: InformationRequestOwnerStanding,
+        grant: RequestExecutionGrant?,
     ): InformationRequestExecutionStanding
     {
-        val grant = executionGrantService.findForRequest(request.id)
         val lapse = owner.newWorkUnavailableReason
         return when
         {
@@ -89,6 +135,11 @@ class InformationRequestExecutionStandingService @Inject constructor(
 
         !subscription.hasFeature(PlanFeature.INFORMATION_REQUESTS) -> InformationRequestStandingReason.FEATURE_NOT_INCLUDED
         else -> null
+    }
+
+    private fun requestOwnerTypeOf(owner: SubscriptionContext): InformationRequestOwnerType = when (owner.ownerType) {
+        SubscriptionOwnerType.ORGANIZATION -> InformationRequestOwnerType.ORGANIZATION
+        SubscriptionOwnerType.USER -> InformationRequestOwnerType.USER
     }
 
     private fun ownerOf(request: InformationRequest): SubscriptionContext

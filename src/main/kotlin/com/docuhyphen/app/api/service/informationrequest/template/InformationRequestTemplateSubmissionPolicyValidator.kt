@@ -60,25 +60,62 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
         }
     }
 
+    fun requireSubstituteStages(document: InformationRequestTemplateConfigurationRequest) {
+        if (document.submissionMode != InformationRequestSubmissionMode.STAGED) return
+        val stageByRequirement = document.sections.flatMap { section ->
+            section.submissionStageKey?.let { stage -> section.requirements.map { it.requirementKey to stage } }
+                .orEmpty()
+        }.toMap()
+        validateSubstituteStages(document.sections.flatMap { it.requirements }, stageByRequirement)
+    }
+
+    fun requireConditionStages(document: InformationRequestTemplateConfigurationRequest) {
+        if (document.submissionMode != InformationRequestSubmissionMode.STAGED) return
+        val stageByRequirement = document.sections.flatMap { section ->
+            section.submissionStageKey?.let { stage -> section.requirements.map { it.requirementKey to stage } }
+                .orEmpty()
+        }.toMap()
+        validateConditionStages(document, document.sections.flatMap { it.requirements }, stageByRequirement)
+    }
+
     private fun validateStageContainment(document: InformationRequestTemplateConfigurationRequest)
     {
-        val stageOrder = document.sections.mapNotNull { it.submissionStageKey }.distinct()
         val stageByRequirement = document.sections.flatMap { section ->
             section.requirements.map { it.requirementKey to section.submissionStageKey!! }
         }.toMap()
         val requirements = document.sections.flatMap { it.requirements }
-        validateConditionStages(document, requirements, stageByRequirement, stageOrder)
+        validateConditionStages(document, requirements, stageByRequirement)
         validateGroupStages(document.groups, requirements, stageByRequirement)
+        validateSubstituteStages(requirements, stageByRequirement)
+    }
+
+    private fun validateSubstituteStages(
+        requirements: List<InformationRequestTemplateRequirementRequest>,
+        stageByRequirement: Map<String, String>,
+    ) {
+        requirements.forEach { requirement ->
+            val key = requirement.requirementKey
+            val stage = stageByRequirement[key] ?: return@forEach
+            requirement.substituteRequirementKeys.forEach { substituteKey ->
+                val substituteStage = stageByRequirement[substituteKey] ?: return@forEach
+                if (substituteStage != stage) {
+                    throw InformationRequestTemplateValidationException(
+                        "Requirement $key is submitted in stage $stage but names $substituteKey from stage " +
+                                "$substituteStage as its substitute evidence, which could change after this stage " +
+                                "is submitted",
+                        requirementKey = key,
+                    )
+                }
+            }
+        }
     }
 
     private fun validateConditionStages(
         document: InformationRequestTemplateConfigurationRequest,
         requirements: List<InformationRequestTemplateRequirementRequest>,
         stageByRequirement: Map<String, String>,
-        stageOrder: List<String>,
     )
     {
-        val sequential = document.submissionStageOrdering == InformationRequestSubmissionStageOrdering.SEQUENTIAL
         val ruleByKey = document.conditionRules.associateBy { it.ruleKey }
         val requirementKeyByField: Map<UUID, String> = requirements
             .mapNotNull { requirement -> requirement.collectedFieldDefinitionId?.let { it to requirement.requirementKey } }
@@ -86,14 +123,13 @@ internal object InformationRequestTemplateSubmissionPolicyValidator
 
         requirements.forEach { conditional ->
             val rule = conditional.conditionalRuleKey?.let(ruleByKey::get) ?: return@forEach
-            val conditionalStage = stageByRequirement.getValue(conditional.requirementKey)
+            val conditionalStage = stageByRequirement[conditional.requirementKey] ?: return@forEach
             rule.predicates.forEach { predicate ->
                 val sourceKey = predicate.sourceRequirementKey
                     ?: predicate.fieldDefinitionId?.let(requirementKeyByField::get)
                     ?: return@forEach
                 val sourceStage = stageByRequirement[sourceKey] ?: return@forEach
-                val earlier = stageOrder.indexOf(sourceStage) < stageOrder.indexOf(conditionalStage)
-                if (sourceStage != conditionalStage && !(sequential && earlier))
+                if (sourceStage != conditionalStage)
                 {
                     throw InformationRequestTemplateValidationException(
                         "Requirement ${conditional.requirementKey} is submitted in stage $conditionalStage but its " +

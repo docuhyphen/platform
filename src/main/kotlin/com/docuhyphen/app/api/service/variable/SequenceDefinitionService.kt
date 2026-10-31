@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.variable
 
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.SequenceDefinitionDto
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest

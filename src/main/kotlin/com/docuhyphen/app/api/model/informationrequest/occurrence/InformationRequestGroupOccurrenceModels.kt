@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.informationrequest.occurrence
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateBindingConfiguration
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.util.*
 
 data class AddInformationRequestGroupOccurrenceCommand(
@@ -37,6 +37,7 @@ data class InformationRequestGroupOccurrenceResult(
     val request: InformationRequest,
     val responseETag: String,
     val occurrences: List<InformationRequestGroupOccurrence>,
+    val changeDetails: Map<String, String> = emptyMap(),
 )
 
 internal data class InformationRequestGroupOccurrenceTemplateData(

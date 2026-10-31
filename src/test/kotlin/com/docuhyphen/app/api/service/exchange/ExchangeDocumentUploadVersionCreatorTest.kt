@@ -1,31 +1,19 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.AuthToken
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.io.File
-import java.util.UUID
+import java.util.*
 
 /**
  * Every uploaded file is recorded as a version attributed to the principal the upload was

@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.informationrequest.party
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestDelegatedAuthority
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.sql.Timestamp
 import java.util.*
 
@@ -31,5 +31,10 @@ data class RevokeInformationRequestDelegatedAuthorityCommand(
 
 data class InformationRequestDelegatedAuthorityResult(
     val authority: InformationRequestDelegatedAuthority,
+    val authoritiesETag: String,
+)
+
+data class InformationRequestDelegatedAuthorityList(
+    val authorities: List<InformationRequestDelegatedAuthority>,
     val authoritiesETag: String,
 )

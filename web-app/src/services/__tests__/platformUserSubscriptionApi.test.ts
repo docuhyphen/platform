@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 
 const get = vi.fn();
 const patch = vi.fn();
+const put = vi.fn();
 const post = vi.fn();
 const deleteRequest = vi.fn();
 
@@ -9,6 +10,7 @@ vi.mock("../apiClient.ts", () => ({
     default: {
         get: (...args: unknown[]) => get(...args),
         patch: (...args: unknown[]) => patch(...args),
+        put: (...args: unknown[]) => put(...args),
         post: (...args: unknown[]) => post(...args),
         delete: (...args: unknown[]) => deleteRequest(...args),
     },
@@ -17,6 +19,42 @@ vi.mock("../apiClient.ts", () => ({
 describe("platformUserSubscriptionApi", () =>
 {
     beforeEach(() => vi.clearAllMocks());
+
+    it("reads and replaces an individual account's feature overrides through its platform resource", async () => {
+        const overrides = {
+            appUserId: "user-1",
+            email: "tier-user@example.com",
+            displayName: null,
+            entitlements: [{featureCode: "INFORMATION_REQUESTS", enabled: true}],
+        };
+        get.mockResolvedValueOnce({data: overrides});
+        put.mockResolvedValueOnce({data: overrides});
+        const {fetchPlatformUserFeatureEntitlements, updatePlatformUserFeatureEntitlements} =
+            await import("../platformUserSubscriptionApi.ts");
+        const request = {
+            entitlements: [{featureCode: "INFORMATION_REQUESTS", enabled: false}],
+            changeReason: "Support correction",
+        };
+
+        expect(await fetchPlatformUserFeatureEntitlements("user-1")).toEqual(overrides);
+        await updatePlatformUserFeatureEntitlements("user-1", request);
+
+        expect(get).toHaveBeenCalledWith("/platform/users/user-1/feature-entitlements");
+        expect(put).toHaveBeenCalledWith("/platform/users/user-1/feature-entitlements", request);
+    });
+
+    it("states a refused feature override change the way the other platform calls do", async () => {
+        put.mockRejectedValueOnce({
+            response: {
+                status: 400,
+                data: {errorMessage: "Feature entitlement codes must be unique"}
+            }
+        });
+        const {updatePlatformUserFeatureEntitlements} = await import("../platformUserSubscriptionApi.ts");
+
+        await expect(updatePlatformUserFeatureEntitlements("user-1", {entitlements: []}))
+            .rejects.toEqual({status: 400, errorMessage: "Feature entitlement codes must be unique"});
+    });
 
     it("lists and updates user subscription resources", async () =>
     {

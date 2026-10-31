@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.migration
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 class InformationRequestSubmissionPackageContractTest
 {
@@ -128,7 +128,12 @@ class InformationRequestSubmissionPackageContractTest
                     fixture.insertPackage(UUID.randomUUID(), 1, stageKey = "record-stage")
                 }
                 refusedBy(connection, "a resubmission follows a package of the same stage") {
-                    fixture.insertPackage(UUID.randomUUID(), 2, stageKey = "confirmation-stage", previousPackageId = first)
+                    fixture.insertPackage(
+                        UUID.randomUUID(),
+                        2,
+                        stageKey = "confirmation-stage",
+                        previousPackageId = first
+                    )
                 }
                 fixture.insertPackage(UUID.randomUUID(), 2, stageKey = "record-stage", previousPackageId = first)
                 assertEquals(
@@ -257,7 +262,12 @@ class InformationRequestSubmissionPackageContractTest
                     fixture.insertAttestation(UUID.randomUUID(), 2)
                 }
 
-                fixture.insertAttestation(UUID.randomUUID(), 1, decision = "REFUSED", refusalReason = "The record is incomplete")
+                fixture.insertAttestation(
+                    UUID.randomUUID(),
+                    1,
+                    decision = "REFUSED",
+                    refusalReason = "The record is incomplete"
+                )
                 fixture.insertAttestation(UUID.randomUUID(), 2)
                 assertEquals(
                     2,
@@ -324,7 +334,11 @@ class InformationRequestSubmissionPackageContractTest
                 )
                 assertEquals(
                     packageId.toString(),
-                    queryString(connection, "SELECT satisfied_by_package_id FROM information_request WHERE id = ?", fixture.requestId),
+                    queryString(
+                        connection,
+                        "SELECT satisfied_by_package_id FROM information_request WHERE id = ?",
+                        fixture.requestId
+                    ),
                 )
             }
         }
@@ -344,8 +358,8 @@ class InformationRequestSubmissionPackageContractTest
                             """
                             INSERT INTO information_request_transition
                                 (id, information_request_id, sequence_number, from_state, to_state, mutation,
-                                 actor_kind, actor_id, occurred_at)
-                            VALUES (?, ?, ?, 'ISSUED', 'ISSUED', ?, 'USER', ?, ?)
+                                 actor_kind, actor_id, occurred_at, idempotency_key)
+                            VALUES (?, ?, ?, 'ISSUED', 'ISSUED', ?, 'USER', ?, ?, 'transition-$index')
                             """.trimIndent(),
                             UUID.randomUUID(),
                             fixture.requestId,
@@ -361,8 +375,8 @@ class InformationRequestSubmissionPackageContractTest
                         """
                         INSERT INTO information_request_transition
                             (id, information_request_id, sequence_number, from_state, to_state, mutation,
-                             actor_kind, actor_id, occurred_at)
-                        VALUES (?, ?, 99, 'ISSUED', 'ISSUED', 'UNDECLARED_MUTATION', 'USER', ?, ?)
+                             actor_kind, actor_id, occurred_at, idempotency_key)
+                        VALUES (?, ?, 99, 'ISSUED', 'ISSUED', 'UNDECLARED_MUTATION', 'USER', ?, ?, 'undeclared-mutation')
                         """.trimIndent(),
                         UUID.randomUUID(),
                         fixture.requestId,

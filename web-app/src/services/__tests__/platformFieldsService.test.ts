@@ -53,9 +53,9 @@ const field = (scopeKind: FieldScopeKind): FieldDefinitionDto => ({
         isFilterable: false,
         isSortable: false,
         isReportable: false,
-        createdAt: "2026-07-28T00:00:00Z",
+        createdAt: Date.parse("2026-07-28T00:00:00Z"),
     },
-    createdAt: "2026-07-28T00:00:00Z",
+    createdAt: Date.parse("2026-07-28T00:00:00Z"),
 });
 
 const schema = (scopeKind: FieldScopeKind): SchemaDefinitionDto => ({
@@ -66,7 +66,7 @@ const schema = (scopeKind: FieldScopeKind): SchemaDefinitionDto => ({
     displayName: "Case",
     targetResourceType: "EXCHANGE",
     status: FieldLifecycleStatus.DRAFT,
-    createdAt: "2026-07-28T00:00:00Z",
+    createdAt: Date.parse("2026-07-28T00:00:00Z"),
 });
 
 describe("platformFieldsService", () =>

@@ -15,6 +15,7 @@ import {
     InformationRequestTemplateStatus,
 } from "../../models/models.tsx";
 import InformationRequestRespondentWorkspace from "./InformationRequestRespondentWorkspace.tsx";
+import {duplicateIds} from "../shared/testing/duplicateIds.ts";
 import {unnamedControls} from "../shared/testing/unnamedControls.ts";
 
 const workspace: InformationRequestResponseWorkspaceDto = {
@@ -26,12 +27,14 @@ const workspace: InformationRequestResponseWorkspaceDto = {
         state: InformationRequestState.IN_PROGRESS,
         gatesExchangeClosure: true,
         aggregateRevision: 3,
-        createdAt: "2026-09-27T08:00:00Z",
-        updatedAt: "2026-09-27T08:00:00Z",
+        createdAt: Date.parse("2026-09-27T08:00:00Z"),
+        updatedAt: Date.parse("2026-09-27T08:00:00Z"),
         requestETag: "\"request-3\"",
+        executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
         conditionEvaluations: [],
     },
     title: "Periodic records request",
+    respondentKey: "respondent-a",
     templateVersion: {
         id: "version-a",
         templateDefinitionId: "definition-a",
@@ -59,7 +62,7 @@ const workspace: InformationRequestResponseWorkspaceDto = {
         groups: [],
         conditionRules: [],
         requiredCapabilities: [],
-        createdAt: "2026-09-20T08:00:00Z",
+        createdAt: Date.parse("2026-09-20T08:00:00Z"),
     },
     responseETag: "\"responses-1\"",
     occurrences: [],
@@ -71,11 +74,12 @@ const workspace: InformationRequestResponseWorkspaceDto = {
         disposition: InformationRequestResponseDisposition.NOT_ANSWERED,
         fieldValues: [],
         responseRevision: 1,
-        updatedAt: "2026-09-27T08:00:00Z",
+        updatedAt: Date.parse("2026-09-27T08:00:00Z"),
     }],
     supportingEvidenceLinks: [],
     evidenceUploadAvailable: true,
     evidenceMalwareScanning: false,
+    requirementsAwaitingStepUp: 0,
     executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
 };
 
@@ -84,22 +88,36 @@ vi.mock("./useInformationRequestRespondentWorkspace.ts", () => ({
         requestId: "request-a",
         workspace,
         requirements: workspace.templateVersion.sections.flatMap(section => section.requirements),
+        accessLinkToken: "bootstrap",
+        sessionId: "session-a",
         accessVerified: true,
+        linkIncomplete: false,
         challengeSent: false,
         code: "",
         busy: false,
         error: null,
+        keptUploads: {kept: () => [], keep: vi.fn()},
         setCode: vi.fn(),
         issueChallenge: vi.fn(),
         verifyCode: vi.fn(),
         loadWorkspace: vi.fn(),
+        endAccessSession: vi.fn(),
     }),
 }));
+const panel = vi.hoisted(() => ({creatableGroupKeys: undefined as string[] | undefined}));
+
 vi.mock("../structured-response-workspace/InformationRequestStructuredResponsePanel.tsx", () => ({
-    default: () => <div id={"information-request-response-requirement-root-record-count"}
-                        tabIndex={-1}>Response form</div>,
+    default: ({creatableGroupKeys}: { creatableGroupKeys?: string[] }) => {
+        panel.creatableGroupKeys = creatableGroupKeys;
+        return <div id={"information-request-response-requirement-root-record-count"}
+                    tabIndex={-1}>Response form</div>;
+    },
 }));
 vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({default: () => <div>Submission</div>}));
+vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({
+    default: ({sessionId}: { sessionId: string }) => <p
+        id={"account-link-offer-double"}>{`Account link offer for ${sessionId}`}</p>,
+}));
 
 describe("InformationRequestRespondentWorkspace", () =>
 {
@@ -118,6 +136,34 @@ describe("InformationRequestRespondentWorkspace", () =>
     {
         cleanup();
         workspace.executionStanding = {kind: InformationRequestExecutionStandingKind.ACTIVE};
+        workspace.request.state = InformationRequestState.IN_PROGRESS;
+        workspace.creatableGroupKeys = undefined;
+    });
+
+    it("hands the response form only the parts the server lets this respondent add entries to", () => {
+        render(<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>);
+
+        expect(panel.creatableGroupKeys).toEqual([]);
+        cleanup();
+
+        workspace.creatableGroupKeys = ["reported-item"];
+        render(<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>);
+
+        expect(panel.creatableGroupKeys).toEqual(["reported-item"]);
+    });
+
+    it("offers a verified access-link respondent to link an account while the request is open, and no one else", () => {
+        const noAuth = render(<InformationRequestRespondentWorkspace accessMode={"no-auth"}/>);
+        expect(screen.getByText("Account link offer for session-a")).toBeTruthy();
+        noAuth.unmount();
+
+        const signedIn = render(<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>);
+        expect(screen.queryByText(/Account link offer/)).toBeNull();
+        signedIn.unmount();
+
+        workspace.request.state = InformationRequestState.CLOSED;
+        render(<InformationRequestRespondentWorkspace accessMode={"no-auth"}/>);
+        expect(screen.queryByText(/Account link offer/)).toBeNull();
     });
 
     it("tells a party that changes are paused without stating the owner's reason", () =>
@@ -146,6 +192,19 @@ describe("InformationRequestRespondentWorkspace", () =>
         render(<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>);
 
         expect(unnamedControls(document.body)).toEqual([]);
+
+        expect(duplicateIds(document.body)).toEqual([]);
+    });
+
+    it("keeps the light theme for an access-link respondent and follows a signed-in user's theme", () => {
+        const noAuth = render(<InformationRequestRespondentWorkspace accessMode={"no-auth"}/>);
+        expect(document.getElementById("information-request-respondent-theme-provider")).not.toBeNull();
+        noAuth.unmount();
+
+        render(<InformationRequestRespondentWorkspace accessMode={"authenticated"}/>);
+
+        expect(document.getElementById("information-request-respondent-theme-provider")).toBeNull();
+        expect(document.getElementById("information-request-respondent-page")).not.toBeNull();
     });
 
     it("gives a verified no-auth respondent the same workspace as a signed-in one", () =>

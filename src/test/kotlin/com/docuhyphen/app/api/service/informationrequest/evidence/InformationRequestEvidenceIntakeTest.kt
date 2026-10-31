@@ -1,61 +1,29 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
-import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
-import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
-import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
-import com.docuhyphen.app.api.model.document.DocumentVersionStorageProvider
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestDocumentVersionEvidenceSource
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCapturedAttribute
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidencePolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStoredUsage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceUploadLimits
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionSourceMapper
+import com.docuhyphen.app.api.model.document.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceAssessmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceVersionRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.pdmodel.PDPage
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.nio.file.Path
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceIntakeTest
 {
@@ -70,6 +38,7 @@ class InformationRequestEvidenceIntakeTest
     private val assessmentRepository: InformationRequestEvidenceAssessmentRepository = mock()
     private val recordingService: DocumentVersionRecordingService = mock()
     private val executionGrantService: InformationRequestExecutionGrantService = mock()
+    private val requirementContext: InformationRequestRequirementAuthorizationContextProvider = mock()
     private val limits = InformationRequestEvidenceUploadLimits(
         maximumFileBytes = 1_000,
         maximumNoAuthFileBytes = 500,
@@ -82,7 +51,12 @@ class InformationRequestEvidenceIntakeTest
     init
     {
         whenever(versionRepository.storedUsageForRequest(any())).thenReturn(InformationRequestEvidenceStoredUsage(0, 0))
-        whenever(versionRepository.storedUsageForUploader(any(), any())).thenReturn(InformationRequestEvidenceStoredUsage(0, 0))
+        whenever(versionRepository.storedUsageForUploaders(any(), any())).thenReturn(
+            InformationRequestEvidenceStoredUsage(0, 0)
+        )
+        whenever(requirementContext.linkedIdentitiesOf(any())).thenAnswer { invocation ->
+            setOf(invocation.arguments[0] as PrincipalRef)
+        }
         whenever(artifactRepository.findForRequirement(any())).thenReturn(emptyList())
         whenever(policyLoader.forBinding(any())).thenReturn(policy())
     }
@@ -126,13 +100,32 @@ class InformationRequestEvidenceIntakeTest
         assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
 
         whenever(versionRepository.storedUsageForRequest(fixture.request.id)).thenReturn(InformationRequestEvidenceStoredUsage(0, 0))
-        whenever(versionRepository.storedUsageForUploader(eq(fixture.request.id), eq(fixture.respondent)))
+        whenever(versionRepository.storedUsageForUploaders(eq(fixture.request.id), eq(setOf(fixture.respondent))))
             .thenReturn(InformationRequestEvidenceStoredUsage(2, 10))
         assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
 
-        whenever(versionRepository.storedUsageForUploader(eq(fixture.request.id), eq(fixture.respondent)))
+        whenever(versionRepository.storedUsageForUploaders(eq(fixture.request.id), eq(setOf(fixture.respondent))))
             .thenReturn(InformationRequestEvidenceStoredUsage(1, 1_950))
         assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+    }
+
+    @Test
+    fun `a respondent's allowance counts the files stored by every identity linked to it`() {
+        val linkedAccount = PrincipalRef.user(UUID.randomUUID())
+        val respondent = setOf(fixture.respondent, linkedAccount)
+        whenever(requirementContext.linkedIdentitiesOf(fixture.respondent)).thenReturn(respondent)
+
+        whenever(versionRepository.storedUsageForUploaders(eq(fixture.request.id), eq(respondent)))
+            .thenReturn(InformationRequestEvidenceStoredUsage(2, 10))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+
+        whenever(versionRepository.storedUsageForUploaders(eq(fixture.request.id), eq(respondent)))
+            .thenReturn(InformationRequestEvidenceStoredUsage(1, 1_950))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(100)) }
+
+        whenever(versionRepository.storedUsageForUploaders(eq(fixture.request.id), eq(respondent)))
+            .thenReturn(InformationRequestEvidenceStoredUsage(1, 1_800))
+        admit(sized(100))
     }
 
     @Test
@@ -164,24 +157,83 @@ class InformationRequestEvidenceIntakeTest
     }
 
     @Test
-    fun `a file outside the Requirement's size, count, total, or content type policy is refused`()
+    fun `a file outside the Requirement's size, count, total, or content type policy is refused in plain words`()
     {
         whenever(policyLoader.forBinding(any())).thenReturn(policy(maximumFileSize = 50))
-        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(51)) }
+        val tooLarge = assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(51)) }
 
         whenever(policyLoader.forBinding(any())).thenReturn(policy(maximumFiles = 1))
         storedCurrent(content("existing"))
-        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(10)) }
+        val tooMany = assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(10)) }
 
         whenever(policyLoader.forBinding(any())).thenReturn(policy(maximumTotalSize = 20))
-        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(15)) }
+        val tooMuch = assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) { admit(sized(15)) }
 
         whenever(artifactRepository.findForRequirement(any())).thenReturn(emptyList())
         whenever(policyLoader.forBinding(any())).thenReturn(policy(acceptedTypes = setOf("application/pdf")))
-        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) {
+        val wrongType = assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) {
             admit(file("record.pdf", "plain text presented as a document"))
         }
         admit(pdf(pages = 1))
+
+        assertEquals("This Requirement accepts files of at most 50 bytes", tooLarge.message)
+        assertEquals("This Requirement accepts at most 1 file", tooMany.message)
+        assertEquals("This Requirement accepts at most 20 bytes of files in total", tooMuch.message)
+        assertTrue(
+            wrongType.message.startsWith("This Requirement does not accept this type of file"),
+            wrongType.message
+        )
+        listOf(tooLarge, tooMany, tooMuch, wrongType).forEach { refusal ->
+            assertFalse(Regex("[A-Z]{2,}_[A-Z]").containsMatchIn(refusal.message), refusal.message)
+        }
+    }
+
+    @Test
+    fun `a limit refusal names the limit that was reached and states sizes in units a person reads`() {
+        whenever(versionRepository.storedUsageForUploaders(any(), any()))
+            .thenReturn(InformationRequestEvidenceStoredUsage(limits.maximumPartyFiles, 0))
+        val tooMany = assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(10)) }
+
+        whenever(versionRepository.storedUsageForUploaders(any(), any()))
+            .thenReturn(InformationRequestEvidenceStoredUsage(0, limits.maximumPartyBytes))
+        val tooMuch = assertRefused(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED) { admit(sized(10)) }
+
+        assertEquals(
+            "Each respondent stores at most ${limits.maximumPartyFiles} evidence files on a request",
+            tooMany.message
+        )
+        assertTrue(
+            Regex("Each respondent stores at most [0-9.]+ (KiB|MiB|GiB) of evidence on a request").matches(
+                tooMuch.message
+            ), tooMuch.message
+        )
+    }
+
+    @Test
+    fun `a file is accepted by the type its content and its declared type or name agree on`() {
+        whenever(policyLoader.forBinding(any())).thenReturn(policy(acceptedTypes = setOf("text/csv")))
+
+        admit(file("records.csv", "record,count\nfirst,1\n", declaredType = "text/csv"))
+        admit(file("records.csv", "record,count\nfirst,1\n", declaredType = "application/vnd.ms-excel"))
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) {
+            admit(file("notes.txt", "a note about the records", declaredType = "text/plain"))
+        }
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_POLICY_REFUSED) {
+            admit(file("records.csv", "", declaredType = "text/csv").also {
+                it.file.writeBytes(
+                    byteArrayOf(
+                        0,
+                        1,
+                        2,
+                        3,
+                        -1,
+                        0,
+                        0,
+                        7
+                    )
+                )
+            })
+        }
     }
 
     @Test
@@ -203,13 +255,13 @@ class InformationRequestEvidenceIntakeTest
     }
 
     @Test
-    fun `opaque ciphertext is stored for the record but never inspected or checked against content rules`()
+    fun `content declared end-to-end encrypted is refused before storage because nothing could inspect or scan it`()
     {
         whenever(policyLoader.forBinding(any())).thenReturn(policy(acceptedTypes = setOf("application/pdf")))
 
-        val inspection = admit(file("sealed.bin", "ciphertext", DocumentEncryptionMode.END_TO_END))
-
-        assertNull(inspection)
+        assertRefused(InformationRequestErrorCatalog.EVIDENCE_OPAQUE_CONTENT_REFUSED) {
+            admit(file("page.html", "<html><body>content</body></html>", DocumentEncryptionMode.END_TO_END))
+        }
     }
 
     @Test
@@ -238,17 +290,16 @@ class InformationRequestEvidenceIntakeTest
     }
 
     @Test
-    fun `nothing is recorded for opaque content that was never inspected`()
+    fun `opaque content is never inspected`()
     {
-        intake().recordInspection(InformationRequestEvidenceVersion(), content("ciphertext"), null)
-
-        verify(assessmentRepository, never()).save(any())
+        assertNull(intake().inspect(file("sealed.bin", "ciphertext", DocumentEncryptionMode.END_TO_END)))
     }
 
     private fun intake() = InformationRequestEvidenceIntake(
         deploymentPolicy = deploymentPolicy,
         limits = limits,
         executionGrantService = executionGrantService,
+        requirementContext = requirementContext,
         policyLoader = policyLoader,
         inspector = InformationRequestEvidenceContentInspector(),
         artifactRepository = artifactRepository,
@@ -262,20 +313,24 @@ class InformationRequestEvidenceIntakeTest
         file: InformationRequestEvidenceFile,
         surface: InformationRequestEvidenceSurface = InformationRequestEvidenceSurface.AUTHENTICATED,
         replacing: InformationRequestEvidenceArtifact? = null,
-    ) = intake().admit(
-        fixture.request,
-        fixture.documentRequirement,
-        fixture.access,
-        surface,
-        file,
-        DocumentVersionContentDigests.of(file.file),
-        replacing,
-    )
+    ) = intake().let { intake ->
+        intake.admit(
+            fixture.request,
+            fixture.documentRequirement,
+            fixture.access,
+            surface,
+            file,
+            DocumentVersionContentDigests.of(file.file),
+            intake.inspect(file),
+            replacing,
+        )
+    }
 
-    private fun assertRefused(reasonCode: String, block: () -> Unit)
+    private fun assertRefused(reasonCode: String, block: () -> Unit): InformationRequestLifecycleException
     {
         val refusal = assertThrows(InformationRequestLifecycleException::class.java) { block() }
         assertEquals(reasonCode, refusal.reasonCode)
+        return refusal
     }
 
     private fun storedCurrent(content: DocumentVersion): InformationRequestEvidenceArtifact
@@ -358,11 +413,12 @@ class InformationRequestEvidenceIntakeTest
         name: String,
         content: String,
         encryptionMode: DocumentEncryptionMode = DocumentEncryptionMode.INTERNAL,
+        declaredType: String? = null,
     ): InformationRequestEvidenceFile =
         InformationRequestEvidenceFile(
             directory.resolve("${UUID.randomUUID()}-$name").toFile().apply { writeText(content) },
             name,
-            null,
+            declaredType,
             encryptionMode,
         )
 }

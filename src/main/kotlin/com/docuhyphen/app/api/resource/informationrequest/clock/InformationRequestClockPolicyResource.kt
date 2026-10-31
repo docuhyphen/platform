@@ -42,11 +42,11 @@ class InformationRequestClockPolicyResource @Inject constructor(
         }
     }
 
-    override fun define(request: DefineInformationRequestClockPolicyRequest?): Response
+    override fun define(request: DefineInformationRequestClockPolicyRequest?, idempotencyKey: String?): Response
     {
         return try
         {
-            handler.definePolicy(request)
+            handler.definePolicy(request, idempotencyKey)
         }
         catch (exception: Exception)
         {
@@ -61,11 +61,16 @@ class InformationRequestClockPolicyResource @Inject constructor(
     override fun publishVersion(
         policyId: String,
         request: InformationRequestClockPolicyDefinitionRequest?,
+        idempotencyKey: String?,
     ): Response
     {
         return try
         {
-            handler.publishVersion(InformationRequestCommandHttp.uuid(policyId, "clock policy id"), request)
+            handler.publishVersion(
+                InformationRequestCommandHttp.uuid(policyId, "clock policy id"),
+                request,
+                idempotencyKey
+            )
         }
         catch (exception: Exception)
         {

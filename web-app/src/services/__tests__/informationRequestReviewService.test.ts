@@ -9,6 +9,7 @@ import {
     getInformationRequestReview,
     getInformationRequestReviewQueue,
     getInformationRequestReviewResults,
+    overrideInformationRequestReviewItem,
     recordInformationRequestReviewDecisions,
     recordInformationRequestReviewFinding,
     saveInformationRequestReviewWorksheet,
@@ -38,6 +39,26 @@ describe("Information Request review transport", () =>
         window.sessionStorage.clear();
     });
 
+    it("never forwards access-link credentials to authenticated decision and override routes", async () => {
+        vi.mocked(apiClient.post).mockResolvedValue({data: {}, headers: {etag: "\"review:2\""}});
+        storeInformationRequestSessionToken("request-a", "session-secret");
+        const options = {
+            expectedETag: "\"review:1\"",
+            idempotencyKey: "review-command",
+            accessLinkToken: "bootstrap-secret"
+        };
+        await recordInformationRequestReviewDecisions("request-a", "review-a", "assignment-a", options);
+        await overrideInformationRequestReviewItem("request-a", "review-a", {
+            stageKey: "review",
+            submissionItemId: "item-a",
+            outcome: InformationRequestReviewOutcome.SATISFIED,
+            narrative: "Review override",
+        }, options);
+        for (const call of vi.mocked(apiClient.post).mock.calls) {
+            expect(call[2]?.headers).toEqual({"If-Match": "\"review:1\"", "Idempotency-Key": "review-command"});
+        }
+    });
+
     it("reads a review, the caller's queue, and respondent results on both access surfaces", async () =>
     {
         vi.mocked(apiClient.get).mockResolvedValue({data: []});
@@ -58,7 +79,14 @@ describe("Information Request review transport", () =>
 
     it("saves a worksheet under its draft revision and reports a stale draft instead of retrying", async () =>
     {
-        vi.mocked(apiClient.patch).mockResolvedValueOnce({data: {assignmentId: "assignment-a", draftETag: "\"draft:2\"", entries: []}, headers: {etag: "\"draft:2\""}});
+        vi.mocked(apiClient.patch).mockResolvedValueOnce({
+            data: {
+                assignmentId: "assignment-a",
+                draftETag: "\"draft:2\"",
+                draftRevision: 2,
+                entries: []
+            }, headers: {etag: "\"draft:2\""}
+        });
 
         const saved = await saveInformationRequestReviewWorksheet(
             "request-a",
@@ -68,7 +96,11 @@ describe("Information Request review transport", () =>
             "\"draft:1\"",
         );
 
-        expect(saved).toEqual({outcome: "SAVED", responseETag: "\"draft:2\"", data: {assignmentId: "assignment-a", draftETag: "\"draft:2\"", entries: []}});
+        expect(saved).toEqual({
+            outcome: "SAVED",
+            responseETag: "\"draft:2\"",
+            data: {assignmentId: "assignment-a", draftETag: "\"draft:2\"", draftRevision: 2, entries: []}
+        });
         expect(apiClient.patch).toHaveBeenLastCalledWith(
             "/information-requests/request-a/reviews/review-a/assignments/assignment-a/worksheet",
             {entries: [{submissionItemId: "item-a", outcome: InformationRequestReviewOutcome.SATISFIED}]},

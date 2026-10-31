@@ -11,18 +11,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
 
-/**
- * Reads one Template Version's whole configuration back as the document it was authored as.
- *
- * Everything a version states is read in one pass per table and then assembled in memory, so
- * projecting a version costs a fixed number of queries rather than one per requirement. That matters
- * because this is the read every author screen, every request creation, and every reconstruction of
- * what was asked years ago goes through.
- *
- * Relations between requirements are returned as stable requirement keys rather than binding
- * identifiers. A binding identifies one version's statement and means nothing to a caller comparing
- * versions or reading a recorded response, whereas the key is the thing that stays the same.
- */
 @ApplicationScoped
 class InformationRequestTemplateProjectionLoader @Inject constructor(
     private val sectionRepository: InformationRequestTemplateSectionRepository,
@@ -69,7 +57,7 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             )
         }
 
-        return InformationRequestTemplateDtoMapper.toDto(
+        val projected = InformationRequestTemplateDtoMapper.toDto(
             version = version,
             sections = sections,
             groups = loadGroups(version.id),
@@ -78,6 +66,7 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
                 .map(InformationRequestTemplateDtoMapper::toDto),
             reviewStages = loadReviewStages(version.id, storedSections.associate { it.id to it.sectionKey }),
         )
+        return projected.copy(contentHashSha256 = InformationRequestTemplateVersionContentHash.of(projected))
     }
 
     private fun loadReviewStages(
@@ -95,7 +84,7 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
 
     private fun loadGroups(templateVersionId: UUID): List<InformationRequestTemplateGroupDto>
     {
-        val groups = groupRepository.findForVersion(templateVersionId)
+        val groups = groupRepository.findForVersion(templateVersionId).sortedBy { it.groupKey }
         val keyById = groups.associate { it.id to it.groupKey }
         return groups.map { group ->
             InformationRequestTemplateDtoMapper.toDto(group, group.parentGroupId?.let(keyById::get))
@@ -111,7 +100,7 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             .sortedBy { it.displayOrder }
             .groupBy { it.conditionRuleId }
 
-        return conditionRuleRepository.findForVersion(templateVersionId).map { rule ->
+        return conditionRuleRepository.findForVersion(templateVersionId).sortedBy { it.ruleKey }.map { rule ->
             InformationRequestTemplateDtoMapper.toDto(
                 rule = rule,
                 predicates = predicatesByRule[rule.id].orEmpty().map { predicate ->
@@ -138,8 +127,6 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         return InformationRequestTemplateDtoMapper.toDto(
             binding = binding,
             requirement = requirementsById.getValue(binding.templateRequirementId),
-            // Sorted the way an authored set is normalized, so what was stated reads back unchanged
-            // whatever order the rows happen to come out of storage in.
             permittedDispositions = configuration.dispositionsByBinding[binding.id]
                 .orEmpty()
                 .map { it.disposition }
@@ -152,10 +139,12 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
             },
             substituteRequirementKeys = configuration.substitutesByBinding[binding.id]
                 .orEmpty()
-                .mapNotNull { keyByBindingId[it.substituteTemplateBindingId] },
+                .mapNotNull { keyByBindingId[it.substituteTemplateBindingId] }
+                .sorted(),
             supportingEvidenceRequirementKeys = configuration.evidenceLinksByBinding[binding.id]
                 .orEmpty()
-                .mapNotNull { keyByBindingId[it.supportingTemplateBindingId] },
+                .mapNotNull { keyByBindingId[it.supportingTemplateBindingId] }
+                .sorted(),
             attestationPolicy = configuration.attestationPoliciesByBinding[binding.id]?.let { attestation ->
                 InformationRequestTemplateDtoMapper.toDto(
                     attestation,

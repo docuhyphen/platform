@@ -86,11 +86,24 @@ object InformationRequestClockCalculator
     private fun windowsOf(calendar: InformationRequestClockCalendar, date: LocalDate): List<Pair<Instant, Instant>>
     {
         if (date in calendar.holidays) return emptyList()
-        return calendar.periods
+        val dayStart = date.atStartOfDay(calendar.zone).toInstant()
+        val dayEnd = date.plusDays(1).atStartOfDay(calendar.zone).toInstant()
+        val resolved = calendar.periods
             .filter { it.dayOfWeek == date.dayOfWeek }
-            .sortedBy { it.startMinute }
-            .map { localInstant(calendar, date, it.startMinute) to localInstant(calendar, date, it.endMinute) }
+            .map {
+                maxOf(dayStart, localInstant(calendar, date, it.startMinute)) to
+                        minOf(dayEnd, localInstant(calendar, date, it.endMinute))
+            }
             .filter { it.second.isAfter(it.first) }
+            .sortedBy { it.first }
+        return resolved.fold(mutableListOf()) { union, window ->
+            val last = union.lastOrNull()
+            if (last != null && !window.first.isAfter(last.second))
+                union[union.lastIndex] = last.first to maxOf(last.second, window.second)
+            else
+                union += window
+            union
+        }
     }
 
     private fun localInstant(calendar: InformationRequestClockCalendar, date: LocalDate, minute: Int): Instant =

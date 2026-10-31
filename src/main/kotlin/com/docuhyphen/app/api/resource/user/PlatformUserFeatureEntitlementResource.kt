@@ -3,33 +3,29 @@ package com.docuhyphen.app.api.resource.user
 import com.docuhyphen.app.api.model.PlatformUserFeatureEntitlementDtoMapper
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsUpdateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.user.operations.PlatformUserFeatureEntitlementResourceOperations
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.subscription.PlatformUserFeatureEntitlementService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
-@Path("/platform/users/{appUserId}/feature-entitlements")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformUserFeatureEntitlementResource @Inject constructor(
     private val service: PlatformUserFeatureEntitlementService,
     private val mapper: PlatformUserFeatureEntitlementDtoMapper,
-)
+) : PlatformUserFeatureEntitlementResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformUserFeatureEntitlementResource::class.java)
     }
 
-    @GET
-    fun get(
-        @PathParam("appUserId") appUserId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun get(
+        appUserId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -43,10 +39,9 @@ class PlatformUserFeatureEntitlementResource @Inject constructor(
         }
     }
 
-    @PUT
-    fun replace(
-        @PathParam("appUserId") appUserId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun replace(
+        appUserId: String,
+        requestId: String?,
         payload: PlatformUserFeatureEntitlementsUpdateRequest,
     ): Response
     {

@@ -1,11 +1,17 @@
 package com.docuhyphen.app.api.service.blueprint
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.dto.BlueprintInformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
 import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
+import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateHolder
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionDescription
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDocumentDefaultRepository
@@ -15,61 +21,42 @@ import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryReposito
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.blueprint.model.BlueprintTemplateReferenceFixture
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
+import com.docuhyphen.app.api.service.informationrequest.template.ForeignTemplateVersionFixture
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateReferenceService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
+import com.docuhyphen.app.api.service.subscription.*
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.sql.Timestamp
+import java.time.Instant
+import java.util.*
 
-/**
- * A blueprint may name one exact published Information Request Template Version, and that name is a
- * decision about what its future instantiations create.
- *
- * Three rules are proved here. A blueprint can only name a Version its own owner holds, because a
- * copy of somebody else's configuration is not something this owner may issue. Changing the name
- * changes nothing that was already created from it. A Version that is retired after being named
- * stays named, so the blueprint remains readable and editable, while creating something new from it
- * is refused with a reason the author can act on.
- */
 class BlueprintTemplateVersionReferenceTest
 {
     private val principalId = UUID.randomUUID()
     private val organizationId = UUID.randomUUID()
     private val principal = PrincipalRef.user(principalId)
 
-    private data class ServiceFixture(
-        val service: BlueprintDefinitionService,
-        val repository: BlueprintDefinitionRepository,
-        val templateReferenceService: InformationRequestTemplateReferenceService,
-    )
-
     private fun fixture(
         appAdmin: Boolean = false,
         orgAdmin: Boolean = true,
         activeOrgId: UUID? = organizationId,
         allowedActions: Array<out Action> = arrayOf(Action.BLUEPRINT_VIEW, Action.BLUEPRINT_EDIT),
-    ): ServiceFixture
+        templateReferenceService: InformationRequestTemplateReferenceService = mock(),
+        blueprintSubscriptionGuard: BlueprintSubscriptionGuard = mock(),
+    ): BlueprintTemplateReferenceFixture
     {
         val repository = mock<BlueprintDefinitionRepository>()
         val documentDefaults = mock<BlueprintDocumentDefaultRepository>()
         val participantDefaults = mock<BlueprintParticipantDefaultRepository>()
         val fieldDefaults = mock<BlueprintFieldDefaultRepository>()
-        val templateReferenceService = mock<InformationRequestTemplateReferenceService>()
 
         whenever(documentDefaults.findAllByBlueprintDefinitionId(any())).thenReturn(emptyList())
         whenever(participantDefaults.findAllByBlueprintDefinitionId(any())).thenReturn(emptyList())
@@ -92,7 +79,7 @@ class BlueprintTemplateVersionReferenceTest
             whenever(it.isOrgAdminIn(any(), any())).thenReturn(orgAdmin)
         }
 
-        return ServiceFixture(
+        return BlueprintTemplateReferenceFixture(
             service = BlueprintDefinitionService(
                 repository = repository,
                 documentDefaultRepository = documentDefaults,
@@ -104,7 +91,7 @@ class BlueprintTemplateVersionReferenceTest
                 authorizationService = authorizationService,
                 authorizationContextFactory = contextFactory,
                 userRoleService = roleService,
-                blueprintSubscriptionGuard = mock<BlueprintSubscriptionGuard>(),
+                blueprintSubscriptionGuard = blueprintSubscriptionGuard,
                 templateReferenceService = templateReferenceService,
             ),
             repository = repository,
@@ -136,14 +123,22 @@ class BlueprintTemplateVersionReferenceTest
         ownerUserId = ownerUserId,
     )
 
+    private fun blueprintUseDenied() = SubscriptionDenialException(
+        SubscriptionDenial(
+            reason = SubscriptionDenialReason.FEATURE_NOT_INCLUDED,
+            planCode = PlanCode.PERSONAL,
+            ownerType = SubscriptionOwnerType.ORGANIZATION,
+            feature = PlanFeature.BLUEPRINT_USE,
+            message = "Blueprints are not included",
+        ),
+    )
+
     private fun blueprint(
         scope: BlueprintScope,
         templateVersionId: UUID? = null,
         createdBy: UUID = principalId,
     ): BlueprintDefinition
     {
-        // Held outside the builder because inside it the name would resolve to the entity's own
-        // property rather than to the owning organization this test acts for.
         val owningOrganizationId = organizationId
         return BlueprintDefinition().apply {
             this.scope = scope
@@ -160,7 +155,7 @@ class BlueprintTemplateVersionReferenceTest
     {
         val fixture = fixture()
         val reference = organizationReference()
-        whenever(fixture.templateReferenceService.requireSelectableVersion(reference.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(reference.templateVersionId), any()))
             .thenReturn(reference)
 
         val result = fixture.service.createBlueprint(
@@ -173,6 +168,10 @@ class BlueprintTemplateVersionReferenceTest
         )
 
         assertEquals(reference.templateVersionId, result.informationRequestTemplateVersionId)
+        verify(fixture.templateReferenceService).requireSelectableVersion(
+            reference.templateVersionId,
+            InformationRequestTemplateHolder.organization(organizationId),
+        )
     }
 
     @Test
@@ -180,7 +179,7 @@ class BlueprintTemplateVersionReferenceTest
     {
         val fixture = fixture()
         val reference = organizationReference(ownerOrganizationId = UUID.randomUUID())
-        whenever(fixture.templateReferenceService.requireSelectableVersion(reference.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(reference.templateVersionId), any()))
             .thenReturn(reference)
 
         assertThrows<ForbiddenException> {
@@ -201,9 +200,9 @@ class BlueprintTemplateVersionReferenceTest
         val fixture = fixture(orgAdmin = false, activeOrgId = null)
         val own = personalReference()
         val other = personalReference(ownerUserId = UUID.randomUUID())
-        whenever(fixture.templateReferenceService.requireSelectableVersion(own.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(own.templateVersionId), any()))
             .thenReturn(own)
-        whenever(fixture.templateReferenceService.requireSelectableVersion(other.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(other.templateVersionId), any()))
             .thenReturn(other)
 
         val result = fixture.service.createBlueprint(
@@ -215,6 +214,10 @@ class BlueprintTemplateVersionReferenceTest
             AdminApprovalContext(),
         )
         assertEquals(own.templateVersionId, result.informationRequestTemplateVersionId)
+        verify(fixture.templateReferenceService).requireSelectableVersion(
+            own.templateVersionId,
+            InformationRequestTemplateHolder.person(principalId),
+        )
 
         assertThrows<ForbiddenException> {
             fixture.service.createBlueprint(
@@ -229,11 +232,48 @@ class BlueprintTemplateVersionReferenceTest
     }
 
     @Test
+    fun `naming another owner's version is refused as not found before that owner's plan or the version's lifecycle is described`() {
+        val foreignOrganization = ForeignTemplateVersionFixture(InformationRequestTemplateScopeKind.ORGANIZATION)
+        val foreignPerson = ForeignTemplateVersionFixture(InformationRequestTemplateScopeKind.PERSONAL)
+        val organizationBlueprints = fixture(templateReferenceService = foreignOrganization.references)
+        val personalBlueprints = fixture(
+            orgAdmin = false,
+            activeOrgId = null,
+            templateReferenceService = foreignPerson.references,
+        )
+
+        val organizationRefusal = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+            organizationBlueprints.service.createBlueprint(
+                CreateBlueprintRequest(
+                    name = "Collection blueprint",
+                    configJson = "{}",
+                    informationRequestTemplateVersionId = foreignOrganization.versionId,
+                ),
+                AdminApprovalContext(),
+            )
+        }
+        val personalRefusal = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+            personalBlueprints.service.createBlueprint(
+                CreateBlueprintRequest(
+                    name = "Collection blueprint",
+                    configJson = "{}",
+                    informationRequestTemplateVersionId = foreignPerson.versionId,
+                ),
+                AdminApprovalContext(),
+            )
+        }
+
+        assertEquals(InformationRequestTemplateVersionUnavailableException.NOT_FOUND, organizationRefusal.code)
+        assertEquals(InformationRequestTemplateVersionUnavailableException.NOT_FOUND, personalRefusal.code)
+        verifyNoInteractions(foreignOrganization.entitlementGuard, foreignPerson.entitlementGuard)
+    }
+
+    @Test
     fun `a platform blueprint holds no owner that could name a version`()
     {
         val fixture = fixture(appAdmin = true, orgAdmin = false)
         val reference = organizationReference()
-        whenever(fixture.templateReferenceService.requireSelectableVersion(reference.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(reference.templateVersionId), any()))
             .thenReturn(reference)
 
         assertThrows<ForbiddenException> {
@@ -247,6 +287,10 @@ class BlueprintTemplateVersionReferenceTest
                 AdminApprovalContext(),
             )
         }
+        verify(fixture.templateReferenceService).requireSelectableVersion(
+            reference.templateVersionId,
+            InformationRequestTemplateHolder.PLATFORM_ONLY,
+        )
     }
 
     @Test
@@ -259,7 +303,7 @@ class BlueprintTemplateVersionReferenceTest
         }
         val replacement = organizationReference()
         whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
-        whenever(fixture.templateReferenceService.requireSelectableVersion(replacement.templateVersionId))
+        whenever(fixture.templateReferenceService.requireSelectableVersion(eq(replacement.templateVersionId), any()))
             .thenReturn(replacement)
 
         val result = fixture.service.updateBlueprint(
@@ -304,10 +348,8 @@ class BlueprintTemplateVersionReferenceTest
             AdminApprovalContext(),
         )
 
-        // Editing the rest of a blueprint must not depend on the named Version still being
-        // publishable, otherwise a retirement would freeze every blueprint that named it.
         assertEquals(retiredVersionId, result.informationRequestTemplateVersionId)
-        verify(fixture.templateReferenceService, never()).requireSelectableVersion(any())
+        verify(fixture.templateReferenceService, never()).requireSelectableVersion(any(), any())
     }
 
     @Test
@@ -327,12 +369,119 @@ class BlueprintTemplateVersionReferenceTest
         val reference = organizationReference()
         val stored = blueprint(BlueprintScope.ORG, templateVersionId = reference.templateVersionId)
         whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
-        whenever(fixture.templateReferenceService.requireInstantiableVersion(reference.templateVersionId))
+        whenever(fixture.templateReferenceService.requireInstantiableVersion(eq(reference.templateVersionId), any()))
             .thenReturn(reference)
 
         assertEquals(
-            reference.templateVersionId,
+            reference,
             fixture.service.resolveInformationRequestTemplateVersionForInstantiation(stored.id),
+        )
+        verify(fixture.templateReferenceService).requireInstantiableVersion(
+            reference.templateVersionId,
+            InformationRequestTemplateHolder.organization(organizationId),
+        )
+    }
+
+    @Test
+    fun `a stored blueprint never resolves another owner's version or describes that owner's plan`() {
+        val foreign = ForeignTemplateVersionFixture(InformationRequestTemplateScopeKind.ORGANIZATION)
+        val fixture = fixture(templateReferenceService = foreign.references)
+        val stored = blueprint(BlueprintScope.ORG, templateVersionId = foreign.versionId)
+        whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
+
+        val resolution = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+            fixture.service.resolveInformationRequestTemplateVersionForInstantiation(stored.id)
+        }
+        val snapshot = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+            fixture.service.loadInformationRequestInstantiationSnapshot(
+                stored.id,
+                principal,
+                AuthorizationContext(activeOrgId = organizationId),
+            )
+        }
+
+        assertEquals(InformationRequestTemplateVersionUnavailableException.NOT_FOUND, resolution.code)
+        assertEquals(InformationRequestTemplateVersionUnavailableException.NOT_FOUND, snapshot.code)
+        verifyNoInteractions(foreign.entitlementGuard)
+    }
+
+    @Test
+    fun `a deleted or deactivated blueprint refuses a new instantiation with a stable reason`() {
+        val fixture = fixture()
+        val reference = organizationReference()
+        val deleted = blueprint(BlueprintScope.ORG, templateVersionId = reference.templateVersionId).apply {
+            isDeleted = true
+            isActive = false
+        }
+        val inactive =
+            blueprint(BlueprintScope.ORG, templateVersionId = reference.templateVersionId).apply { isActive = false }
+        listOf(deleted, inactive).forEach { whenever(fixture.repository.findById(it.id)).thenReturn(it) }
+        whenever(fixture.templateReferenceService.requireInstantiableVersion(eq(reference.templateVersionId), any()))
+            .thenReturn(reference)
+
+        listOf(deleted, inactive).forEach { stored ->
+            val resolution = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+                fixture.service.resolveInformationRequestTemplateVersionForInstantiation(stored.id)
+            }
+            val snapshot = assertThrows<InformationRequestTemplateVersionUnavailableException> {
+                fixture.service.loadInformationRequestInstantiationSnapshot(
+                    stored.id,
+                    principal,
+                    AuthorizationContext(activeOrgId = organizationId),
+                )
+            }
+            assertEquals(InformationRequestTemplateVersionUnavailableException.BLUEPRINT_UNAVAILABLE, resolution.code)
+            assertEquals(InformationRequestTemplateVersionUnavailableException.BLUEPRINT_UNAVAILABLE, snapshot.code)
+        }
+    }
+
+    @Test
+    fun `a blueprint its owner's plan no longer lets anyone use refuses a new instantiation before the version is resolved`() {
+        val guard = mock<BlueprintSubscriptionGuard>()
+        val fixture = fixture(blueprintSubscriptionGuard = guard)
+        val reference = organizationReference()
+        val stored = blueprint(BlueprintScope.ORG, templateVersionId = reference.templateVersionId)
+        whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
+        whenever(fixture.templateReferenceService.requireInstantiableVersion(eq(reference.templateVersionId), any()))
+            .thenReturn(reference)
+        doThrow(blueprintUseDenied()).whenever(guard).requireExistingBlueprintUse(
+            principalId,
+            BlueprintScope.ORG,
+            principalId,
+            organizationId,
+            organizationId,
+        )
+
+        assertThrows<SubscriptionDenialException> {
+            fixture.service.resolveInformationRequestTemplateVersionForInstantiation(stored.id)
+        }
+        assertThrows<SubscriptionDenialException> {
+            fixture.service.loadInformationRequestInstantiationSnapshot(
+                stored.id,
+                principal,
+                AuthorizationContext(activeOrgId = organizationId),
+            )
+        }
+        verify(fixture.templateReferenceService, never()).requireInstantiableVersion(any(), any())
+    }
+
+    @Test
+    fun `an unknown blueprint id is refused exactly as a hidden one`() {
+        val fixture = fixture()
+        val hidden = blueprint(BlueprintScope.PERSONAL).apply { createdByAppUserId = UUID.randomUUID() }
+        val unknownId = UUID.randomUUID()
+        whenever(fixture.repository.findById(hidden.id)).thenReturn(hidden)
+
+        val unknown = assertThrows<ForbiddenException> {
+            fixture.service.resolveInformationRequestTemplateVersionForInstantiation(unknownId)
+        }
+        val other = assertThrows<ForbiddenException> {
+            fixture.service.resolveInformationRequestTemplateVersionForInstantiation(hidden.id)
+        }
+
+        assertEquals(
+            other.message?.replace(hidden.id.toString(), "id"),
+            unknown.message?.replace(unknownId.toString(), "id")
         )
     }
 
@@ -343,7 +492,7 @@ class BlueprintTemplateVersionReferenceTest
         val retiredVersionId = UUID.randomUUID()
         val stored = blueprint(BlueprintScope.ORG, templateVersionId = retiredVersionId)
         whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
-        whenever(fixture.templateReferenceService.requireInstantiableVersion(retiredVersionId))
+        whenever(fixture.templateReferenceService.requireInstantiableVersion(eq(retiredVersionId), any()))
             .thenThrow(
                 InformationRequestTemplateVersionUnavailableException(
                     InformationRequestTemplateVersionUnavailableException.RETIRED,
@@ -356,6 +505,54 @@ class BlueprintTemplateVersionReferenceTest
         }
 
         assertEquals(InformationRequestTemplateVersionUnavailableException.RETIRED, refusal.code)
+    }
+
+    @Test
+    fun `a blueprint describes the Template Version it names, even after that Version is retired`() {
+        val fixture = fixture()
+        val versionId = UUID.randomUUID()
+        val templateId = UUID.randomUUID()
+        val retiredAt = Timestamp.from(Instant.parse("2026-09-20T00:00:00Z"))
+        val stored = blueprint(BlueprintScope.ORG, templateVersionId = versionId)
+        whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
+        whenever(fixture.templateReferenceService.describeVersion(versionId)).thenReturn(
+            InformationRequestTemplateVersionDescription(
+                templateVersionId = versionId,
+                templateDefinitionId = templateId,
+                templateDisplayName = "Collection pattern",
+                versionNumber = 2,
+                status = InformationRequestTemplateStatus.RETIRED,
+                latest = false,
+                latestPublishedVersionNumber = 3,
+                retiredAt = retiredAt,
+            ),
+        )
+
+        val described = fixture.service.getBlueprint(stored.id)
+
+        assertEquals(versionId, described.informationRequestTemplateVersionId)
+        assertEquals(
+            BlueprintInformationRequestTemplateVersionDto(
+                templateId = templateId,
+                templateDisplayName = "Collection pattern",
+                versionNumber = 2,
+                status = InformationRequestTemplateStatus.RETIRED,
+                latest = false,
+                latestPublishedVersionNumber = 3,
+                retiredAt = retiredAt,
+            ),
+            described.informationRequestTemplateVersion,
+        )
+    }
+
+    @Test
+    fun `a blueprint that names no version describes none`() {
+        val fixture = fixture()
+        val stored = blueprint(BlueprintScope.ORG)
+        whenever(fixture.repository.findById(stored.id)).thenReturn(stored)
+
+        assertNull(fixture.service.getBlueprint(stored.id).informationRequestTemplateVersion)
+        verify(fixture.templateReferenceService, never()).describeVersion(any())
     }
 
     @Test
@@ -388,9 +585,6 @@ class BlueprintTemplateVersionReferenceTest
             AdminApprovalContext(),
         )
 
-        // The copy belongs to a different owner, and one owner's reusable configuration is not the
-        // other's to issue. Carrying the name across would produce a blueprint whose every
-        // instantiation was refused.
         assertNull(clone.informationRequestTemplateVersionId)
     }
 }

@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
-import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
+import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
+import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestingParty
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionContent
@@ -61,9 +64,6 @@ class InformationRequestAttestationEvaluationService @Inject constructor(
         }.associateBy { it.requirementId }
     }
 
-    fun attestationsFor(requestId: UUID, requirementId: UUID): List<InformationRequestSubmissionAttestation> =
-        attestationRepository.findForRequest(requestId).filter { it.attestationRequirementId == requirementId }
-
     fun attestingParties(requestId: UUID): List<InformationRequestAttestingParty> =
         partyRepository.findActiveForRequest(requestId).mapNotNull { party ->
             party.roleKey.toContributorRole()?.let { InformationRequestAttestingParty(party.id, it) }
@@ -77,6 +77,7 @@ class InformationRequestAttestationEvaluationService @Inject constructor(
         InformationRequestShareRoleKey.ATTESTOR -> InformationRequestContributorRole.ATTESTOR
         InformationRequestShareRoleKey.REVIEWER,
         InformationRequestShareRoleKey.DECISION_MAKER,
+        InformationRequestShareRoleKey.RECORD_OWNER,
             -> null
     }
 }

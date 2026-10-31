@@ -1,33 +1,11 @@
 package com.docuhyphen.app.api.resource.informationrequest.submission
 
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionAttestationResultDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionPackageDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionPreviewDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionRefusalDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSubmissionResultDto
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionAttestation
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionPackage
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestReadableSubmissionPackage
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionAttestationResult
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionItemProblem
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPreview
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionReadiness
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionResult
-import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformationRequestSubmissionAttestationCommand
-import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
-import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.resource.informationrequest.attestation.InformationRequestAttestationResource
 import com.docuhyphen.app.api.resource.informationrequest.attestation.InformationRequestNoAuthAttestationResource
 import com.docuhyphen.app.api.resource.informationrequest.attestation.operations.InformationRequestAttestationResourceOperations
@@ -42,12 +20,12 @@ import com.docuhyphen.app.api.resource.model.SubmitInformationRequestPackageRequ
 import com.docuhyphen.app.api.resource.model.WithdrawInformationRequestPackageRequest
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestSubmissionAttestationService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionIncompleteException
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionQueryService
@@ -56,17 +34,10 @@ import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.Path
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestSubmissionResourceContractTest
 {
@@ -74,13 +45,15 @@ class InformationRequestSubmissionResourceContractTest
     private val requirementId = UUID.randomUUID()
     private val principal = PrincipalRef.user(UUID.randomUUID())
     private val access = RequestAccessContext(principal, AuthorizationContext(sessionRef = "user-session"))
-    private val noAuthAccess = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "link"))
+    private val noAuthAccess =
+        RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "link"))
 
     private val submissionService: InformationRequestSubmissionService = mock()
     private val attestationService: InformationRequestSubmissionAttestationService = mock()
     private val queryService: InformationRequestSubmissionQueryService = mock()
     private val accessContextFactory: InformationRequestAccessContextFactory = mock()
-    private val readAccessService: InformationRequestNoAuthReadAccessService = mock()
+    private val readAccessService: InformationRequestNoAuthReadAccessService =
+        InformationRequestNoAuthAccessDoubles.current()
 
     private val submissionPackage = InformationRequestSubmissionPackage().apply {
         informationRequestId = requestId
@@ -92,8 +65,15 @@ class InformationRequestSubmissionResourceContractTest
         submittedByPrincipalKind = principal.kind
         submittedByPrincipalId = principal.id
     }
-    private val view = InformationRequestSubmissionPackageView(submissionPackage, emptyList(), emptyList(), emptyList(), emptyList(), null)
-    private val readable = InformationRequestReadableSubmissionPackage(view, emptySet(), emptyMap())
+    private val view = InformationRequestSubmissionPackageView(
+        submissionPackage,
+        emptyList(),
+        emptyList(),
+        emptyList(),
+        emptyList(),
+        null
+    )
+    private val readable = InformationRequestReadableSubmissionPackage(view, emptySet(), emptyMap(), emptyMap())
     private val request = InformationRequest().apply {
         id = requestId
         exchangeId = UUID.randomUUID()
@@ -104,29 +84,42 @@ class InformationRequestSubmissionResourceContractTest
     private val result = InformationRequestSubmissionResult(request, view, "\"request:4\"", "\"responses:4\"")
 
     private val resource = InformationRequestSubmissionResource(submissionService, queryService, accessContextFactory)
-    private val previewResource = InformationRequestSubmissionPreviewResource(submissionService, queryService, accessContextFactory)
+    private val previewResource =
+        InformationRequestSubmissionPreviewResource(submissionService, queryService, accessContextFactory)
     private val attestationResource = InformationRequestAttestationResource(attestationService, accessContextFactory)
-    private val noAuthResource = InformationRequestNoAuthSubmissionResource(submissionService, queryService, readAccessService)
-    private val noAuthPreviewResource = InformationRequestNoAuthSubmissionPreviewResource(submissionService, queryService, readAccessService)
-    private val noAuthAttestationResource = InformationRequestNoAuthAttestationResource(attestationService, readAccessService)
+    private val noAuthResource =
+        InformationRequestNoAuthSubmissionResource(submissionService, queryService, readAccessService)
+    private val noAuthPreviewResource =
+        InformationRequestNoAuthSubmissionPreviewResource(submissionService, queryService, readAccessService)
+    private val noAuthAttestationResource =
+        InformationRequestNoAuthAttestationResource(attestationService, readAccessService)
 
     init
     {
         whenever(accessContextFactory.currentAuthenticated()).thenReturn(access)
         whenever(queryService.readable(any(), any())).thenReturn(readable)
-        whenever(readAccessService.resolve(eq("link-token"), anyOrNull())).thenReturn(InformationRequestNoAuthAccess(noAuthAccess, requestId))
+        whenever(readAccessService.resolve(eq(requestId), eq("link-token"), anyOrNull())).thenReturn(noAuthAccess)
     }
 
     @Test
     fun `submission resources are subordinate to the request on both surfaces`()
     {
-        assertEquals("/information-requests/{id}/submissions", pathOf(InformationRequestSubmissionResourceOperations::class.java))
-        assertEquals("/information-requests/{id}/submission-preview", pathOf(InformationRequestSubmissionPreviewResourceOperations::class.java))
+        assertEquals(
+            "/information-requests/{id}/submissions",
+            pathOf(InformationRequestSubmissionResourceOperations::class.java)
+        )
+        assertEquals(
+            "/information-requests/{id}/submission-preview",
+            pathOf(InformationRequestSubmissionPreviewResourceOperations::class.java)
+        )
         assertEquals(
             "/information-requests/{id}/requirements/{requirementId}/attestations",
             pathOf(InformationRequestAttestationResourceOperations::class.java),
         )
-        assertEquals("no-auth/information-requests/{id}/submissions", pathOf(InformationRequestNoAuthSubmissionResourceOperations::class.java))
+        assertEquals(
+            "no-auth/information-requests/{id}/submissions",
+            pathOf(InformationRequestNoAuthSubmissionResourceOperations::class.java)
+        )
         assertEquals(
             "no-auth/information-requests/{id}/submission-preview",
             pathOf(InformationRequestNoAuthSubmissionPreviewResourceOperations::class.java),
@@ -142,7 +135,12 @@ class InformationRequestSubmissionResourceContractTest
     {
         whenever(submissionService.submit(any())).thenReturn(result)
 
-        val response = resource.submit(requestId.toString(), SubmitInformationRequestPackageRequest(" stage-one "), "\"submission:stage-one:abc\"", " submit-key ")
+        val response = resource.submit(
+            requestId.toString(),
+            SubmitInformationRequestPackageRequest(" stage-one "),
+            "\"submission:stage-one:abc\"",
+            " submit-key "
+        )
 
         assertEquals(201, response.status)
         assertEquals(result.responseETag, response.getHeaderString("ETag"))
@@ -151,7 +149,8 @@ class InformationRequestSubmissionResourceContractTest
         assertEquals(result.requestETag, body.requestETag)
         assertEquals(submissionPackage.id, body.submission.id)
         assertEquals(true, body.submission.submittedByCaller)
-        val command = argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
         assertEquals(requestId, command.requestId)
         assertEquals("stage-one", command.stageKey)
         assertEquals(access, command.access)
@@ -165,7 +164,8 @@ class InformationRequestSubmissionResourceContractTest
         whenever(submissionService.submit(any())).thenReturn(result)
 
         assertEquals(201, resource.submit(requestId.toString(), null, "\"submission:whole:abc\"", "key").status)
-        val command = argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
         assertEquals(null, command.stageKey)
 
         val missingKey = resource.submit(requestId.toString(), null, "\"submission:whole:abc\"", " ")
@@ -177,7 +177,12 @@ class InformationRequestSubmissionResourceContractTest
     @Test
     fun `an incomplete scope is refused as unprocessable with only the problems the caller may see`()
     {
-        val problem = InformationRequestSubmissionItemProblem(requirementId, "item-a", "", InformationRequestSubmissionProblemCode.ATTESTATION_MISSING)
+        val problem = InformationRequestSubmissionItemProblem(
+            requirementId,
+            "item-a",
+            "",
+            InformationRequestSubmissionProblemCode.ATTESTATION_MISSING
+        )
         whenever(submissionService.submit(any())).thenThrow(
             InformationRequestSubmissionIncompleteException(InformationRequestSubmissionReadiness(listOf(problem), 2)),
         )
@@ -197,16 +202,83 @@ class InformationRequestSubmissionResourceContractTest
     {
         whenever(submissionService.submit(any()))
             .thenThrow(CommandPreconditionException.required(null))
-            .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.SUBMISSION_ALREADY_SUBMITTED, "already"))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.SUBMISSION_ALREADY_SUBMITTED,
+                    "already"
+                )
+            )
             .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "missing"))
             .thenThrow(ForbiddenException("denied"))
 
         assertEquals(428, resource.submit(requestId.toString(), null, null, "key").status)
         val conflict = resource.submit(requestId.toString(), null, "\"x\"", "key")
         assertEquals(409, conflict.status)
-        assertEquals(InformationRequestErrorCatalog.SUBMISSION_ALREADY_SUBMITTED, (conflict.entity as ResponseError).reasonCode)
+        assertEquals(
+            InformationRequestErrorCatalog.SUBMISSION_ALREADY_SUBMITTED,
+            (conflict.entity as ResponseError).reasonCode
+        )
         assertEquals(404, resource.submit(requestId.toString(), null, "\"x\"", "key").status)
         assertEquals(403, resource.submit(requestId.toString(), null, "\"x\"", "key").status)
+    }
+
+    @Test
+    fun `a wildcard If-Match never stands in for the reviewed submission ETag on either surface`() {
+        val current = "\"submission:whole:abc\""
+        whenever(submissionService.submit(any())).thenThrow(CommandPreconditionException.required(current))
+        whenever(attestationService.record(any())).thenThrow(CommandPreconditionException.required(current))
+
+        val responses = listOf(
+            resource.submit(requestId.toString(), null, "*", "submit-key"),
+            noAuthResource.submit(requestId.toString(), null, "link-token", " * ", "submit-key", null),
+            attestationResource.record(
+                requestId.toString(),
+                requirementId.toString(),
+                RecordInformationRequestAttestationRequest(InformationRequestAttestationDecision.ASSENTED),
+                "*",
+                "attest-key",
+            ),
+            noAuthAttestationResource.record(
+                requestId.toString(),
+                requirementId.toString(),
+                RecordInformationRequestAttestationRequest(InformationRequestAttestationDecision.ASSENTED),
+                "link-token",
+                "*",
+                "attest-key",
+                null,
+            ),
+        )
+
+        responses.forEach { response ->
+            assertEquals(428, response.status)
+            assertEquals(current, response.getHeaderString("ETag"))
+            assertEquals("COMMAND_PRECONDITION_REQUIRED", (response.entity as ResponseError).reasonCode)
+        }
+        val submissions = argumentCaptor<SubmitInformationRequestPackageCommand>()
+            .also { verify(submissionService, times(2)).submit(it.capture()) }
+            .allValues
+        assertEquals(
+            listOf(CommandPrecondition.Absent, CommandPrecondition.Absent),
+            submissions.map { it.precondition })
+        val attestations = argumentCaptor<RecordInformationRequestSubmissionAttestationCommand>()
+            .also { verify(attestationService, times(2)).record(it.capture()) }
+            .allValues
+        assertEquals(
+            listOf(CommandPrecondition.Absent, CommandPrecondition.Absent),
+            attestations.map { it.precondition })
+    }
+
+    @Test
+    fun `a withdrawal never reads a wildcard If-Match as any version`() {
+        whenever(submissionService.withdraw(any())).thenThrow(CommandPreconditionException.required("\"submission:whole:abc\""))
+
+        assertEquals(
+            428,
+            resource.withdraw(requestId.toString(), submissionPackage.id.toString(), null, "*", "withdraw-key").status,
+        )
+        val command =
+            argumentCaptor<WithdrawInformationRequestPackageCommand>().also { verify(submissionService).withdraw(it.capture()) }.firstValue
+        assertEquals(CommandPrecondition.Absent, command.precondition)
     }
 
     @Test
@@ -224,7 +296,8 @@ class InformationRequestSubmissionResourceContractTest
 
         assertEquals(200, response.status)
         assertEquals(result.responseETag, response.getHeaderString("ETag"))
-        val command = argumentCaptor<WithdrawInformationRequestPackageCommand>().also { verify(submissionService).withdraw(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<WithdrawInformationRequestPackageCommand>().also { verify(submissionService).withdraw(it.capture()) }.firstValue
         assertEquals(submissionPackage.id, command.packageId)
         assertEquals("CORRECTION", command.reasonCode)
         assertEquals(CommandPrecondition.ExpectedRevision("\"responses:3\""), command.precondition)
@@ -240,7 +313,9 @@ class InformationRequestSubmissionResourceContractTest
         val list = resource.list(requestId.toString())
         assertEquals(200, list.status)
         @Suppress("UNCHECKED_CAST")
-        assertEquals(listOf(submissionPackage.id), (list.entity as Array<InformationRequestSubmissionPackageDto>).map { it.id })
+        assertEquals(
+            listOf(submissionPackage.id),
+            (list.entity as Array<InformationRequestSubmissionPackageDto>).map { it.id })
 
         val detail = resource.detail(requestId.toString(), submissionPackage.id.toString())
         assertEquals(200, detail.status)
@@ -298,14 +373,20 @@ class InformationRequestSubmissionResourceContractTest
         whenever(submissionService.submit(any())).thenReturn(result)
         whenever(queryService.preview(requestId, null, noAuthAccess)).thenReturn(preview(null))
 
-        val submitted = noAuthResource.submit(requestId.toString(), null, "link-token", "\"submission:whole:abc\"", "key", null)
+        val submitted =
+            noAuthResource.submit(requestId.toString(), null, "link-token", "\"submission:whole:abc\"", "key", null)
         assertEquals(201, submitted.status)
-        val command = argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<SubmitInformationRequestPackageCommand>().also { verify(submissionService).submit(it.capture()) }.firstValue
         assertEquals(noAuthAccess, command.access)
         assertEquals(200, noAuthPreviewResource.preview(requestId.toString(), null, "link-token", null).status)
 
-        whenever(readAccessService.resolve(eq("other-token"), anyOrNull()))
-            .thenReturn(InformationRequestNoAuthAccess(noAuthAccess, UUID.randomUUID()))
+        whenever(readAccessService.resolve(eq(requestId), eq("other-token"), anyOrNull())).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            ),
+        )
         assertEquals(404, noAuthResource.list(requestId.toString(), "other-token", null).status)
         assertEquals(400, noAuthResource.list(requestId.toString(), null, null).status)
         val attested = noAuthAttestationResource.record(
@@ -331,6 +412,7 @@ class InformationRequestSubmissionResourceContractTest
         attestations = emptyList(),
         stages = emptyList(),
         canSubmit = false,
+        correctionOpen = false,
         packages = listOf(readable),
     )
 
@@ -339,7 +421,7 @@ class InformationRequestSubmissionResourceContractTest
         attestationRequirementId = requirementId
         requirementRevisionId = UUID.randomUUID()
         partyId = UUID.randomUUID()
-        partyRole = InformationRequestContributorRole.SUBJECT
+        partyRole = InformationRequestContributorRole.ATTESTOR
         principalKind = principal.kind
         principalId = principal.id
         decision = InformationRequestAttestationDecision.ASSENTED

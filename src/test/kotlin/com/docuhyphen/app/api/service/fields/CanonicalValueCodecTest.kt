@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import kotlinx.serialization.json.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

@@ -1,29 +1,24 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.FieldDefinition
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.fields.FieldContractRepository
 import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.resource.model.CreateFieldDefinitionRequest
+import com.docuhyphen.app.api.resource.model.FieldContractRequest
 import com.docuhyphen.app.api.service.audit.AuditRecorder
+import com.docuhyphen.app.api.service.auth.UserRoleService
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.fields.model.FieldDefinitionTenantFixture
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class FieldDefinitionTenantBoundaryTest
 {
@@ -32,18 +27,12 @@ class FieldDefinitionTenantBoundaryTest
     private val otherOrganizationId = UUID.randomUUID()
     private val principal = PrincipalRef.user(principalId)
 
-    private data class Fixture(
-        val service: FieldDefinitionService,
-        val definitionRepository: FieldDefinitionRepository,
-        val contractRepository: FieldContractRepository,
-    )
-
     private fun fixture(
         activeOrganizationId: UUID? = organizationId,
         appAdmin: Boolean = true,
         organizationRole: OrganizationRoleName? = null,
         vararg allowedActions: Action,
-    ): Fixture
+    ): FieldDefinitionTenantFixture
     {
         val definitionRepository = mock<FieldDefinitionRepository>()
         val contractRepository = mock<FieldContractRepository>()
@@ -67,7 +56,7 @@ class FieldDefinitionTenantBoundaryTest
             else
                 Decision.Deny("test-deny", "Denied in test")
         }
-        return Fixture(
+        return FieldDefinitionTenantFixture(
             FieldDefinitionService(
                 fieldDefinitionRepository = definitionRepository,
                 fieldContractRepository = contractRepository,

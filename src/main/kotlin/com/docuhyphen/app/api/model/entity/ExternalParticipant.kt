@@ -1,4 +1,4 @@
-﻿package com.docuhyphen.app.api.model.entity
+package com.docuhyphen.app.api.model.entity
 
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
@@ -11,18 +11,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Persistent identity for an email-only recipient (no platform login). Replaces the
- * ad-hoc "EMAIL recipient" pattern that previously lived as columns on [Exchange]
- * (`recipient_otp_hash`, `recipient_otp_expiry`, `no_auth_access_*`).
- *
- * Scoping:
- * - `ownerOrganizationId != null` : participant belongs to the directory of that org.
- * - `ownerAppUserId != null` : participant belongs to the personal address book of that user.
- *
- * Uniqueness is per exact owner on lower-cased email. Cross-tenant merging is intentionally an
- * explicit admin operation, never implicit.
- */
 @Entity
 @Serializable
 @Table(name = "external_participant")
@@ -43,7 +31,6 @@ class ExternalParticipant
     @Column(name = "email", nullable = false)
     lateinit var email: String
 
-    /** Lower-cased copy of [email] for portable case-insensitive uniqueness. */
     @Column(name = "email_lower", nullable = false)
     lateinit var emailLower: String
 

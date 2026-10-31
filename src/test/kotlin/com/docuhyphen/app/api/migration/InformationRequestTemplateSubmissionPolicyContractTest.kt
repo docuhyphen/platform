@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.migration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 class InformationRequestTemplateSubmissionPolicyContractTest
 {
@@ -35,7 +35,6 @@ class InformationRequestTemplateSubmissionPolicyContractTest
                     setVersion(connection, fixture.versionId, "submission_mode", "STAGED")
                 }
 
-                // An assertion frozen without a stated policy freezes with the default one.
                 assertEquals(
                     "ANY_ORDER|1|VERIFIED_CONTACT|NOT_ACCEPTED|ATTESTOR|1",
                     statedPolicy(connection, bindingId),

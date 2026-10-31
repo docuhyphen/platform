@@ -62,14 +62,14 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
         {<Dialog modalType="alert"
                  open={isOpen}>
             <DialogSurface id={"end-exchange-dialog"}>
-                <DialogBody>
+                <DialogBody id={"exchange-end-dialog-body"}>
                     <DialogTitle id={"end-exchange-dialog-title"}>Ending Exchange: {exchange && exchange.name}</DialogTitle>
                     <DialogContent id={"end-exchange-dialog-content"}
                                    className={styles.dialogContentContainer}>
                         {ending.message && (
                             <MessageBar id={"end-exchange-message"}
-                                        intent={ending.refused ? "warning" : "error"}>
-                                <MessageBarBody>
+                                        intent={ending.held ? "info" : ending.refused ? "warning" : "error"}>
+                                <MessageBarBody id={"exchange-end-dialog-content-container-message-bar-body"}>
                                     <Text id={"end-exchange-message-text"}
                                           size={200}>
                                         {ending.message}
@@ -92,9 +92,10 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape={"circular"}
-                            disabled={ending.ending || ending.blockedByRequests}
+                            disabled={ending.ending || ending.blockedByRequests || ending.held}
                             onClick={ending.end}>
-                            {ending.ending && <Spinner size={"tiny"}/>}
+                            {ending.ending && <Spinner id={"exchange-end-dialog-spinner"}
+                                                       size={"tiny"}/>}
                             {ending.cancellationOffered ? "Cancel requests and end" : "End Exchange"}
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

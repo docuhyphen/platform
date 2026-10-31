@@ -1,8 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
@@ -11,13 +14,18 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.command.canonicalForm
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockHold
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestReasonCodes
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestSatisfactionService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewOpeningService
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewRouting
 import jakarta.enterprise.context.ApplicationScoped
@@ -50,19 +58,28 @@ class InformationRequestSubmissionService @Inject constructor(
     private val satisfaction: InformationRequestSatisfactionService,
     private val clock: Clock,
     private val entityManager: EntityManager,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
+    private val clockHold: InformationRequestClockHold,
 )
 {
     @Transactional
-    fun submit(command: SubmitInformationRequestPackageCommand): InformationRequestSubmissionResult
+    fun submit(requested: SubmitInformationRequestPackageCommand): InformationRequestSubmissionResult
     {
-        val stageKey = command.stageKey?.trim()?.ifBlank { null }
-        val locked = gate.lock(command.requestId)
+        val stageKey = requested.stageKey?.trim()?.ifBlank { null }
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef.informationRequest(command.requestId),
             operation = SUBMIT_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex("$SUBMIT_OPERATION|${command.requestId}|${stageKey.orEmpty()}"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                SUBMIT_OPERATION,
+                command.requestId,
+                stageKey,
+                command.precondition.canonicalForm(),
+            ),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
@@ -77,16 +94,21 @@ class InformationRequestSubmissionService @Inject constructor(
     }
 
     @Transactional
-    fun withdraw(command: WithdrawInformationRequestPackageCommand): InformationRequestSubmissionResult
+    fun withdraw(requested: WithdrawInformationRequestPackageCommand): InformationRequestSubmissionResult
     {
-        val locked = gate.lock(command.requestId)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef(ResourceType.INFORMATION_REQUEST_SUBMISSION_PACKAGE, command.packageId),
             operation = WITHDRAW_OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                "$WITHDRAW_OPERATION|${command.requestId}|${command.packageId}|${command.reasonCode?.trim().orEmpty()}",
+            requestFingerprint = CommandRequestFingerprint.of(
+                WITHDRAW_OPERATION,
+                command.requestId,
+                command.packageId,
+                command.reasonCode?.trim().orEmpty(),
             ),
         )
         return when (
@@ -108,12 +130,15 @@ class InformationRequestSubmissionService @Inject constructor(
     ): InformationRequestSubmissionResult
     {
         val request = locked.request
-        gate.requireMutation(locked, InformationRequestMutation.SUBMIT)
-        gate.requireContinuationEntitlement(locked)
         gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_SUBMIT), request.id)
+        gate.requireMutation(locked, InformationRequestMutation.SUBMIT)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.SUBMIT)
 
         val content = contentCollector.collect(request, stageKey)
-        command.precondition.requireSatisfiedBy(InformationRequestETag.submissionOf(stageKey, content.contentHash))
+        InformationRequestReviewedContentPrecondition.requireSatisfiedBy(
+            command.precondition,
+            InformationRequestETag.submissionOf(stageKey, content.contentHash),
+        )
         val submittedStages = lockService.submittedStages(request.id)
         val corrected = lockService.openCorrectionForStage(request.id, stageKey)
         if (stageKey in submittedStages && corrected == null)
@@ -129,7 +154,9 @@ class InformationRequestSubmissionService @Inject constructor(
         if (!assessment.readiness.ready) throw InformationRequestSubmissionIncompleteException(assessment.readiness)
 
         val now = Timestamp.from(clock.instant())
-        val counted = assessment.attestations.values.flatMap { it.evaluation.counted }
+        val counted = assessment.attestations
+            .filterKeys { assessment.stateByRequirement[it] != InformationRequestCompletenessItemState.HIDDEN }
+            .values.flatMap { it.evaluation.counted }
         val itemHashes = content.items.associate { it.requirement.id to itemHash(it) }
         val reviewRequired =
             content.items.any { requiresReview(it, assessment.stateByRequirement.getValue(it.requirement.id)) }
@@ -174,21 +201,35 @@ class InformationRequestSubmissionService @Inject constructor(
             "submissionPackageId" to submission.id.toString(),
             "submissionPackageNumber" to submission.packageNumber.toString(),
             "contentHash" to submission.contentHashSha256,
-        ) + (stageKey?.let { mapOf("stageKey" to it) } ?: emptyMap())
+        ) + (stageKey?.let { mapOf("stageKey" to it) } ?: emptyMap()) +
+                (corrected?.let { mapOf("correctionId" to it.id.toString(), "priorReviewId" to it.reviewId.toString()) }
+                    ?: emptyMap())
         transitionHistory.record(
             InformationRequestTransitionHistoryCommand(
                 request = request,
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.SUBMIT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.submission|${request.id}|${command.idempotencyKey}",
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.submission|${request.id}|${command.access.principal.kind}:${command.access.principal.id}|${command.idempotencyKey}",
                 details = details,
             ),
         )
 
-        reviewOpening.onSubmitted(locked, submission, corrected, command.access.principal, command.idempotencyKey)
-        satisfaction.closeIfSatisfied(locked, submission.id, command.access.principal, command.idempotencyKey)
+        reviewOpening.onSubmitted(
+            locked,
+            submission,
+            corrected,
+            InformationRequestAuditActor.of(command.access),
+            command.idempotencyKey
+        )
+        satisfaction.closeIfSatisfied(
+            locked,
+            submission.id,
+            InformationRequestAuditActor.of(command.access),
+            command.idempotencyKey
+        )
+        clockHold.sync(locked)
         return result(request, submission.id)
     }
 
@@ -224,7 +265,8 @@ class InformationRequestSubmissionService @Inject constructor(
                     fieldValueSetId = response?.fieldValueSetId
                     fieldValueRevisionId = item.fieldValueRevisionId.takeIf { response != null }
                     evidenceState = item.evidence?.state?.name
-                    attestationState = assessment.attestations[item.requirement.id]?.evaluation?.state?.name
+                    attestationState = assessment.attestations[item.requirement.id]
+                        ?.takeIf { state != InformationRequestCompletenessItemState.HIDDEN }?.evaluation?.state?.name
                     itemHashSha256 = itemHashes.getValue(item.requirement.id)
                 },
             )
@@ -281,14 +323,15 @@ class InformationRequestSubmissionService @Inject constructor(
     ): InformationRequestSubmissionResult
     {
         val request = locked.request
-        gate.requireMutation(locked, InformationRequestMutation.WITHDRAW_SUBMISSION)
-        gate.requireContinuationEntitlement(locked)
         gate.authorizeRequest(
             command.access,
             listOf(Action.INFORMATION_REQUEST_SUBMIT, Action.INFORMATION_REQUEST_MANAGE_PARTIES),
             request.id,
         )
+        gate.requireMutation(locked, InformationRequestMutation.WITHDRAW_SUBMISSION)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.SUBMIT)
         command.precondition.requireSatisfiedBy(InformationRequestETag.responsesOf(request))
+        InformationRequestReasonCodes.requireMachineCode(command.reasonCode)
         val submission = packageRepository.findById(command.packageId)
             ?.takeIf { it.informationRequestId == request.id }
             ?: throw InformationRequestLifecycleException(
@@ -297,9 +340,18 @@ class InformationRequestSubmissionService @Inject constructor(
             )
         if (lockService.activePackages(request.id).none { it.id == submission.id })
         {
+            val withdrawn = withdrawalRepository.findForRequest(request.id).any { it.packageId == submission.id }
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.SUBMISSION_NOT_WITHDRAWABLE,
-                "This Submission Package was already withdrawn",
+                if (withdrawn) "This Submission Package was already withdrawn"
+                else "This Submission Package was replaced by a later submission",
+            )
+        }
+        val laterStages = lockService.laterSubmittedStages(request, submission.stageKey)
+        if (laterStages.isNotEmpty()) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.SUBMISSION_NOT_WITHDRAWABLE,
+                "A later part was submitted after this one; withdraw ${laterStages.joinToString()} first",
             )
         }
         reviewOpening.requireWithdrawable(submission, command.access.principal)
@@ -326,15 +378,16 @@ class InformationRequestSubmissionService @Inject constructor(
                 fromState = request.state,
                 toState = request.state,
                 mutation = InformationRequestMutation.WITHDRAW_SUBMISSION,
-                actor = command.access.principal,
+                actor = InformationRequestAuditActor.of(command.access),
                 reasonCode = command.reasonCode,
-                idempotencyKey = "information_request.withdrawal|${submission.id}|${command.idempotencyKey}",
+                auditIdempotencyKey = "information_request.withdrawal|${submission.id}|${command.access.principal.kind}:${command.access.principal.id}|${command.idempotencyKey}",
                 details = mapOf(
                     "submissionPackageId" to submission.id.toString(),
                     "submissionPackageNumber" to submission.packageNumber.toString(),
                 ) + (submission.stageKey?.let { mapOf("stageKey" to it) } ?: emptyMap()),
             ),
         )
+        clockHold.sync(locked)
         return result(request, submission.id)
     }
 

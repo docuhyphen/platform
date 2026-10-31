@@ -1,8 +1,25 @@
 import {useEffect, useState} from "react";
-import {Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, MessageBar, MessageBarBody, Spinner} from "@fluentui/react-components";
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
+    MessageBar,
+    MessageBarBody,
+    Spinner
+} from "@fluentui/react-components";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {PlatformApiError} from "../../../services/platformOrganizationApi.ts";
-import {PlatformUserSubscriptionPolicy, PlatformUserSubscriptionPolicyRequest} from "../../../services/types/platformUserSubscriptions.ts";
+import {PlatformFeatureEntitlement} from "../../../services/types/platformFeatureEntitlements.ts";
+import {
+    PlatformUserSubscriptionPolicy,
+    PlatformUserSubscriptionPolicyRequest
+} from "../../../services/types/platformUserSubscriptions.ts";
+import UserFeatureOverrides from "./user-feature-overrides/UserFeatureOverrides.tsx";
+import {FeatureOverrideLoader, useFeatureOverrideDraft} from "./user-feature-overrides/useFeatureOverrideDraft.ts";
 import UserSubscriptionFields, {UserSubscriptionFieldValues} from "./UserSubscriptionFields.tsx";
 import {useUserSubscriptionsStyles} from "./UserSubscriptionsStyles.tsx";
 
@@ -11,18 +28,27 @@ interface UserSubscriptionEditorDialogProps
     user: PlatformUserSubscriptionPolicy | null;
     onDismiss: () => void;
     onSave: (user: PlatformUserSubscriptionPolicy, request: PlatformUserSubscriptionPolicyRequest) => Promise<void>;
+    onLoadFeatureOverrides: FeatureOverrideLoader;
+    onSaveFeatureOverrides: (user: PlatformUserSubscriptionPolicy, overrides: PlatformFeatureEntitlement[], changeReason: string) => Promise<void>;
 }
 
 const inputDate = (value: string | null): string => value ? value.slice(0, 16) : "";
 const isoDate = (value: string): string | null => value ? new Date(value).toISOString() : null;
 
-const UserSubscriptionEditorDialog = ({user, onDismiss, onSave}: UserSubscriptionEditorDialogProps) =>
+const UserSubscriptionEditorDialog = ({
+                                          user,
+                                          onDismiss,
+                                          onSave,
+                                          onLoadFeatureOverrides,
+                                          onSaveFeatureOverrides
+                                      }: UserSubscriptionEditorDialogProps) =>
 {
     const styles = useUserSubscriptionsStyles();
     const {refreshCurrentSession} = useAuth();
     const [values, setValues] = useState<UserSubscriptionFieldValues>({planCode: "FREE", status: "ACTIVE", billingFrequency: "", periodStart: "", periodEnd: "", graceEnd: "", reason: ""});
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const overrides = useFeatureOverrideDraft(user, onLoadFeatureOverrides);
 
     useEffect(() =>
     {
@@ -45,7 +71,17 @@ const UserSubscriptionEditorDialog = ({user, onDismiss, onSave}: UserSubscriptio
         setError(null);
         try
         {
-            await onSave(user, {planCode: values.planCode, subscriptionStatus: values.status, billingFrequency: values.billingFrequency as PlatformUserSubscriptionPolicy["billingFrequency"] || null, currentPeriodStart: isoDate(values.periodStart), currentPeriodEnd: isoDate(values.periodEnd), gracePeriodEnd: values.status === "PAST_DUE" ? isoDate(values.graceEnd) : null, changeReason: values.reason.trim()});
+            const reason = values.reason.trim();
+            await onSave(user, {
+                planCode: values.planCode,
+                subscriptionStatus: values.status,
+                billingFrequency: values.billingFrequency as PlatformUserSubscriptionPolicy["billingFrequency"] || null,
+                currentPeriodStart: isoDate(values.periodStart),
+                currentPeriodEnd: isoDate(values.periodEnd),
+                gracePeriodEnd: values.status === "PAST_DUE" ? isoDate(values.graceEnd) : null,
+                changeReason: reason
+            });
+            if (overrides.changed) await onSaveFeatureOverrides(user, overrides.draft, reason);
             await refreshCurrentSession();
             onDismiss();
         }
@@ -78,6 +114,9 @@ const UserSubscriptionEditorDialog = ({user, onDismiss, onSave}: UserSubscriptio
                             values={values}
                             disabled={saving}
                             onChange={change}/>
+                        <UserFeatureOverrides
+                            overrides={overrides}
+                            disabled={saving}/>
                     </DialogContent>
                     <DialogActions
                         id={"platform-user-subscription-editor-actions"}
@@ -88,7 +127,12 @@ const UserSubscriptionEditorDialog = ({user, onDismiss, onSave}: UserSubscriptio
                             shape={"circular"}
                             disabled={saving}
                             onClick={() => void save()}>
-                            {saving ? <Spinner size={"tiny"}/> : "Save"}
+                            {saving
+                                ? (
+                                    <Spinner id={"platform-user-subscription-editor-saving"}
+                                             size={"tiny"}/>
+                                )
+                                : "Save"}
                         </Button>
                         <Button
                             id={"platform-user-subscription-editor-cancel"}

@@ -3,75 +3,93 @@ import {
     InformationRequestDto,
     InformationRequestGroupOccurrenceDto,
     InformationRequestResponseDto,
-    InformationRequestTemplateConditionRuleDto,
+    InformationRequestSupportingEvidenceLinkDto,
     InformationRequestTemplateGroupDto,
     InformationRequestTemplateRequirementDto,
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
+import {KeptEvidenceUploads} from "../requirement-evidence/keptEvidenceUploads.ts";
 import {RequirementEvidenceContext} from "../requirement-evidence/RequirementEvidenceContext.ts";
 import {requirementEvidenceCommands} from "../requirement-evidence/requirementEvidenceCommands.ts";
 import {ReusableAnswerContext} from "../reusable-answer/ReusableAnswerContext.ts";
+import ReusableAnswerLoadError from "../reusable-answer/reusable-answer-load-error/ReusableAnswerLoadError.tsx";
 import {useReusableAnswers} from "../reusable-answer/useReusableAnswers.ts";
+import {useCommandKeys} from "../shared/useStableIdempotencyKey.ts";
 import InformationRequestStructuredResponseWorkspace from "./InformationRequestStructuredResponseWorkspace.tsx";
 import {structuredResponseCommands} from "./structuredResponseCommands.ts";
 
 interface Props
 {
     request: InformationRequestDto;
+    respondentKey: string;
     responseETag: string;
     groups: InformationRequestTemplateGroupDto[];
-    conditionRules: InformationRequestTemplateConditionRuleDto[];
+    creatableGroupKeys: string[];
     occurrences: InformationRequestGroupOccurrenceDto[];
     requirements: InformationRequestTemplateRequirementDto[];
     bindings: SchemaFieldBindingDto[];
     responses: InformationRequestResponseDto[];
+    supportingEvidenceLinks?: InformationRequestSupportingEvidenceLinkDto[];
     evidenceUploadAvailable: boolean;
     evidenceMalwareScanning: boolean;
+    readOnly?: boolean;
     accessLinkToken?: string;
-    onRefresh: () => void;
+    keptUploads?: KeptEvidenceUploads;
+    onRefresh: () => void | Promise<void>;
+    onAccessSessionEnded?: (refusal: unknown) => void;
 }
 
 const InformationRequestStructuredResponsePanel = ({
     request,
+                                                       respondentKey,
     responseETag,
     groups,
-    conditionRules,
+                                                       creatableGroupKeys,
     occurrences,
     requirements,
     bindings,
     responses,
+                                                       supportingEvidenceLinks,
     evidenceUploadAvailable,
     evidenceMalwareScanning,
+                                                       readOnly,
     accessLinkToken,
+                                                       keptUploads,
     onRefresh,
+                                                       onAccessSessionEnded,
 }: Props) =>
 {
+    const commandKeys = useCommandKeys();
     const commands = useMemo(
-        () => structuredResponseCommands({accessLinkToken}),
-        [accessLinkToken],
+        () => structuredResponseCommands({accessLinkToken, commandKeys}),
+        [accessLinkToken, commandKeys],
     );
     const evidence = useMemo(
         () => ({
             uploadAvailable: evidenceUploadAvailable,
             malwareScanning: evidenceMalwareScanning,
-            commands: requirementEvidenceCommands({accessLinkToken}),
+            commands: requirementEvidenceCommands({accessLinkToken, commandKeys, onAccessSessionEnded}),
+            keptUploads,
         }),
-        [accessLinkToken, evidenceMalwareScanning, evidenceUploadAvailable],
+        [accessLinkToken, commandKeys, evidenceMalwareScanning, evidenceUploadAvailable, keptUploads, onAccessSessionEnded],
     );
     const reusableAnswers = useReusableAnswers(request.id, responseETag, accessLinkToken);
 
     return (
         <RequirementEvidenceContext.Provider value={evidence}>
             <ReusableAnswerContext.Provider value={reusableAnswers}>
+                <ReusableAnswerLoadError/>
                 <InformationRequestStructuredResponseWorkspace request={request}
+                                                               respondentKey={respondentKey}
                                                                responseETag={responseETag}
-                                                               enabled={true}
                                                                groups={groups}
-                                                               conditionRules={conditionRules}
+                                                               creatableGroupKeys={creatableGroupKeys}
                                                                occurrences={occurrences}
                                                                requirements={requirements}
                                                                bindings={bindings}
                                                                responses={responses}
+                                                               supportingEvidenceLinks={supportingEvidenceLinks}
+                                                               readOnly={readOnly}
                                                                onSaveResponses={commands.saveResponses}
                                                                onAddOccurrence={commands.addOccurrence}
                                                                onRemoveOccurrence={commands.removeOccurrence}

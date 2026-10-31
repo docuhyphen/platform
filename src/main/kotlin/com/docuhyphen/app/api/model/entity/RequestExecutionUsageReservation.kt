@@ -8,13 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One provisional or finalized unit of capacity spent against a [RequestExecutionGrant].
- *
- * [reservationKey] makes a reservation idempotent: a caller retrying the same logical reservation
- * (the same party, the same upload) after a timeout or crash gets back the row it already created
- * rather than double-spending the grant's capacity.
- */
 @Entity
 @Table(name = "request_execution_usage_reservation")
 class RequestExecutionUsageReservation

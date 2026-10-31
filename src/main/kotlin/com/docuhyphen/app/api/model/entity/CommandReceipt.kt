@@ -5,13 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Durable record that one command already completed inside its idempotency scope.
- *
- * A caller may retry the same command after a timeout or lost response. The receipt lets the service
- * replay the stored result reference when the retry names the same request fingerprint, while
- * refusing a reused key that now names a different request.
- */
 @Entity
 @Table(name = "command_receipt")
 class CommandReceipt

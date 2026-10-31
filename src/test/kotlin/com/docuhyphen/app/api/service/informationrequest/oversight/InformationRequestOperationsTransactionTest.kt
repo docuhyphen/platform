@@ -3,13 +3,12 @@ package com.docuhyphen.app.api.service.informationrequest.oversight
 import com.docuhyphen.app.api.migration.ClockSqlFixture
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
-import com.docuhyphen.app.api.model.entity.InformationRequestClockUrgency
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.clock.StartInformationRequestClockCommand
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAbuseLimits
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestReminderResult
@@ -36,35 +35,41 @@ import com.docuhyphen.app.api.service.informationrequest.clock.InformationReques
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockPolicyService
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockRecorder
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockService
+import com.docuhyphen.app.api.service.informationrequest.execution.ExecutionStandingTestDoubles
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeWorker
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestReminderService
+import com.docuhyphen.app.api.service.informationrequest.oversight.model.OperationsFixture
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestRespondentWorkDoubles
 import com.docuhyphen.app.api.service.notification.DomainEventDeliveryStandingService
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
 import javax.sql.DataSource
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
 
 @QuarkusTest
 @QuarkusTestResource(InformationRequestOperationsPostgreSQLResource::class)
 class InformationRequestOperationsTransactionTest
 {
     @Inject lateinit var dataSource: DataSource
+    private val lapse = InformationRequestExecutionStanding(
+        InformationRequestExecutionStandingKind.CONTINUING_AFTER_LAPSE,
+        com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason.SUBSCRIPTION_PAST_DUE,
+    )
+    private val standings = ExecutionStandingTestDoubles.standing(lapse)
     @Inject lateinit var runtime: InformationRequestRuntimeTestServices
     @Inject lateinit var requestRepository: InformationRequestRepository
     @Inject lateinit var clockRepository: InformationRequestClockRepository
@@ -100,6 +105,7 @@ class InformationRequestOperationsTransactionTest
 
         assertEquals(listOf(fixture.overdueId, fixture.dueSoonId, fixture.quietId), page.rows.map { it.request.id })
         assertEquals(3, page.total)
+        assertEquals(listOf(lapse, lapse, lapse), page.rows.map { it.executionStanding })
         val overdue = page.rows[0]
         assertEquals(InformationRequestSlaStatus.OVERDUE, overdue.standing.status)
         assertEquals(START.plusSeconds(HOUR), overdue.standing.nearestDueAt)
@@ -146,6 +152,24 @@ class InformationRequestOperationsTransactionTest
     }
 
     @Test
+    fun `a page of the queue reads the inputs of the requests on that page only`() {
+        val fixture = fixture()
+        val read = mutableListOf<UUID>()
+        val clocks = object : InformationRequestClockRepository() {
+            override fun findForRequests(requestIds: Collection<UUID>): List<InformationRequestClock> =
+                clockRepository.findForRequests(requestIds).also { read += requestIds }
+        }
+        val service = service(fixture, clocks)
+
+        val second = QuarkusTransaction.requiringNew()
+            .call { service.queue(InformationRequestOperationsFilter(limit = 1, offset = 1)) }
+
+        assertEquals(listOf(fixture.dueSoonId), second.rows.map { it.request.id })
+        assertEquals(3, second.total)
+        assertEquals(listOf(fixture.dueSoonId), read)
+    }
+
+    @Test
     fun `the queue names each request, lists its acting assignees, and searches by title, request id prefix, and assignee`()
     {
         val fixture = fixture()
@@ -162,7 +186,7 @@ class InformationRequestOperationsTransactionTest
             setOf(
                 InformationRequestShareRoleKey.ATTESTOR to fixture.attestorUserId,
                 InformationRequestShareRoleKey.CONTRIBUTOR to fixture.contributorUserId,
-                InformationRequestShareRoleKey.PREPARER to fixture.preparerGroupId,
+                InformationRequestShareRoleKey.CONTRIBUTOR to fixture.groupPartyId,
             ),
             page.rows.single { it.request.id == fixture.overdueId }.assignees.map { it.roleKey to it.principalId }
                 .toSet(),
@@ -183,7 +207,7 @@ class InformationRequestOperationsTransactionTest
         )
         assertEquals(
             listOf(fixture.overdueId),
-            queue(InformationRequestOperationsFilter(assigneeId = fixture.preparerGroupId)).rows.map { it.request.id })
+            queue(InformationRequestOperationsFilter(assigneeId = fixture.groupPartyId)).rows.map { it.request.id })
         assertEquals(
             listOf(fixture.dueSoonId),
             queue(InformationRequestOperationsFilter(assigneeId = fixture.userId)).rows.map { it.request.id })
@@ -267,6 +291,7 @@ class InformationRequestOperationsTransactionTest
             titleReader,
             partyRepository,
             principalDisplayService,
+            standings,
         )
 
         assertThrows(ForbiddenException::class.java) { QuarkusTransaction.requiringNew().call { service.queue(InformationRequestOperationsFilter()) } }
@@ -278,7 +303,7 @@ class InformationRequestOperationsTransactionTest
         val reminderVersion = UUID.randomUUID()
         val dueSoonId = UUID.randomUUID()
         val quietId = UUID.randomUUID()
-        val preparerGroupId = UUID.randomUUID()
+        val groupPartyId = UUID.randomUUID()
         val runtimeFixture = dataSource.connection.use { connection ->
             val runtimeFixture = SubmissionRuntimeSqlFixture(connection)
             val clocks = ClockSqlFixture(connection, runtimeFixture)
@@ -291,11 +316,11 @@ class InformationRequestOperationsTransactionTest
                 INSERT INTO information_request_party
                     (id, information_request_id, role_key, principal_kind, principal_id, active, party_revision,
                      assigned_at, created_at, updated_at)
-                VALUES (?, ?, 'PREPARER', 'PRINCIPAL_GROUP', ?, TRUE, 1, now(), now(), now())
+                VALUES (?, ?, 'CONTRIBUTOR', 'PRINCIPAL_GROUP', ?, TRUE, 1, now(), now(), now())
                 """.trimIndent(),
                 UUID.randomUUID(),
                 runtimeFixture.requestId,
-                preparerGroupId,
+                groupPartyId,
             )
             insertRequest(connection, runtimeFixture, dueSoonId, "ISSUED", START.minusSeconds(HOUR))
             execute(
@@ -324,7 +349,7 @@ class InformationRequestOperationsTransactionTest
             userId = runtimeFixture.template.userId,
             contributorUserId = runtimeFixture.contributorUserId,
             attestorUserId = runtimeFixture.attestorUserId,
-            preparerGroupId = preparerGroupId,
+            groupPartyId = groupPartyId,
             overdueId = runtimeFixture.requestId,
             dueSoonId = dueSoonId,
             quietId = quietId,
@@ -382,14 +407,13 @@ class InformationRequestOperationsTransactionTest
                 connection,
                 """
                 INSERT INTO workflow_event_outbox
-                    (id, event_id, idempotency_key, event_type, organization_id, owner_kind, owner_id, ordering_key,
+                    (id, event_id, idempotency_key, event_type, owner_kind, owner_id, ordering_key,
                      envelope_json, status, attempt_count, created_at, next_attempt_at)
-                VALUES (?, ?, ?, 'information_request.request.view', ?, 'ORGANIZATION', ?, ?, '{}', ?, ?, now(), now() + interval '1 day')
+                VALUES (?, ?, ?, 'information_request.request.view', 'ORGANIZATION', ?, ?, '{}', ?, ?, now(), now() + interval '1 day')
                 """.trimIndent(),
                 UUID.randomUUID(),
                 eventId,
                 "operations-$eventId",
-                runtimeFixture.template.organizationId,
                 runtimeFixture.template.organizationId,
                 InformationRequestTransitionHistoryService.orderingKeyOf(requestId),
                 status,
@@ -403,16 +427,29 @@ class InformationRequestOperationsTransactionTest
         )
     }
 
-    private fun service(fixture: OperationsFixture): InformationRequestOperationsService
+    private fun service(
+        fixture: OperationsFixture,
+        clocks: InformationRequestClockRepository = clockRepository,
+    ): InformationRequestOperationsService
     {
         val access = mock<InformationRequestOwnerScopeAccess>()
         whenever(access.currentOwner()).thenReturn(fixture.owner)
-        whenever(access.requireAccess(fixture.owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenReturn(PrincipalRef.user(fixture.userId))
+        whenever(access.requireAccess(fixture.owner, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE)).thenReturn(
+            RequestAccessContext(PrincipalRef.user(fixture.userId), AuthorizationContext(sessionRef = "owner-session"))
+        )
         return InformationRequestOperationsService(
-            access, requestRepository, clockRepository, eventRepository, policies, noticeStates, deliveries, Clock.fixed(NOW, ZoneOffset.UTC),
+            access,
+            requestRepository,
+            clocks,
+            eventRepository,
+            policies,
+            noticeStates,
+            deliveries,
+            Clock.fixed(NOW, ZoneOffset.UTC),
             titleReader,
             partyRepository,
             principalDisplayService,
+            standings,
         )
     }
 
@@ -425,7 +462,12 @@ class InformationRequestOperationsTransactionTest
                 fixture.owner,
                 Action.INFORMATION_REQUEST_SEND_REMINDERS
             )
-        ).thenReturn(PrincipalRef.user(fixture.userId))
+        ).thenReturn(
+            RequestAccessContext(
+                PrincipalRef.user(fixture.userId),
+                AuthorizationContext(sessionRef = "owner-session")
+            )
+        )
         return InformationRequestReminderService(
             access,
             requestRepository,
@@ -436,6 +478,7 @@ class InformationRequestOperationsTransactionTest
             commandReceiptService,
             InformationRequestAbuseLimits(reminderCooldown = Duration.ofHours(24)),
             Clock.systemUTC(),
+            InformationRequestRespondentWorkDoubles.everyRespondingRoleOutstanding(),
         )
     }
 
@@ -449,18 +492,6 @@ class InformationRequestOperationsTransactionTest
                 }
             }
         }
-
-    private data class OperationsFixture(
-        val runtime: SubmissionRuntimeSqlFixture,
-        val owner: InformationRequestOwnerRef,
-        val userId: UUID,
-        val contributorUserId: UUID,
-        val attestorUserId: UUID,
-        val preparerGroupId: UUID,
-        val overdueId: UUID,
-        val dueSoonId: UUID,
-        val quietId: UUID,
-    )
 
     private companion object
     {

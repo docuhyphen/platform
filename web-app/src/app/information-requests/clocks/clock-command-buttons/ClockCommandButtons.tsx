@@ -9,6 +9,7 @@ import {useClockCommandButtonsStyles} from "./ClockCommandButtonsStyles.tsx";
 interface Props
 {
     clock: InformationRequestClockDto;
+    permitted: InformationRequestClockChangePath[];
     busy: boolean;
     onChange: (clock: InformationRequestClockDto, path: InformationRequestClockChangePath, reasonCode: string, extensionMinutes?: number) => void;
 }
@@ -19,11 +20,11 @@ const COMMANDS: {path: InformationRequestClockChangePath; label: string; states:
     {path: "extensions", label: "Extend", states: [InformationRequestClockState.RUNNING, InformationRequestClockState.PAUSED]},
 ];
 
-const ClockCommandButtons = ({clock, busy, onChange}: Props) =>
+const ClockCommandButtons = ({clock, permitted, busy, onChange}: Props) =>
 {
     const styles = useClockCommandButtonsStyles();
     const [path, setPath] = useState<InformationRequestClockChangePath | null>(null);
-    const available = COMMANDS.filter(command => command.states.includes(clock.state));
+    const available = COMMANDS.filter(command => permitted.includes(command.path) && command.states.includes(clock.state));
     const name = humanizedKey(clock.clockKey);
 
     if (available.length === 0) return null;

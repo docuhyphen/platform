@@ -2,6 +2,8 @@ import {useState} from "react";
 import {Text} from "@fluentui/react-components";
 import {InformationRequestItemCorrectionRequest, InformationRequestSubmissionItemDto} from "../../../models/models.tsx";
 import {reviewValueText} from "../../review/reviewLabels.ts";
+import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
+import {ChoiceOption} from "../../shared/choice-select/choiceOptions.ts";
 import EditorDialog from "../../shared/editor-dialog/EditorDialog.tsx";
 import {isLetterKey, letterKeyProblem} from "../../shared/machineKey.ts";
 import TextField from "../../shared/text-field/TextField.tsx";
@@ -12,12 +14,14 @@ interface Props
 {
     item: InformationRequestSubmissionItemDto;
     label: string;
+    subjects: ChoiceOption<string>[];
     busy: boolean;
-    onConfirm: (correction: InformationRequestItemCorrectionRequest, basis: CorrectionBasis) => void;
+    error?: string | null;
+    onConfirm: (correction: InformationRequestItemCorrectionRequest, basis: CorrectionBasis, subjectId: string) => void;
     onDismiss: () => void;
 }
 
-const CorrectItemDialog = ({item, label, busy, onConfirm, onDismiss}: Props) =>
+const CorrectItemDialog = ({item, label, subjects, busy, error, onConfirm, onDismiss}: Props) =>
 {
     const holdsValue = item.fieldValue !== undefined && item.fieldValue !== null;
     const [value, setValue] = useState("");
@@ -25,9 +29,11 @@ const CorrectItemDialog = ({item, label, busy, onConfirm, onDismiss}: Props) =>
     const [reason, setReason] = useState("");
     const [purpose, setPurpose] = useState("");
     const [basis, setBasis] = useState("");
+    const [subjectId, setSubjectId] = useState(subjects.length === 1 ? subjects[0].value : "");
     const corrected = correctedValueOf(item.fieldValue, value);
     const changed = corrected.value !== undefined || note.trim().length > 0;
-    const ready = changed && !corrected.problem && reason.trim().length > 0 && isLetterKey(purpose) && isLetterKey(basis);
+    const ready = changed && !corrected.problem && reason.trim().length > 0 && isLetterKey(purpose) && isLetterKey(basis)
+        && subjectId !== "";
 
     const confirm = () => onConfirm(
         {
@@ -37,6 +43,7 @@ const CorrectItemDialog = ({item, label, busy, onConfirm, onDismiss}: Props) =>
             reasonCode: reason.trim(),
         },
         {purposeKey: purpose.trim(), policyBasisKey: basis.trim()},
+        subjectId,
     );
 
     return (
@@ -44,6 +51,7 @@ const CorrectItemDialog = ({item, label, busy, onConfirm, onDismiss}: Props) =>
                       title={`Correct ${label}`}
                       confirmLabel={"Record correction"}
                       busy={busy}
+                      error={error}
                       confirmDisabled={!ready}
                       onConfirm={confirm}
                       onDismiss={onDismiss}>
@@ -51,6 +59,15 @@ const CorrectItemDialog = ({item, label, busy, onConfirm, onDismiss}: Props) =>
                 A correction is recorded beside the submitted answer as a privacy request of its subject. The
                 submitted answer itself is kept unchanged in the request history.
             </Text>
+            {subjects.length > 1 && (
+                <ChoiceSelect<string> id={"information-request-correct-item-subject"}
+                                      label={"Subject"}
+                                      hint={"This request names several subjects. Choose the one who asked for the correction."}
+                                      value={subjectId}
+                                      options={subjects}
+                                      placeholder={"Choose a subject"}
+                                      onChange={setSubjectId}/>
+            )}
             {holdsValue && (
                 <TextField id={"information-request-correct-item-value"}
                            label={"Corrected value"}

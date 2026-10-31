@@ -7,7 +7,8 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger, Link,
+    DialogTrigger,
+    Link,
     mergeClasses,
     MessageBar,
     MessageBarActions,
@@ -16,7 +17,8 @@ import {
     Text,
     Toast,
     Toaster,
-    ToastTitle, ToastTrigger,
+    ToastTitle,
+    ToastTrigger,
     useId,
     useToastController,
 } from "@fluentui/react-components";
@@ -24,7 +26,8 @@ import {initiateExchange} from "../../services/exchangeApi.ts";
 import useExchangeInitiatingState from './hooks/useExchangeInitiatingState.ts';
 import {handleCheckboxChange, handleDocumentChange, handleInputChange} from './formHandlers.tsx';
 import SharingDocumentsTab from "./components/exchange-initiation-documents-tab/ExchangeInitiationDocumentsTab.tsx";
-import ExchangeInitiationDetailsTab from "./components/exchange-initiation-details-tab/ExchangeInitiationDetailsTab.tsx";
+import ExchangeInitiationDetailsTab
+    from "./components/exchange-initiation-details-tab/ExchangeInitiationDetailsTab.tsx";
 import SharingOptionsTab from "./components/exchange-initiation-options-tab/ExchangeInitiationOptionsTab.tsx";
 import ExchangeInitiationDialogActions
     from "./components/exchange-initiation-dialog-actions/ExchangeInitiationDialogActions.tsx";
@@ -32,29 +35,28 @@ import ExchangeInitiationDialogTrigger
     from "./components/exchange-initiation-dialog-trigger/ExchangeInitiationDialogTrigger.tsx";
 import ExchangeInitiationDialogTitleSection
     from "./components/exchange-initiation-dialog-title-section/ExchangeInitiationDialogTitleSection.tsx";
-import ExchangeInitiationFieldsTab
-    from "./components/exchange-initiation-fields-tab/ExchangeInitiationFieldsTab.tsx";
+import ExchangeInitiationFieldsTab from "./components/exchange-initiation-fields-tab/ExchangeInitiationFieldsTab.tsx";
 import {ArrowLeftRegular, DismissRegular} from "@fluentui/react-icons";
 import ExchangeInitiationRecipientsTab
     from "./components/exchange-initiation-recipients-tab/ExchangeInitiationRecipientsTab.tsx";
 import {
     ExchangeInitiationRecipientMode
 } from "./components/exchange-initiation-recipients-tab/exchangeInitiationRecipientMode.ts";
-import {publishNewExchangeAddition} from '../observable/exchangeObservables.ts';
+import {publishNewExchangeAddition, recreateRejectedExchangeObservable} from '../observable/exchangeObservables.ts';
 import {useExchangeInitiationStyles} from "./ExchangeInitiationStyles.tsx";
 import {
     AvailableVariablesDto,
     BlueprintConfig,
     BlueprintDefinitionSummaryDto,
     BlueprintDocumentConfig,
-    DocumentType,
     DocumentLibraryEntrySummaryDto,
+    DocumentType,
     ExchangeInitiationRequest,
     ExchangeRequestDocumentRequest,
+    PlanFeature,
     SchemaAssignmentSource,
     SchemaDefinitionDto
 } from "../models/models.tsx";
-import {PlanFeature} from "../models/models.tsx";
 import {getAvailableVariables} from "../../services/variableService.ts";
 import {getResolvedSchema, listSchemas} from "../../services/fieldsService.ts";
 import {
@@ -65,12 +67,19 @@ import {
 import BlueprintPicker from "./components/blueprint-picker/BlueprintPicker.tsx";
 import SaveBlueprintPanel from "./components/save-blueprint-dialog/SaveBlueprintDialog.tsx";
 import {useAuth} from "../../context/AuthContext.tsx";
-import {recreateRejectedExchangeObservable} from "../observable/exchangeObservables.ts";
 import {useNavigate} from "react-router-dom";
 import {buildRecipientSelection} from "./exchangeInitiationRecipientSelection.ts";
 import {ExchangeShareRoleName} from "../../services/types/roles.ts";
+import {fetchMyOrganizationUsers} from "../../services/organizationApi.ts";
+import {blueprintParticipantsOf, participantUsersOf} from "./blueprintParticipants.ts";
 import {usePlanFeature} from "../../hooks/subscription/usePlanFeature.ts";
-import {getSubscriptionDenialMessage} from "../../utils/subscriptionDenialUtils.ts";
+import useSelectedBlueprint from "./hooks/useSelectedBlueprint.ts";
+import {exchangeInitiationDocumentProblem} from "./exchangeInitiationDocuments.ts";
+import {exchangeInitiationRefusalMessage} from "./exchangeInitiationRefusal.ts";
+import {findStartedInformationRequest, StartedInformationRequest} from "./startedInformationRequest.ts";
+import CreatedInformationRequestSummary
+    from "./components/created-information-request-summary/CreatedInformationRequestSummary.tsx";
+import {informationRequestManagePath} from "../information-requests/shared/informationRequestWorkspacePaths.ts";
 
 type CreatedExchangeSummary = {
     id?: string;
@@ -79,6 +88,7 @@ type CreatedExchangeSummary = {
     documents: number;
     requiresSignIn: boolean;
     shareLink?: string;
+    informationRequest?: StartedInformationRequest | null;
 };
 type ExchangeInitiationTransitionDirection = "forward" | "back" | null;
 
@@ -127,7 +137,7 @@ const ExchangeInitiation: React.FC = () =>
 
     const toasterId = useId("exchange-initiation-toaster");
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [selectedBlueprintName, setSelectedBlueprintName] = React.useState<string | null>(null);
+    const {selectedBlueprint, selectBlueprint, clearBlueprint, startsInformationRequest} = useSelectedBlueprint();
     const [blueprintLocked, setBlueprintLocked] = React.useState(false);
     const [eligibleSchemas, setEligibleSchemas] = React.useState<SchemaDefinitionDto[]>([]);
     const [schemaFromBlueprint, setSchemaFromBlueprint] = React.useState(false);
@@ -137,8 +147,22 @@ const ExchangeInitiation: React.FC = () =>
     const [availableVariables, setAvailableVariables] = React.useState<AvailableVariablesDto | null>(null);
     const [variableOverrides, setVariableOverrides] = React.useState<Record<string, string>>({});
     const [pendingVariableTokens, setPendingVariableTokens] = React.useState<string[]>([]);
+    const appliedBlueprintId = React.useRef<string | null>(null);
     const [contentTransitionDirection, setContentTransitionDirection] =
         React.useState<ExchangeInitiationTransitionDirection>(null);
+
+    const clearAppliedBlueprint = React.useCallback(() => {
+        appliedBlueprintId.current = null;
+        clearBlueprint();
+        setBlueprintLocked(false);
+        setInternalParticipants([]);
+        setSchemaDefinitionId(undefined);
+        setFieldValueMap({});
+        setFieldBindings([]);
+        setSchemaFromBlueprint(false);
+        setVariableOverrides({});
+        setPendingVariableTokens([]);
+    }, [clearBlueprint, setFieldBindings, setFieldValueMap, setInternalParticipants, setSchemaDefinitionId]);
 
     const {dispatchToast} = useToastController(toasterId);
 
@@ -178,12 +202,13 @@ const ExchangeInitiation: React.FC = () =>
     const showServerErrorToast = (message: string) =>
     {
         dispatchToast(
-            <Toast>
-                <ToastTitle action={
-                    <ToastTrigger>
-                        <Link>Dismiss</Link>
-                    </ToastTrigger>
-                }>
+            <Toast id={"exchange-initiation-toast"}>
+                <ToastTitle id={"exchange-initiation-message-toast-title"}
+                            action={
+                                <ToastTrigger>
+                                    <Link id={"exchange-initiation-dismiss-link"}>Dismiss</Link>
+                                </ToastTrigger>
+                            }>
                     {message}
                 </ToastTitle>
             </Toast>, {intent: 'error', timeout: 15000},
@@ -194,7 +219,6 @@ const ExchangeInitiation: React.FC = () =>
     {
         if (isRequesting)
         {
-            // Request mode: recipient uploads the requested docs; they don't need download access
             setAllowDocumentUpload(true);
             setAllowDocumentAdditions(true);
             setAllowDocumentDownload(false);
@@ -203,7 +227,6 @@ const ExchangeInitiation: React.FC = () =>
         }
         else
         {
-            // Send mode: recipient downloads the sent docs; they shouldn't modify the exchange
             setAllowDocumentDownload(true);
             setAllowDocumentUpload(false);
             setAllowDocumentAdditions(false);
@@ -218,12 +241,6 @@ const ExchangeInitiation: React.FC = () =>
         applyModeDefaults(isRequesting);
     };
 
-    /**
-     * Seeds the wizard's schema + field values from a selected blueprint. Defaults are keyed by the
-     * stable fieldDefinitionId; they are mapped to the current published version's fieldContractId via
-     * the resolved schema, so any field dropped from the schema is silently skipped (never blocks the
-     * start). Marks the assignment source BLUEPRINT so the backend records provenance.
-     */
     const applyBlueprintSchema = (blueprint: BlueprintDefinitionSummaryDto) =>
     {
         if (!blueprint.schemaDefinitionId)
@@ -240,6 +257,7 @@ const ExchangeInitiation: React.FC = () =>
         getResolvedSchema(schemaId)
             .then(view =>
             {
+                if (appliedBlueprintId.current !== blueprint.id) return;
                 setFieldBindings(view.fields);
                 const contractByFieldDefinition = new Map(
                     view.fields.map(f => [f.fieldDefinitionId, f.fieldContractId]),
@@ -254,6 +272,7 @@ const ExchangeInitiation: React.FC = () =>
             })
             .catch(() =>
             {
+                if (appliedBlueprintId.current !== blueprint.id) return;
                 setFieldBindings([]);
                 setFieldValueMap({});
             });
@@ -261,9 +280,11 @@ const ExchangeInitiation: React.FC = () =>
 
     const handleBlueprintSelect = (blueprint: BlueprintDefinitionSummaryDto) =>
     {
+        appliedBlueprintId.current = blueprint.id;
+        let config: BlueprintConfig | null = null;
         try
         {
-            const config: BlueprintConfig = JSON.parse(blueprint.configJson);
+            config = JSON.parse(blueprint.configJson) as BlueprintConfig;
             setExchangeName(config.name || blueprint.name);
             setDescription(config.description || blueprint.summary || '');
             if (config.initialShareMessage) setInitialShareMessage(config.initialShareMessage);
@@ -285,9 +306,15 @@ const ExchangeInitiation: React.FC = () =>
                 }));
                 setDocuments(docs);
             }
-            if (blueprint.participants && blueprint.participants.length > 0)
+            const participantDefaults = blueprint.participants ?? [];
+            if (participantDefaults.length > 0)
             {
-                setInternalParticipants(blueprint.participants);
+                void fetchMyOrganizationUsers()
+                    .then(users => {
+                        if (appliedBlueprintId.current !== blueprint.id) return;
+                        setInternalParticipants(participantUsersOf(participantDefaults, users));
+                    })
+                    .catch(() => undefined);
             }
             setBlueprintLocked(blueprint.scope !== 'PERSONAL' && !(config.allowEditOnExchangeStart === true));
             applyBlueprintSchema(blueprint);
@@ -296,20 +323,19 @@ const ExchangeInitiation: React.FC = () =>
         {
             // Invalid configJson; apply what we can, ignore the rest
         }
-        setSelectedBlueprintName(blueprint.name);
+        selectBlueprint(blueprint);
         setContentTransitionDirection("forward");
         setChoosingBlueprint(false);
         setSelectedTab('recipients-tab');
 
-        // Scan applied strings for non-system, non-SEQ tokens (org/personal vars needing override)
         if (availableVariables)
         {
             const systemTokenSet = new Set(availableVariables.system.map(s => s.token));
             const seqTokenSet = new Set(availableVariables.sequences.map(s => `SEQ:${s.key}`));
             const allStrings = [
-                config.name ?? '',
-                config.description ?? '',
-                config.initialShareMessage ?? '',
+                config?.name ?? '',
+                config?.description ?? '',
+                config?.initialShareMessage ?? '',
                 ...(blueprint.exchangeDocuments ?? []).map(d => d.title),
             ];
             const found = new Set<string>();
@@ -435,11 +461,15 @@ const ExchangeInitiation: React.FC = () =>
         {
             return;
         }
+        resetInitiationForm();
         setIsDialogOpen(false);
-        // A freshly started exchange is INITIATED and owned by the current user, so it
-        // belongs to the outgoing side of the inbox tab. Open that tab explicitly so the
-        // list lands on the correct tab instead of flashing the default active tab first.
         navigate(`/exchanges?tab=inbox&role=outgoing&s=${encodeURIComponent(createdExchangeSummary.id)}`);
+    };
+
+    const onManageInformationRequest = (requestId: string) => {
+        resetInitiationForm();
+        setIsDialogOpen(false);
+        navigate(informationRequestManagePath(requestId));
     };
 
     const buildExchangeShareLink = (exchangeId: string, requiresSignIn: boolean): string =>
@@ -467,7 +497,7 @@ const ExchangeInitiation: React.FC = () =>
             }
             if (appUser?.email && newRecipient.email.trim().toLowerCase() === appUser.email.trim().toLowerCase())
             {
-                setMessageGroupMessages(['You cannot be the recipient of your own exchange']);
+                setMessageGroupMessages(['You cannot be the recipient of your own Exchange']);
                 setSelectedTab('recipients-tab');
                 return false;
             }
@@ -505,7 +535,7 @@ const ExchangeInitiation: React.FC = () =>
                 }
                 if (recipientOrgUser && appUser && recipientOrgUser.id === appUser.id)
                 {
-                    setMessageGroupMessages(['You cannot be the recipient of your own exchange']);
+                    setMessageGroupMessages(['You cannot be the recipient of your own Exchange']);
                     setSelectedTab('recipients-tab');
                     return false;
                 }
@@ -519,13 +549,11 @@ const ExchangeInitiation: React.FC = () =>
                 }
                 break;
             case ExchangeInitiationRecipientMode.PEOPLE:
-                // PEOPLE produces either a selected real user (recipientOrgUser) or an
-                // email-based new recipient (newRecipient). Validate whichever was set.
                 if (recipientOrgUser)
                 {
                     if (appUser && recipientOrgUser.id === appUser.id)
                     {
-                        setMessageGroupMessages(['You cannot be the recipient of your own exchange']);
+                        setMessageGroupMessages(['You cannot be the recipient of your own Exchange']);
                         setSelectedTab('recipients-tab');
                         return false;
                     }
@@ -565,23 +593,10 @@ const ExchangeInitiation: React.FC = () =>
                 return;
             }
 
-            if (documents.length === 0)
+            const documentProblem = exchangeInitiationDocumentProblem(documents, startsInformationRequest);
+            if (documentProblem)
             {
-                setMessageGroupMessages(['At least one document is required when requesting documents']);
-                setSelectedTab('documents-tab');
-                return;
-            }
-
-            if (documents.some(doc => !doc.title))
-            {
-                setMessageGroupMessages(['All documents must have names']);
-                setSelectedTab('documents-tab');
-                return;
-            }
-
-            if (documents.some(doc => doc.restrictType && !doc.restrictedType))
-            {
-                setMessageGroupMessages(['All restricted documents must have a type']);
+                setMessageGroupMessages([documentProblem]);
                 setSelectedTab('documents-tab');
                 return;
             }
@@ -627,11 +642,15 @@ const ExchangeInitiation: React.FC = () =>
                 schemaAssignmentSource: schemaFromBlueprint && schemaDefinitionId
                     ? SchemaAssignmentSource.BLUEPRINT
                     : undefined,
+                blueprintDefinitionId: selectedBlueprint?.id,
             };
 
             const createdExchange = await initiateExchange(exchange);
             const createdExchangeId = (createdExchange as { id?: string })?.id;
             const shareLink = createdExchangeId ? buildExchangeShareLink(createdExchangeId, requireSignIn) : undefined;
+            const informationRequest = startsInformationRequest && createdExchangeId
+                ? await findStartedInformationRequest(createdExchangeId)
+                : undefined;
 
             setCreatedExchangeSummary({
                 id: createdExchangeId,
@@ -640,6 +659,7 @@ const ExchangeInitiation: React.FC = () =>
                 documents: documents.length,
                 requiresSignIn: requireSignIn,
                 shareLink,
+                informationRequest,
             });
             setCopyLinkStatus('idle');
 
@@ -650,13 +670,7 @@ const ExchangeInitiation: React.FC = () =>
         }
         catch (error: unknown)
         {
-            const genericError = error as {response?: {data?: {errorMessage?: string}}, message?: string};
-            const errorMessage = getSubscriptionDenialMessage(error)
-                || genericError.response?.data?.errorMessage
-                || genericError.message
-                || "An unknown error occurred while starting the Exchange";
-            showServerErrorToast(errorMessage);
-
+            showServerErrorToast(exchangeInitiationRefusalMessage(error));
         }
         finally
         {
@@ -689,8 +703,7 @@ const ExchangeInitiation: React.FC = () =>
     const resetInitiationForm = () =>
     {
         setChoosingBlueprint(false);
-        setSelectedBlueprintName(null);
-        setBlueprintLocked(false);
+        clearAppliedBlueprint();
         setMessageGroupMessages([]);
         setInitiatingExchange(false);
         setExchangeInitiatedSuccessfully(false);
@@ -698,7 +711,6 @@ const ExchangeInitiation: React.FC = () =>
         setRecipientOrgUser(null)
         setRecipientOrgGroup(null)
         setRecipientMode(ExchangeInitiationRecipientMode.PEOPLE);
-        setInternalParticipants([]);
         setNewRecipient({
             email: '',
             firstName: '',
@@ -721,12 +733,6 @@ const ExchangeInitiation: React.FC = () =>
         setCopyLinkStatus('idle');
         setRecipientRole(undefined);
         setRecipientConstraints({});
-        setSchemaDefinitionId(undefined);
-        setFieldValueMap({});
-        setFieldBindings([]);
-        setSchemaFromBlueprint(false);
-        setVariableOverrides({});
-        setPendingVariableTokens([]);
     };
 
     const onCancelInitiation = () =>
@@ -739,10 +745,6 @@ const ExchangeInitiation: React.FC = () =>
     {
         if (data.open)
         {
-            // Reset only the result/success state so stale details are never shown when
-            // reopening. The trigger callbacks (onRequestingDocumentsChange, onChooseBlueprint)
-            // run in the same batched event and set their own state independently, so we must
-            // not touch choosingBlueprint or requestingDocuments here.
             setExchangeInitiatedSuccessfully(false);
             setCreatedExchangeSummary(null);
             setCopyLinkStatus('idle');
@@ -763,6 +765,7 @@ const ExchangeInitiation: React.FC = () =>
     {
         const subscription = recreateRejectedExchangeObservable.subscribe(draft =>
         {
+            clearAppliedBlueprint();
             setChoosingBlueprint(false);
             setMessageGroupMessages([]);
             setExchangeInitiatedSuccessfully(false);
@@ -815,6 +818,7 @@ const ExchangeInitiation: React.FC = () =>
         setAllowDocumentUpdate,
         setAllowDocumentUpload,
         setAllowedDownloadFormats,
+        clearAppliedBlueprint,
         setChoosingBlueprint,
         setDescription,
         setDocuments,
@@ -924,6 +928,7 @@ const ExchangeInitiation: React.FC = () =>
                 availableVariables={availableVariables ?? undefined}
                 locked={blueprintLocked}
                 canUseDocumentLibrary={documentLibraryAvailability.isAvailable}
+                informationRequestCollectsDocuments={startsInformationRequest}
             />
         )
     }
@@ -980,15 +985,25 @@ const ExchangeInitiation: React.FC = () =>
     {
         if (pendingVariableTokens.length === 0) return null;
         return (
-            <div className={styles.variableOverridesPanel}>
-                <Text weight="semibold" size={300}>Fill in variables</Text>
-                <Text size={200} className={styles.variableOverridesSubtext}>
+            <div id={"exchange-initiation-variable-overrides-panel"}
+                 className={styles.variableOverridesPanel}>
+                <Text id={"exchange-initiation-fill-in-variables-text"}
+                      weight="semibold"
+                      size={300}>Fill in variables</Text>
+                <Text id={"exchange-initiation-variable-overrides-subtext"}
+                      size={200}
+                      className={styles.variableOverridesSubtext}>
                     Override the default values for this exchange.
                 </Text>
                 {pendingVariableTokens.map(token => (
-                    <div key={token} className={styles.variableOverridesRow}>
-                        <Text size={200} className={styles.variableOverridesLabel}>{`{{${token}}}`}</Text>
+                    <div id={`exchange-initiation-variable-overrides-row-${token}`}
+                         key={token}
+                         className={styles.variableOverridesRow}>
+                        <Text id={`exchange-initiation-variable-overrides-label-${token}`}
+                              size={200}
+                              className={styles.variableOverridesLabel}>{`{{${token}}}`}</Text>
                         <input
+                            id={`exchange-initiation-variable-overrides-input-${token}`}
                             className={styles.variableOverridesInput}
                             value={variableOverrides[token] ?? ''}
                             onChange={e => setVariableOverrides(prev => ({...prev, [token]: e.target.value}))}
@@ -1003,7 +1018,8 @@ const ExchangeInitiation: React.FC = () =>
     const renderTabs = () =>
     {
         return (
-            <div className={styles.exchangeInitiationTaps}>
+            <div id={"exchange-initiation-taps"}
+                 className={styles.exchangeInitiationTaps}>
                 {pendingVariableTokens.length > 0 && renderVariableOverridesPanel()}
                 {selectedTab === "recipients-tab" && renderRecipientsTab()}
                 {selectedTab === "details-tab" && renderDetailsTab()}
@@ -1023,13 +1039,17 @@ const ExchangeInitiation: React.FC = () =>
 
         return <>
             {messageGroupMessages &&
-                <MessageBarGroup className={styles.errorMessagesGroup}>
+                <MessageBarGroup id={"exchange-initiation-error-messages-group"}
+                                 className={styles.errorMessagesGroup}>
                     {messageGroupMessages.map((message: string, index: number) => (
-                        <MessageBar key={index} intent={"warning"}>
-                            <MessageBarBody>
+                        <MessageBar id={`exchange-initiation-message-bar-${index}`}
+                                    key={index}
+                                    intent={"warning"}>
+                            <MessageBarBody id={`exchange-initiation-message-bar-body-${index}`}>
                                 {message}
                             </MessageBarBody>
                             <MessageBarActions
+                                id={`exchange-initiation-message-bar-actions-${index}`}
                                 containerAction={
                                     <Button
                                         id={`exchange-close-message-bar-${index}`}
@@ -1050,18 +1070,35 @@ const ExchangeInitiation: React.FC = () =>
     {
         return <>
             {exchangeInitiatedSuccessfully ? (
-                <div className={styles.exchangeInitiationSuccess}>
-                    <Text size={500}> Exchange started successfully </Text>
-                    <Text size={300} italic={true}> {createdExchangeSummary?.name || name} </Text>
-                    <div className={styles.exchangeSuccessDetails}>
-                        <Text size={200}>Recipient</Text>
-                        <Text size={200}>{createdExchangeSummary?.recipient || '-'}</Text>
-                        <Text size={200}>Documents</Text>
-                        <Text size={200}>{createdExchangeSummary?.documents ?? documents.length}</Text>
-                        <Text size={200}>Recipient sign-in</Text>
-                        <Text size={200}>{(createdExchangeSummary?.requiresSignIn ?? requireSignIn) ? 'Required' : 'Not required'}</Text>
+                <div id={"exchange-initiation-success"}
+                     className={styles.exchangeInitiationSuccess}>
+                    <Text id={"exchange-initiation-exchange-started-successfully-text"}
+                          size={500}> Exchange started successfully </Text>
+                    <Text id={"exchange-initiation-name-text"}
+                          size={300}
+                          italic={true}> {createdExchangeSummary?.name || name} </Text>
+                    <div id={"exchange-initiation-exchange-success-details"}
+                         className={styles.exchangeSuccessDetails}>
+                        <Text id={"exchange-initiation-recipient-text"}
+                              size={200}>Recipient</Text>
+                        <Text id={"exchange-initiation-recipient-text-2"}
+                              size={200}>{createdExchangeSummary?.recipient || '-'}</Text>
+                        <Text id={"exchange-initiation-documents-text"}
+                              size={200}>Documents</Text>
+                        <Text id={"exchange-initiation-length-text"}
+                              size={200}>{createdExchangeSummary?.documents ?? documents.length}</Text>
+                        <Text id={"exchange-initiation-recipient-sign-in-text"}
+                              size={200}>Recipient sign-in</Text>
+                        <Text
+                            id={"exchange-initiation-required-text"}
+                            size={200}>{(createdExchangeSummary?.requiresSignIn ?? requireSignIn) ? 'Required' : 'Not required'}</Text>
                     </div>
-                    <div className={styles.exchangeSuccessActions}>
+                    {createdExchangeSummary?.informationRequest !== undefined && (
+                        <CreatedInformationRequestSummary request={createdExchangeSummary.informationRequest}
+                                                          onManage={onManageInformationRequest}/>
+                    )}
+                    <div id={"exchange-initiation-exchange-success-actions"}
+                         className={styles.exchangeSuccessActions}>
                         <Button
                             id={"exchange-copy-link-btn"}
                             appearance={"subtle"}
@@ -1081,11 +1118,14 @@ const ExchangeInitiation: React.FC = () =>
                             View Exchange
                         </Button>
                     </div>
-                    {copyLinkStatus === 'copied' && <Text size={200}>Link copied</Text>}
-                    {copyLinkStatus === 'failed' && <Text size={200}>Could not copy link</Text>}
+                    {copyLinkStatus === 'copied' && <Text id={"exchange-initiation-link-copied-text"}
+                                                          size={200}>Link copied</Text>}
+                    {copyLinkStatus === 'failed' && <Text id={"exchange-initiation-could-not-copy-link-text"}
+                                                          size={200}>Could not copy link</Text>}
                 </div>
             ) : (
-                <div className={styles.dialogContentContainer}>
+                <div id={"exchange-initiation-dialog-content-container"}
+                     className={styles.dialogContentContainer}>
                     {choosingBlueprint ? (
                         <BlueprintPicker
                             onSelect={handleBlueprintSelect}
@@ -1113,7 +1153,8 @@ const ExchangeInitiation: React.FC = () =>
 
     return (
         <Dialog modalType="alert"
-                open={isDialogOpen} onOpenChange={onDialogOpenChange}
+                open={isDialogOpen}
+                onOpenChange={onDialogOpenChange}
         >
             <DialogTrigger disableButtonEnhancement>
                 <ExchangeInitiationDialogTrigger
@@ -1122,11 +1163,14 @@ const ExchangeInitiation: React.FC = () =>
                     canUseBlueprints={blueprintAvailability.isAvailable}
                 />
             </DialogTrigger>
-            <DialogSurface className={styles.dialog}>
-                <DialogBody>
-                    <DialogTitle className={styles.dialogTitle}>
+            <DialogSurface id={"exchange-initiation-dialog"}
+                           className={styles.dialog}>
+                <DialogBody id={"exchange-initiation-dialog-actions-dialog-body"}>
+                    <DialogTitle id={"exchange-initiation-dialog-title"}
+                                 className={styles.dialogTitle}>
                         {saveBlueprintDialogOpen ? (
-                            <div className={styles.saveBlueprintBackRow}>
+                            <div id={"exchange-initiation-save-blueprint-back-row"}
+                                 className={styles.saveBlueprintBackRow}>
                                 <Button
                                     id={"exchange-save-blueprint-back-btn"}
                                     appearance="subtle"
@@ -1134,9 +1178,11 @@ const ExchangeInitiation: React.FC = () =>
                                     size="small"
                                     icon={<ArrowLeftRegular/>}
                                     onClick={closeSaveBlueprintPanel}
-                                    aria-label="Back to exchange"
+                                    aria-label="Back to Exchange"
                                 />
-                                <Text weight="semibold" size={500}>Save as Blueprint</Text>
+                                <Text id={"exchange-initiation-save-as-blueprint-text"}
+                                      weight="semibold"
+                                      size={500}>Save as Blueprint</Text>
                             </div>
                         ) : (
                             <>
@@ -1144,7 +1190,7 @@ const ExchangeInitiation: React.FC = () =>
                                     exchangeInitiatedSuccessfully={exchangeInitiatedSuccessfully}
                                     requestingDocuments={requestingDocuments}
                                     choosingBlueprint={choosingBlueprint}
-                                    selectedBlueprintName={selectedBlueprintName}
+                                    selectedBlueprintName={selectedBlueprint?.name ?? null}
                                     selectedTab={selectedTab}
                                     showFieldsTab={businessFieldsAvailability.isAvailable && eligibleSchemas.length > 0}
                                     onTabSelect={(value) =>
@@ -1160,7 +1206,8 @@ const ExchangeInitiation: React.FC = () =>
                             </>
                         )}
                     </DialogTitle>
-                    <DialogContent className={styles.dialogContent}>
+                    <DialogContent id={"exchange-initiation-dialog-content"}
+                                   className={styles.dialogContent}>
                         <div
                             id={`exchange-initiation-content-transition-${dialogContentKey}`}
                             key={dialogContentKey}
@@ -1172,7 +1219,7 @@ const ExchangeInitiation: React.FC = () =>
                                     initialName={name}
                                     configJson={buildBlueprintConfigJson()}
                                     exchangeDocuments={buildBlueprintDocuments()}
-                                    participants={internalParticipants ?? []}
+                                    participants={blueprintParticipantsOf(internalParticipants ?? [])}
                                     schemaDefinitionId={schemaDefinitionId || undefined}
                                     fieldDefaults={buildBlueprintFieldDefaults(schemaDefinitionId, fieldBindings, fieldValueMap)}
                                 />
@@ -1180,7 +1227,7 @@ const ExchangeInitiation: React.FC = () =>
                         </div>
                     </DialogContent>
                     {!saveBlueprintDialogOpen && (
-                        <DialogActions>
+                        <DialogActions id={"exchange-initiation-dialog-actions"}>
                             <ExchangeInitiationDialogActions
                                 requestingDocuments={requestingDocuments}
                                 initiatingExchange={initiatingExchange}
@@ -1192,7 +1239,10 @@ const ExchangeInitiation: React.FC = () =>
                             />
                         </DialogActions>
                     )}
-                    <Toaster inline toasterId={toasterId} position="bottom"/>
+                    <Toaster id={"exchange-initiation-dialog-toaster"}
+                             inline
+                             toasterId={toasterId}
+                             position="bottom"/>
                 </DialogBody>
             </DialogSurface>
         </Dialog>

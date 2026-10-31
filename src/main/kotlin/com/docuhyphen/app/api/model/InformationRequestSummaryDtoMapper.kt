@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.model.dto.InformationRequestExchangeListingDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSummaryDto
-import com.docuhyphen.app.api.model.dto.InformationRequestSummaryPermissionsDto
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
+import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestAssignedWork
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestExchangeListing
 import com.docuhyphen.app.api.model.informationrequest.parent.InformationRequestSummary
 import java.sql.Timestamp
@@ -14,6 +14,20 @@ object InformationRequestSummaryDtoMapper
             requests = listing.requests.map(::toDto),
             canCreate = listing.canCreate,
             creationUnavailableReason = listing.creationUnavailableReason,
+            creationOwner = listing.creationOwner?.let(::toDto),
+        )
+
+    fun toDto(work: InformationRequestAssignedWork): InformationRequestAssignedWorkDto =
+        InformationRequestAssignedWorkDto(
+            request = toDto(work.summary),
+            exchangeName = work.exchangeName,
+        )
+
+    private fun toDto(owner: InformationRequestOwnerRef): InformationRequestOwnerDto =
+        InformationRequestOwnerDto(
+            ownerType = owner.ownerType,
+            ownerOrganizationId = owner.organizationId,
+            ownerUserId = owner.userId,
         )
 
     fun toDto(summary: InformationRequestSummary): InformationRequestSummaryDto =

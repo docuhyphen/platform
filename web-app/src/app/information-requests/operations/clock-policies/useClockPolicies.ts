@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useState} from "react";
 import {
     defineInformationRequestClockPolicy,
     getInformationRequestClockPolicies,
@@ -9,34 +9,31 @@ import {
     InformationRequestClockPolicyDefinitionRequest,
     InformationRequestClockPolicyDto,
 } from "../../../models/models.tsx";
-import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
+import {
+    informationRequestRefusalCode,
+    informationRequestRefusalMessage
+} from "../../shared/informationRequestRefusal.ts";
+import {useServerRead} from "../../shared/useServerRead.ts";
+import {useStableIdempotencyKey} from "../../shared/useStableIdempotencyKey.ts";
+
+const CLOCK_POLICIES = "clock-policies";
+
+export interface ClockPolicyRefusal {
+    message: string;
+    code?: string;
+}
+
+const loadRefusal = (refusal: unknown) =>
+    informationRequestRefusalMessage(refusal, "The due date policies could not be loaded.");
 
 export const useClockPolicies = () =>
 {
-    const [policies, setPolicies] = useState<InformationRequestClockPolicyDto[] | null>(null);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const policies = useServerRead(CLOCK_POLICIES, getInformationRequestClockPolicies, loadRefusal);
     const [notice, setNotice] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const keyed = useStableIdempotencyKey();
 
-    const load = useCallback(async () =>
-    {
-        try
-        {
-            setPolicies(await getInformationRequestClockPolicies());
-            setLoadError(null);
-        }
-        catch (caught: unknown)
-        {
-            setLoadError(informationRequestRefusalMessage(caught, "The due date policies could not be loaded."));
-        }
-    }, []);
-
-    useEffect(() =>
-    {
-        void load();
-    }, [load]);
-
-    const save = async (work: () => Promise<InformationRequestClockPolicyDto>, done: string): Promise<string | null> =>
+    const save = async (work: () => Promise<InformationRequestClockPolicyDto>, done: string): Promise<ClockPolicyRefusal | null> =>
     {
         setBusy(true);
         setNotice(null);
@@ -44,12 +41,15 @@ export const useClockPolicies = () =>
         {
             await work();
             setNotice(done);
-            await load();
+            await policies.reload();
             return null;
         }
         catch (caught: unknown)
         {
-            return informationRequestRefusalMessage(caught, "The due date policy could not be saved.");
+            return {
+                message: informationRequestRefusalMessage(caught, "The due date policy could not be saved."),
+                code: informationRequestRefusalCode(caught),
+            };
         }
         finally
         {
@@ -58,13 +58,20 @@ export const useClockPolicies = () =>
     };
 
     return {
-        policies,
-        loadError,
+        policies: policies.value,
+        loadError: policies.error,
+        reload: policies.reload,
         notice,
         busy,
         define: (request: DefineInformationRequestClockPolicyRequest) =>
-            save(() => defineInformationRequestClockPolicy(request), "The due date policy was created."),
+            save(
+                () => keyed("define-clock-policy", request, key => defineInformationRequestClockPolicy(request, key)),
+                "The due date policy was created.",
+            ),
         publish: (policy: InformationRequestClockPolicyDto, definition: InformationRequestClockPolicyDefinitionRequest) =>
-            save(() => publishInformationRequestClockPolicyVersion(policy.id, definition), `A new version of ${policy.displayName} was published.`),
+            save(
+                () => keyed(`publish-clock-policy-${policy.id}`, definition, key => publishInformationRequestClockPolicyVersion(policy.id, definition, key)),
+                `A new version of ${policy.displayName} was published.`,
+            ),
     };
 };

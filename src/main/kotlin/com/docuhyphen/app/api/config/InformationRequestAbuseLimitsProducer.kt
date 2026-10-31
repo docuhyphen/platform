@@ -27,17 +27,33 @@ class InformationRequestAbuseLimitsProducer @Inject constructor(
 
     @ConfigProperty(name = "app.information-request.export.daily-ceiling", defaultValue = "100")
     private val exportDailyCeiling: Long,
+
+    @ConfigProperty(name = "app.information-request.export.max-bytes", defaultValue = "26214400")
+    private val exportMaxBytes: Long = 25L * 1024 * 1024,
 )
 {
     @Produces
     @Singleton
-    fun abuseLimits(): InformationRequestAbuseLimits =
-        InformationRequestAbuseLimits(
+    fun abuseLimits(): InformationRequestAbuseLimits {
+        requirePositive(noAuthChallengesPerMinute, "app.information-request.no-auth.challenges-per-minute")
+        requirePositive(noAuthSessionsPerMinute, "app.information-request.no-auth.sessions-per-minute")
+        requirePositive(accessLinkLifetime.toSeconds(), "app.information-request.access-link.default-lifetime")
+        requirePositive(accessLinkUses.toLong(), "app.information-request.access-link.default-uses")
+        require(!reminderCooldown.isNegative) { "app.information-request.reminder.cooldown must not be negative" }
+        requirePositive(exportDailyCeiling, "app.information-request.export.daily-ceiling")
+        requirePositive(exportMaxBytes, "app.information-request.export.max-bytes")
+        return InformationRequestAbuseLimits(
             noAuthChallengesPerMinute = noAuthChallengesPerMinute,
             noAuthSessionsPerMinute = noAuthSessionsPerMinute,
             accessLinkLifetime = accessLinkLifetime,
             accessLinkUses = accessLinkUses,
             reminderCooldown = reminderCooldown,
             exportDailyCeiling = exportDailyCeiling,
+            exportMaxBytes = exportMaxBytes,
         )
+    }
+
+    private fun requirePositive(value: Long, property: String) {
+        require(value > 0) { "$property must be more than zero" }
+    }
 }

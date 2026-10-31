@@ -1,4 +1,4 @@
-import {InformationRequestResponseWorkspaceDto} from "../../models/models.tsx";
+import {InformationRequestResponseWorkspaceDto, InformationRequestTemplateSectionDto} from "../../models/models.tsx";
 
 export const requirementPromptsOf = (workspace: InformationRequestResponseWorkspaceDto): Record<string, string> =>
 {
@@ -11,3 +11,8 @@ export const requirementPromptsOf = (workspace: InformationRequestResponseWorksp
         return prompt ? [[response.informationRequestRequirementId, prompt]] : [];
     }));
 };
+
+export const requirementPromptsByKey = (sections: InformationRequestTemplateSectionDto[]): Record<string, string> =>
+    Object.fromEntries(sections
+        .flatMap(section => section.requirements)
+        .map(requirement => [requirement.requirementKey, requirement.prompt]));

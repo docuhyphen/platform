@@ -21,7 +21,7 @@ const standingSummary = (stage: InformationRequestReviewStageStandingDto): strin
 
 const stageRules = (stage: InformationRequestReviewStageStandingDto): string[] => [
     stage.excludesResponseParties ? "Anyone who answered this request cannot review it." : null,
-    stage.excludesPriorReviewers ? "Anyone who reviewed an earlier submission cannot review this one." : null,
+    stage.excludesPriorReviewers ? "Anyone who decided an earlier stage or the earlier review cannot review this stage." : null,
     stage.minimumReviewerCount > 1 ? `At least ${stage.minimumReviewerCount} reviewers decide each item.` : null,
     stage.overridePermitted ? "A manager can override an item's decision." : null,
 ].filter((rule): rule is string => rule !== null);
@@ -62,8 +62,9 @@ const ReviewStageSummary = ({stages}: Props) =>
                         <ul id={`information-request-review-stage-${stage.stageKey}-rules`}
                             aria-label={`${stage.title} rules`}
                             className={styles.rules}>
-                            {stageRules(stage).map(rule => (
+                            {stageRules(stage).map((rule, index) => (
                                 <li key={rule}
+                                    id={`information-request-review-stage-${stage.stageKey}-rules-${index}`}
                                     className={styles.detail}>
                                     {rule}
                                 </li>

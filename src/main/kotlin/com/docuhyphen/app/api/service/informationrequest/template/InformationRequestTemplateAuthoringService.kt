@@ -1,47 +1,37 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
-import com.docuhyphen.app.api.model.dto.CreateInformationRequestTemplateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSummaryDto
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandMutationResult
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.command.CommandReceiptDecision
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
+import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionContent
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.audit.*
-import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
+import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.informationrequest.audit.InformationRequestAuditActorLabelResolver
+import com.docuhyphen.app.api.service.informationrequest.audit.InformationRequestAuditTargets
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Authoring of reusable Information Request Templates and of the one editable Version each may hold.
- *
- * Three separate questions are answered before anything is authored, and none of them stands in for
- * another: whether the caller may act for the owner the configuration names, whether that owner is
- * entitled to the capability, and whether this deployment has released it to them. The first is a
- * role and Share decision, the second and third belong to
- * [InformationRequestTemplateEntitlementGuard], and both of the latter are asked about the stored
- * owner rather than about whichever organization the caller currently has selected.
- *
- * A draft is edited as a whole document rather than in parts, so this service resolves the owner and
- * the editable Version and hands the document to
- * [InformationRequestTemplateConfigurationWriter]. Freezing a Version, retiring one, and starting a
- * new one after a Version has frozen are separate lifecycle operations and are not this class.
- */
 @ApplicationScoped
 class InformationRequestTemplateAuthoringService @Inject constructor(
     private val definitionRepository: InformationRequestTemplateDefinitionRepository,
@@ -52,8 +42,10 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
     private val userRoleService: UserRoleService,
     private val auditRecorder: AuditRecorder,
+    private val actorLabels: InformationRequestAuditActorLabelResolver,
     private val entitlementGuard: InformationRequestTemplateEntitlementGuard,
     private val schemaCompatibility: InformationRequestTemplateSchemaCompatibility,
+    private val commandReceiptService: CommandReceiptService,
 )
 {
     internal fun requireMutationContext(id: UUID): InformationRequestTemplateMutationContext
@@ -68,22 +60,17 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
     }
 
     internal fun projectTemplate(definition: InformationRequestTemplateDefinition): InformationRequestTemplateDto =
-        toDto(definition)
+        templateView(definition)
 
-    // ── Reads ─────────────────────────────────────────────────────────────────
+    internal fun currentAuthor(): PrincipalRef = requireUserPrincipal()
 
-    /**
-     * The Templates of one owner: the caller's selected organization when it names one, otherwise
-     * the caller's own. A caller never sees both at once, because the two are separate owners with
-     * separate entitlements rather than two views of one library.
-     */
     fun listTemplates(
         scopeKind: InformationRequestTemplateScopeKind? = null,
     ): List<InformationRequestTemplateSummaryDto>
     {
         val principal = requireUserPrincipal()
         val resolved = scopeKind ?: defaultScopeKind()
-        val definitions = when (resolved)
+        val (definitions, editable) = when (resolved)
         {
             InformationRequestTemplateScopeKind.ORGANIZATION ->
             {
@@ -91,7 +78,8 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                     principal, Action.INFORMATION_REQUEST_TEMPLATE_VIEW,
                 )
                 entitlementGuard.requireTemplateAccess(resolved, organizationId, null, null)
-                definitionRepository.findAllForOrganization(organizationId)
+                definitionRepository.findAllForOrganization(organizationId) to
+                        hasOrganizationAccess(principal, organizationId, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
             }
 
             InformationRequestTemplateScopeKind.PERSONAL ->
@@ -99,60 +87,149 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 entitlementGuard.requireTemplateAccess(
                     resolved, null, principal.id, entitlementOrganizationId(resolved),
                 )
-                definitionRepository.findAllForUser(principal.id)
+                definitionRepository.findAllForUser(principal.id) to true
             }
 
-            InformationRequestTemplateScopeKind.PLATFORM -> definitionRepository.findAllPlatform()
+            InformationRequestTemplateScopeKind.PLATFORM ->
+                definitionRepository.findAllPlatform() to userRoleService.isAppAdmin(principal.id)
         }
 
-        // One read of every listed Template's versions. Asking each Template separately, and then
-        // projecting the configuration behind each answer, would cost a multiple of the list length.
         val versionsByDefinition = versionRepository
             .findForDefinitions(definitions.map { it.id })
             .groupBy { it.templateDefinitionId }
+            .mapValues { (_, versions) ->
+                versions.filter { editable || it.status != InformationRequestTemplateStatus.DRAFT }
+            }
 
-        return definitions.map { definition ->
-            InformationRequestTemplateDtoMapper.toSummaryDto(
-                definition = definition,
-                versions = versionsByDefinition[definition.id].orEmpty(),
-            )
-        }
+        return definitions
+            .filter { editable || versionsByDefinition[it.id].orEmpty().isNotEmpty() }
+            .map { definition ->
+                InformationRequestTemplateDtoMapper.toSummaryDto(
+                    definition = definition,
+                    versions = versionsByDefinition[definition.id].orEmpty(),
+                )
+            }
     }
 
     fun getTemplate(id: UUID): InformationRequestTemplateDto
     {
         val definition = requireDefinition(id)
-        if (definition.scopeKind == InformationRequestTemplateScopeKind.PLATFORM)
-        {
-            requireUserPrincipal()
-            return toPublishedDto(definition)
+        val principal = requireOwnerAccess(definition, Action.INFORMATION_REQUEST_TEMPLATE_VIEW)
+        if (definition.scopeKind != InformationRequestTemplateScopeKind.PLATFORM) {
+            entitlementGuard.requireTemplateAccess(
+                definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
+                entitlementOrganizationId(definition.scopeKind),
+            )
         }
-        requireOwnerAccess(definition, Action.INFORMATION_REQUEST_TEMPLATE_VIEW)
-        entitlementGuard.requireTemplateAccess(
-            definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
-            entitlementOrganizationId(definition.scopeKind),
-        )
-        return toDto(definition)
+        if (mayEdit(definition, principal)) return templateView(definition)
+        val versions = versionRepository.findForDefinitions(listOf(definition.id))
+        val published = versionRepository.findLatestPublished(definition.id)
+        if (published == null && versions.none { it.status == InformationRequestTemplateStatus.RETIRED }) {
+            throw ForbiddenException(ACCESS_REFUSAL)
+        }
+        return publishedTemplateView(definition, published, versions)
     }
 
-    // ── Writes ────────────────────────────────────────────────────────────────
+    fun getVersion(id: UUID, versionNumber: Int): InformationRequestTemplateVersionDto {
+        val definition = requireDefinition(id)
+        val principal = requireOwnerAccess(definition, Action.INFORMATION_REQUEST_TEMPLATE_VIEW)
+        if (definition.scopeKind != InformationRequestTemplateScopeKind.PLATFORM)
+        {
+            entitlementGuard.requireTemplateAccess(
+                definition.scopeKind, definition.scopeOrgId, definition.scopeUserId,
+                entitlementOrganizationId(definition.scopeKind),
+            )
+        }
+        val version = versionRepository.findByNumber(definition.id, versionNumber)
+            ?.takeIf { it.status != InformationRequestTemplateStatus.DRAFT || mayEdit(definition, principal) }
+            ?: throw IllegalArgumentException("Information request template version not found: $versionNumber")
+        return projectionLoader.loadVersion(version)
+    }
 
-    /**
-     * Creates a Template identity together with the first Version an author can edit. The two are
-     * created at once because a Template with no editable Version is a name nothing can be said
-     * about, and an author would have to ask for one before doing anything at all.
-     */
+    fun frozenVersionContents(
+        access: RequestAccessContext,
+        templateKeys: Collection<String>,
+    ): List<InformationRequestTemplateVersionContent> {
+        val principal = access.principal.takeIf { it.kind == PrincipalKind.USER } ?: return emptyList()
+        if (templateKeys.isEmpty()) return emptyList()
+        val organizationId = access.authorization.activeOrgId
+        val definitions = buildList {
+            if (organizationId != null &&
+                hasOrganizationAccess(
+                    principal,
+                    organizationId,
+                    Action.INFORMATION_REQUEST_TEMPLATE_VIEW,
+                    access.authorization
+                ) &&
+                entitled(InformationRequestTemplateScopeKind.ORGANIZATION, organizationId, null, null)
+            ) {
+                addAll(definitionRepository.findAllForOrganization(organizationId))
+            }
+            if (entitled(InformationRequestTemplateScopeKind.PERSONAL, null, principal.id, organizationId)) {
+                addAll(definitionRepository.findAllForUser(principal.id))
+            }
+            addAll(definitionRepository.findAllPlatform())
+        }.filter { it.templateKey in templateKeys }
+        if (definitions.isEmpty()) return emptyList()
+
+        val keyByDefinition = definitions.associate { it.id to it.templateKey }
+        return versionRepository.findForDefinitions(definitions.map { it.id })
+            .filter { it.status != InformationRequestTemplateStatus.DRAFT }
+            .mapNotNull { version ->
+                projectionLoader.loadVersion(version).contentHashSha256?.let { hash ->
+                    InformationRequestTemplateVersionContent(
+                        templateKey = keyByDefinition.getValue(version.templateDefinitionId),
+                        versionNumber = version.versionNumber,
+                        contentHashSha256 = hash,
+                    )
+                }
+            }
+    }
+
     @Transactional
-    fun createTemplate(request: CreateInformationRequestTemplateRequest): InformationRequestTemplateDto
+    fun createTemplate(
+        request: CreateInformationRequestTemplateRequest,
+        idempotencyKey: String,
+    ): InformationRequestTemplateDto {
+        val principal = requireUserPrincipal()
+        val scopeKind = request.scopeKind ?: defaultScopeKind()
+        val receipt = InformationRequestTemplateCommandReceipts.forOwner(
+            scopeKind,
+            when (scopeKind) {
+                InformationRequestTemplateScopeKind.ORGANIZATION -> currentContext().activeOrgId
+                InformationRequestTemplateScopeKind.PERSONAL -> principal.id
+                InformationRequestTemplateScopeKind.PLATFORM -> null
+            },
+            InformationRequestTemplateCommandReceipts.CREATE,
+            principal,
+            idempotencyKey,
+            scopeKind,
+            request.namespace.trim().lowercase(),
+            request.templateKey.trim().lowercase(),
+            request.displayName.trim(),
+            request.description?.trim().orEmpty(),
+        )
+        return when (
+            val decision = commandReceiptService.runOnce(receipt) {
+                val definition = createDefinition(request)
+                CommandMutationResult(
+                    templateView(definition),
+                    InformationRequestTemplateCommandReceipts.result(definition.id)
+                )
+            }
+        ) {
+            is CommandReceiptDecision.Recorded -> decision.response
+            is CommandReceiptDecision.Replayed -> getTemplate(decision.result.resourceId)
+        }
+    }
+
+    internal fun createDefinition(request: CreateInformationRequestTemplateRequest): InformationRequestTemplateDefinition
     {
         val principal = requireUserPrincipal()
         val scopeKind = request.scopeKind ?: defaultScopeKind()
         if (scopeKind == InformationRequestTemplateScopeKind.PLATFORM)
         {
-            throw InformationRequestTemplateValidationException(
-                "Platform Templates are not created here. Copy a platform Template into your own or your " +
-                        "organization's Templates instead",
-            )
+            requirePlatformAuthor(principal)
         }
         val organizationId = if (scopeKind == InformationRequestTemplateScopeKind.ORGANIZATION)
             requireSelectedOrganization(principal, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
@@ -169,6 +246,12 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
         val displayName = request.displayName.trim().ifBlank {
             throw InformationRequestTemplateValidationException("displayName is required")
         }
+        InformationRequestTemplateTextLimits.requireDefinitionWithinLimits(
+            namespace,
+            templateKey,
+            displayName,
+            request.description?.trim(),
+        )
 
         if (definitionRepository.findByKey(scopeKind, organizationId, userId, namespace, templateKey) != null)
         {
@@ -187,74 +270,76 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 this.templateKey = templateKey
                 this.displayName = displayName
                 this.description = request.description?.trim()?.ifBlank { null }
-                this.createdByAppUserId = principal.id
+                this.createdByPrincipalKind = principal.kind
+                this.createdByPrincipalId = principal.id
             },
         )
         versionRepository.save(
             InformationRequestTemplateVersion().apply {
                 templateDefinitionId = definition.id
                 versionNumber = FIRST_VERSION_NUMBER
-                createdByAppUserId = principal.id
+                createdByPrincipalKind = principal.kind
+                createdByPrincipalId = principal.id
             },
         )
 
-        recordTemplateEvent(AuditEventType.INFORMATION_REQUEST_TEMPLATE_CREATE, definition, principal.id)
-        return toDto(definition)
+        recordTemplateEvent(AuditEventType.INFORMATION_REQUEST_TEMPLATE_CREATE, definition, principal)
+        return definition
     }
 
-    /**
-     * Replaces everything the editable Version configures. There is nothing to merge into, because a
-     * configuration is one authored statement rather than a set of independently editable settings.
-     *
-     * @throws IllegalStateException when every Version of the Template has frozen. Continuing to
-     * author needs a new Version, which is a decision the author makes rather than a side effect of
-     * saving.
-     */
     @Transactional
     fun replaceDraftConfiguration(
         id: UUID,
         request: InformationRequestTemplateConfigurationRequest,
+        precondition: CommandPrecondition,
+    ): InformationRequestTemplateDto = configureDraft(id, request, precondition, source = null)
+
+    internal fun configureCopiedDraft(
+        id: UUID,
+        request: InformationRequestTemplateConfigurationRequest,
+        source: InformationRequestTemplateVersion,
+    ): InformationRequestTemplateDto = configureDraft(id, request, CommandPrecondition.Unconditioned, source)
+
+    private fun configureDraft(
+        id: UUID,
+        request: InformationRequestTemplateConfigurationRequest,
+        precondition: CommandPrecondition,
+        source: InformationRequestTemplateVersion?,
     ): InformationRequestTemplateDto
     {
         val mutation = requireMutationContext(id)
-        val definition = mutation.definition
+        val definition = definitionRepository.findByIdForUpdate(mutation.definition.id)
+            ?: throw IllegalArgumentException("Information request template not found: $id")
 
-        // Asked before the draft is located, so a document naming a contract this owner cannot
-        // resolve against is refused without any part of the previous one being cleared.
         schemaCompatibility.requireUsable(definition, request.schemaVersionId)
 
         val draft = versionRepository.findDraftForUpdate(definition.id)
             ?: throw IllegalStateException(
                 "Information request template $id has no editable version",
             )
+        precondition.requireSatisfiedBy(InformationRequestTemplateETag.draftOf(draft))
+        draft.revision += 1
         configurationWriter.replaceConfiguration(draft, request)
 
         definition.updatedAt = Timestamp.from(Instant.now())
         definitionRepository.update(definition)
 
-        recordTemplateEvent(
+        recordTemplateVersionEvent(
             AuditEventType.INFORMATION_REQUEST_TEMPLATE_CONFIGURE,
             definition,
-            mutation.principal.id,
+            draft,
+            mutation.principal,
+            source,
         )
-        return toDto(definition)
+        return templateView(definition)
     }
 
-    // ── Owner resolution and access ───────────────────────────────────────────
-
-    /**
-     * Which owner a caller who named none is authoring for. A selected organization means the caller
-     * is acting for it; no selection means the caller is acting personally. There is no fallback to
-     * a primary organization, because that would bill and audit an organization the caller did not
-     * choose to act for.
-     */
     private fun defaultScopeKind(): InformationRequestTemplateScopeKind =
         if (currentContext().activeOrgId != null)
             InformationRequestTemplateScopeKind.ORGANIZATION
         else
             InformationRequestTemplateScopeKind.PERSONAL
 
-    /** Returns the acting principal so callers that need it do not resolve it a second time. */
     private fun requireOwnerAccess(
         definition: InformationRequestTemplateDefinition,
         action: Action,
@@ -274,8 +359,7 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                     return principal
                 }
             }
-            // A person authoring for themselves is the owner or nobody. No role or Share widens it,
-            // because there is no organization for one to be granted in.
+
             InformationRequestTemplateScopeKind.PERSONAL ->
             {
                 if (definition.scopeUserId == principal.id)
@@ -284,9 +368,32 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 }
             }
 
-            InformationRequestTemplateScopeKind.PLATFORM -> Unit
+            InformationRequestTemplateScopeKind.PLATFORM -> {
+                if (action == Action.INFORMATION_REQUEST_TEMPLATE_VIEW || userRoleService.isAppAdmin(principal.id)) {
+                    return principal
+                }
+            }
         }
-        throw ForbiddenException("Access denied to information request template configuration")
+        throw ForbiddenException(ACCESS_REFUSAL)
+    }
+
+    private fun mayEdit(definition: InformationRequestTemplateDefinition, principal: PrincipalRef): Boolean =
+        when (definition.scopeKind) {
+            InformationRequestTemplateScopeKind.ORGANIZATION -> {
+                val organizationId = definition.scopeOrgId
+                organizationId != null &&
+                        currentContext().activeOrgId == organizationId &&
+                        hasOrganizationAccess(principal, organizationId, Action.INFORMATION_REQUEST_TEMPLATE_EDIT)
+            }
+
+            InformationRequestTemplateScopeKind.PERSONAL -> definition.scopeUserId == principal.id
+            InformationRequestTemplateScopeKind.PLATFORM -> userRoleService.isAppAdmin(principal.id)
+        }
+
+    private fun requirePlatformAuthor(principal: PrincipalRef) {
+        if (!userRoleService.isAppAdmin(principal.id)) {
+            throw ForbiddenException("Platform Templates are authored by platform administrators")
+        }
     }
 
     private fun requireSelectedOrganization(principal: PrincipalRef, action: Action): UUID
@@ -295,12 +402,17 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
             ?: throw ForbiddenException("An active organization is required")
         if (!hasOrganizationAccess(principal, organizationId, action))
         {
-            throw ForbiddenException("Access denied to information request template configuration")
+            throw ForbiddenException(ACCESS_REFUSAL)
         }
         return organizationId
     }
 
-    private fun hasOrganizationAccess(principal: PrincipalRef, organizationId: UUID, action: Action): Boolean
+    private fun hasOrganizationAccess(
+        principal: PrincipalRef,
+        organizationId: UUID,
+        action: Action,
+        context: AuthorizationContext = currentContext(),
+    ): Boolean
     {
         val holdsCapability = userRoleService.orgRolesIn(principal.id, organizationId)
             .any { action.required in RoleCapabilities.forOrganizationRole(it) }
@@ -312,18 +424,28 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
             principal,
             action,
             ResourceRef.organization(organizationId),
-            currentContext(),
+            context,
         ) is Decision.Allow
     }
 
+    private fun entitled(
+        scopeKind: InformationRequestTemplateScopeKind,
+        organizationId: UUID?,
+        userId: UUID?,
+        actingOrganizationId: UUID?,
+    ): Boolean =
+        try {
+            entitlementGuard.requireTemplateAccess(scopeKind, organizationId, userId, actingOrganizationId)
+            true
+        } catch (_: SubscriptionDenialException) {
+            false
+        }
+
     private fun requireDefinition(id: UUID): InformationRequestTemplateDefinition =
         definitionRepository.findById(id)
-            ?: throw IllegalArgumentException("Information request template not found: $id")
+            ?.takeIf { it.originKind == InformationRequestTemplateOriginKind.REUSABLE }
+            ?: throw ForbiddenException(ACCESS_REFUSAL)
 
-    /**
-     * Reusable configuration is authored by a person. An application credential has no personal
-     * owner to bill or audit, so it is turned away here rather than resolving to one by accident.
-     */
     private fun requireUserPrincipal(): PrincipalRef
     {
         val principal = authorizationContextFactory.currentPrincipal()
@@ -346,56 +468,56 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
                 InformationRequestTemplateKey.refusalFor(label, candidate),
             )
 
-    // ── Audit ─────────────────────────────────────────────────────────────────
+    internal fun recordTemplateVersionEvent(
+        eventType: AuditEventType,
+        definition: InformationRequestTemplateDefinition,
+        version: InformationRequestTemplateVersion,
+        principal: PrincipalRef,
+        source: InformationRequestTemplateVersion?,
+    ) = recordTemplateEvent(
+        eventType,
+        definition,
+        principal,
+        buildMap {
+            put("templateVersionId", version.id.toString())
+            put("versionNumber", version.versionNumber.toString())
+            put("versionRevision", version.revision.toString())
+            source?.let {
+                put("sourceTemplateDefinitionId", it.templateDefinitionId.toString())
+                put("sourceTemplateVersionId", it.id.toString())
+                put("sourceVersionNumber", it.versionNumber.toString())
+            }
+        },
+    )
 
-    /**
-     * Files the change under the owner that holds the configuration. A personally owned Template
-     * files under that person; nothing here falls back to platform scope, because a personal
-     * Template recorded as the platform's would be readable by the wrong audience.
-     */
     internal fun recordTemplateEvent(
         eventType: AuditEventType,
         definition: InformationRequestTemplateDefinition,
-        actorId: UUID,
+        principal: PrincipalRef,
+        versionDetails: Map<String, String> = emptyMap(),
     )
     {
-        try
-        {
-            auditRecorder.record(
-                AuditEventDraft(
-                    owner = auditOwnerOf(definition),
-                    eventTypeKey = eventType.key,
-                    outcome = AuditOutcome.SUCCESS,
-                    actorId = actorId,
-                    actorKind = AuditActorKind.HUMAN,
-                    targetType = TEMPLATE_TARGET_TYPE,
-                    targetId = definition.id.toString(),
-                    targetLabel = definition.displayName,
-                    payload = mapOf(
-                        "namespace" to definition.namespace,
-                        "templateKey" to definition.templateKey,
-                        "scopeKind" to definition.scopeKind.name,
-                    ),
-                ),
-            )
-        }
-        catch (exception: AuditDraftInvalidException)
-        {
-            logger.warn(
-                "InformationRequestTemplateAuthoringService: AuditRecorder rejected {} draft: {}",
-                eventType.key,
-                exception.message,
-            )
-        }
-        catch (exception: AuditCaptureFailedException)
-        {
-            logger.error(
-                "InformationRequestTemplateAuthoringService: AuditRecorder capture failed for {}: {}",
-                eventType.key,
-                exception.message,
-                exception,
-            )
-        }
+        val actor = InformationRequestAuditActor.of(RequestAccessContext(principal, currentContext()))
+        val attribution = actorLabels.attribute(actor)
+        auditRecorder.record(
+            AuditEventDraft(
+                owner = auditOwnerOf(definition),
+                eventTypeKey = eventType.key,
+                outcome = AuditOutcome.SUCCESS,
+                actorId = attribution.actorId,
+                actorKind = attribution.actorKind,
+                actorLabel = attribution.actorLabel,
+                sessionId = attribution.sessionId,
+                targetType = InformationRequestAuditTargets.TEMPLATE_DEFINITION,
+                targetId = definition.id.toString(),
+                targetLabel = definition.displayName,
+                payload = mapOf(
+                    "namespace" to definition.namespace,
+                    "templateKey" to definition.templateKey,
+                    "scopeKind" to definition.scopeKind.name,
+                ) + versionDetails,
+            ),
+        )
     }
 
     private fun auditOwnerOf(definition: InformationRequestTemplateDefinition): AuditOwnerScope =
@@ -416,33 +538,33 @@ class InformationRequestTemplateAuthoringService @Inject constructor(
             InformationRequestTemplateScopeKind.PLATFORM -> AuditOwnerScope.Platform
         }
 
-    // ── Mapping ───────────────────────────────────────────────────────────────
-
-    private fun toDto(definition: InformationRequestTemplateDefinition): InformationRequestTemplateDto =
-        InformationRequestTemplateDtoMapper.toDto(
+    private fun templateView(definition: InformationRequestTemplateDefinition): InformationRequestTemplateDto {
+        val draft = versionRepository.findDraft(definition.id)
+        return InformationRequestTemplateDtoMapper.toDto(
             definition = definition,
-            draftVersion = versionRepository.findDraft(definition.id)?.let(projectionLoader::loadVersion),
+            draftVersion = draft?.let(projectionLoader::loadVersion),
             latestPublishedVersion = versionRepository.findLatestPublished(definition.id)
                 ?.let(projectionLoader::loadVersion),
+            draftETag = draft?.let(InformationRequestTemplateETag::draftOf),
+            versions = versionRepository.findForDefinitions(listOf(definition.id)),
         )
+    }
 
-    private fun toPublishedDto(definition: InformationRequestTemplateDefinition): InformationRequestTemplateDto =
+    private fun publishedTemplateView(
+        definition: InformationRequestTemplateDefinition,
+        published: InformationRequestTemplateVersion?,
+        versions: List<InformationRequestTemplateVersion>,
+    ): InformationRequestTemplateDto =
         InformationRequestTemplateDtoMapper.toDto(
             definition = definition,
             draftVersion = null,
-            latestPublishedVersion = versionRepository.findLatestPublished(definition.id)
-                ?.let(projectionLoader::loadVersion),
+            latestPublishedVersion = published?.let(projectionLoader::loadVersion),
+            versions = versions,
         )
 
     private companion object
     {
-        val logger = LoggerFactory.getLogger(InformationRequestTemplateAuthoringService::class.java)
-
-        /**
-         * The audit target is a denormalized string rather than a resource type, because the
-         * authorization stack has no entry for reusable request configuration.
-         */
-        const val TEMPLATE_TARGET_TYPE = "INFORMATION_REQUEST_TEMPLATE_DEFINITION"
         const val FIRST_VERSION_NUMBER = 1
+        const val ACCESS_REFUSAL = "Access denied to information request template configuration"
     }
 }

@@ -21,10 +21,13 @@ object InformationRequestAttestationPolicyEvaluator
             .filter { it.role in policy.requiredRoles }
             .associate { it.partyId to it.role }
         val eligible = attestations.filter { roleByParty[it.partyId] == it.partyRole }
-        val current = eligible.filter { it.attestedContentHashSha256 == contentHash && isUnexpired(it, asOf) }
-        val governing = current
+        val matching = eligible.filter { it.attestedContentHashSha256 == contentHash }
+        val current =
+            matching.filter { it.decision == InformationRequestAttestationDecision.REFUSED || isUnexpired(it, asOf) }
+        val governing = matching
             .groupBy { it.partyId }
             .map { (_, decisions) -> decisions.maxBy { it.sequenceNumber } }
+            .filter { it in current }
         val refusals = governing.filter { it.decision == InformationRequestAttestationDecision.REFUSED }
         val assents = governing
             .filter { it.decision == InformationRequestAttestationDecision.ASSENTED }
@@ -83,7 +86,14 @@ object InformationRequestAttestationPolicyEvaluator
         policy.externalSignatureReference != InformationRequestExternalSignatureReferencePolicy.REQUIRED ||
                 !attestation.externalSignatureReference.isNullOrBlank()
 
-    fun rolesBefore(
+    fun unmetRolesBefore(
+        policy: InformationRequestAttestationPolicy,
+        role: InformationRequestContributorRole,
+        evaluation: InformationRequestAttestationEvaluation?,
+    ): List<InformationRequestContributorRole> =
+        rolesBefore(policy, role).filter { earlier -> evaluation?.counted?.none { it.partyRole == earlier } != false }
+
+    private fun rolesBefore(
         policy: InformationRequestAttestationPolicy,
         role: InformationRequestContributorRole,
     ): List<InformationRequestContributorRole> =

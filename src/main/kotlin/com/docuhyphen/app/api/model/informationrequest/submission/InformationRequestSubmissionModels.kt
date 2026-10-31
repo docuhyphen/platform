@@ -59,10 +59,25 @@ internal data class InformationRequestSubmittedScope(
     val allowlistedByCorrection: Map<UUID, Set<UUID>>,
 )
 {
-    fun editable(item: InformationRequestSubmissionItem): Boolean
+    fun returned(item: InformationRequestSubmissionItem): Boolean
     {
         val correction = correctionByPackage[item.packageId] ?: return false
-        return item.informationRequestRequirementId in allowlistedByCorrection[correction.id].orEmpty() ||
-                item.completenessState == InformationRequestCompletenessItemState.HIDDEN
+        return item.informationRequestRequirementId in allowlistedByCorrection[correction.id].orEmpty()
     }
+
+    fun editable(item: InformationRequestSubmissionItem): Boolean =
+        returned(item) ||
+                (item.packageId in correctionByPackage && item.completenessState == InformationRequestCompletenessItemState.HIDDEN)
 }
+
+enum class InformationRequestResponseEditLock {
+    SUBMITTED,
+    NOT_RETURNED_FOR_CORRECTION,
+    GIVEN_ONCE,
+}
+
+data class InformationRequestLockedRequirement(
+    val requirementId: UUID,
+    val occurrencePath: String,
+    val lock: InformationRequestResponseEditLock,
+)

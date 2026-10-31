@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.workflow.AssigneeSpec
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository

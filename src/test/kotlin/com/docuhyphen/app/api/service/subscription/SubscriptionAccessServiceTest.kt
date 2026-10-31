@@ -6,11 +6,7 @@ import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
@@ -164,7 +160,7 @@ class SubscriptionAccessServiceTest
         val subscription = service.resolve(organizationContext())
 
         assertTrue(service.isFeatureAvailable(organizationContext(), PlanFeature.INFORMATION_REQUESTS))
-        assertTrue(service.availableFeatures(subscription).contains(PlanFeature.INFORMATION_REQUESTS))
+        assertTrue(subscription.hasFeature(PlanFeature.INFORMATION_REQUESTS))
         assertDoesNotThrow {
             service.requireFeature(organizationContext(), PlanFeature.INFORMATION_REQUESTS)
         }

@@ -17,7 +17,7 @@ const StandingNotice = ({id, notice}: Props) =>
              aria-live={"polite"}>
             <MessageBar id={`${id}-message`}
                         intent={notice.intent}>
-                <MessageBarBody>{notice.text}</MessageBarBody>
+                <MessageBarBody id={`${id}-message-body`}>{notice.text}</MessageBarBody>
             </MessageBar>
         </div>
     );

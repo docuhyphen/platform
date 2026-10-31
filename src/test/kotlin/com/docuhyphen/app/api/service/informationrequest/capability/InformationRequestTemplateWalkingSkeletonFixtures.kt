@@ -1,45 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.capability
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewTieResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import java.util.UUID
-
-data class InformationRequestTemplateWalkingSkeletonFixture(
-    val fixtureKey: String,
-    val templateKey: String,
-    val fixtureContractVersion: Int,
-    val configuration: InformationRequestTemplateConfigurationRequest,
-    val expectedRequirementKeys: List<String>,
-    val expectedCapabilities: List<InformationRequestCapability>,
-)
+import com.docuhyphen.app.api.service.informationrequest.capability.model.InformationRequestTemplateWalkingSkeletonFixture
+import java.util.*
 
 object InformationRequestTemplateWalkingSkeletonFixtures
 {
@@ -158,7 +124,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                             key = "subject-status",
                             prompt = "Provide the subject status",
                             fieldId = subjectStatusFieldId,
-                            contributorRole = InformationRequestContributorRole.SUBJECT,
+                            contributorRole = InformationRequestContributorRole.CONTRIBUTOR,
                             requiredness = InformationRequestRequiredness.CONDITIONAL,
                             conditionalRuleKey = "when-subject-is-active",
                             occurrenceAnchorKey = "reported-item",
@@ -222,7 +188,7 @@ object InformationRequestTemplateWalkingSkeletonFixtures
                             ),
                             attestationPolicy = InformationRequestTemplateAttestationPolicyRequest(
                                 requiredRoles = listOf(
-                                    InformationRequestContributorRole.SUBJECT,
+                                    InformationRequestContributorRole.CONTRIBUTOR,
                                     InformationRequestContributorRole.ATTESTOR,
                                 ),
                                 ordering = InformationRequestAttestationOrdering.ROLE_SEQUENCE,

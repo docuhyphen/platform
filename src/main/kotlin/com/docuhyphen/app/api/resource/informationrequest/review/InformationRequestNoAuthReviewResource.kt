@@ -36,13 +36,14 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
     {
         return try
         {
+            val review = reviewId(reviewId)
             InformationRequestCommandHttp.withNoAuthAccess(
                 readAccessService,
                 id,
                 accessLinkToken,
                 sessionToken
             ) { requestId, access ->
-                handler.comment(requestId, reviewId(reviewId), request, access, idempotencyKey)
+                handler.comment(requestId, review, request, access, idempotencyKey)
             }
         }
         catch (exception: Exception)
@@ -68,6 +69,7 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
     {
         return try
         {
+            val review = reviewId(reviewId)
             InformationRequestCommandHttp.withNoAuthAccess(
                 readAccessService,
                 id,
@@ -76,7 +78,7 @@ class InformationRequestNoAuthReviewResource @Inject constructor(
             ) { requestId, access ->
                 handler.reopen(
                     requestId,
-                    reviewId(reviewId),
+                    review,
                     InformationRequestReviewKind.APPEAL,
                     request,
                     access,

@@ -3,33 +3,25 @@ package com.docuhyphen.app.api.resource.user
 import com.docuhyphen.app.api.model.PlatformUserFeatureEntitlementDtoMapper
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
+import com.docuhyphen.app.api.model.subscription.UserFeatureEntitlementResult
+import com.docuhyphen.app.api.resource.RequestHeaders
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementDto
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsResponse
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsUpdateRequest
 import com.docuhyphen.app.api.service.subscription.PlatformUserFeatureEntitlementService
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.UserFeatureEntitlementResult
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.ws.rs.GET
+import jakarta.ws.rs.HeaderParam
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
 import jakarta.ws.rs.core.Response
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * The personal feature entitlement endpoint is a thin adapter: it names the account in the path, it
- * uses the verb that matches whole-collection replacement, and every failure the service raises
- * reaches the caller as the status that describes it.
- */
 class PlatformUserFeatureEntitlementResourceContractTest
 {
     private val service = mock<PlatformUserFeatureEntitlementService>()
@@ -40,16 +32,41 @@ class PlatformUserFeatureEntitlementResourceContractTest
     private val appUserId: UUID = UUID.randomUUID()
 
     @Test
-    fun `personal feature entitlement administration uses resource based paths and verbs`()
-    {
+    fun `personal feature entitlement administration declares its resource based paths and verbs on an operations interface`() {
         val resourceClass = PlatformUserFeatureEntitlementResource::class.java
+        val operations = resourceClass.interfaces.singleOrNull {
+            it.simpleName == "${resourceClass.simpleName}Operations"
+        }
+        assertNotNull(operations, "${resourceClass.simpleName} implements no operations interface")
+        assertEquals("${resourceClass.packageName}.operations", operations!!.packageName)
         assertEquals(
             "/platform/users/{appUserId}/feature-entitlements",
-            resourceClass.getAnnotation(Path::class.java).value,
+            operations.getAnnotation(Path::class.java).value
         )
-        assertTrue(resourceClass.declaredMethods.single { it.name == "get" }.isAnnotationPresent(GET::class.java))
-        assertTrue(resourceClass.declaredMethods.single { it.name == "replace" }.isAnnotationPresent(PUT::class.java))
+        assertTrue(operations.declaredMethods.single { it.name == "get" }.isAnnotationPresent(GET::class.java))
+        assertTrue(operations.declaredMethods.single { it.name == "replace" }.isAnnotationPresent(PUT::class.java))
+        val requestIdHeaders = operations.declaredMethods
+            .flatMap { method -> method.parameterAnnotations.flatMap { it.toList() } }
+            .filterIsInstance<HeaderParam>()
+            .map { it.value }
+        assertEquals(listOf(RequestHeaders.REQUEST_ID, RequestHeaders.REQUEST_ID), requestIdHeaders)
     }
+
+    @Test
+    fun `the resource class carries no JAX-RS annotation of its own`() {
+        val resourceClass = PlatformUserFeatureEntitlementResource::class.java
+
+        assertTrue(resourceClass.annotations.none(::isJaxRs), "the class is annotated")
+        resourceClass.declaredMethods.forEach { method ->
+            assertTrue(
+                method.annotations.none(::isJaxRs) && method.parameterAnnotations.flatten().none(::isJaxRs),
+                "${method.name} is annotated",
+            )
+        }
+    }
+
+    private fun isJaxRs(annotation: Annotation): Boolean =
+        annotation.annotationClass.java.packageName.startsWith("jakarta.ws.rs")
 
     @Test
     fun `stored decisions are returned for the account named in the path`()

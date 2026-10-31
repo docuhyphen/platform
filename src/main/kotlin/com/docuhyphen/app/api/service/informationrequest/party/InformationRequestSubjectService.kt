@@ -1,8 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
 import com.docuhyphen.app.api.model.InformationRequestSubjectDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.InformationRequestSubjectDto
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestSubjectCommand
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyAssignmentResult
@@ -12,10 +15,12 @@ import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentit
 import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityRefRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -29,14 +34,20 @@ class InformationRequestSubjectService @Inject constructor(
     private val requestRepository: InformationRequestRepository,
     private val subjectRepository: SubjectIdentityRefRepository,
     private val identifierRepository: SubjectIdentityExternalIdentifierRepository,
-    private val partyService: InformationRequestPartyService,
+    private val partyAssignments: InformationRequestPartyAssignmentService,
     private val authorizationService: AuthorizationService,
     private val ownerScopeAccess: InformationRequestOwnerScopeAccess,
+    private val gate: InformationRequestMutationGate,
 )
 {
     @Transactional
     fun assignSubject(command: AssignInformationRequestSubjectCommand): InformationRequestPartyAssignmentResult
     {
+        InformationRequestReadAuthorization.requireVisibleTarget(
+            authorizationService,
+            command.requestId,
+            command.access
+        )
         val request = requestRepository.findById(command.requestId)
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
@@ -49,10 +60,12 @@ class InformationRequestSubjectService @Inject constructor(
             command.access.authorization,
         )
         if (decision is Decision.Deny) throw ForbiddenException("Access denied to manage Information Request parties")
+        if (command.reference != null) requirePrivacyManagement(request, command.access)
 
+        gate.lock(request.id)
         val subjectId = command.reference?.let { reference -> knownSubject(request, reference) }
             ?: existingOrNewSubject(request, command)
-        return partyService.assign(
+        return partyAssignments.assign(
             AssignInformationRequestPartyCommand(
                 requestId = request.id,
                 roleKey = InformationRequestShareRoleKey.SUBJECT,
@@ -62,6 +75,22 @@ class InformationRequestSubjectService @Inject constructor(
                 idempotencyKey = command.idempotencyKey,
             ),
         )
+    }
+
+    @Transactional
+    fun assignKnownSubject(command: AssignInformationRequestPartyCommand): InformationRequestPartyAssignmentResult {
+        InformationRequestReadAuthorization.requireVisibleTarget(
+            authorizationService,
+            command.requestId,
+            command.access
+        )
+        val request = requestRepository.findById(command.requestId)
+            ?: throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            )
+        requirePrivacyManagement(request, command.access)
+        return partyAssignments.assign(command)
     }
 
     fun listForOwner(): List<InformationRequestSubjectDto>
@@ -79,6 +108,19 @@ class InformationRequestSubjectService @Inject constructor(
         }
     }
 
+    private fun requirePrivacyManagement(request: InformationRequest, access: RequestAccessContext) {
+        val owner = InformationRequestOwnerRef(request.ownerType, ownerIdOf(request))
+        if (!ownerScopeAccess.permits(
+                access.principal,
+                owner,
+                Action.INFORMATION_REQUEST_MANAGE_PRIVACY,
+                access.authorization
+            )
+        ) {
+            throw ForbiddenException("Naming a known subject needs privacy management for the request's owner")
+        }
+    }
+
     private fun knownSubject(request: InformationRequest, reference: InformationRequestSubjectReference): UUID? =
         identifierRepository.findByTenantValue(
             subjectOwnerTypeOf(request.ownerType),
@@ -91,7 +133,19 @@ class InformationRequestSubjectService @Inject constructor(
     private fun existingOrNewSubject(request: InformationRequest, command: AssignInformationRequestSubjectCommand): UUID
     {
         val subjectId = UUID.nameUUIDFromBytes(
-            "information_request.subject|${request.id}|${command.idempotencyKey}".toByteArray(StandardCharsets.UTF_8),
+            CommandRequestFingerprint.canonical(
+                listOf(
+                    "information_request.subject",
+                    request.id,
+                    command.access.principal.kind,
+                    command.access.principal.id,
+                    command.idempotencyKey,
+                    command.subjectKind,
+                    command.reference?.let {
+                        listOf(it.authority.trim(), it.identifierType.trim(), it.identifierValue.trim())
+                    },
+                ),
+            ).toByteArray(StandardCharsets.UTF_8),
         )
         if (subjectRepository.findById(subjectId) != null) return subjectId
         val subject = subjectRepository.save(

@@ -19,6 +19,17 @@ class ExchangeRecipientRepository : BaseRepository<ExchangeRecipient>(ExchangeRe
             .resultList
             .singleOrNull()
 
+    fun updateAndFlush(recipient: ExchangeRecipient): ExchangeRecipient {
+        val updated = entityManager.merge(recipient)
+        entityManager.flush()
+        return updated
+    }
+
+    fun deleteAndFlush(recipient: ExchangeRecipient) {
+        delete(recipient)
+        entityManager.flush()
+    }
+
     fun findByExchangeId(exchangeId: UUID): List<ExchangeRecipient> =
         entityManager.createQuery(
             """SELECT r FROM ExchangeRecipient r

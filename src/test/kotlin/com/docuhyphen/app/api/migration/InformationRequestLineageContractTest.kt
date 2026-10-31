@@ -1,9 +1,10 @@
 package com.docuhyphen.app.api.migration
 
+import com.docuhyphen.app.api.migration.model.LineageSuccessorRow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestLineageContractTest
 {
@@ -17,24 +18,66 @@ class InformationRequestLineageContractTest
                 val packageId = UUID.randomUUID()
                 val itemId = UUID.randomUUID()
                 fixture.insertPackage(packageId, 1)
-                fixture.insertItem(itemId, packageId, fixture.documentRequirementId, fixture.documentRevisionId,
-                    fixture.documentBindingId, "DOCUMENT", fixture.documentResponseId)
+                fixture.insertItem(
+                    itemId, packageId, fixture.documentRequirementId, fixture.documentRevisionId,
+                    fixture.documentBindingId, "DOCUMENT", fixture.documentResponseId
+                )
                 val successor = insertSuccessor(connection, fixture)
                 val lineageId = UUID.randomUUID()
 
                 val otherRequest = SubmissionRuntimeSqlFixture(connection)
                 refusedBy(connection, "belongs to the Exchange and owner") {
-                    insertLineage(connection, UUID.randomUUID(), otherRequest.requestId, fixture.requestId, null, "SUPPLEMENT")
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        otherRequest.requestId,
+                        fixture.requestId,
+                        null,
+                        "SUPPLEMENT"
+                    )
                 }
                 refusedBy(connection, "information_request_lineage_package_fkey") {
-                    insertLineage(connection, UUID.randomUUID(), successor.requestId, fixture.requestId, UUID.randomUUID(), "SUPPLEMENT")
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        successor.requestId,
+                        fixture.requestId,
+                        UUID.randomUUID(),
+                        "SUPPLEMENT"
+                    )
                 }
                 refusedBy(connection, "ck_information_request_lineage_recurrence") {
-                    insertLineage(connection, UUID.randomUUID(), successor.requestId, fixture.requestId, packageId, "RECURRENCE")
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        successor.requestId,
+                        fixture.requestId,
+                        packageId,
+                        "RECURRENCE"
+                    )
                 }
                 insertLineage(connection, lineageId, successor.requestId, fixture.requestId, packageId, "SUPPLEMENT")
+                execute(
+                    connection,
+                    """
+                    INSERT INTO information_request_lineage_source_package (id, lineage_id, successor_request_id, source_request_id, package_id)
+                    VALUES (?, ?, ?, ?, ?)
+                    """.trimIndent(),
+                    UUID.randomUUID(),
+                    lineageId,
+                    successor.requestId,
+                    fixture.requestId,
+                    packageId,
+                )
                 refusedBy(connection, "ux_information_request_lineage_successor") {
-                    insertLineage(connection, UUID.randomUUID(), successor.requestId, fixture.requestId, packageId, "SUPPLEMENT")
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        successor.requestId,
+                        fixture.requestId,
+                        packageId,
+                        "SUPPLEMENT"
+                    )
                 }
 
                 refusedBy(connection, "ck_information_request_carry_forward_reason") {
@@ -43,16 +86,36 @@ class InformationRequestLineageContractTest
                 refusedBy(connection, "names an item of the package") {
                     insertCarryForward(connection, lineageId, successor, packageId, UUID.randomUUID(), "OFFERED", null)
                 }
-                insertCarryForward(connection, lineageId, successor, packageId, itemId, "INVALIDATED", "EVIDENCE_REQUIRES_FRESH_COLLECTION")
+                insertCarryForward(
+                    connection,
+                    lineageId,
+                    successor,
+                    packageId,
+                    itemId,
+                    "INVALIDATED",
+                    "EVIDENCE_REQUIRES_FRESH_COLLECTION"
+                )
                 assertEquals(
                     "EVIDENCE_REQUIRES_FRESH_COLLECTION",
-                    queryString(connection, "SELECT reason_code FROM information_request_carry_forward WHERE lineage_id = ?", lineageId),
+                    queryString(
+                        connection,
+                        "SELECT reason_code FROM information_request_carry_forward WHERE lineage_id = ?",
+                        lineageId
+                    ),
                 )
 
                 listOf(
                     "UPDATE information_request_lineage SET reason_code = 'changed' WHERE id = ?",
                     "DELETE FROM information_request_carry_forward WHERE lineage_id = ?",
-                ).forEach { statement -> refusedBy(connection, "append-only") { execute(connection, statement, lineageId) } }
+                ).forEach { statement ->
+                    refusedBy(connection, "append-only") {
+                        execute(
+                            connection,
+                            statement,
+                            lineageId
+                        )
+                    }
+                }
             }
         }
     }
@@ -75,15 +138,51 @@ class InformationRequestLineageContractTest
 
                 val first = insertSuccessor(connection, fixture)
                 val second = insertSuccessor(connection, fixture)
-                insertLineage(connection, UUID.randomUUID(), first.requestId, fixture.requestId, null, "RECURRENCE", recurrenceId, 1)
+                insertLineage(
+                    connection,
+                    UUID.randomUUID(),
+                    first.requestId,
+                    fixture.requestId,
+                    null,
+                    "RECURRENCE",
+                    recurrenceId,
+                    1
+                )
                 val outsider = insertSuccessor(connection, fixture)
                 refusedBy(connection, "follows a request of its own recurrence") {
-                    insertLineage(connection, UUID.randomUUID(), second.requestId, outsider.requestId, null, "RECURRENCE", recurrenceId, 2)
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        second.requestId,
+                        outsider.requestId,
+                        null,
+                        "RECURRENCE",
+                        recurrenceId,
+                        2
+                    )
                 }
                 refusedBy(connection, "ux_information_request_lineage_recurrence") {
-                    insertLineage(connection, UUID.randomUUID(), second.requestId, first.requestId, null, "RECURRENCE", recurrenceId, 1)
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        second.requestId,
+                        first.requestId,
+                        null,
+                        "RECURRENCE",
+                        recurrenceId,
+                        1
+                    )
                 }
-                insertLineage(connection, UUID.randomUUID(), second.requestId, first.requestId, null, "RECURRENCE", recurrenceId, 2)
+                insertLineage(
+                    connection,
+                    UUID.randomUUID(),
+                    second.requestId,
+                    first.requestId,
+                    null,
+                    "RECURRENCE",
+                    recurrenceId,
+                    2
+                )
 
                 refusedBy(connection, "ck_information_request_refresh_rule_lead") {
                     insertRefreshRule(connection, UUID.randomUUID(), fixture.requestId, -1)
@@ -92,21 +191,39 @@ class InformationRequestLineageContractTest
                 insertRefreshRule(connection, ruleId, fixture.requestId, 30)
                 val refreshed = insertSuccessor(connection, fixture)
                 refusedBy(connection, "information_request_lineage_refresh_rule_fkey") {
-                    insertLineage(connection, UUID.randomUUID(), refreshed.requestId, first.requestId, null, "REFRESH", refreshRuleId = ruleId)
+                    insertLineage(
+                        connection,
+                        UUID.randomUUID(),
+                        refreshed.requestId,
+                        first.requestId,
+                        null,
+                        "REFRESH",
+                        refreshRuleId = ruleId
+                    )
                 }
-                insertLineage(connection, UUID.randomUUID(), refreshed.requestId, fixture.requestId, null, "REFRESH", refreshRuleId = ruleId)
+                insertLineage(
+                    connection,
+                    UUID.randomUUID(),
+                    refreshed.requestId,
+                    fixture.requestId,
+                    null,
+                    "REFRESH",
+                    refreshRuleId = ruleId
+                )
                 refusedBy(connection, "append-only") {
-                    execute(connection, "UPDATE information_request_recurrence SET interval_count = 2 WHERE id = ?", recurrenceId)
+                    execute(
+                        connection,
+                        "UPDATE information_request_recurrence SET interval_count = 2 WHERE id = ?",
+                        recurrenceId
+                    )
                 }
             }
         }
     }
 
-    private data class Successor(val requestId: UUID, val requirementId: UUID)
-
-    private fun insertSuccessor(connection: Connection, fixture: SubmissionRuntimeSqlFixture): Successor
+    private fun insertSuccessor(connection: Connection, fixture: SubmissionRuntimeSqlFixture): LineageSuccessorRow
     {
-        val successor = Successor(UUID.randomUUID(), UUID.randomUUID())
+        val successor = LineageSuccessorRow(UUID.randomUUID(), UUID.randomUUID())
         execute(
             connection,
             """
@@ -176,7 +293,7 @@ class InformationRequestLineageContractTest
     private fun insertCarryForward(
         connection: Connection,
         lineageId: UUID,
-        successor: Successor,
+        successor: LineageSuccessorRow,
         packageId: UUID,
         itemId: UUID,
         decision: String,
@@ -202,7 +319,12 @@ class InformationRequestLineageContractTest
         )
     }
 
-    private fun insertRecurrence(connection: Connection, id: UUID, fixture: SubmissionRuntimeSqlFixture, intervalCount: Int = 1)
+    private fun insertRecurrence(
+        connection: Connection,
+        id: UUID,
+        fixture: SubmissionRuntimeSqlFixture,
+        intervalCount: Int = 1
+    )
     {
         execute(
             connection,

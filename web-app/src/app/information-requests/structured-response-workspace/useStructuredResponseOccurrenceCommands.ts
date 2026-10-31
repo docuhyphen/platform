@@ -10,7 +10,7 @@ interface CommandHandlers
     onReorder: (
         requestId: string,
         groupKey: string,
-        parentOccurrenceId: string | undefined,
+        parentOccurrenceId: string | null | undefined,
         occurrenceIds: string[],
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;

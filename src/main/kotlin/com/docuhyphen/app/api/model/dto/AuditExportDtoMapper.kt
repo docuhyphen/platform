@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.audit.export.OrganizationIntegrityReport
+import com.docuhyphen.app.api.model.audit.export.StreamIntegrityReport
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
-import com.docuhyphen.app.api.service.audit.export.OrganizationIntegrityReport
-import com.docuhyphen.app.api.service.audit.export.StreamIntegrityReport
 
 /** All `AuditExport`/integrity-report -> DTO mapping in one dedicated class, per this codebase's `toDto` convention (resources/services never inline entity->DTO mapping). */
 object AuditExportDtoMapper

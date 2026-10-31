@@ -5,13 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Current draft response for one runtime Requirement occurrence.
- *
- * Submission packages later copy the exact response revision they include. Until then this row is
- * the mutable draft, guarded by the parent request's response revision and recorded with canonical
- * principal provenance.
- */
 @Entity
 @Table(name = "information_request_response")
 class InformationRequestResponse

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.entity
 
+import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestReconciliationOutcome
 import jakarta.persistence.*
 import java.sql.Timestamp
 import java.time.Instant
@@ -112,6 +113,9 @@ class InformationRequestImportedValue
 
     @Column(name = "information_request_requirement_id", nullable = false)
     lateinit var informationRequestRequirementId: UUID
+
+    @Column(name = "requirement_revision_id", nullable = false)
+    lateinit var requirementRevisionId: UUID
 
     @Column(name = "source_kind", nullable = false, length = 16)
     @Enumerated(EnumType.STRING)
@@ -295,4 +299,56 @@ class InformationRequestGeneratedOutput
 
     @Column(name = "recorded_at", nullable = false)
     var recordedAt: Timestamp = Timestamp.from(Instant.now())
+}
+
+@Entity
+@Table(name = "information_request_imported_value_reconciliation")
+class InformationRequestImportedValueReconciliationRun {
+    @Id
+    var id: UUID = UUID.randomUUID()
+
+    @Column(name = "information_request_id", nullable = false)
+    lateinit var informationRequestId: UUID
+
+    @Column(name = "recorded_by_principal_kind", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    lateinit var recordedByPrincipalKind: PrincipalKind
+
+    @Column(name = "recorded_by_principal_id", nullable = false)
+    lateinit var recordedByPrincipalId: UUID
+
+    @Column(name = "recorded_at", nullable = false)
+    var recordedAt: Timestamp = Timestamp.from(Instant.now())
+}
+
+@Entity
+@Table(name = "information_request_imported_value_reconciliation_item")
+class InformationRequestImportedValueReconciliationRunItem {
+    @Id
+    var id: UUID = UUID.randomUUID()
+
+    @Column(name = "reconciliation_id", nullable = false)
+    lateinit var reconciliationId: UUID
+
+    @Column(name = "information_request_id", nullable = false)
+    lateinit var informationRequestId: UUID
+
+    @Column(name = "item_number", nullable = false)
+    var itemNumber: Int = 0
+
+    @Column(name = "imported_value_id", nullable = false)
+    lateinit var importedValueId: UUID
+
+    @Column(name = "information_request_requirement_id", nullable = false)
+    lateinit var informationRequestRequirementId: UUID
+
+    @Column(name = "outcome", nullable = false, length = 32)
+    @Enumerated(EnumType.STRING)
+    lateinit var outcome: InformationRequestReconciliationOutcome
+
+    @Column(name = "response_canonical_value")
+    var responseCanonicalValue: String? = null
+
+    @Column(name = "discrepancy_id")
+    var discrepancyId: UUID? = null
 }

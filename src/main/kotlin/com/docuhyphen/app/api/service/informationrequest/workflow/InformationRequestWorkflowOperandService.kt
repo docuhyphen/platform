@@ -5,6 +5,7 @@ import com.docuhyphen.app.api.model.workflow.WorkflowRequirementOperand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
 import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
 import com.docuhyphen.app.api.service.workflow.WorkflowRequirementOperandSource
 import jakarta.enterprise.context.ApplicationScoped
@@ -17,6 +18,7 @@ class InformationRequestWorkflowOperandService @Inject constructor(
     private val itemRepository: InformationRequestSubmissionItemRepository,
     private val requirementRepository: InformationRequestRequirementRepository,
     private val fieldValueRevisions: FieldValueRevisionQueryService,
+    private val bindingRepository: InformationRequestTemplateRequirementBindingRepository,
 ) : WorkflowRequirementOperandSource
 {
     override fun frozenValue(
@@ -42,10 +44,18 @@ class InformationRequestWorkflowOperandService @Inject constructor(
         {
             return WorkflowRequirementOperand.Unavailable(NOT_A_FIELD)
         }
-        val revisionId = item.fieldValueRevisionId ?: return WorkflowRequirementOperand.Empty
+        val revisionId = item.fieldValueRevisionId
+            ?: return bindingRepository.findById(item.templateBindingId)
+                ?.collectedFieldDefinitionId
+                ?.let(fieldValueRevisions::valueTypeOfDefinition)
+                ?.let { WorkflowRequirementOperand.Empty(it) }
+                ?: WorkflowRequirementOperand.Unavailable(VALUE_TYPE_UNRESOLVED)
         val value = fieldValueRevisions.canonicalValueOf(revisionId)
             ?: return WorkflowRequirementOperand.Unavailable(VALUE_UNAVAILABLE)
-        return if (value.isEmpty) WorkflowRequirementOperand.Empty else WorkflowRequirementOperand.Value(value)
+        return if (value.isEmpty) WorkflowRequirementOperand.Empty(value.type)
+        else WorkflowRequirementOperand.Value(
+            value
+        )
     }
 
     companion object
@@ -55,5 +65,6 @@ class InformationRequestWorkflowOperandService @Inject constructor(
         const val AMBIGUOUS = "AMBIGUOUS"
         const val NOT_A_FIELD = "NOT_A_FIELD"
         const val VALUE_UNAVAILABLE = "VALUE_UNAVAILABLE"
+        const val VALUE_TYPE_UNRESOLVED = "VALUE_TYPE_UNRESOLVED"
     }
 }

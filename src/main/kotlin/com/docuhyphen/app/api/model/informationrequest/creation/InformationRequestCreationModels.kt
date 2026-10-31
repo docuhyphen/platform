@@ -29,6 +29,7 @@ data class CreateInformationRequestFromBlueprintCommand(
     val gatesExchangeClosure: Boolean = true,
     val access: RequestAccessContext,
     val idempotencyKey: String,
+    val participantPrincipals: Set<PrincipalRef>? = null,
 )
 
 data class BlueprintInformationRequestPartyDefault(

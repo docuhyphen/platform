@@ -1,28 +1,21 @@
 package com.docuhyphen.app.api.resource.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.document.DocumentVersionContent
+import com.docuhyphen.app.api.model.document.DocumentVersionReadHandle
 import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceCommandResultDto
 import com.docuhyphen.app.api.model.dto.InformationRequestEvidenceListDto
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceArtifactView
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContent
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContentUse
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceList
-import com.docuhyphen.app.api.model.informationrequest.evidence.ReplaceInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.resource.informationrequest.evidence.operations.InformationRequestEvidenceResourceOperations
 import com.docuhyphen.app.api.resource.informationrequest.evidence.operations.InformationRequestNoAuthEvidenceResourceOperations
 import com.docuhyphen.app.api.resource.model.InformationRequestEvidenceStateChangeRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
@@ -30,24 +23,26 @@ import com.docuhyphen.app.api.service.informationrequest.evidence.InformationReq
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceQueryService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceUploadService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import io.quarkus.security.ForbiddenException
+import jakarta.ws.rs.POST
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.QueryParam
+import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.StreamingOutput
 import org.jboss.resteasy.reactive.multipart.FileUpload
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
+import java.nio.file.Files
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceResourceContractTest
 {
@@ -60,7 +55,8 @@ class InformationRequestEvidenceResourceContractTest
     private val collectionService: InformationRequestEvidenceCollectionService = mock()
     private val queryService: InformationRequestEvidenceQueryService = mock()
     private val accessContextFactory: InformationRequestAccessContextFactory = mock()
-    private val readAccessService: InformationRequestNoAuthReadAccessService = mock()
+    private val readAccessService: InformationRequestNoAuthReadAccessService =
+        InformationRequestNoAuthAccessDoubles.current()
 
     private val artifact = InformationRequestEvidenceArtifact().apply {
         informationRequestId = requestId
@@ -77,8 +73,10 @@ class InformationRequestEvidenceResourceContractTest
         artifactETag = "\"${artifact.id}:1\"",
     )
 
-    private val resource = InformationRequestEvidenceResource(uploadService, collectionService, queryService, accessContextFactory)
-    private val noAuthResource = InformationRequestNoAuthEvidenceResource(uploadService, collectionService, queryService, readAccessService)
+    private val resource =
+        InformationRequestEvidenceResource(uploadService, collectionService, queryService, accessContextFactory)
+    private val noAuthResource =
+        InformationRequestNoAuthEvidenceResource(uploadService, collectionService, queryService, readAccessService)
 
     init
     {
@@ -92,7 +90,8 @@ class InformationRequestEvidenceResourceContractTest
             "/information-requests/{id}/requirements/{requirementId}/evidence-artifacts",
             InformationRequestEvidenceResourceOperations::class.java.getAnnotation(Path::class.java).value,
         )
-        val noAuthPath = InformationRequestNoAuthEvidenceResourceOperations::class.java.getAnnotation(Path::class.java).value
+        val noAuthPath =
+            InformationRequestNoAuthEvidenceResourceOperations::class.java.getAnnotation(Path::class.java).value
         assertEquals("no-auth/information-requests/{id}/requirements/{requirementId}/evidence-artifacts", noAuthPath)
         assertTrue("/$noAuthPath".startsWith("/no-auth/information-requests/"))
     }
@@ -117,7 +116,8 @@ class InformationRequestEvidenceResourceContractTest
         assertEquals(artifact.id, body.artifact.id)
         assertEquals(true, body.artifact.createdByCaller)
 
-        val command = argumentCaptor<UploadInformationRequestEvidenceCommand>().also { verify(uploadService).upload(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<UploadInformationRequestEvidenceCommand>().also { verify(uploadService).upload(it.capture()) }.firstValue
         assertEquals(requestId, command.requestId)
         assertEquals(requirementId, command.requirementId)
         assertEquals(access, command.access)
@@ -171,9 +171,56 @@ class InformationRequestEvidenceResourceContractTest
         )
 
         assertEquals(200, response.status)
-        val command = argumentCaptor<ReplaceInformationRequestEvidenceCommand>().also { verify(uploadService).replace(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<ReplaceInformationRequestEvidenceCommand>().also { verify(uploadService).replace(it.capture()) }.firstValue
         assertEquals(artifact.id, command.artifactId)
         assertEquals(CommandPrecondition.ExpectedRevision(result.artifactETag), command.precondition)
+    }
+
+    @Test
+    fun `a wildcard If-Match on a withdrawal is sent to the service as a missing precondition`() {
+        whenever(collectionService.withdraw(any()))
+            .thenThrow(CommandPreconditionException.required(result.artifactETag))
+
+        val response = resource.withdraw(
+            requestId.toString(), requirementId.toString(), artifact.id.toString(),
+            InformationRequestEvidenceStateChangeRequest("Recorded in error"), "*", "withdraw-key",
+        )
+
+        assertEquals(428, response.status)
+        verify(collectionService).withdraw(
+            org.mockito.kotlin.argThat { precondition == CommandPrecondition.Absent },
+        )
+    }
+
+    @Test
+    fun `a withdrawal reason longer than the 512 characters kept is refused before anything runs`() {
+        val response = resource.withdraw(
+            requestId.toString(), requirementId.toString(), artifact.id.toString(),
+            InformationRequestEvidenceStateChangeRequest("r".repeat(513)), result.artifactETag, "withdraw-key",
+        )
+
+        assertEquals(400, response.status)
+        assertEquals("A reason is at most 512 characters", (response.entity as ResponseError).errorMessage)
+        verify(collectionService, never()).withdraw(any())
+    }
+
+    @Test
+    fun `a removal takes its reason from the request body, never from the address`() {
+        listOf(
+            InformationRequestEvidenceResourceOperations::class.java,
+            InformationRequestNoAuthEvidenceResourceOperations::class.java,
+        ).forEach { operations ->
+            val removal = operations.methods.single { it.name == "remove" }
+
+            assertTrue(removal.isAnnotationPresent(POST::class.java), operations.simpleName)
+            assertEquals(
+                "/{artifactId}/removals",
+                removal.getAnnotation(Path::class.java)?.value,
+                operations.simpleName
+            )
+            assertTrue(removal.parameterAnnotations.flatten().none { it is QueryParam }, operations.simpleName)
+        }
     }
 
     @Test
@@ -188,15 +235,17 @@ class InformationRequestEvidenceResourceContractTest
         )
         val removed = resource.remove(
             requestId.toString(), requirementId.toString(), artifact.id.toString(),
-            "No longer relevant", result.artifactETag, "remove-key",
+            InformationRequestEvidenceStateChangeRequest("No longer relevant"), result.artifactETag, "remove-key",
         )
 
         assertEquals(200, withdrawn.status)
         assertEquals(200, removed.status)
-        val withdrawal = argumentCaptor<ChangeInformationRequestEvidenceStateCommand>().also { verify(collectionService).withdraw(it.capture()) }.firstValue
+        val withdrawal =
+            argumentCaptor<ChangeInformationRequestEvidenceStateCommand>().also { verify(collectionService).withdraw(it.capture()) }.firstValue
         assertEquals("Recorded in error", withdrawal.reason)
         assertEquals("withdraw-key", withdrawal.idempotencyKey)
-        val removal = argumentCaptor<ChangeInformationRequestEvidenceStateCommand>().also { verify(collectionService).remove(it.capture()) }.firstValue
+        val removal =
+            argumentCaptor<ChangeInformationRequestEvidenceStateCommand>().also { verify(collectionService).remove(it.capture()) }.firstValue
         assertEquals("No longer relevant", removal.reason)
     }
 
@@ -204,13 +253,22 @@ class InformationRequestEvidenceResourceContractTest
     fun `a list answers every visible artifact and the occurrence evidence ETag`()
     {
         whenever(queryService.list(requestId, requirementId, access))
-            .thenReturn(InformationRequestEvidenceList(requirementId, "\"$requirementId:1\"", listOf(result.artifact), evaluation = null))
+            .thenReturn(
+                InformationRequestEvidenceList(
+                    requirementId,
+                    "\"$requirementId:1\"",
+                    listOf(result.artifact),
+                    evaluation = null
+                )
+            )
 
         val response = resource.list(requestId.toString(), requirementId.toString())
 
         assertEquals(200, response.status)
         assertEquals("\"$requirementId:1\"", response.getHeaderString("ETag"))
-        assertEquals(listOf(artifact.id), (response.entity as InformationRequestEvidenceListDto).artifacts.map { it.id })
+        assertEquals(
+            listOf(artifact.id),
+            (response.entity as InformationRequestEvidenceListDto).artifacts.map { it.id })
     }
 
     @Test
@@ -218,10 +276,22 @@ class InformationRequestEvidenceResourceContractTest
     {
         val versionId = UUID.randomUUID()
         whenever(
-            queryService.openContent(requestId, requirementId, artifact.id, versionId, access, InformationRequestEvidenceContentUse.DOWNLOAD),
-        ).thenReturn(InformationRequestEvidenceContent(contentFile(), "collected \"record\".pdf", "application/pdf", false))
+            queryService.openContent(
+                requestId,
+                requirementId,
+                artifact.id,
+                versionId,
+                access,
+                InformationRequestEvidenceContentUse.DOWNLOAD
+            ),
+        ).thenReturn(evidenceContent(contentFile(), "collected \"record\".pdf", false))
 
-        val response = resource.download(requestId.toString(), requirementId.toString(), artifact.id.toString(), versionId.toString())
+        val response = resource.download(
+            requestId.toString(),
+            requirementId.toString(),
+            artifact.id.toString(),
+            versionId.toString()
+        )
 
         assertEquals(200, response.status)
         assertEquals("application/pdf", response.mediaType.toString())
@@ -239,12 +309,63 @@ class InformationRequestEvidenceResourceContractTest
     {
         val versionId = UUID.randomUUID()
         whenever(
-            queryService.openContent(requestId, requirementId, artifact.id, versionId, access, InformationRequestEvidenceContentUse.PREVIEW),
-        ).thenReturn(InformationRequestEvidenceContent(contentFile(), "collected-record.pdf", "application/pdf", true))
+            queryService.openContent(
+                requestId,
+                requirementId,
+                artifact.id,
+                versionId,
+                access,
+                InformationRequestEvidenceContentUse.PREVIEW
+            ),
+        ).thenReturn(evidenceContent(contentFile(), "collected-record.pdf", true))
 
-        val response = resource.preview(requestId.toString(), requirementId.toString(), artifact.id.toString(), versionId.toString())
+        val response = resource.preview(
+            requestId.toString(),
+            requirementId.toString(),
+            artifact.id.toString(),
+            versionId.toString()
+        )
 
         assertTrue(response.getHeaderString("Content-Disposition").startsWith("inline; "))
+    }
+
+    @Test
+    fun `a downloaded copy is written to the caller and then released`() {
+        val versionId = UUID.randomUUID()
+        val directory = Files.createTempDirectory("evidence-download-copy")
+        val copy = directory.resolve("collected-record.pdf").toFile().apply { writeText("%PDF-1.4\n%%EOF\n") }
+        whenever(
+            queryService.openContent(
+                requestId,
+                requirementId,
+                artifact.id,
+                versionId,
+                access,
+                InformationRequestEvidenceContentUse.DOWNLOAD
+            ),
+        ).thenReturn(
+            InformationRequestEvidenceContent(
+                DocumentVersionContent(
+                    DocumentVersionReadHandle.temporaryCopy(copy, directory),
+                    "collected-record.pdf"
+                ),
+                "collected-record.pdf",
+                "application/pdf",
+                false,
+            ),
+        )
+
+        val response = resource.download(
+            requestId.toString(),
+            requirementId.toString(),
+            artifact.id.toString(),
+            versionId.toString()
+        )
+
+        assertEquals(200, response.status)
+        assertEquals("15", response.getHeaderString("Content-Length"))
+        assertArrayEquals("%PDF-1.4\n%%EOF\n".toByteArray(), body(response))
+        assertFalse(directory.toFile().exists())
     }
 
     @Test
@@ -252,7 +373,12 @@ class InformationRequestEvidenceResourceContractTest
     {
         whenever(queryService.list(any(), any(), any()))
             .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.NOT_FOUND, "Not found"))
-            .thenThrow(InformationRequestLifecycleException(InformationRequestErrorCatalog.EVIDENCE_NOT_COLLECTED, "Not evidence"))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.EVIDENCE_NOT_COLLECTED,
+                    "Not evidence"
+                )
+            )
             .thenThrow(ForbiddenException("Denied"))
 
         assertEquals(404, resource.list(requestId.toString(), requirementId.toString()).status)
@@ -262,25 +388,88 @@ class InformationRequestEvidenceResourceContractTest
     }
 
     @Test
+    fun `an evidence read for a request that does not exist answers not found`() {
+        whenever(
+            queryService.list(
+                any(),
+                any(),
+                any()
+            )
+        ).thenThrow(IllegalArgumentException("Information Request not found"))
+
+        assertEquals(404, resource.list(UUID.randomUUID().toString(), requirementId.toString()).status)
+    }
+
+    @Test
     fun `a no-auth call resolves its own credentials and never reaches another request`()
     {
-        val participant = RequestAccessContext(PrincipalRef.participant(UUID.randomUUID()), AuthorizationContext(sessionRef = "session"))
-        whenever(readAccessService.resolve("access-token", "session-token")).thenReturn(InformationRequestNoAuthAccess(participant, requestId))
-        whenever(readAccessService.resolve("other-token", "session-token")).thenReturn(InformationRequestNoAuthAccess(participant, UUID.randomUUID()))
+        val participant = RequestAccessContext(
+            PrincipalRef.participant(UUID.randomUUID()),
+            AuthorizationContext(sessionRef = "session")
+        )
+        whenever(readAccessService.resolve(requestId, "access-token", "session-token")).thenReturn(participant)
+        whenever(readAccessService.resolve(requestId, "other-token", "session-token")).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            ),
+        )
         whenever(uploadService.upload(any())).thenReturn(result)
 
         val uploaded = noAuthResource.upload(
-            requestId.toString(), requirementId.toString(), fileUpload(), null, null, null, null, null, null, null, null, null, null,
-            "\"$requirementId:0\"", "upload-key", "access-token", "session-token",
+            requestId.toString(),
+            requirementId.toString(),
+            fileUpload(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "\"$requirementId:0\"",
+            "upload-key",
+            "access-token",
+            "session-token",
         )
         assertEquals(201, uploaded.status)
-        val command = argumentCaptor<UploadInformationRequestEvidenceCommand>().also { verify(uploadService).upload(it.capture()) }.firstValue
+        val command =
+            argumentCaptor<UploadInformationRequestEvidenceCommand>().also { verify(uploadService).upload(it.capture()) }.firstValue
         assertEquals(participant, command.access)
         assertEquals(PrincipalKind.PARTICIPANT, command.access.principal.kind)
 
-        assertEquals(404, noAuthResource.list(requestId.toString(), requirementId.toString(), "other-token", "session-token").status)
-        assertEquals(400, noAuthResource.list(requestId.toString(), requirementId.toString(), null, "session-token").status)
+        assertEquals(
+            404,
+            noAuthResource.list(requestId.toString(), requirementId.toString(), "other-token", "session-token").status
+        )
+        assertEquals(
+            400,
+            noAuthResource.list(requestId.toString(), requirementId.toString(), null, "session-token").status
+        )
         verify(queryService, never()).list(any(), any(), any())
+    }
+
+    @Test
+    fun `a no-auth evidence list is read with the access the session recheck holds current`() {
+        val resolved = RequestAccessContext(
+            PrincipalRef.participant(UUID.randomUUID()),
+            AuthorizationContext(mfaSatisfied = true, sessionRef = "resolved-session"),
+        )
+        val current = resolved.copy(authorization = AuthorizationContext(sessionRef = "current-session"))
+        whenever(readAccessService.resolve(requestId, "access-token", "session-token")).thenReturn(resolved)
+        doAnswer { it.getArgument<(RequestAccessContext) -> Any?>(2).invoke(current) }
+            .whenever(readAccessService).readCurrent<Any?>(eq(requestId), eq(resolved), any())
+        whenever(queryService.list(requestId, requirementId, current))
+            .thenReturn(InformationRequestEvidenceList(requirementId, "\"$requirementId:1\"", emptyList(), null))
+
+        val response =
+            noAuthResource.list(requestId.toString(), requirementId.toString(), "access-token", "session-token")
+
+        assertEquals(200, response.status)
+        verify(queryService, never()).list(requestId, requirementId, resolved)
     }
 
     private fun upload(
@@ -310,6 +499,21 @@ class InformationRequestEvidenceResourceContractTest
         whenever(upload.size()).thenReturn(stored.length())
         return upload
     }
+
+    private fun evidenceContent(file: File, fileName: String, inline: Boolean) =
+        InformationRequestEvidenceContent(
+            DocumentVersionContent(DocumentVersionReadHandle.storedFile(file), fileName),
+            fileName,
+            "application/pdf",
+            inline,
+        )
+
+    private fun body(response: Response): ByteArray =
+        when (val entity = response.entity) {
+            is StreamingOutput -> ByteArrayOutputStream().also { entity.write(it) }.toByteArray()
+            is InputStream -> entity.use { it.readBytes() }
+            else -> error("The content response carries no readable body")
+        }
 
     private fun contentFile(): File =
         File.createTempFile("evidence-content", ".pdf").apply {

@@ -7,6 +7,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestRefreshRule
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestCarryForwardOffer
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestLineageView
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestRefreshRuleStanding
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorResult
 
 object InformationRequestLineageDtoMapper
@@ -29,7 +30,11 @@ object InformationRequestLineageDtoMapper
         source = view.source?.let(::toDto),
         successors = view.successors.map(::toDto),
         recurrence = view.recurrence?.let(::toDto),
+        series = view.series?.let(::toDto),
         nextOccurrenceDueAt = view.nextOccurrenceDueAt?.let(java.sql.Timestamp::from),
+        everyOccurrenceCreated = view.everyOccurrenceCreated,
+        nextOccurrenceCreatable = view.nextOccurrenceCreatable,
+        refreshRules = view.refreshRules.map(::toDto),
     )
 
     fun toDto(offer: InformationRequestCarryForwardOffer) = InformationRequestCarryForwardDto(
@@ -42,10 +47,11 @@ object InformationRequestLineageDtoMapper
         priorFieldValue = offer.sourceFieldValue?.takeUnless { it.cleared }?.value,
     )
 
-    fun toDto(result: InformationRequestSuccessorResult) = InformationRequestSuccessorResultDto(
+    fun toDto(result: InformationRequestSuccessorResult, successor: InformationRequestDto) =
+        InformationRequestSuccessorResultDto(
         sourceRequestId = result.source.id,
         sourceState = result.source.state,
-        successor = InformationRequestDtoMapper.toDto(result.successor),
+            successor = successor,
         successorETag = result.successorETag,
         lineage = toDto(result.lineage),
         offeredCount = result.carryForwards.count { it.decision == InformationRequestCarryForwardDecision.OFFERED },
@@ -60,6 +66,12 @@ object InformationRequestLineageDtoMapper
         firstDueAt = recurrence.firstDueAt,
         maximumOccurrences = recurrence.maximumOccurrences,
         createdAt = recurrence.createdAt,
+    )
+
+    fun toDto(standing: InformationRequestRefreshRuleStanding) = toDto(standing.rule).copy(
+        refreshDueOn = standing.refreshDueOn?.toString(),
+        refreshDue = standing.refreshDue,
+        refreshed = standing.refreshed,
     )
 
     fun toDto(rule: InformationRequestRefreshRule) = InformationRequestRefreshRuleDto(

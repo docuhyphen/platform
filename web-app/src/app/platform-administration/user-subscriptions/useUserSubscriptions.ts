@@ -1,14 +1,20 @@
 import {useCallback, useEffect, useState} from "react";
 import {
-    extendPlatformUserSubscriptionTrial,
-    endPlatformUserSubscriptionTrial,
     convertPlatformUserSubscriptionTrial,
+    endPlatformUserSubscriptionTrial,
+    extendPlatformUserSubscriptionTrial,
+    fetchPlatformUserFeatureEntitlements,
     fetchPlatformUserSubscriptions,
     startPlatformUserSubscriptionTrial,
+    updatePlatformUserFeatureEntitlements,
     updatePlatformUserSubscription,
 } from "../../../services/platformUserSubscriptionApi.ts";
 import {PlatformApiError} from "../../../services/platformOrganizationApi.ts";
-import {PlatformUserSubscriptionPolicy, PlatformUserSubscriptionPolicyRequest} from "../../../services/types/platformUserSubscriptions.ts";
+import {PlatformFeatureEntitlement} from "../../../services/types/platformFeatureEntitlements.ts";
+import {
+    PlatformUserSubscriptionPolicy,
+    PlatformUserSubscriptionPolicyRequest
+} from "../../../services/types/platformUserSubscriptions.ts";
 
 const PAGE_SIZE = 25;
 
@@ -47,6 +53,17 @@ export const useUserSubscriptions = () =>
     {
         await updatePlatformUserSubscription(user.appUserId, request);
         await load();
+    };
+
+    const loadFeatureOverrides = useCallback(async (user: PlatformUserSubscriptionPolicy) =>
+        (await fetchPlatformUserFeatureEntitlements(user.appUserId)).entitlements, []);
+
+    const saveFeatureOverrides = async (
+        user: PlatformUserSubscriptionPolicy,
+        overrides: PlatformFeatureEntitlement[],
+        changeReason: string,
+    ) => {
+        await updatePlatformUserFeatureEntitlements(user.appUserId, {entitlements: overrides, changeReason});
     };
 
     const startTrial = async (
@@ -97,9 +114,14 @@ export const useUserSubscriptions = () =>
     return {
         items, query, offset, total, loading, error,
         pageSize: PAGE_SIZE,
-        setQuery: (value: string) => { setQuery(value); setOffset(0); },
+        setQuery: (value: string) => {
+            setQuery(value);
+            setOffset(0);
+        },
         setOffset,
         save,
+        loadFeatureOverrides,
+        saveFeatureOverrides,
         startTrial,
         extendTrial,
         endTrial,

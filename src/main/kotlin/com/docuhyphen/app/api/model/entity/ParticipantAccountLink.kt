@@ -8,12 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Durable proof that an [ExternalParticipant] has completed a verified registration as the named
- * [AppUser]. Recorded once per participant; the participant's earlier Shares, request parties, and
- * ShareLinks are never rewritten or reattributed once this link exists, so history stays intact
- * regardless of which Information Request first triggered the upgrade.
- */
 @Entity
 @Table(name = "participant_account_link")
 class ParticipantAccountLink
@@ -27,13 +21,11 @@ class ParticipantAccountLink
     @Column(name = "app_user_id", nullable = false)
     lateinit var appUserId: UUID
 
-    /** The Information Request whose party proved contact and triggered this upgrade. */
-    @Column(name = "linked_via_information_request_id", nullable = false)
-    lateinit var linkedViaInformationRequestId: UUID
+    @Column(name = "linked_via_information_request_id")
+    var linkedViaInformationRequestId: UUID? = null
 
-    /** The bootstrap ShareLink whose session proved contact and triggered this upgrade. */
-    @Column(name = "linked_via_share_link_id", nullable = false)
-    lateinit var linkedViaShareLinkId: UUID
+    @Column(name = "linked_via_share_link_id")
+    var linkedViaShareLinkId: UUID? = null
 
     @Column(name = "linked_at", nullable = false)
     var linkedAt: Timestamp = Timestamp.from(Instant.now())

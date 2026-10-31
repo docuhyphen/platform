@@ -8,9 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Append-only lineage from an obsolete subject identity to its unique current successor.
- */
 @Entity
 @Serializable
 @Table(name = "subject_identity_transition")

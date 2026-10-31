@@ -21,7 +21,7 @@ export const useTemplateKeyedListStyles = makeStyles({
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalS,
         padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
-        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
         flexWrap: "wrap",
     },

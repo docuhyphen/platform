@@ -1,10 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestSupportingEvidenceLinkRepository
+import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
+import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
@@ -16,6 +19,7 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
     private val templateLinkRepository: InformationRequestTemplateBindingEvidenceLinkRepository,
     private val requirementRepository: InformationRequestRequirementRepository,
     private val linkRepository: InformationRequestSupportingEvidenceLinkRepository,
+    private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
 )
 {
     fun materialize(request: InformationRequest)
@@ -27,10 +31,7 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
             .map { it.supportedRequirementId to it.supportingRequirementId }
             .toSet()
         val now = Timestamp.from(Instant.now())
-        InformationRequestSupportingEvidenceLinkResolver.resolve(
-            templateLinks,
-            requirementRepository.findForRequest(request.id)
-        )
+        InformationRequestSupportingEvidenceLinkResolver.resolve(templateLinks, activeRequirements(request))
             .filter { (it.supportedRequirementId to it.supportingRequirementId) !in recorded }
             .forEach { target ->
                 linkRepository.save(
@@ -62,13 +63,16 @@ class InformationRequestSupportingEvidenceLinkService @Inject constructor(
     private fun currentLinks(request: InformationRequest): List<InformationRequestSupportingEvidenceLink>
     {
         val linked = InformationRequestSupportingEvidenceLinkResolver
-            .resolve(
-                templateLinkRepository.findForVersion(request.templateVersionId),
-                requirementRepository.findForRequest(request.id)
-            )
+            .resolve(templateLinkRepository.findForVersion(request.templateVersionId), activeRequirements(request))
             .map { it.supportedRequirementId to it.supportingRequirementId }
             .toSet()
         return linkRepository.findForRequest(request.id)
             .filter { (it.supportedRequirementId to it.supportingRequirementId) in linked }
+    }
+
+    private fun activeRequirements(request: InformationRequest): List<InformationRequestRequirement> {
+        val activePaths = occurrenceRepository.findForRequest(request.id).map { it.occurrencePath }.toSet()
+        return requirementRepository.findForRequest(request.id)
+            .filter { InformationRequestOccurrencePath.isActiveOccurrence(it.occurrencePath, activePaths) }
     }
 }

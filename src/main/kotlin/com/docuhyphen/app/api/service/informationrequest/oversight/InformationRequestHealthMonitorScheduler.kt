@@ -34,8 +34,8 @@ class InformationRequestHealthMonitorScheduler @Inject constructor(
             val breaches = healthService.report().indicators.filter { it.breached }
             breaches.forEach { indicator ->
                 logger.error(
-                    "{}: indicator={} count={} threshold={}",
-                    BREACH_MARKER, indicator.key, indicator.count, indicator.threshold,
+                    "{}: indicator={} count={}",
+                    BREACH_MARKER, indicator.key, indicator.count,
                 )
             }
             breaches

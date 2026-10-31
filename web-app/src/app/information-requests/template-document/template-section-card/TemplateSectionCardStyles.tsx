@@ -2,7 +2,7 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useTemplateSectionCardStyles = makeStyles({
     card: {
-        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
         padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalM}`,
         display: "flex",

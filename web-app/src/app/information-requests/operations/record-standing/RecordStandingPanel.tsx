@@ -3,11 +3,12 @@ import {Badge, Button, Text} from "@fluentui/react-components";
 import {useLoadedValue} from "../../../../hooks/useLoadedValue.ts";
 import {getInformationRequestDisposalStanding} from "../../../../services/informationRequestOperationsService.ts";
 import {INFORMATION_REQUEST_RECORD_TYPE} from "../../../../services/recordPreservationService.ts";
-import {InformationRequestDisposalStandingDto} from "../../../models/models.tsx";
+import {InformationRequestDisposalStandingDto, RecordRetentionScheduleVersionDto} from "../../../models/models.tsx";
 import PlaceHoldDialog from "../../../record-preservation/place-hold-dialog/PlaceHoldDialog.tsx";
 import {disposalSummary, recordTypeLabel} from "../../../record-preservation/recordPreservationLabels.ts";
 import LoadedPanel from "../loaded-panel/LoadedPanel.tsx";
-import {formattedTime} from "../operationsLabels.ts";
+import {reportingForbidden} from "../operations-detail-content/reportingForbidden.ts";
+import {countedText, formattedTime} from "../operationsLabels.ts";
 import RecordExportsPanel from "../record-exports/RecordExportsPanel.tsx";
 import {useOperationsAccess} from "../useOperationsAccess.ts";
 import {useRecordStandingPanelStyles} from "./RecordStandingPanelStyles.tsx";
@@ -15,6 +16,7 @@ import {useRecordStandingPanelStyles} from "./RecordStandingPanelStyles.tsx";
 interface RecordStandingPanelProps
 {
     requestId: string;
+    onForbidden?: () => void;
 }
 
 const eligibilityOf = (standing: InformationRequestDisposalStandingDto): string =>
@@ -24,12 +26,22 @@ const eligibilityOf = (standing: InformationRequestDisposalStandingDto): string 
     return standing.eligibleFrom ? `${detail}. Eligible from ${formattedTime(standing.eligibleFrom)}.` : `${detail}.`;
 };
 
-const RecordStandingPanel = ({requestId}: RecordStandingPanelProps) =>
+const scheduleOf = (schedule: RecordRetentionScheduleVersionDto): string => {
+    const kept = `Retention schedule version ${schedule.versionNumber}: kept at least ${countedText(schedule.minimumRetentionDays, "day", "days")}`;
+    return schedule.disposalAfterDays === undefined || schedule.disposalAfterDays === null
+        ? `${kept} after it finishes, never disposed automatically`
+        : `${kept}, disposed ${countedText(schedule.disposalAfterDays, "day", "days")} after it finishes`;
+};
+
+const RecordStandingPanel = ({requestId, onForbidden}: RecordStandingPanelProps) =>
 {
     const styles = useRecordStandingPanelStyles();
     const access = useOperationsAccess();
     const [placingHold, setPlacingHold] = useState(false);
-    const load = useCallback(() => getInformationRequestDisposalStanding(requestId), [requestId]);
+    const load = useCallback(
+        () => reportingForbidden(getInformationRequestDisposalStanding(requestId), onForbidden),
+        [requestId, onForbidden],
+    );
     const standing = useLoadedValue(load, "The record standing could not be loaded.");
 
     return (
@@ -55,13 +67,12 @@ const RecordStandingPanel = ({requestId}: RecordStandingPanelProps) =>
                                 </Badge>
                             )}
                         </div>
-                        {!value.disposal && <Text id={"information-request-disposal-eligibility"}>{eligibilityOf(value)}</Text>}
+                        {!value.disposal &&
+                            <Text id={"information-request-disposal-eligibility"}>{eligibilityOf(value)}</Text>}
                         {value.schedule && (
                             <Text id={"information-request-disposal-schedule"}
                                   className={styles.detail}>
-                                {value.schedule.disposalAfterDays === undefined
-                                    ? `Retention schedule version ${value.schedule.versionNumber}: kept at least ${value.schedule.minimumRetentionDays} days after it finishes, never disposed automatically`
-                                    : `Retention schedule version ${value.schedule.versionNumber}: kept at least ${value.schedule.minimumRetentionDays} days, disposed ${value.schedule.disposalAfterDays} days after it finishes`}
+                                {scheduleOf(value.schedule)}
                             </Text>
                         )}
                         {value.holds.map(hold => (
@@ -69,6 +80,13 @@ const RecordStandingPanel = ({requestId}: RecordStandingPanelProps) =>
                                   key={hold.id}
                                   className={styles.detail}>
                                 {`Held through the ${recordTypeLabel(hold.resourceType)}: ${hold.reason}`}
+                            </Text>
+                        ))}
+                        {value.withheldHolds.map((hold, index) => (
+                            <Text id={`information-request-disposal-withheld-hold-${index}`}
+                                  key={`withheld-hold-${index}`}
+                                  className={styles.detail}>
+                                {`Held through the ${recordTypeLabel(hold.resourceType)} since ${formattedTime(hold.effectiveFrom)}. Only people who can read the owner's holds see why.`}
                             </Text>
                         ))}
                         {access.canManageHolds && !value.disposal && (

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class AuditOwnerScopeResolverTest
 {
@@ -53,14 +53,14 @@ class AuditOwnerScopeResolverTest
     }
 
     @Test
-    fun `unresolvable resource falls back to Platform`()
+    fun `unresolvable resource refuses an invented Platform owner`()
     {
         val resourceId = UUID.randomUUID()
         whenever(registry.resolve(ResourceRef(ResourceType.EXCHANGE, resourceId))).thenReturn(null)
 
-        val scope = resolver.resolve(ResourceType.EXCHANGE, resourceId)
-
-        assertEquals(AuditOwnerScope.Platform, scope)
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+            resolver.resolve(ResourceType.EXCHANGE, resourceId)
+        }
     }
 }
 

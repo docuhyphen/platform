@@ -5,7 +5,13 @@ import {
     InformationRequestOperationsRowDto,
 } from "../../models/models.tsx";
 import {shareRoleLabels} from "../shared/informationRequestLabels.ts";
-import {exceptionLabels, noticeCountLabels, requestStateLabels, slaStatusPresentation} from "./operationsLabels.ts";
+import {
+    exceptionLabels,
+    exceptionSingularLabels,
+    noticeCountLabels,
+    requestStateLabels,
+    slaStatusPresentation,
+} from "./operationsLabels.ts";
 
 export const OPERATIONS_CSV_FILE_NAME = "information-requests.csv";
 
@@ -16,8 +22,11 @@ const HEADER = [
     "Service level",
     "Due",
     "Created",
+    "Issued",
+    "First viewed",
+    "Started",
     "Age in hours",
-    "Reminders",
+    "Clock reminder points",
     "Assignees",
     "Notices",
     "Needs attention",
@@ -32,24 +41,38 @@ const cell = (value: string): string =>
     return NEEDS_QUOTES.test(guarded) ? `"${guarded.replace(/"/g, "\"\"")}"` : guarded;
 };
 
+const isoTime = (value: number | null | undefined): string =>
+    value === undefined || value === null ? "" : new Date(value).toISOString();
+
 export const assigneeLabel = (assignee: InformationRequestOperationsAssigneeDto): string =>
     `${assignee.label ?? "Unnamed party"} (${shareRoleLabels[assignee.roleKey]})`;
 
-const counted = <K extends string>(counts: Partial<Record<K, number>>, keys: K[], labels: Record<K, string>): string =>
-    keys.filter(key => (counts[key] ?? 0) > 0).map(key => `${counts[key]} ${labels[key]}`).join("; ");
+const counted = <K extends string>(
+    counts: Partial<Record<K, number>>,
+    keys: K[],
+    labels: Record<K, string>,
+    singularLabels: Record<K, string> = labels,
+): string =>
+    keys
+        .filter(key => (counts[key] ?? 0) > 0)
+        .map(key => `${counts[key]} ${counts[key] === 1 ? singularLabels[key] : labels[key]}`)
+        .join("; ");
 
 const line = (row: InformationRequestOperationsRowDto): string => [
     row.requestId,
     row.title,
     requestStateLabels[row.state],
     slaStatusPresentation[row.slaStatus].label,
-    row.nearestDueAt ?? "",
-    row.createdAt,
+    isoTime(row.nearestDueAt),
+    isoTime(row.createdAt),
+    isoTime(row.issuedAt),
+    isoTime(row.firstViewedAt),
+    isoTime(row.startedAt),
     String(Math.floor(row.ageSeconds / 3600)),
     String(row.reminderCount),
     row.assignees.map(assigneeLabel).join("; "),
     counted(row.noticeCounts, Object.values(InformationRequestNoticeDeliveryState), noticeCountLabels),
-    counted(row.exceptionCounts, Object.values(InformationRequestOperationsException), exceptionLabels),
+    counted(row.exceptionCounts, Object.values(InformationRequestOperationsException), exceptionLabels, exceptionSingularLabels),
 ].map(cell).join(",");
 
 export const operationsCsv = (rows: InformationRequestOperationsRowDto[]): string =>

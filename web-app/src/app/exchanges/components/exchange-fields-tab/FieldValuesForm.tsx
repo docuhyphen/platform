@@ -14,12 +14,7 @@ interface Props
     exchangeId: string;
     bindings: SchemaFieldBindingDto[];
     values: FieldValueDto[];
-    /**
-     * Validator of the version the values were served in, sent back with a save so one built on
-     * values that have since changed is refused rather than applied.
-     */
-    valuesETag?: string;
-    /** Take a fresh reading of the stored values: they have just changed, or were found to have. */
+    valuesETag: string;
     onValuesChanged: () => void;
 }
 
@@ -47,7 +42,8 @@ const FieldValuesForm = ({exchangeId, bindings, values, valuesETag, onValuesChan
                     <div id={`exchange-field-section-${section.key}`}
                          key={section.key}
                          className={styles.sectionBlock}>
-                        <div className={styles.fieldLane}>
+                        <div id={`field-values-form-field-lane-${section.key}`}
+                             className={styles.fieldLane}>
                             {section.bindings.map(binding => (
                                 <FieldCard id={`exchange-field-card-${toFieldElementId(binding.fieldContractId)}`}
                                            key={binding.fieldContractId}
@@ -71,12 +67,14 @@ const FieldValuesForm = ({exchangeId, bindings, values, valuesETag, onValuesChan
                     </span>
                 )}
             </div>
-            <div className={styles.buttonRow}>
+            <div id={"field-values-form-button-row"}
+                 className={styles.buttonRow}>
                 <Button id="exchange-fields-save-btn"
                         appearance="primary"
                         shape="circular"
                         disabled={saving}
-                        icon={saving ? <Spinner size="tiny"/> : undefined}
+                        icon={saving ? <Spinner id={"field-values-form-button-row-spinner"}
+                                                size="tiny"/> : undefined}
                         onClick={handleSave}>
                     {saving ? 'Saving...' : 'Save values'}
                 </Button>

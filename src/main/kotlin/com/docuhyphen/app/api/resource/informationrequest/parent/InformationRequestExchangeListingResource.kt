@@ -18,7 +18,7 @@ class InformationRequestExchangeListingResource @Inject constructor(
     {
         return try
         {
-            val id = InformationRequestCommandHttp.uuid(exchangeId, "exchange id")
+            val id = InformationRequestCommandHttp.uuid(exchangeId, "Exchange id")
             val listing = summaryService.listForExchange(id, accessContextFactory.currentAuthenticated())
             Response.ok(InformationRequestSummaryDtoMapper.toDto(listing)).build()
         }

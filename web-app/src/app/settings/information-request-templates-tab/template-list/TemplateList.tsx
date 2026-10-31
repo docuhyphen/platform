@@ -1,4 +1,6 @@
 import {Badge, Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import InformationRequestLoadError
+    from "../../../information-requests/shared/load-error/InformationRequestLoadError.tsx";
 import {InformationRequestTemplateStatus, InformationRequestTemplateSummaryDto} from "../../../models/models.tsx";
 import {useTemplateListStyles} from "./TemplateListStyles.tsx";
 
@@ -7,6 +9,9 @@ interface TemplateListProps
     templates: InformationRequestTemplateSummaryDto[];
     loading: boolean;
     error: string | null;
+    refusal: string | null;
+    openError: string | null;
+    onRetry: () => void;
     onOpen: (template: InformationRequestTemplateSummaryDto) => void;
 }
 
@@ -16,7 +21,7 @@ const statusText: Record<InformationRequestTemplateStatus, string> = {
     [InformationRequestTemplateStatus.RETIRED]: "Retired",
 };
 
-const TemplateList = ({templates, loading, error, onOpen}: TemplateListProps) =>
+const TemplateList = ({templates, loading, error, refusal, openError, onRetry, onOpen}: TemplateListProps) =>
 {
     const styles = useTemplateListStyles();
 
@@ -31,9 +36,16 @@ const TemplateList = ({templates, loading, error, onOpen}: TemplateListProps) =>
     if (error)
     {
         return (
-            <MessageBar id={"information-request-template-list-error"}
-                        intent={"error"}>
-                <MessageBarBody>{error}</MessageBarBody>
+            <InformationRequestLoadError id={"information-request-template-list-error"}
+                                         message={error}
+                                         onRetry={onRetry}/>
+        );
+    }
+    if (refusal) {
+        return (
+            <MessageBar id={"information-request-template-list-refusal"}
+                        intent={"warning"}>
+                <MessageBarBody id={"information-request-template-list-refusal-body"}>{refusal}</MessageBarBody>
             </MessageBar>
         );
     }
@@ -48,58 +60,67 @@ const TemplateList = ({templates, loading, error, onOpen}: TemplateListProps) =>
     }
 
     return (
-        <ul id={"information-request-template-list"}
-            aria-label={"Information Request Templates"}
-            className={styles.list}>
-            {templates.map(template => (
-                <li key={template.id}
-                    id={`information-request-template-card-${template.id}`}
-                    className={styles.card}>
-                    <div id={`information-request-template-card-${template.id}-main`}
-                         className={styles.main}>
-                        <Text id={`information-request-template-card-${template.id}-name`}
-                              weight={"semibold"}>
-                            {template.displayName}
-                        </Text>
-                        {template.description && (
-                            <Text id={`information-request-template-card-${template.id}-description`}
-                                  className={styles.muted}>
-                                {template.description}
+        <div id={"information-request-template-list-region"}
+             className={styles.region}>
+            {openError && (
+                <MessageBar id={"information-request-template-open-error"}
+                            intent={"error"}>
+                    <MessageBarBody id={"information-request-template-open-error-body"}>{openError}</MessageBarBody>
+                </MessageBar>
+            )}
+            <ul id={"information-request-template-list"}
+                aria-label={"Information Request Templates"}
+                className={styles.list}>
+                {templates.map(template => (
+                    <li key={template.id}
+                        id={`information-request-template-card-${template.id}`}
+                        className={styles.card}>
+                        <div id={`information-request-template-card-${template.id}-main`}
+                             className={styles.main}>
+                            <Text id={`information-request-template-card-${template.id}-name`}
+                                  weight={"semibold"}>
+                                {template.displayName}
                             </Text>
-                        )}
-                        <div id={`information-request-template-card-${template.id}-badges`}
-                             className={styles.badges}>
-                            <Badge id={`information-request-template-card-${template.id}-status`}
-                                   appearance={"tint"}
-                                   color={template.status === InformationRequestTemplateStatus.PUBLISHED ? "success" : "warning"}>
-                                {statusText[template.status]}
-                            </Badge>
-                            {template.latestPublishedVersionNumber && (
-                                <Badge id={`information-request-template-card-${template.id}-published`}
-                                       appearance={"outline"}
-                                       color={"informative"}>
-                                    {`Version ${template.latestPublishedVersionNumber} published`}
-                                </Badge>
+                            {template.description && (
+                                <Text id={`information-request-template-card-${template.id}-description`}
+                                      className={styles.muted}>
+                                    {template.description}
+                                </Text>
                             )}
-                            {template.hasEditableVersion && (
-                                <Badge id={`information-request-template-card-${template.id}-draft`}
-                                       appearance={"outline"}
-                                       color={"warning"}>
-                                    Draft open
+                            <div id={`information-request-template-card-${template.id}-badges`}
+                                 className={styles.badges}>
+                                <Badge id={`information-request-template-card-${template.id}-status`}
+                                       appearance={"tint"}
+                                       color={template.status === InformationRequestTemplateStatus.PUBLISHED ? "success" : "warning"}>
+                                    {statusText[template.status]}
                                 </Badge>
-                            )}
+                                {template.latestPublishedVersionNumber && (
+                                    <Badge id={`information-request-template-card-${template.id}-published`}
+                                           appearance={"outline"}
+                                           color={"informative"}>
+                                        {`Version ${template.latestPublishedVersionNumber} published`}
+                                    </Badge>
+                                )}
+                                {template.hasEditableVersion && (
+                                    <Badge id={`information-request-template-card-${template.id}-draft`}
+                                           appearance={"outline"}
+                                           color={"warning"}>
+                                        Draft open
+                                    </Badge>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <Button id={`information-request-template-open-${template.id}`}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            aria-label={`Open ${template.displayName}`}
-                            onClick={() => onOpen(template)}>
-                        Open
-                    </Button>
-                </li>
-            ))}
-        </ul>
+                        <Button id={`information-request-template-open-${template.id}`}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                aria-label={`Open ${template.displayName}`}
+                                onClick={() => onOpen(template)}>
+                            Open
+                        </Button>
+                    </li>
+                ))}
+            </ul>
+        </div>
     );
 };
 

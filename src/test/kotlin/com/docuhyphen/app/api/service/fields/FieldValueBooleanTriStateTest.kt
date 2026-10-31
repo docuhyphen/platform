@@ -2,23 +2,16 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldConstraints
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
-/**
- * A yes or no field has three readings, not two: yes, no, and not answered. A no is an answer that
- * a responder gave, so it must be distinguishable from a field they never reached. These tests pin
- * the stored and canonical form of all three readings, because the response surfaces rely on the
- * absent reading staying absent.
- */
 class FieldValueBooleanTriStateTest
 {
     private val registry = FieldTypeRegistry()

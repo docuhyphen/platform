@@ -3,6 +3,15 @@ import {getOtpFriendlyMessage, normalizeApiError} from './apiErrorUtils';
 
 describe('normalizeApiError', () =>
 {
+    it.each(['', '  ', '<!DOCTYPE html><html><body>Bad gateway</body></html>'])('uses the fallback for an unusable transport body %s', body => {
+        expect(normalizeApiError(body, 'The records could not be loaded.').message).toBe('The records could not be loaded.');
+    });
+
+    it('rejects an invalid structured message while preserving refusal metadata', () => {
+        expect(normalizeApiError({errorMessage: ' ', reasonCode: 'PAUSED', retryAfterSeconds: 17}, 'Try again.'))
+            .toEqual({message: 'Try again.', reasonCode: 'PAUSED', retryAfterSeconds: 17});
+    });
+
     it('uses errorMessage when provided', () =>
     {
         const normalized = normalizeApiError({errorMessage: 'Primary message', message: 'Fallback message'}, 'Default');

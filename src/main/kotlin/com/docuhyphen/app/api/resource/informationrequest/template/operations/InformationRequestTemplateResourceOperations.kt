@@ -2,9 +2,11 @@ package com.docuhyphen.app.api.resource.informationrequest.template.operations
 
 import com.docuhyphen.app.api.model.dto.CreateInformationRequestTemplateRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER
 import com.docuhyphen.app.api.resource.model.CloneInformationRequestTemplateRequest
 import com.docuhyphen.app.api.resource.model.InformationRequestTemplateNewVersionRequest
 import jakarta.ws.rs.*
+import jakarta.ws.rs.core.HttpHeaders.IF_MATCH
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
 
@@ -17,7 +19,10 @@ interface InformationRequestTemplateResourceOperations
     fun list(@QueryParam("scopeKind") scopeKindParam: String?): Response
 
     @POST
-    fun create(request: CreateInformationRequestTemplateRequest): Response
+    fun create(
+        request: CreateInformationRequestTemplateRequest,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
 
     @GET
     @Path("/{id}")
@@ -28,17 +33,30 @@ interface InformationRequestTemplateResourceOperations
     fun replaceDraftConfiguration(
         @PathParam("id") id: String,
         request: InformationRequestTemplateConfigurationRequest,
+        @HeaderParam(IF_MATCH) ifMatch: String?,
     ): Response
 
     @POST
     @Path("/{id}/draft/publication")
-    fun publishDraft(@PathParam("id") id: String): Response
+    fun publishDraft(
+        @PathParam("id") id: String,
+        @HeaderParam(IF_MATCH) ifMatch: String?,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
 
     @POST
     @Path("/{id}/versions")
     fun createDraftVersion(
         @PathParam("id") id: String,
         request: InformationRequestTemplateNewVersionRequest,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
+
+    @GET
+    @Path("/{id}/versions/{versionNumber}")
+    fun getVersion(
+        @PathParam("id") id: String,
+        @PathParam("versionNumber") versionNumber: String,
     ): Response
 
     @POST
@@ -46,6 +64,7 @@ interface InformationRequestTemplateResourceOperations
     fun retireVersion(
         @PathParam("id") id: String,
         @PathParam("versionNumber") versionNumber: String,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response
 
     @POST
@@ -53,5 +72,6 @@ interface InformationRequestTemplateResourceOperations
     fun clone(
         @PathParam("id") id: String,
         request: CloneInformationRequestTemplateRequest,
+        @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response
 }

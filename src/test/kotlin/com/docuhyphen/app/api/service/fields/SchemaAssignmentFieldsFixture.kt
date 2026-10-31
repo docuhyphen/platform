@@ -1,56 +1,21 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueProvenance
-import com.docuhyphen.app.api.model.entity.FieldValueRevision
-import com.docuhyphen.app.api.model.entity.FieldValueRevisionSelection
-import com.docuhyphen.app.api.model.entity.FieldValueSelection
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRevisionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRevisionSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
+import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * In-memory wiring of [SchemaAssignmentService] and its collaborators for tests about the Fields
- * engine itself rather than about any one resource domain. The resource adapter is stubbed for the
- * same reason: existence, authorization, and lifecycle belong to the owning domain.
- *
- * Repositories are recorded rather than merely stubbed, so a test can assert what was stored, what
- * was appended, and what was left alone.
- *
- * The schema holds three questions: a short-text note, a second short-text note, and a multi-select
- * set of options.
- */
 internal class SchemaAssignmentFieldsFixture(
     val principal: PrincipalRef = PrincipalRef.user(UUID.randomUUID()),
     private val sessionRef: String? = null,
@@ -60,6 +25,7 @@ internal class SchemaAssignmentFieldsFixture(
     private val configuredDefault: String? = null,
     private val ownerScope: ScopeReference? = null,
     private val schemaScope: ScopeReference? = null,
+    private val schemaStatus: FieldLifecycleStatus = FieldLifecycleStatus.PUBLISHED,
     private val ownerlessResource: Boolean = false,
     private val mutationEntitlementFrozen: Boolean = false,
     rootSetRevision: Long = 1,
@@ -69,6 +35,10 @@ internal class SchemaAssignmentFieldsFixture(
     val resourceType: String = "EXCHANGE",
     val resourceId: UUID = UUID.randomUUID(),
     private val requiredFields: Boolean = false,
+    private val manageFieldsAllowed: Boolean = true,
+    private val manageSchemaAllowed: Boolean = true,
+    private val editable: Boolean = true,
+    private val readOnlyQuestions: Set<Question> = emptySet(),
 )
 {
     val organizationId: UUID = UUID.randomUUID()
@@ -86,7 +56,6 @@ internal class SchemaAssignmentFieldsFixture(
     val optionsContractId: UUID = UUID.randomUUID()
     val optionsDefinitionId: UUID = UUID.randomUUID()
 
-    /** Answers currently stored, keyed by Value Set and then by field contract. */
     val storedByValueSet: MutableMap<UUID, MutableMap<UUID, FieldValue>> = mutableMapOf(
         rootValueSetId to mutableMapOf(),
         occurrenceValueSetId to mutableMapOf(),
@@ -96,13 +65,10 @@ internal class SchemaAssignmentFieldsFixture(
     val savedSets: MutableList<FieldValueSet> = mutableListOf()
     val updatedSets: MutableList<FieldValueSet> = mutableListOf()
 
-    /** The revision each Value Set update wrote, in the order the updates happened. */
     val updatedSetRevisions: MutableList<Long> = mutableListOf()
 
-    /** Every set a caller resolved through the locking read, in the order they were locked. */
     val lockedSets: MutableList<FieldValueSetRef> = mutableListOf()
 
-    /** Every caller the resource was asked to authorize for a read, in the order they were asked. */
     val viewAuthorizations: MutableList<Pair<PrincipalRef, AuthorizationContext>> = mutableListOf()
     val deletedSets: MutableList<FieldValueSet> = mutableListOf()
     val deletedValues: MutableList<FieldValue> = mutableListOf()
@@ -111,17 +77,16 @@ internal class SchemaAssignmentFieldsFixture(
     val auditDrafts: MutableList<AuditEventDraft> = mutableListOf()
 
     val valueSetRepository: FieldValueSetRepository = mock()
+    val assignmentRepository: SchemaAssignmentRepository = mock()
     val subscriptionGuard: BusinessFieldsSubscriptionGuard = mock()
     val service: SchemaAssignmentService
 
-    /** The caller every command built by this fixture acts for. */
     val access: FieldsAccessContext = FieldsAccessContext(principal, AuthorizationContext(sessionRef = sessionRef))
 
     val resource: FieldsResourceRef = FieldsResourceRef(resourceType, resourceId)
 
     private var currentRootSet: FieldValueSet? = null
 
-    /** The set the resource answers with as itself, as the repository currently holds it. */
     val rootSet = FieldValueSet().apply {
         id = rootValueSetId
         schemaAssignmentId = assignmentId
@@ -129,7 +94,6 @@ internal class SchemaAssignmentFieldsFixture(
         revision = rootSetRevision
     }
 
-    /** One repetition of a repeatable group, addressed by its own path within the assignment. */
     val occurrenceSet = FieldValueSet().apply {
         id = occurrenceValueSetId
         schemaAssignmentId = assignmentId
@@ -138,10 +102,6 @@ internal class SchemaAssignmentFieldsFixture(
         revision = occurrenceSetRevision
     }
 
-    /**
-     * One of the schema's questions, so a test can seed an answer before the fixture has generated
-     * the field contract identifiers.
-     */
     enum class Question
     {
         NOTE,
@@ -149,20 +109,18 @@ internal class SchemaAssignmentFieldsFixture(
         OPTIONS,
     }
 
-    /** A stored answer's canonical text and the authorship recorded against it. */
-    data class StoredAnswer(
-        val text: String,
-        val principal: PrincipalRef,
-        val sessionRef: String? = null,
-        val provenance: FieldValueProvenance = FieldValueProvenance.USER,
-    )
-
     fun contractOf(question: Question): UUID = when (question)
     {
         Question.NOTE -> noteContractId
         Question.SECOND_NOTE -> secondNoteContractId
         Question.OPTIONS -> optionsContractId
     }
+
+    private val bindings: List<SchemaFieldBinding> = listOf(
+        binding(noteContractId, 0),
+        binding(secondNoteContractId, 1, default = configuredDefault),
+        binding(optionsContractId, 2),
+    )
 
     init
     {
@@ -174,24 +132,30 @@ internal class SchemaAssignmentFieldsFixture(
         val adapter = mock<FieldResourceAdapter>()
         whenever(adapter.resourceType).thenReturn(resourceType)
         whenever(adapter.exists(resourceId)).thenReturn(true)
-        whenever(adapter.schemaAssignmentMutable(resourceId)).thenReturn(true)
-        whenever(adapter.valuesEditable(resourceId)).thenReturn(true)
+        whenever(adapter.schemaAssignmentMutable(resourceId)).thenReturn(editable)
+        whenever(adapter.valuesEditable(resourceId)).thenReturn(editable)
         whenever(adapter.bindingPolicy).thenReturn(bindingPolicy ?: AudienceBindingPolicy(externalCaller))
         whenever(adapter.authorizeViewFields(any(), any(), any())).thenAnswer { invocation ->
             viewAuthorizations += invocation.getArgument<PrincipalRef>(1) to
-                invocation.getArgument<AuthorizationContext>(2)
-            Unit
+                    invocation.getArgument<AuthorizationContext>(2)
         }
         whenever(adapter.ownerScope(resourceId)).thenReturn(
             if (ownerlessResource) null else ownerScope ?: ScopeReference.Organization(organizationId),
         )
         whenever(adapter.subscriptionContext(resourceId)).thenReturn(null)
         whenever(adapter.mutationEntitlementFrozen(resourceId)).thenReturn(mutationEntitlementFrozen)
+        if (!manageFieldsAllowed) {
+            whenever(adapter.authorizeManageFields(any(), any(), any()))
+                .thenThrow(ForbiddenException("Access denied to edit request fields"))
+        }
+        if (!manageSchemaAllowed) {
+            whenever(adapter.authorizeManageSchema(any(), any(), any()))
+                .thenThrow(ForbiddenException("Access denied to manage the schema"))
+        }
 
         val registry = mock<FieldResourceAdapterRegistry>()
         whenever(registry.adapterFor(resourceType)).thenReturn(adapter)
 
-        // The Schema's own owner, which an assignment copies rather than deciding for itself.
         val schemaOwner = schemaScope ?: ScopeReference.Organization(organizationId)
         val assignment = SchemaAssignment().apply {
             id = assignmentId
@@ -202,7 +166,6 @@ internal class SchemaAssignmentFieldsFixture(
             scopeOrgId = (schemaOwner as? ScopeReference.Organization)?.organizationId
             scopeUserId = (schemaOwner as? ScopeReference.Personal)?.userId
         }
-        val assignmentRepository = mock<SchemaAssignmentRepository>()
         whenever(assignmentRepository.findByResource(resourceType, resourceId))
             .thenReturn(if (assigned) assignment else null)
         whenever(assignmentRepository.save(any())).thenAnswer { invocation ->
@@ -221,7 +184,7 @@ internal class SchemaAssignmentFieldsFixture(
             schemaKey = "process-data"
             displayName = schemaDisplayName
             targetResourceType = resourceType
-            status = FieldLifecycleStatus.PUBLISHED
+            status = schemaStatus
         }
         val definitionRepository = mock<SchemaDefinitionRepository>()
         whenever(definitionRepository.findById(schemaDefinitionId)).thenReturn(definition)
@@ -237,13 +200,7 @@ internal class SchemaAssignmentFieldsFixture(
         whenever(versionRepository.findLatestPublished(schemaDefinitionId)).thenReturn(version)
 
         val bindingRepository = mock<SchemaFieldBindingRepository>()
-        whenever(bindingRepository.findByVersion(schemaVersionId)).thenReturn(
-            listOf(
-                binding(noteContractId, 0),
-                binding(secondNoteContractId, 1, default = configuredDefault),
-                binding(optionsContractId, 2),
-            ),
-        )
+        whenever(bindingRepository.findByVersion(schemaVersionId)).thenReturn(bindings)
 
         val contracts = listOf(
             contract(noteContractId, noteDefinitionId, "Recorded note"),
@@ -285,11 +242,8 @@ internal class SchemaAssignmentFieldsFixture(
         whenever(valueRepository.update(any())).thenAnswer { invocation -> store(invocation.getArgument(0)) }
         whenever(valueRepository.delete(any())).thenAnswer { invocation ->
             deletedValues += invocation.getArgument<FieldValue>(0)
-            Unit
         }
 
-        // The root set an assignment currently owns, so a set created during the call is the set the
-        // rest of the same call finds rather than a stale seeded one.
         currentRootSet = if (rootSetExists) rootSet else null
         whenever(valueSetRepository.findRoot(assignmentId)).thenAnswer { currentRootSet }
         whenever(valueSetRepository.findRootForUpdate(assignmentId)).thenAnswer {
@@ -312,13 +266,11 @@ internal class SchemaAssignmentFieldsFixture(
         whenever(valueSetRepository.update(any())).thenAnswer { invocation ->
             invocation.getArgument<FieldValueSet>(0).also {
                 updatedSets += it
-                // Snapshotted, because the same set object is handed back on every later update.
                 updatedSetRevisions += it.revision
             }
         }
         whenever(valueSetRepository.delete(any())).thenAnswer { invocation ->
             deletedSets += invocation.getArgument<FieldValueSet>(0)
-            Unit
         }
 
         val selectionRepository = mock<FieldValueSelectionRepository>()
@@ -381,13 +333,9 @@ internal class SchemaAssignmentFieldsFixture(
         )
     }
 
-    // ── Commands ─────────────────────────────────────────────────────────────
-
-    /** Reads the answers of one set, the resource's own by default. */
     fun read(valueSet: FieldValueSetRef = FieldValueSetRef.Root, access: FieldsAccessContext = this.access) =
         service.getAssignment(FieldValueReadCommand(resource, access, valueSet))
 
-    /** Saves answers into one set, the resource's own by default. */
     fun save(
         entries: List<FieldValueEntry>,
         precondition: FieldsPrecondition = FieldsPrecondition.Unconditioned,
@@ -395,7 +343,6 @@ internal class SchemaAssignmentFieldsFixture(
         access: FieldsAccessContext = this.access,
     ) = service.setValues(FieldValueWriteCommand(resource, access, entries, valueSet, precondition))
 
-    /** Chooses the fixture's Schema for the resource. */
     fun assign(
         schemaDefinitionId: UUID = this.schemaDefinitionId,
         source: SchemaAssignmentSource = SchemaAssignmentSource.MANUAL,
@@ -414,7 +361,16 @@ internal class SchemaAssignmentFieldsFixture(
         ),
     ) { "Choosing a Schema always answers with the assignment it created" }
 
-    /** Removes whichever Schema currently governs the resource. */
+    fun readState(access: FieldsAccessContext = this.access) =
+        service.getAssignmentState(FieldValueReadCommand(resource, access))
+
+    fun applyBlueprintDefaults(defaults: List<BlueprintFieldDefaultEntry>) =
+        service.applyBlueprintFieldDefaultsForCreation(BlueprintFieldDefaultsCommand(resource, access, defaults))
+
+    fun assignForCreation() = service.assignSchemaVersionForCreation(
+        PublishedSchemaAssignmentCommand(resource, access, schemaVersionId),
+    )
+
     fun unassign(
         precondition: FieldsPrecondition = FieldsPrecondition.Unconditioned,
         access: FieldsAccessContext = this.access,
@@ -430,10 +386,8 @@ internal class SchemaAssignmentFieldsFixture(
         )
     }
 
-    /** The answer currently stored in the root set for [contractId], or null. */
     fun rootAnswer(contractId: UUID): FieldValue? = storedByValueSet[rootValueSetId]?.get(contractId)
 
-    /** Every revision recorded for [contractId] in the root set, oldest first. */
     fun rootRevisions(contractId: UUID): List<FieldValueRevision> = savedRevisions
         .filter { it.fieldValueSetId == rootValueSetId && it.fieldContractId == contractId }
         .sortedBy { it.revisionNumber }
@@ -482,7 +436,7 @@ internal class SchemaAssignmentFieldsFixture(
         }
         displayOrder = order
         isRequired = requiredFields
-        isReadOnly = false
+        isReadOnly = Question.entries.any { contractOf(it) == contractId && it in readOnlyQuestions }
         defaultValueJson = default
         visibility = FieldDataClassification.INTERNAL
     }
@@ -505,10 +459,8 @@ internal class SchemaAssignmentFieldsFixture(
 
     companion object
     {
-        /** The option codes the multi-select question offers, in the order it offers them. */
         val OPTION_CODES = listOf("first-option", "second-option", "third-option")
 
-        /** The path of the one repetition the fixture's assignment already holds. */
         const val OCCURRENCE_PATH = "items[0]"
     }
 
@@ -516,6 +468,7 @@ internal class SchemaAssignmentFieldsFixture(
         id = UUID.randomUUID()
         fieldValueSetId = valueSetId
         schemaAssignmentId = assignmentId
+        schemaFieldBindingId = bindings.single { it.fieldContractId == contractId }.id
         fieldContractId = contractId
         resourceType = this@SchemaAssignmentFieldsFixture.resourceType
         resourceId = this@SchemaAssignmentFieldsFixture.resourceId

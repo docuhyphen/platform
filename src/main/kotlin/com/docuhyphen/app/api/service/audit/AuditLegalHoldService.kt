@@ -104,10 +104,16 @@ class AuditLegalHoldService @Inject constructor(
         catch (exception: RecordPreservationRequestException)
         {
             throw IllegalArgumentException(exception.message)
-        }
-        catch (exception: RecordPreservationException)
+        } catch (exception: RuntimeException)
         {
-            throw IllegalArgumentException(exception.message)
+            if (generateSequence<Throwable>(exception) { it.cause?.takeIf { cause -> cause !== it } }
+                    .any { it.message.orEmpty().contains("a record under disposal cannot be placed on hold") }) {
+                throw RecordPreservationException(
+                    com.docuhyphen.app.api.exception.RecordPreservationErrorCatalog.DISPOSAL_IN_PROGRESS,
+                    "A record under disposal cannot be placed on hold",
+                )
+            }
+            throw exception
         }
 
     private companion object

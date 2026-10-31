@@ -1,9 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCapturedAttribute
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
+import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestLineageRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestRecurrenceRepository
@@ -11,10 +16,12 @@ import com.docuhyphen.app.api.repository.informationrequest.lifecycle.Informatio
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidencePolicyLoader
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -33,19 +40,23 @@ class InformationRequestFollowUpService @Inject constructor(
     private val templateRequirementRepository: InformationRequestTemplateRequirementRepository,
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
+    private val evidencePolicies: InformationRequestEvidencePolicyLoader,
     private val clock: Clock,
+    private val requestRepository: InformationRequestRepository,
 )
 {
     @Transactional
-    fun defineRecurrence(command: DefineInformationRequestRecurrenceCommand): InformationRequestRecurrence
+    fun defineRecurrence(command: DefineInformationRequestRecurrenceCommand): InformationRequestRecurrenceDefinition
     {
+        InformationRequestFollowUpScheduleBounds.requireValid(command)
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val receipt = receipt(
             ResourceRef.informationRequest(command.requestId),
             DEFINE_RECURRENCE_OPERATION,
             command.access,
             command.idempotencyKey,
-            listOf(command.intervalUnit, command.intervalCount, command.firstDueAt, command.maximumOccurrences ?: ""),
+            listOf(command.intervalUnit, command.intervalCount, command.firstDueAt, command.maximumOccurrences),
         )
         return when (
             val decision = commandReceiptService.runOnce(receipt) {
@@ -69,6 +80,7 @@ class InformationRequestFollowUpService @Inject constructor(
                         createdAt = Timestamp.from(clock.instant())
                     },
                 )
+                val requestETag = advance(locked)
                 recordSchedule(
                     locked,
                     command.access,
@@ -76,20 +88,27 @@ class InformationRequestFollowUpService @Inject constructor(
                     mapOf("recurrenceId" to recurrence.id.toString())
                 )
                 CommandMutationResult(
-                    recurrence,
-                    CommandResultReference(ResourceType.INFORMATION_REQUEST, locked.request.id)
+                    InformationRequestRecurrenceDefinition(recurrence, requestETag),
+                    resultOf(locked, requestETag)
                 )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed -> requireNotNull(recurrenceRepository.findForOrigin(locked.request.id))
+            is CommandReceiptDecision.Replayed -> {
+                authorizeReplay(locked, command.access)
+                InformationRequestRecurrenceDefinition(
+                    requireNotNull(recurrenceRepository.findForOrigin(locked.request.id)),
+                    InformationRequestETag.aggregateOf(locked.request),
+                )
+            }
         }
     }
 
     @Transactional
     fun createNextOccurrence(command: CreateNextInformationRequestOccurrenceCommand): InformationRequestSuccessorResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val recurrence = recurrenceRepository.findById(command.recurrenceId)
             ?.takeIf { it.originRequestId == command.requestId }
             ?: throw InformationRequestLifecycleException(
@@ -98,7 +117,9 @@ class InformationRequestFollowUpService @Inject constructor(
             )
         val origin = gate.lock(recurrence.originRequestId)
         val series = lineageRepository.findForRecurrence(recurrence.id)
-        val latest = series.lastOrNull()?.successorRequestId ?: recurrence.originRequestId
+        val latest = InformationRequestRecurrenceSchedule.followedRequestId(recurrence, series) { occurrenceId ->
+            requestRepository.findById(occurrenceId)?.state
+        }
         val locked = if (latest == recurrence.originRequestId) origin else gate.lock(latest)
         val receipt = receipt(
             ResourceRef.informationRequest(recurrence.originRequestId),
@@ -107,15 +128,19 @@ class InformationRequestFollowUpService @Inject constructor(
             command.idempotencyKey,
             listOf(recurrence.id),
         )
-        return successorService.run(locked, receipt, command.access) {
-            gate.authorizeRequest(
-                command.access,
-                listOf(Action.INFORMATION_REQUEST_SUPERSEDE),
-                recurrence.originRequestId
-            )
+        return successorService.run(locked, receipt, command.access, recurrence.originRequestId) {
+            setOf(recurrence.originRequestId, latest).forEach { requestId ->
+                gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_SUPERSEDE), requestId)
+            }
             val sequence = series.size + 1
+            if (recurrence.maximumOccurrences?.let { sequence > it } == true) {
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.RECURRENCE_COMPLETE,
+                    "This recurrence has created every occurrence it allows",
+                )
+            }
             val due = dueAt(recurrence, sequence)
-            if ((recurrence.maximumOccurrences?.let { sequence > it } ?: false) || due.isAfter(clock.instant()))
+            if (due.isAfter(clock.instant()))
             {
                 throw InformationRequestLifecycleException(
                     InformationRequestErrorCatalog.RECURRENCE_NOT_DUE,
@@ -136,8 +161,10 @@ class InformationRequestFollowUpService @Inject constructor(
     }
 
     @Transactional
-    fun defineRefreshRule(command: DefineInformationRequestRefreshRuleCommand): InformationRequestRefreshRule
+    fun defineRefreshRule(command: DefineInformationRequestRefreshRuleCommand): InformationRequestRefreshRuleDefinition
     {
+        InformationRequestFollowUpScheduleBounds.requireValid(command)
+        gate.requireVisibleTarget(command.access, command.requestId)
         val locked = gate.lock(command.requestId)
         val requirementKey = command.requirementKey.trim()
         val receipt = receipt(
@@ -151,6 +178,14 @@ class InformationRequestFollowUpService @Inject constructor(
             val decision = commandReceiptService.runOnce(receipt) {
                 schedule(locked, command.access, command.precondition)
                 requireRefreshableEvidence(locked, requirementKey)
+                if (refreshRuleRepository.findForRequest(locked.request.id)
+                        .any { it.requirementKey == requirementKey }
+                ) {
+                    throw InformationRequestLifecycleException(
+                        InformationRequestErrorCatalog.SUCCESSOR_SOURCE_INVALID,
+                        "This requested document already has a refresh rule",
+                    )
+                }
                 val rule = refreshRuleRepository.save(
                     InformationRequestRefreshRule().apply {
                         informationRequestId = locked.request.id
@@ -161,25 +196,36 @@ class InformationRequestFollowUpService @Inject constructor(
                         createdAt = Timestamp.from(clock.instant())
                     },
                 )
+                val requestETag = advance(locked)
                 recordSchedule(
                     locked,
                     command.access,
                     command.idempotencyKey,
                     mapOf("refreshRuleId" to rule.id.toString())
                 )
-                CommandMutationResult(rule, CommandResultReference(ResourceType.INFORMATION_REQUEST, locked.request.id))
+                CommandMutationResult(
+                    InformationRequestRefreshRuleDefinition(rule, requestETag),
+                    resultOf(locked, requestETag)
+                )
             }
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed ->
-                refreshRuleRepository.findForRequest(locked.request.id).first { it.requirementKey == requirementKey }
+            is CommandReceiptDecision.Replayed -> {
+                authorizeReplay(locked, command.access)
+                InformationRequestRefreshRuleDefinition(
+                    refreshRuleRepository.findForRequest(locked.request.id)
+                        .first { it.requirementKey == requirementKey },
+                    InformationRequestETag.aggregateOf(locked.request),
+                )
+            }
         }
     }
 
     @Transactional
     fun refresh(command: RefreshInformationRequestCommand): InformationRequestSuccessorResult
     {
+        gate.requireVisibleTarget(command.access, command.requestId)
         val rule = refreshRuleRepository.findById(command.refreshRuleId)
             ?.takeIf { it.informationRequestId == command.requestId }
             ?: throw InformationRequestLifecycleException(
@@ -196,12 +242,24 @@ class InformationRequestFollowUpService @Inject constructor(
         )
         return successorService.run(locked, receipt, command.access) {
             gate.authorizeRequest(command.access, listOf(Action.INFORMATION_REQUEST_SUPERSEDE), locked.request.id)
+            val source = refreshRuleRepository.findRefreshSource(rule.informationRequestId, rule.requirementKey)
+                ?.takeIf { InformationRequestRefreshSchedule.isDue(rule, it, clock.instant()) }
+                ?: throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.REFRESH_NOT_DUE,
+                    "The evidence this refresh rule renews is not yet within its lead time",
+                )
+            if (lineageRepository.existsRefresh(rule.id, source.packageId)) {
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.REFRESH_ALREADY_CREATED,
+                    "This submission's evidence has already been refreshed under this rule",
+                )
+            }
             successorService.follow(
                 locked,
-                InformationRequestFollowUpSpec(kind = InformationRequestLineageKind.REFRESH, refreshRuleId = rule.id),
+                InformationRequestRefreshSchedule.followUpOf(rule, source),
                 command.access,
                 command.idempotencyKey,
-            )
+            ).also { refreshRuleRepository.clearRetry(rule) }
         }
     }
 
@@ -214,24 +272,57 @@ class InformationRequestFollowUpService @Inject constructor(
         precondition: CommandPrecondition,
     )
     {
-        gate.requireMutation(locked, InformationRequestMutation.SCHEDULE_FOLLOW_UP)
-        gate.requireContinuationEntitlement(locked)
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_SUPERSEDE), locked.request.id)
+        gate.requireMutation(locked, InformationRequestMutation.SCHEDULE_FOLLOW_UP)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.SUPERSEDE)
         precondition.requireSatisfiedBy(InformationRequestETag.aggregateOf(locked.request))
+    }
+
+    private fun advance(locked: LockedInformationRequest): String {
+        val request = locked.request
+        request.aggregateRevision += 1
+        request.updatedAt = Timestamp.from(clock.instant())
+        requestRepository.update(request)
+        return InformationRequestETag.aggregateOf(request)
+    }
+
+    private fun resultOf(locked: LockedInformationRequest, requestETag: String) =
+        CommandResultReference(
+            ResourceType.INFORMATION_REQUEST,
+            locked.request.id,
+            locked.request.aggregateRevision,
+            requestETag
+        )
+
+    private fun authorizeReplay(locked: LockedInformationRequest, access: RequestAccessContext) {
+        gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW), locked.request.id)
     }
 
     private fun requireRefreshableEvidence(locked: LockedInformationRequest, requirementKey: String)
     {
-        val refreshable = requirementRepository.findForRequest(locked.request.id).any { requirement ->
+        val documents = requirementRepository.findForRequest(locked.request.id).filter { requirement ->
             templateRequirementRepository.findById(requirement.sourceTemplateRequirementId)?.let {
                 it.requirementKey == requirementKey && it.requirementType == InformationRequestRequirementType.DOCUMENT
             } ?: false
         }
-        if (!refreshable)
+        if (documents.isEmpty())
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.SUCCESSOR_SOURCE_INVALID,
                 "A refresh rule names a requested document of its own request",
+            )
+        }
+        val capturesExpiry = documents.map { it.sourceTemplateBindingId }.distinct().any { bindingId ->
+            evidencePolicies.forBinding(bindingId)
+                ?.attributeRequirements
+                ?.get(InformationRequestEvidenceCapturedAttribute.EXPIRY_DATE)
+                ?.let { it != InformationRequestEvidenceAttributeRequirement.NOT_CAPTURED }
+                ?: false
+        }
+        if (!capturesExpiry) {
+            throw InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.REFRESH_EXPIRY_NOT_CAPTURED,
+                "A refresh rule names a requested document whose expiry date is captured",
             )
         }
     }
@@ -249,8 +340,8 @@ class InformationRequestFollowUpService @Inject constructor(
                 fromState = locked.request.state,
                 toState = locked.request.state,
                 mutation = InformationRequestMutation.SCHEDULE_FOLLOW_UP,
-                actor = access.principal,
-                idempotencyKey = "information_request.follow_up|${locked.request.id}|$idempotencyKey",
+                actor = InformationRequestAuditActor.of(access),
+                auditIdempotencyKey = "information_request.follow_up|${locked.request.id}|$idempotencyKey",
                 details = details,
             ),
         )
@@ -261,18 +352,13 @@ class InformationRequestFollowUpService @Inject constructor(
         operation: String,
         access: RequestAccessContext,
         idempotencyKey: String,
-        facts: List<Any>,
+        facts: List<Any?>,
     ) = CommandReceiptRequest(
         resource = resource,
         operation = operation,
         actor = CommandActorRef.principal(access.principal),
         idempotencyKey = idempotencyKey,
-        requestFingerprint = CommandRequestFingerprint.sha256Hex(
-            (listOf(
-                operation,
-                resource.id
-            ) + facts).joinToString("|")
-        ),
+        requestFingerprint = CommandRequestFingerprint.of(operation, resource.id, *facts.toTypedArray()),
     )
 
     private companion object

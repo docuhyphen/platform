@@ -34,6 +34,8 @@ data class InformationRequestSubmissionPackageDto(
     val attestations: List<InformationRequestSubmissionAttestationDto> = emptyList(),
     val supportingEvidenceLinks: List<InformationRequestSupportingEvidenceLinkDto> = emptyList(),
     val undisclosedItemCount: Int = 0,
+    val current: Boolean = true,
+    val withdrawable: Boolean = false,
 )
 
 @Serializable
@@ -58,6 +60,7 @@ data class InformationRequestSubmissionEvidenceDto(
     @Serializable(with = UUIDSerializer::class) val artifactId: UUID,
     @Serializable(with = UUIDSerializer::class) val evidenceVersionId: UUID,
     val versionNumber: Int,
+    val declaredFileName: String? = null,
     @Serializable(with = UUIDSerializer::class) val documentVersionId: UUID? = null,
     val contentHashAlgorithm: String? = null,
     val contentHash: String? = null,
@@ -91,10 +94,14 @@ data class InformationRequestSubmissionPreviewDto(
     val ready: Boolean,
     val problems: List<InformationRequestSubmissionProblemDto> = emptyList(),
     val undisclosedProblemCount: Int = 0,
+    val groupProblems: List<InformationRequestSubmissionGroupProblemDto> = emptyList(),
     val attestations: List<InformationRequestAttestationStatusDto> = emptyList(),
     val stages: List<InformationRequestSubmissionStageDto> = emptyList(),
     val canSubmit: Boolean,
+    val correctionOpen: Boolean,
     val packages: List<InformationRequestSubmissionPackageDto> = emptyList(),
+    val scopeItems: List<InformationRequestSubmissionScopeItemDto> = emptyList(),
+    val undisclosedScopeItemCount: Int = 0,
 )
 
 @Serializable
@@ -103,6 +110,15 @@ data class InformationRequestSubmissionProblemDto(
     val requirementKey: String,
     val occurrencePath: String,
     val code: InformationRequestSubmissionProblemCode,
+)
+
+@Serializable
+data class InformationRequestSubmissionGroupProblemDto(
+    val groupKey: String,
+    val parentOccurrencePath: String? = null,
+    val minOccurrences: Int,
+    val maxOccurrences: Int? = null,
+    val occurrenceCount: Int,
 )
 
 @Serializable
@@ -120,8 +136,18 @@ data class InformationRequestAttestationStatusDto(
     val externalSignatureReference: InformationRequestExternalSignatureReferencePolicy,
     val validityHours: Int? = null,
     val callerCanAttest: Boolean,
+    val waitingForRoles: List<InformationRequestContributorRole>,
     val callerDecision: InformationRequestAttestationDecision? = null,
     val attestations: List<InformationRequestSubmissionAttestationDto> = emptyList(),
+    val attestingParties: List<InformationRequestAttestingPartyDto> = emptyList(),
+)
+
+@Serializable
+data class InformationRequestAttestingPartyDto(
+    @Serializable(with = UUIDSerializer::class) val partyId: UUID,
+    val role: InformationRequestContributorRole,
+    val throughGroup: Boolean,
+    val delegated: Boolean,
 )
 
 @Serializable
@@ -130,6 +156,7 @@ data class InformationRequestSubmissionStageDto(
     @Serializable(with = UUIDSerializer::class) val submittedPackageId: UUID? = null,
     val submittedPackageNumber: Int? = null,
     val submitted: Boolean,
+    val correctionOpen: Boolean,
 )
 
 @Serializable
@@ -138,6 +165,7 @@ data class InformationRequestSubmissionRefusalDto(
     val reasonCode: String,
     val problems: List<InformationRequestSubmissionProblemDto> = emptyList(),
     val undisclosedProblemCount: Int = 0,
+    val groupProblems: List<InformationRequestSubmissionGroupProblemDto> = emptyList(),
 )
 
 @Serializable
@@ -153,4 +181,21 @@ data class InformationRequestSubmissionResultDto(
     val requestETag: String,
     val responseETag: String,
     val submission: InformationRequestSubmissionPackageDto,
+)
+
+@Serializable
+data class InformationRequestSubmissionScopeItemDto(
+    @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
+    @Serializable(with = UUIDSerializer::class) val templateBindingId: UUID,
+    val requirementKey: String,
+    val requirementType: InformationRequestRequirementType,
+    val prompt: String,
+    val occurrencePath: String,
+    val disposition: InformationRequestResponseDisposition,
+    val narrative: String? = null,
+    @Serializable(with = UUIDSerializer::class) val fieldContractId: UUID? = null,
+    val fieldValueType: FieldValueType? = null,
+    val fieldValue: JsonElement? = null,
+    val fieldValueCleared: Boolean = false,
+    val evidenceFileCount: Int = 0,
 )

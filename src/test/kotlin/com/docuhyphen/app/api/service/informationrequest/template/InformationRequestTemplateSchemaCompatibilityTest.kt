@@ -1,30 +1,18 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.fields.PublishedSchemaVersionRef
 import com.docuhyphen.app.api.service.fields.FieldValidationException
 import com.docuhyphen.app.api.service.fields.INFORMATION_REQUEST_SCHEMA_TARGET
-import com.docuhyphen.app.api.service.fields.PublishedSchemaVersionRef
 import com.docuhyphen.app.api.service.fields.SchemaVersionResolver
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
-/**
- * A Template Version that asks for typed data resolves it against one exact Schema Version, and the
- * owner that holds the Template is the owner that has to be allowed to see that Schema. Asking the
- * question here rather than at publication means an author is told which Version they cannot use
- * while they can still choose another one.
- */
 class InformationRequestTemplateSchemaCompatibilityTest
 {
     private val organizationId = UUID.randomUUID()

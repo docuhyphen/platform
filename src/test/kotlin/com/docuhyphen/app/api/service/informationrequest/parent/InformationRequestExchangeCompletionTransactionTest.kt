@@ -1,17 +1,23 @@
 package com.docuhyphen.app.api.service.informationrequest.parent
 
+import com.docuhyphen.app.api.migration.ClockSqlFixture
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.entity.InformationRequestClockEventKind
+import com.docuhyphen.app.api.model.entity.InformationRequestClockState
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.ChangeInformationRequestCompletionGateCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
+import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
+import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -23,13 +29,11 @@ import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -42,6 +46,12 @@ class InformationRequestExchangeCompletionTransactionTest
     @Inject lateinit var exchangeRepository: ExchangeRepository
     @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
     @Inject lateinit var completion: InformationRequestExchangeCompletionService
+
+    @Inject
+    lateinit var clockRepository: InformationRequestClockRepository
+
+    @Inject
+    lateinit var clockEventRepository: InformationRequestClockEventRepository
 
     private val system = PrincipalRef(com.docuhyphen.app.api.model.entity.PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
 
@@ -79,6 +89,77 @@ class InformationRequestExchangeCompletionTransactionTest
             val cancellation = transitionRepository.findForRequest(nongatingId).single { it.mutation == InformationRequestMutation.CANCEL }
             assertEquals("EXCHANGE_ENDED", cancellation.reasonCode)
             assertEquals(InformationRequestState.ISSUED, cancellation.fromState)
+        }
+    }
+
+    @Test
+    fun `a check-only pass refuses as ending would but never cancels a remaining request`() {
+        val (runtimeFixture, nongatingId) = fixtureWithNongatingRequest()
+        close(runtimeFixture.requestId)
+
+        val refusal = assertThrows(InformationRequestExchangeCompletionException::class.java) {
+            QuarkusTransaction.requiringNew().run { check(runtimeFixture, cancelRemaining = false) }
+        }
+        QuarkusTransaction.requiringNew().run { check(runtimeFixture, cancelRemaining = true) }
+
+        assertEquals(InformationRequestErrorCatalog.REMAINING_REQUESTS_REQUIRE_CANCELLATION, refusal.reasonCode)
+        assertEquals(InformationRequestState.ISSUED, stateOf(nongatingId))
+        QuarkusTransaction.requiringNew().run {
+            assertTrue(
+                transitionRepository.findForRequest(nongatingId)
+                    .none { it.mutation == InformationRequestMutation.CANCEL })
+        }
+    }
+
+    @Test
+    fun `cancelling the remaining requests as the Exchange ends stops their clocks at the cancellation instant for the requester`() {
+        val clockId = UUID.randomUUID()
+        val runtimeFixture = dataSource.connection.use { connection ->
+            SubmissionRuntimeSqlFixture(connection).also { fixture ->
+                execute(
+                    connection,
+                    "UPDATE information_request SET gates_exchange_closure = FALSE WHERE id = ?",
+                    fixture.requestId
+                )
+                execute(
+                    connection,
+                    """
+                    INSERT INTO information_request_clock
+                        (id, information_request_id, clock_key, policy_version_id, urgency, received_at, state, due_at,
+                         due_cycle, clock_revision, started_by_principal_kind, started_by_principal_id, started_at)
+                    VALUES (?, ?, 'response', ?, 'STANDARD', now() - INTERVAL '1 hour', 'RUNNING', now() + INTERVAL '5 days',
+                            0, 1, 'USER', ?, now() - INTERVAL '1 hour')
+                    """.trimIndent(),
+                    clockId,
+                    fixture.requestId,
+                    ClockSqlFixture(connection, fixture).versionId,
+                    fixture.template.userId,
+                )
+            }
+        }
+        val requester = PrincipalRef.user(runtimeFixture.template.userId)
+
+        QuarkusTransaction.requiringNew().run {
+            val exchange = requireNotNull(exchangeRepository.findByIdForUpdate(runtimeFixture.exchangeId))
+            completion.prepareEnding(exchange, InformationRequestAuditActor.system(requester), cancelRemaining = true)
+        }
+
+        QuarkusTransaction.requiringNew().run {
+            val request = requireNotNull(requestRepository.findById(runtimeFixture.requestId))
+            val clock = requireNotNull(clockRepository.findById(clockId))
+            assertEquals(InformationRequestState.CANCELLED, request.state)
+            assertEquals(InformationRequestClockState.STOPPED, clock.state)
+            assertEquals(request.cancelledAt?.toInstant(), clock.stoppedAt?.toInstant())
+            val stopped = clockEventRepository.findForClock(clockId).last()
+            assertEquals(InformationRequestClockEventKind.STOPPED, stopped.eventKind)
+            assertEquals(requester.id, stopped.recordedByPrincipalId)
+            val cancellation = transitionRepository.findForRequest(runtimeFixture.requestId)
+                .single { it.mutation == InformationRequestMutation.CANCEL }
+            assertNull(cancellation.commandReceiptId)
+            assertEquals(
+                "system|cancel|${runtimeFixture.requestId}|${cancellation.sequenceNumber}",
+                cancellation.idempotencyKey
+            )
         }
     }
 
@@ -148,7 +229,12 @@ class InformationRequestExchangeCompletionTransactionTest
     private fun prepare(runtimeFixture: SubmissionRuntimeSqlFixture, cancelRemaining: Boolean)
     {
         val exchange = requireNotNull(exchangeRepository.findByIdForUpdate(runtimeFixture.exchangeId))
-        completion.prepareEnding(exchange, system, cancelRemaining)
+        completion.prepareEnding(exchange, InformationRequestAuditActor.system(system), cancelRemaining)
+    }
+
+    private fun check(runtimeFixture: SubmissionRuntimeSqlFixture, cancelRemaining: Boolean) {
+        val exchange = requireNotNull(exchangeRepository.findByIdForUpdate(runtimeFixture.exchangeId))
+        completion.checkEnding(exchange, cancelRemaining)
     }
 
     private fun fixtureWithNongatingRequest(): Pair<SubmissionRuntimeSqlFixture, UUID>

@@ -23,17 +23,14 @@ class EmailService @Inject constructor(
             .build()
     }
 
-    /**
-     * Every outbound email subject is tagged with the deployment's display name so recipients
-     * can immediately identify which environment/product sent the message, for example
-     * "DocuHyphen: Confirm email change" wrapped in brackets. Callers must pass the bare,
-     * descriptive subject text only; this is the single place that applies the bracketed prefix.
-     */
-    private fun formatSubject(subject: String): String = "[$emailSubjectTitle] $subject"
+    fun subjectForDelivery(subject: String): String = "[$emailSubjectTitle] $subject"
 
-    fun sendEmail(to: String, subject: String, body: String, useHtml: Boolean? = false)
+    fun sendEmail(to: String, subject: String, body: String, useHtml: Boolean? = false) =
+        sendPreparedEmail(to, subjectForDelivery(subject), body, useHtml)
+
+    fun sendPreparedEmail(to: String, subject: String, body: String, useHtml: Boolean? = false)
     {
-        val formattedSubject = formatSubject(subject)
+        val formattedSubject = subject
         val destination = Destination.builder()
             .toAddresses(to)
             .build()

@@ -1,38 +1,18 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.OrganizationMembership
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.fields.FieldBindingAccess
-import com.docuhyphen.app.api.service.fields.FieldBindingDecision
-import com.docuhyphen.app.api.service.fields.FieldBindingDenial
-import com.docuhyphen.app.api.service.fields.FieldValueOperation
-import com.docuhyphen.app.api.service.fields.FieldValueSetRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestFieldBindingPolicyTest
 {
@@ -60,11 +40,10 @@ class InformationRequestFieldBindingPolicyTest
         return repository
     }
 
-    private fun internalMembershipRepository(): OrganizationMembershipRepository
-    {
-        val repository = mock<OrganizationMembershipRepository>()
-        whenever(repository.findActiveByUserAndOrg(actorId, organizationId)).thenReturn(mock())
-        return repository
+    private fun internalMemberships(): OrganizationMembershipService {
+        val memberships = mock<OrganizationMembershipService>()
+        whenever(memberships.isMember(actorId, organizationId)).thenReturn(true)
+        return memberships
     }
 
     @Test
@@ -143,7 +122,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = mock(),
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -172,7 +151,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = mock(),
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -206,15 +185,15 @@ class InformationRequestFieldBindingPolicyTest
                 ownerOrganizationId = organizationId
             },
         )
-        val organizationMembershipRepository = mock<OrganizationMembershipRepository>()
-        whenever(organizationMembershipRepository.findActiveByUserAndOrg(respondentId, organizationId)).thenReturn(null)
+        val organizationMemberships = mock<OrganizationMembershipService>()
+        whenever(organizationMemberships.isMember(respondentId, organizationId)).thenReturn(false)
         val authorizationService = mock<AuthorizationService>()
         val policy = InformationRequestFieldBindingPolicy(
             requirementRepository = requirementRepository,
             templateBindingRepository = mock(),
             authorizationService = authorizationService,
             requestRepository = requestRepository,
-            organizationMembershipRepository = organizationMembershipRepository,
+            organizationMemberships = organizationMemberships,
         )
         val confidentialBinding = binding().apply { visibility = FieldDataClassification.CONFIDENTIAL }
 
@@ -253,7 +232,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = mock(),
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -280,7 +259,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = mock(),
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -354,7 +333,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = templateBindingRepository,
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -440,13 +419,18 @@ class InformationRequestFieldBindingPolicyTest
                 ResourceRef.informationRequestRequirement(secondOccurrenceRequirementId),
                 access.authorization,
             ),
-        ).thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "Principal is not the assigned party for this Requirement"))
+        ).thenReturn(
+            Decision.Deny(
+                Decision.REASON_NO_GRANT,
+                "Principal is not the assigned party for this Requirement"
+            )
+        )
         val policy = InformationRequestFieldBindingPolicy(
             requirementRepository = requirementRepository,
             templateBindingRepository = templateBindingRepository,
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -518,7 +502,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = templateBindingRepository,
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -604,13 +588,18 @@ class InformationRequestFieldBindingPolicyTest
                 ResourceRef.informationRequestRequirement(secondOccurrenceRequirementId),
                 access.authorization,
             ),
-        ).thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "Principal is not the assigned party for this Requirement"))
+        ).thenReturn(
+            Decision.Deny(
+                Decision.REASON_NO_GRANT,
+                "Principal is not the assigned party for this Requirement"
+            )
+        )
         val policy = InformationRequestFieldBindingPolicy(
             requirementRepository = requirementRepository,
             templateBindingRepository = templateBindingRepository,
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
 
         val decision = policy.decide(
@@ -658,7 +647,7 @@ class InformationRequestFieldBindingPolicyTest
             templateBindingRepository = templateBindingRepository,
             authorizationService = authorizationService,
             requestRepository = internalRequestRepository(),
-            organizationMembershipRepository = internalMembershipRepository(),
+            organizationMemberships = internalMemberships(),
         )
     }
 

@@ -1,49 +1,46 @@
 import {Badge, Button, Text} from "@fluentui/react-components";
 import {
     InformationRequestAccessLinkDto,
-    InformationRequestAccessLinkStatus,
     InformationRequestPartyDto,
     InformationRequestShareRoleKey,
 } from "../../../models/models.tsx";
-import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {shareRoleLabels} from "../../shared/informationRequestLabels.ts";
 import {partyLabel} from "../author-workspace/useAuthorWorkspace.ts";
+import {PartyActionPermissions} from "../author-workspace-content/authorActionPermissions.ts";
+import PartyLinkActions from "../party-link-actions/PartyLinkActions.tsx";
+import {currentAccessLink, partyAccessStatus} from "./partyAccessLink.ts";
 import {usePartyRowStyles} from "./PartyRowStyles.tsx";
 
 interface Props
 {
     party: InformationRequestPartyDto;
-    links: InformationRequestAccessLinkDto[];
+    links: InformationRequestAccessLinkDto[] | null;
     busy: boolean;
-    editable: boolean;
+    permissions: PartyActionPermissions;
     onIssueLink: (party: InformationRequestPartyDto) => void;
     onResendLink: (party: InformationRequestPartyDto, link: InformationRequestAccessLinkDto) => void;
     onRevokeLink: (party: InformationRequestPartyDto, link: InformationRequestAccessLinkDto) => void;
+    onReassign: (party: InformationRequestPartyDto) => void;
     onRemove: (party: InformationRequestPartyDto) => void;
 }
 
-const linkStatus = (link?: InformationRequestAccessLinkDto): string =>
-{
-    if (!link) return "No access link";
-    const active = link.expiresAt
-        ? `Access link active until ${formatInformationRequestTime(link.expiresAt)}`
-        : "Access link active";
-    return link.rotationCount > 0 ? `${active}, resent ${link.rotationCount} times` : active;
-};
-
-const accessStatus = (party: InformationRequestPartyDto, link?: InformationRequestAccessLinkDto): string =>
-{
-    if (party.principalKind === "USER") return "Signs in";
-    if (party.principalKind === "PRINCIPAL_GROUP") return "Group access";
-    return linkStatus(link);
-};
-
-const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRevokeLink, onRemove}: Props) =>
+const PartyRow = ({
+                      party,
+                      links,
+                      busy,
+                      permissions,
+                      onIssueLink,
+                      onResendLink,
+                      onRevokeLink,
+                      onReassign,
+                      onRemove
+                  }: Props) =>
 {
     const styles = usePartyRowStyles();
     const label = partyLabel(party);
     const acting = party.roleKey !== InformationRequestShareRoleKey.SUBJECT && Boolean(party.principalId);
-    const activeLink = links.find(link => link.status === InformationRequestAccessLinkStatus.ACTIVE);
+    const current = links ? currentAccessLink(links) : undefined;
+    const linkUnknown = links === null && party.principalKind === "PARTICIPANT" && !party.accountLinked;
     const idPrefix = `information-request-party-${party.id}`;
 
     return (
@@ -59,7 +56,9 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                 <Text id={`${idPrefix}-meta`}
                       size={200}
                       className={styles.meta}>
-                    {acting ? `${shareRoleLabels[party.roleKey]}. ${accessStatus(party, activeLink)}` : shareRoleLabels[party.roleKey]}
+                    {acting && !linkUnknown
+                        ? `${shareRoleLabels[party.roleKey]}. ${partyAccessStatus(party, current)}`
+                        : shareRoleLabels[party.roleKey]}
                 </Text>
                 {party.trustSuspended && (
                     <>
@@ -78,38 +77,27 @@ const PartyRow = ({party, links, busy, editable, onIssueLink, onResendLink, onRe
                     </>
                 )}
             </div>
-            {editable && (
+            {permissions.reduceAccess && (
                 <div id={`${idPrefix}-actions`}
                      className={styles.actions}>
-                    {acting && party.principalKind === "PARTICIPANT" && !activeLink && (
-                        <Button id={`${idPrefix}-link-create`}
-                                size={"small"}
-                                shape={"circular"}
-                                aria-label={`Create link for ${label}`}
-                                disabled={busy}
-                                onClick={() => onIssueLink(party)}>
-                            Create link
-                        </Button>
+                    {acting && party.principalKind === "PARTICIPANT" && !party.accountLinked && !linkUnknown && (
+                        <PartyLinkActions idPrefix={idPrefix}
+                                          label={label}
+                                          current={current}
+                                          busy={busy}
+                                          canIssue={permissions.issueLinks}
+                                          onCreate={() => onIssueLink(party)}
+                                          onResend={link => onResendLink(party, link)}
+                                          onRevoke={link => onRevokeLink(party, link)}/>
                     )}
-                    {acting && party.principalKind === "PARTICIPANT" && activeLink && (
-                        <Button id={`${idPrefix}-link-resend`}
+                    {acting && permissions.change && (
+                        <Button id={`${idPrefix}-reassign`}
                                 size={"small"}
                                 shape={"circular"}
-                                aria-label={`Resend link to ${label}`}
+                                aria-label={`Reassign ${label}`}
                                 disabled={busy}
-                                onClick={() => onResendLink(party, activeLink)}>
-                            Resend link
-                        </Button>
-                    )}
-                    {acting && party.principalKind === "PARTICIPANT" && activeLink && (
-                        <Button id={`${idPrefix}-link-revoke`}
-                                size={"small"}
-                                shape={"circular"}
-                                appearance={"subtle"}
-                                aria-label={`Revoke link for ${label}`}
-                                disabled={busy}
-                                onClick={() => onRevokeLink(party, activeLink)}>
-                            Revoke link
+                                onClick={() => onReassign(party)}>
+                            Reassign
                         </Button>
                     )}
                     <Button id={`${idPrefix}-remove`}

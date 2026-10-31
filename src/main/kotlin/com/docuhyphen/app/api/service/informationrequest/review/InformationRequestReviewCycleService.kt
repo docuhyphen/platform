@@ -1,8 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewCommandResult
 import com.docuhyphen.app.api.model.informationrequest.review.ReopenInformationRequestReviewCommand
@@ -11,18 +14,20 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.command.canonicalForm
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockHold
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionContentCollector
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
 
@@ -31,34 +36,39 @@ class InformationRequestReviewCycleService @Inject constructor(
     private val gate: InformationRequestMutationGate,
     private val loader: InformationRequestReviewLoader,
     private val opening: InformationRequestReviewOpeningService,
-    private val lockService: InformationRequestSubmissionLockService,
+    private val reopenPolicy: InformationRequestReviewReopenPolicy,
     private val reviewRepository: InformationRequestReviewRepository,
     private val correctionRepository: InformationRequestCorrectionRepository,
     private val requestRepository: InformationRequestRepository,
     private val commandReceiptService: CommandReceiptService,
     private val clock: Clock,
     private val entityManager: EntityManager,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
+    private val clockHold: InformationRequestClockHold,
+    private val contentCollector: InformationRequestSubmissionContentCollector,
 )
 {
     @Transactional
-    fun reopen(command: ReopenInformationRequestReviewCommand): InformationRequestReviewCommandResult
+    fun reopen(requested: ReopenInformationRequestReviewCommand): InformationRequestReviewCommandResult
     {
-        require(command.kind == InformationRequestReviewKind.RECONSIDERATION || command.kind == InformationRequestReviewKind.APPEAL) {
+        require(requested.kind == InformationRequestReviewKind.RECONSIDERATION || requested.kind == InformationRequestReviewKind.APPEAL) {
             "Only a reconsideration or an appeal reopens a review"
         }
-        val locked = gate.lock(command.requestId)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val reason = command.reason.trim()
         val receipt = CommandReceiptRequest(
             resource = ResourceRef(ResourceType.INFORMATION_REQUEST_REVIEW, command.reviewId),
             operation = OPERATION,
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                "$OPERATION|${command.reviewId}|${command.kind}|${
-                    sha256Hex(
-                        reason
-                    )
-                }"
+            requestFingerprint = CommandRequestFingerprint.of(
+                OPERATION,
+                command.reviewId,
+                command.kind,
+                reason,
+                command.precondition.canonicalForm(),
             ),
         )
         return when (
@@ -92,8 +102,6 @@ class InformationRequestReviewCycleService @Inject constructor(
         reason: String,
     ): InformationRequestReviewCommandResult
     {
-        gate.requireMutation(locked, InformationRequestMutation.START_REVIEW)
-        gate.requireContinuationEntitlement(locked)
         gate.authorizeRequest(
             command.access,
             listOf(
@@ -102,19 +110,13 @@ class InformationRequestReviewCycleService @Inject constructor(
             ),
             command.requestId,
         )
+        gate.requireMutation(locked, InformationRequestMutation.START_REVIEW)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.REVIEW)
+        InformationRequestReviewInputLimits.requireText(reason, "A reconsideration or appeal reason")
         if (reason.isEmpty()) throw InformationRequestCommandRequestException("A reconsideration or appeal states its reason")
         val prior = loader.requireReview(command.requestId, command.reviewId)
         command.precondition.requireSatisfiedBy(loader.reviewETag(prior))
-        val latest = loader.latestForPackage(command.requestId, prior.packageId)
-        val current = lockService.activePackages(command.requestId).any { it.id == prior.packageId }
-        val correction = correctionRepository.findForRequest(command.requestId).firstOrNull { it.reviewId == prior.id }
-        val reopenable = latest?.id == prior.id && current && when (prior.state)
-        {
-            InformationRequestReviewState.REJECTED -> true
-            InformationRequestReviewState.CHANGES_REQUESTED -> correction?.state == InformationRequestCorrectionState.OPEN
-            else -> false
-        }
-        if (!reopenable)
+        if (!reopenPolicy.reopenable(prior))
         {
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.REVIEW_NOT_REOPENABLE,
@@ -122,6 +124,21 @@ class InformationRequestReviewCycleService @Inject constructor(
             )
         }
         val now = Timestamp.from(clock.instant())
+        val correction = correctionRepository.findForRequest(command.requestId).firstOrNull { it.reviewId == prior.id }
+        val supersededCorrectionId = correction?.takeIf { it.state == InformationRequestCorrectionState.OPEN }?.id
+        if (supersededCorrectionId != null) {
+            val submitted = loader.snapshot(prior).submission.submissionPackage
+            if (contentCollector.collect(
+                    locked.request,
+                    submitted.stageKey
+                ).contentHash != submitted.contentHashSha256
+            ) {
+                throw InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.REVIEW_NOT_REOPENABLE,
+                    "Submit the pending corrections before opening another review of this submission"
+                )
+            }
+        }
         correction?.takeIf { it.state == InformationRequestCorrectionState.OPEN }?.let {
             it.state = InformationRequestCorrectionState.SUPERSEDED
             it.closedAt = now
@@ -149,7 +166,11 @@ class InformationRequestReviewCycleService @Inject constructor(
         request.aggregateRevision += 1
         request.updatedAt = now
         requestRepository.update(request)
-        opening.recordStart(locked, review, command.access.principal, command.idempotencyKey)
+        opening.recordStart(
+            locked, review, InformationRequestAuditActor.of(command.access), command.idempotencyKey,
+            supersededCorrectionId?.let { mapOf("supersededCorrectionId" to it.toString()) }.orEmpty()
+        )
+        clockHold.sync(locked)
         return result(locked, review)
     }
 
@@ -160,11 +181,6 @@ class InformationRequestReviewCycleService @Inject constructor(
             reviewETag = loader.reviewETag(review),
             responseETag = InformationRequestETag.responsesOf(locked.request),
         )
-
-    private fun sha256Hex(material: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest(material.toByteArray(StandardCharsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
 
     private companion object
     {

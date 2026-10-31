@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.acceptedfact
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestFactRecertificationDto
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequestFactRecertification
@@ -8,18 +9,17 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestFactRecertificationResult
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestFactRecertificationView
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RecertifyInformationRequestAcceptedFactCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
 import com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operations.InformationRequestFactRecertificationResourceOperations
 import com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operations.InformationRequestNoAuthFactRecertificationResourceOperations
 import com.docuhyphen.app.api.resource.model.RecertifyInformationRequestAcceptedFactRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestFactRecertificationService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import jakarta.ws.rs.Path
 import kotlinx.serialization.json.Json
@@ -27,15 +27,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestFactRecertificationResourceContractTest
 {
@@ -46,9 +39,30 @@ class InformationRequestFactRecertificationResourceContractTest
     private val noAuthAccess = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext(sessionRef = "link"))
     private val recertifications: InformationRequestFactRecertificationService = mock()
     private val accessContextFactory: InformationRequestAccessContextFactory = mock()
-    private val readAccessService: InformationRequestNoAuthReadAccessService = mock()
+    private val readAccessService: InformationRequestNoAuthReadAccessService =
+        InformationRequestNoAuthAccessDoubles.current()
     private val resource = InformationRequestFactRecertificationResource(recertifications, accessContextFactory)
     private val noAuthResource = InformationRequestNoAuthFactRecertificationResource(recertifications, readAccessService)
+
+    @Test
+    fun `a wildcard If-Match on a recertification is sent to the service as a missing precondition`() {
+        whenever(recertifications.recertify(any()))
+            .thenThrow(com.docuhyphen.app.api.service.command.CommandPreconditionException.required("\"responses-4\""))
+
+        val response = resource.recertify(
+            requestId.toString(),
+            factId.toString(),
+            RecertifyInformationRequestAcceptedFactRequest(requirementId, assented = true),
+            "*",
+            "key-1",
+        )
+
+        assertEquals(428, response.status)
+        verify(recertifications).recertify(
+            org.mockito.kotlin.argThat { precondition == CommandPrecondition.Absent },
+        )
+    }
+
     private val recertification = InformationRequestFactRecertification().apply {
         informationRequestId = requestId
         informationRequestRequirementId = requirementId
@@ -75,7 +89,7 @@ class InformationRequestFactRecertificationResourceContractTest
     init
     {
         whenever(accessContextFactory.currentAuthenticated()).thenReturn(access)
-        whenever(readAccessService.resolve(eq("link-token"), anyOrNull())).thenReturn(InformationRequestNoAuthAccess(noAuthAccess, requestId))
+        whenever(readAccessService.resolve(eq(requestId), eq("link-token"), anyOrNull())).thenReturn(noAuthAccess)
         whenever(recertifications.recertify(any())).thenReturn(result)
     }
 
@@ -95,7 +109,12 @@ class InformationRequestFactRecertificationResourceContractTest
     @Test
     fun `both surfaces send the same assent, precondition, and key and answer the response revision without source identifiers`()
     {
-        val body = RecertifyInformationRequestAcceptedFactRequest(requirementId, assented = true)
+        val clears = setOf(UUID.randomUUID())
+        val body = RecertifyInformationRequestAcceptedFactRequest(
+            requirementId,
+            assented = true,
+            confirmedHiddenResponseClearRequirementIds = clears
+        )
         val authenticated = resource.recertify(requestId.toString(), factId.toString(), body, "\"responses-4\"", "key-1")
         val linked = noAuthResource.recertify(requestId.toString(), factId.toString(), body, "link-token", null, "\"responses-4\"", "key-1")
 
@@ -109,6 +128,7 @@ class InformationRequestFactRecertificationResourceContractTest
             assertEquals(true, command.assented)
             assertEquals(CommandPrecondition.ExpectedRevision("\"responses-4\""), command.precondition)
             assertEquals("key-1", command.idempotencyKey)
+            assertEquals(clears, command.confirmedHiddenResponseClears)
         }
         listOf(authenticated, linked).forEach { response ->
             assertEquals(201, response.status)

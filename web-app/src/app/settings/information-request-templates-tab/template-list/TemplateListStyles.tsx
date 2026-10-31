@@ -1,6 +1,12 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useTemplateListStyles = makeStyles({
+    region: {
+        display: "flex",
+        flexDirection: "column",
+        gap: tokens.spacingVerticalM,
+        minWidth: 0,
+    },
     list: {
         listStyleType: "none",
         margin: 0,
@@ -10,7 +16,7 @@ export const useTemplateListStyles = makeStyles({
         gap: tokens.spacingHorizontalM,
     },
     card: {
-        border: `1px solid ${tokens.colorNeutralStroke1}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke1}`,
         borderRadius: tokens.borderRadiusMedium,
         padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
         display: "flex",

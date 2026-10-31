@@ -1,9 +1,12 @@
 import {Button, Text} from "@fluentui/react-components";
-import {InformationRequestBusinessDecisionDto, InformationRequestBusinessDecisionKind} from "../../../models/models.tsx";
+import {
+    InformationRequestBusinessDecisionDto,
+    InformationRequestBusinessDecisionKind
+} from "../../../models/models.tsx";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {useBusinessDecisionsSectionStyles} from "../business-decisions-section/BusinessDecisionsSectionStyles.tsx";
 import {decisionKindLabels} from "../request-outcomes-panel/outcomeLabels.ts";
+import {useBusinessDecisionRowStyles} from "./BusinessDecisionRowStyles.tsx";
 
 interface Props
 {
@@ -21,7 +24,7 @@ const references = (decision: InformationRequestBusinessDecisionDto): string =>
 
 const BusinessDecisionRow = ({decision, canFollowUp, busy, onFollowUp}: Props) =>
 {
-    const styles = useBusinessDecisionsSectionStyles();
+    const styles = useBusinessDecisionRowStyles();
     const id = `information-request-business-decision-${decision.id}`;
     const process = humanizedKey(decision.owningProcessKey);
 

@@ -1,5 +1,7 @@
-import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {Spinner, Text} from "@fluentui/react-components";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import AuditEventRow from "../audit-event-row/AuditEventRow.tsx";
+import AuditPager from "../audit-pager/AuditPager.tsx";
 import AuditSearchFilters from "../audit-search-filters/AuditSearchFilters.tsx";
 import {AUDIT_SEARCH_PAGE_SIZE, useAuditSearch} from "./useAuditSearch.ts";
 import {useAuditSearchPanelStyles} from "./AuditSearchPanelStyles.tsx";
@@ -34,11 +36,9 @@ const AuditSearchPanel = () =>
                                 onChange={state.change}
                                 onSearch={state.search}/>
             {page.error && (
-                <MessageBar id={"information-request-audit-search-error"}
-                            intent={"error"}
-                            role={"alert"}>
-                    <MessageBarBody>{page.error}</MessageBarBody>
-                </MessageBar>
+                <InformationRequestLoadError id={"information-request-audit-search-error"}
+                                             message={page.error}
+                                             onRetry={page.reload}/>
             )}
             <Text id={"information-request-audit-search-status"}
                   role={"status"}
@@ -57,31 +57,17 @@ const AuditSearchPanel = () =>
                     {page.value.items.map(event => (
                         <AuditEventRow key={event.eventId}
                                        event={event}
-                                       showRequest={true}/>
+                                       showRequest={true}
+                                       onFilter={state.filterBy}/>
                     ))}
                 </ul>
             )}
-            {page.value && page.value.total > AUDIT_SEARCH_PAGE_SIZE && (
-                <div id={"information-request-audit-search-pager"}
-                     className={styles.pager}>
-                    <Button id={"information-request-audit-search-previous"}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            disabled={offset === 0}
-                            onClick={() => state.setOffset(Math.max(0, offset - AUDIT_SEARCH_PAGE_SIZE))}>
-                        Previous
-                    </Button>
-                    <Text id={"information-request-audit-search-range"}>
-                        {`${formatInformationRequestCount(offset + 1)} to ${formatInformationRequestCount(Math.min(offset + AUDIT_SEARCH_PAGE_SIZE, page.value.total))} of ${formatInformationRequestCount(page.value.total)}`}
-                    </Text>
-                    <Button id={"information-request-audit-search-next"}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            disabled={offset + AUDIT_SEARCH_PAGE_SIZE >= page.value.total}
-                            onClick={() => state.setOffset(offset + AUDIT_SEARCH_PAGE_SIZE)}>
-                        Next
-                    </Button>
-                </div>
+            {page.value && (
+                <AuditPager idPrefix={"information-request-audit-search"}
+                            offset={offset}
+                            pageSize={AUDIT_SEARCH_PAGE_SIZE}
+                            total={page.value.total}
+                            onOffsetChange={state.setOffset}/>
             )}
         </section>
     );

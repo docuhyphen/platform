@@ -46,11 +46,6 @@ class RedisRateLimiter @Inject constructor(
         return remainingSeconds.coerceAtLeast(1)
     }
 
-    /**
-     * Records [member] against [key] and returns how many distinct members have been seen in the
-     * current window. Used to spot enumeration, where each individual request is within budget
-     * but the spread of subjects being probed is not something a real user produces.
-     */
     fun countDistinctMembers(key: String, member: String, windowSeconds: Long): Long
     {
         val redisKey = "$DISTINCT_PREFIX$key"
@@ -119,6 +114,11 @@ class RedisRateLimiter @Inject constructor(
         return true
     }
 
+    fun blockSecondsRemaining(key: String): Long =
+        redis.send(
+            Request.cmd(Command.TTL).arg("$BLOCK_PREFIX$key")
+        ).await().indefinitely()?.toLong()?.coerceAtLeast(0L) ?: 0L
+
     private fun isTemporarilyBlocked(key: String): Boolean
     {
         val blockKey = "$BLOCK_PREFIX$key"
@@ -137,7 +137,6 @@ class RedisRateLimiter @Inject constructor(
 
         if (count == 1L)
         {
-            // Keep strike history for 24h before auto decay.
             redis.send(
                 Request.cmd(Command.EXPIRE)
                     .arg(violationKey)

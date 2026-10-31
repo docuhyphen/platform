@@ -1,16 +1,31 @@
 import {Button, Text} from "@fluentui/react-components";
+import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 import {useOperationsQueueToolbarStyles} from "./OperationsQueueToolbarStyles.tsx";
 
 interface OperationsQueueToolbarProps
 {
     selectedCount: number;
+    selectionFull: boolean;
     canSendReminders: boolean;
     busy: boolean;
     onSendReminders: () => void;
     onExport: () => void;
 }
 
-const OperationsQueueToolbar = ({selectedCount, canSendReminders, busy, onSendReminders, onExport}: OperationsQueueToolbarProps) =>
+const selectionText = (selectedCount: number, selectionFull: boolean): string => {
+    if (selectedCount === 0) return "Select issued or in progress requests to remind their responding parties.";
+    const selected = `${formatInformationRequestCount(selectedCount)} selected`;
+    return selectionFull ? `${selected}, the most that can be reminded at once.` : selected;
+};
+
+const OperationsQueueToolbar = ({
+                                    selectedCount,
+                                    selectionFull,
+                                    canSendReminders,
+                                    busy,
+                                    onSendReminders,
+                                    onExport,
+                                }: OperationsQueueToolbarProps) =>
 {
     const styles = useOperationsQueueToolbarStyles();
 
@@ -22,7 +37,7 @@ const OperationsQueueToolbar = ({selectedCount, canSendReminders, busy, onSendRe
             {canSendReminders && (
                 <Text id={"information-request-operations-selection"}
                       className={styles.selection}>
-                    {selectedCount > 0 ? `${selectedCount} selected` : "Select requests to remind their responding parties."}
+                    {selectionText(selectedCount, selectionFull)}
                 </Text>
             )}
             {canSendReminders && (

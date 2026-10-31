@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.review
 import com.docuhyphen.app.api.model.entity.InformationRequestReview
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewAssignment
 import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecision
+import com.docuhyphen.app.api.model.entity.InformationRequestReviewFinding
 import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewAssignmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
@@ -98,7 +99,21 @@ class InformationRequestReviewLoader @Inject constructor(
             decisions = decisions,
             findings = findingRepository.findForReview(review.id),
             standing = standing,
+            promptsByBinding = bindings.mapValues { (_, binding) -> binding.prompt },
         )
+    }
+
+    fun earlierFindings(review: InformationRequestReview): List<InformationRequestReviewFinding> {
+        val earlier =
+            generateSequence(review.priorReviewId?.let { requireReview(review.informationRequestId, it) }) { prior ->
+                prior.priorReviewId?.let { requireReview(review.informationRequestId, it) }
+            }.associate { it.id to it.reviewNumber }
+        return findingRepository.findForReviews(earlier.keys)
+            .sortedWith(
+                compareBy<InformationRequestReviewFinding>(
+                    { earlier.getValue(it.reviewId) },
+                    { it.sequenceNumber })
+            )
     }
 
     fun latestForPackage(requestId: UUID, packageId: UUID): InformationRequestReview? =

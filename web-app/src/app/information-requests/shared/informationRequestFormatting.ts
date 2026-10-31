@@ -4,19 +4,19 @@ export interface InformationRequestFormatOptions
     timeZone?: string;
 }
 
-const SIZE_UNITS = ["KB", "MB", "GB", "TB"];
+const SIZE_UNITS = ["KiB", "MiB", "GiB", "TiB"];
 const SIZE_STEP = 1024;
 
-export const formatInformationRequestTime = (value: string | undefined, options: InformationRequestFormatOptions = {}): string =>
-    value
-        ? new Intl.DateTimeFormat(options.locale, {
+export const formatInformationRequestTime = (value: number | null | undefined, options: InformationRequestFormatOptions = {}): string =>
+    value === undefined || value === null
+        ? ""
+        : new Intl.DateTimeFormat(options.locale, {
             dateStyle: "medium",
             timeStyle: "short",
             timeZone: options.timeZone,
-        }).formatToParts(new Date(value)).map(part => part.value).join("") + zoneSuffix(value, options)
-        : "";
+    }).formatToParts(new Date(value)).map(part => part.value).join("") + zoneSuffix(value, options);
 
-const zoneSuffix = (value: string, options: InformationRequestFormatOptions): string =>
+const zoneSuffix = (value: number, options: InformationRequestFormatOptions): string =>
 {
     const zone = new Intl.DateTimeFormat(options.locale, {timeZoneName: "short", timeZone: options.timeZone})
         .formatToParts(new Date(value))
@@ -29,7 +29,7 @@ export const formatInformationRequestCount = (value: number, locale?: string): s
 
 export const formatInformationRequestSize = (bytes: number, locale?: string): string =>
 {
-    if (bytes < SIZE_STEP) return `${new Intl.NumberFormat(locale).format(bytes)} bytes`;
+    if (bytes < SIZE_STEP) return `${new Intl.NumberFormat(locale).format(bytes)} ${bytes === 1 ? "byte" : "bytes"}`;
     let value = bytes / SIZE_STEP;
     let unit = 0;
     while (value >= SIZE_STEP && unit < SIZE_UNITS.length - 1)

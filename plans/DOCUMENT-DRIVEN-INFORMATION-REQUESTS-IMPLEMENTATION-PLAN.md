@@ -2,21 +2,1792 @@
 
 ## Status
 
-- Overall status: Incomplete. The program was reopened on 2026-09-30.
-  - A code-level audit against commit `23ed5d04` found 166 verified gaps (11 high, 65 medium, 90
-    low) behind tasks that are checked below. The register, with evidence, fix outlines and 28 open
-    decisions, is [the gap audit](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-GAP-AUDIT.md).
-  - `## Phase 13: Exchanges Started from Information Request Blueprints` was added for two defects
-    no earlier task covered: every Exchange requires at least one document even when its Blueprint's
-    Information Request collects the documents, and starting an Exchange from such a Blueprint never
-    creates the request, leaving its Information Requests tab empty. They are also recorded as
-    GA-167 and GA-168 in the gap audit.
-  - The phase checkmarks below record what was claimed, not what the audit verified. The program is
-    not complete until Phase 13 passes and every audit gap is closed or explicitly waived.
-- Previous status (superseded by the audit): Phases 1 through 12 and the repeated remediation gate were marked complete; Phase 12
-  finished on 2026-09-30 (design decisions under `### Phase 12 design decisions (2026-09-30)`). Phase 10's manual width check (1440, 1024, 768, and 360 CSS pixels across the
+- P3 repairs (2026-10-31, Claude): **`CK-07` to `CK-22` are closed test first (uncommitted); `CK-17` is closed by the
+  owner's decision to add a screen; CK-GATE ran.** Template Versions, including retired ones, can be viewed read-only
+  (`CK-07`); the New Information Request dialog keeps its Templates when Blueprints cannot be listed (`CK-08`); the
+  respond page says when the Exchange is not accepted yet and keeps answers read-only until then (`CK-09`); Create link
+  is offered only where the Exchange does not require recipient sign-in (`CK-10`); a condition clear touches only the
+  acting party's files (`CK-11`); size limits are stated in KiB and MiB (`CK-12`); the Manage page's supplement reason
+  comes from the list (`CK-13`); request managers withdraw a submission under Submissions (`CK-14`); differing facts are
+  both marked until one is revoked and Promote is withheld for corrected answers and restricted subjects (`CK-15`);
+  requesting-side facts are no longer offered for reuse (`CK-16`); carried-forward answers are formatted (`CK-18`); a
+  notice intent that gave up rendering no longer keeps the health alarm on (`CK-19`); Communication notices are emailed
+  as formatted HTML (`CK-20`); the due dates and operations articles are accurate (`CK-21`); four configuration keys are
+  declared and documented and the migration notes name V191 (`CK-22`). The three help articles the IDE reformat pushed
+  past 150 lines were reflowed and six wrapped sentences got their space back, so the help size test passes again.
+  Gates: affected backend 30 classes, 345 tests, zero failures, errors or skips (`mirror-a/final.log`); full backend
+  6,077 tests in 817 classes (1:21 h, `mirror-a/full.log`) with zero errors or skips and one failure, a unit expectation
+  in `InformationRequestLifecycleServiceTest` kept from before CK-04 (cancelling a grantless draft still had to check
+  the live plan), corrected to the CK-04 rule and rerun green 30/30; full frontend 2,124 tests in 331 files (585.9 s
+  under load): 2,122 pass and the two that timed out (`RequestOutcomesPanel`, `InformationRequestOperations`) pass when
+  rerun alone, 79/79; root tsc, eslint over the changed folders and help 97/97 pass. No migration (next free V192),
+  dependency, AWS resource, commit or push. `LG-16` was decided on 2026-10-31 (keep the pause). Open: the live and
+  manual release checks under DV-GATE.
+- Completeness re-check (2026-10-29, Claude): **five slice reviews found 1 P1, 5 P2 and 16 P3 gaps the earlier
+  audits missed; the P1 and every P2 are repaired test first (uncommitted) and the P3s stay open as `CK-07` to
+  `CK-22`.** Request Schemas can be created from the schema editor (`CK-01`), conditions over documents see their
+  files and confirmations are refused as condition sources (`CK-02`), reviewers can ask for more information (`CK-03`),
+  a lapsed owner can withdraw a draft that holds back an Exchange (`CK-04`), hold managers place holds
+  from the operations queue (`CK-05`), and scheduled disposal waits during operational suspension (`CK-06`). No
+  migration (next free V192), dependency, AWS resource, commit or push. Gates that night: full frontend 2,073 of 2,074
+  (only the help size test, repaired 2026-10-31); the full backend run on the reformatted tree stopped with Docker at
+  467 of 816 classes and was rerun on 2026-10-31 (see the P3 repairs bullet). See Completeness Re-check Work
+  (2026-10-29).
+- Gap analysis follow-ups (2026-10-29, Claude): **the ten follow-ups confirmed while closing the gap analysis are
+  repaired or decided (uncommitted); `LG-16` still waits for the owner.** Exchange updates refuse a `rejectionReason`
+  (`400`) and answer `403` instead of `500`; a lifecycle audit failure rolls the status change back; an ending
+  Workflow's confirmation refuses requests created after the cancel authority was checked; Assigned to you leaves out
+  finished requests; participants are checked by their address and participant Reviewers are not copied or taken from a
+  Blueprint; health indicators drop the threshold; `SUBJECT` is no longer a request Share role (V191, next free V192).
+  The Fields request bodies, value classes and mapping left `service/fields`, and the three Exchange resources this
+  program changed route through operations interfaces. Red `followups-red.log`, `followups-green1-5-red6.log`,
+  `followups-green6-red-v191.log` and `followups-red-structure.log`; green `followups-green.log` (89 classes, 717 tests,
+  zero failures, errors or skips); help 97/97, root tsc and eslint pass; rule sweep `followups-sweep.log`. Decisions:
+  the V181 engine pin is left to the owner, a Document audit provider waits for a first path, and the other 73 directly
+  annotated resources move to operations interfaces when next changed. Full backend 6,057 tests in 816 classes (1:00 h,
+  `followups-backend-full.log`): zero failures and 3 errors, all in `ExchangeTerminationInformationRequestEffectsTest`,
+  whose `prepareEnding` verifications gave four matchers for the new fifth parameter; corrected, that class passes 10/10
+  and the six classes that call `prepareEnding` pass 51 tests (`followups-stale-test-correction.log`). Packaging passes
+  (03:15, `followups-package.log`); app baseline 310 and strict-null 386 with 0 Information Request diagnostics.
+- Gap analysis closure (2026-10-29, Claude, resumed from the 2026-10-28 status check): **`LG-50`, `LG-51` and `LG-52`
+  closed; `LG-15`, `LG-23`, `LG-24` and `LG-25` completed where the status check found them partial; LG-GATE passed;
+  `LG-16` waits for the owner's decision; uncommitted.** Repairs were test first (red for the intended reason, then
+  green). LG-50: 76 findings repaired or decided (`lg50-outcomes-f01-f06.md`, `lg50-outcomes-f02-operations.md`,
+  `lg50-outcomes-f04-respondent.md`). LG-51: 23 findings, with `FD1-06` finished after the hand-back and the two
+  failures it reported traced to stale tests of LG-47 and LG-20 (`lg51-outcomes.md`). LG-52: the probe folders moved to
+  `plans/evidence/leftover-web-probes/`. Status check follow-through: LG-15 (draft approval rebases clocks), LG-23
+  (stored-data test), LG-24 (media type parameters and publication) and LG-25 (Fields refusals on four resources); three
+  P3 claims it could not confirm repaired in the web client, three recorded as follow-ups. LG-GATE found that V189 left
+  review worksheets, notice numbers and follow-up source packages without a claim scope, so a request with a review
+  worksheet could never be disposed; V190 repairs it (next free V191). Final gates: full backend **6,040 tests in 809
+  classes with zero failures, errors or skips (58:31)**; full frontend **2,074 tests in 323 files (304.6 s)**; packaging
+  passes (03:27); Vite build passes; root tsc 0, app baseline 310 and strict-null 386 with 0 Information Request
+  diagnostics; eslint over the changed web files clean; rule and neutrality sweep clean apart from pre-existing comments
+  in moved lines. No dependency, AWS resource, commit or push.
+- LG-50 in progress (2026-10-28, superseded by the 2026-10-29 closure above): all 76 findings read. Shared busy-dialog,
+  known-subject selection, binary-size and singular-copy regressions fail first and pass 13 cases; blank/HTML error and
+  evidence fixes pass 73 affected cases. Manage read/link recovery is under verification; explicit forbidden fixture
+  codes and a missing ResizeObserver stub are being corrected. LG-50 remains open; no commit or push.
+- LG-49 closed (2026-10-28): all 46 findings repaired or explicitly decided; final affected backend 105/105 with zero
+  failures/errors/skips. Frontend affected runs 133, 39 and 14 pass; root/app types (310 unrelated, zero Information
+  Request), scoped lint, help sizes, CRLF and targeted rule/neutrality checks pass. V187 to V189 add storage, archive
+  and claim boundaries; next free V190. Next LG-50, then LG-51, LG-52 and LG-GATE. No commit or push.
+- LG-49 verification (2026-10-28): all 46 finding outcomes are recorded in lg49-outcomes-2026-10-28.md. V187 to V189 add
+  storage, archive accounting and scoped history repairs (next free V190). All 20 final privacy/storage/disposal
+  contracts pass; 39 supplement flow and 14 final transport/parser tests pass; app types retain 310 unrelated, zero
+  Information Request. The combined backend batch is running, so LG-49 stays open. No commit or push.
+- LG-49 resumed (2026-10-28): all 18 checkpoint hashes match, with no lost saved edits observed. Parent-policy lock race
+  now passes after its intended red; forbidden-code, retry-delay, instant/index, generated-owner and grant checks pass.
+  Header/party/concurrency/disposal regressions continue; LG-49 and LG-GATE remain open. No commit or push.
+- LG-49 in progress (2026-10-28): shared web contracts and reviewer credential routing repaired test first; 133 affected
+  frontend tests pass. App type diagnostics shrink from 334 to 310 unrelated, zero Information Request; only the 24
+  obsolete duplicate-enum entries were removed. HTTP body/header, generated-identity, hash-ordering and storage-boundary
+  regressions are in progress. V187 adds pending storage repairs; next free V188. LG-49 remains open. No commit or push.
+- LG-48 closed (2026-10-28): external/fact boundary repairs and all 14 P3 outcomes are recorded. Final backend batches
+  pass 85 and 17 tests, UI passes 13, with zero failures/errors/skips. Root TypeScript, scoped lint, help sizes, CRLF
+  and targeted rule/neutrality checks pass. V186 adds reconciliation and durable supersession history; next free V187.
+  Next LG-49, then LG-50 to LG-GATE. No commit or push.
+- LG-48 in progress (2026-10-28): external/fact boundary regressions confirmed before fixes; affected backend suites
+  running. Reuse UI passes 13 tests. V186 records reconciliation runs and durable fact supersession (next free V187).
+  Help/API/release notes updated; LG-48 remains unticked until final affected checks and P3 decisions are recorded. No
+  commit or push.
+- LG-47 closed (2026-10-28): all 27 audit/record/privacy/preservation findings have repairs or explicit P3 decisions.
+  V185 adds disposal/preservation boundaries (next free V186). Final adapter/HTTP/migration batch passes 15 tests and
+  disposal/account/migration batch passes 66, all with zero failures/errors/skips; UI passes 18. Root tsc, scoped lint,
+  CRLF/help sizes and targeted rule/neutrality checks pass. Earlier broad327 had two fixture problems corrected in those
+  final checks. Help/API/release/migration notes and evidence journal updated. Next LG-48; LG-49 through LG-GATE remain
+  open. No commit or push.
+- LG-47 resumed (2026-10-28), still open: targeted audit/export/disposal/preservation regressions and fixes are in
+  progress. V185 adds preservation/disposal boundary repairs (next free V186). The preservation UI suites pass 18 tests;
+  the affected backend batch is running. Help/API/release notes updated for the pending changes. LG-48 through LG-GATE
+  remain open; no commit or push.
+
+- LG-46 in progress (2026-10-27): clock/notice fixes have intended unit, transaction and HTTP red evidence. The first
+  affected backend green passes 160/165, with five follow-up regressions in refusal precedence and a renderer mock now
+  corrected; the rerun also tests overlapping scheduler calls and the pending reminder-count defect. Clock UI passes 13
+  cases. Help/API/release notes and explicit P3 decisions updated; no LG-46 closure yet.
+- LG-45 closed (2026-10-27): review/submission boundary fixes and explicit P3 decisions are recorded below and in the
+  gap summary. Final backend narrative batch passes 19 tests; snapshot batch passes 92; web passes 190 plus 34
+  shell/history cases. All have zero failures/errors/skips. Root tsc, reviewed app baseline and scoped lint pass.
+  Help/API/release notes updated. Next LG-46, then LG-47 through LG-52 and LG-GATE. No migration, commit or push.
+
+- Resumed gap-analysis implementation (2026-10-27): LG-34 and LG-41 to LG-44 are closed. Resumed disposal/privacy and
+  party/access/response/evidence suites pass within their recorded scopes; protected-content access is tested through
+  the real authorizer and evidence refusal mapping over HTTP. The final affected HTTP rerun passes 120 tests with zero
+  failures, errors or skips. LG-45 is next, followed by LG-46 to LG-52 and LG-GATE. Root `npx tsc --noEmit`, focused
+  help lint and the scoped rule/neutrality check pass. Detailed
+  evidence: [resume journal](evidence/information-request-gap-analysis-2026-10-26/resume-2026-10-27.md).
+- Line-by-line gap analysis repairs (2026-10-26 to 2026-10-27): **closed 2026-10-29 and uncommitted: `LG-01` to `LG-52`
+  closed and LG-GATE passed; `LG-16` keeps an open owner question (see the 2026-10-29 bullet).** The P1, all 37 P2 items
+  and the Template authoring P3 group were repaired test first, each failing for its intended reason before the fix
+  (through the real `DefaultAuthorizationService` where authorization is involved and over HTTP where serialization or
+  error mapping is at fault), with the six owner decisions applied (`LG-02`, `LG-03`, `LG-05`, `LG-07` and `LG-16`
+  option A, `LG-52` option A). Migrations V181 to V184 were added; LG-47 adds V185, LG-48 adds V186, LG-49 adds V187 to
+  V189 and the LG-GATE follow-through adds V190 (next free V191). Every item carries a closing note in Line-by-Line Gap
+  Analysis Work (2026-10-26); P3 repairs and decisions are listed under P3 outcomes in
+  the [gap analysis](information-request-gap-analysis-2026-10-26.md). Help, the API reference and the release notes
+  describe every user-visible change. Next: the owner's `LG-16` decision.
+- Line-by-line gap analysis (2026-10-26): **not fully implemented; `LG-01` (P1), `LG-02` to `LG-38` (P2), the P3 groups
+  `LG-39` to `LG-51`, `LG-52` and `LG-GATE` are open; nothing is repaired.** At the owner's request to check every line
+  rather than trust the completion records, 26 read-only reviewers read every line of 1,405 Information Request files
+  (127,405 lines: backend 740 files and 70,359 lines, web 560 and 43,802, migrations V76 to V180 105 and 13,244) and
+  every line the program changed in its foundation since `b8affac5` (about 15,500 changed lines in 369 files plus 35 new
+  files), with coverage reconciled file by file. Every P1 and P2 was re-checked in the code (one rejected, eight
+  downgraded, duplicates merged) and twelve skeptics checked every P3 (324 kept: 316 confirmed and 8 plausible; 12
+  rejected; 7 duplicates). P1: `PUT /exchanges/{id}` needs only `EXCHANGE_VIEW` and never refuses status `INITIATED`, so
+  a viewer can freeze an Exchange's requests or reopen a finished Exchange. The P2s include request parties who cannot
+  reach their work, delegated authority that never lets a delegate act, unanswerable Attestor items, participant
+  reviewers with no review surface, Send reminders always answering 400 after committing (reproduced at runtime), clocks
+  that expire requests waiting for review or still on an `INITIATED` Exchange, deleted Exchanges whose requests stay
+  open and counted, disposal and privacy deletion deadlocks, silently overwritten respondent drafts and dropped
+  contact-code audit records. Fresh runs: full backend **5,722 tests in 761 classes** with zero failures, errors or
+  skips; packaging passes; full frontend **1,757 tests in 292 files** pass without the leftover probe folders (with them
+  `npm test` fails one probe test); type and null gates at their baselines with 0 Information Request diagnostics.
+  Earlier phase-complete rows and closed audit rounds do not close these findings. See
+  the [gap analysis](information-request-gap-analysis-2026-10-26.md),
+  its [runs](evidence/information-request-gap-analysis-2026-10-26/runs.md) and Line-by-Line Gap Analysis Work
+  (2026-10-26). Next: `LG-01` test first. Analysis only; no production change, migration, dependency, AWS resource,
+  commit or push.
+- Sixth Codex verification remediation (2026-10-25): **CX-01 from
+  the [sixth Codex verification](information-request-codex-verification-2026-10-25.md), an independent pass written over
+  the fifth report's file, is closed (uncommitted); DV-GATE stays open only for the non-waived live and manual release
+  checks.** CX-01 (P2): the connector worker committed attempt counts, retries, waiting states and failures with no
+  classified audit event or transition history. Every change it commits now goes through
+  `InformationRequestConnectorExchangeRecorder` as a request transition (`START_EXTERNAL_SOURCE_ATTEMPT`,
+  `SCHEDULE_EXTERNAL_SOURCE_RETRY`, `RECORD_EXTERNAL_SOURCE_PENDING`, `COMPLETE_EXTERNAL_SOURCE`,
+  `FAIL_EXTERNAL_SOURCE`) with its own required audit event (`information_request.external.attempt`, `.retry`,
+  `.pending`, `.complete`, `.fail`) in the same transaction, attributed to the platform service account and keyed by
+  exchange, attempt and step; a refused audit capture rolls the step back, and connector-returned values require their
+  capture too. `InformationRequestConnectorExchangeHistoryTransactionTest` pins it through PostgreSQL and the real
+  authorizer. V180 widens the transition mutation check. No owner decision was needed. Full backend **5,722 tests in 761
+  classes**, full frontend **1,750 tests in 290 files**; packaging passes; type, null, lint and build gates at their
+  baselines with 0 Information Request diagnostics. No dependency, AWS resource, commit or push.
+- Fifth Codex verification remediation (2026-10-25): **CX-01 from
+  the [fifth Codex verification](evidence/information-request-codex-verification-2026-10-25/report-before-independent-pass.md)
+  is closed (uncommitted); DV-GATE stays open only for the non-waived live and manual release checks.** CX-01 (P1): a
+  request's audit history names a follow-up (`successorRequestId`) or replacement (`supersededByRequestId`) only to a
+  caller who may view that request and otherwise withholds and counts it; a record export names the replacement, and the
+  request behind a recertified accepted fact, only when its creator may view that request, and reading an export leaves
+  out any such request the reader may not view, reporting `withheldRelatedRequestCount`, without changing the stored
+  export or its hash. The owner audit search and subject exports read through privacy keep them for their owner-scope
+  readers. `InformationRequestRelatedRequestRecordTransactionTest` pins both surfaces through the real authorizer over
+  HTTP. No owner decision was needed. Full backend **5,705 tests in 758 classes**, full frontend **1,749 tests in 290
+  files**; packaging passes; type, null, lint and build gates at their baselines with 0 Information Request diagnostics.
+  No migration, dependency, AWS resource, commit or push.
+- Fourth Codex verification remediation (2026-10-24): **CX-01 from
+  the [fourth Codex verification](information-request-codex-verification-2026-10-24.md), which reuses the third report's
+  file name, is closed (uncommitted); DV-GATE stays open only for the non-waived live and manual release checks.** CX-01
+  (P1): the follow-up history names the request a follow-up came from and each follow-up only to a caller who may view
+  that request, and gives the next due time and the new `everyOccurrenceCreated` only to a caller who may view every
+  occurrence of the series; a superseded request's header names its replacement only to a caller who may view it.
+  `InformationRequestLineageVisibilityTransactionTest` pins both directions, the derived values and the header through
+  the real authorizer, with HTTP checks. No owner decision was needed. Full backend **5,683 tests in 756 classes**, full
+  frontend **1,748 tests in 290 files**; packaging passes; type, null, lint and build gates at their baselines with 0
+  Information Request diagnostics. No migration, dependency, AWS resource, commit or push.
+- Third Codex verification remediation (2026-10-24): **CX-01 and CX-02 from
+  the [third Codex verification](information-request-codex-verification-2026-10-24.md) are closed (uncommitted); DV-GATE
+  stays open only for the non-waived live and manual release checks.** CX-01: the Manage page offers Supersede on a
+  draft and shows the Follow-up requests panel on drafts, so a draft takes its recurrence and refresh rules from the
+  page whenever the server's `authorActions` and the owner's standing allow them, while follow-up requests themselves
+  still start once the request is issued; `InformationRequestDraftAuthorActionTransactionTest` pins the server side
+  through the real authorizer. CX-02: every data class of the feature's tests lives in a `model` subpackage (79 classes
+  in 66 new model files), visibility kept and generic names made descriptive. No owner decision was needed. Full backend
+  **5,674 tests in 755 classes**, full frontend **1,741 tests in 289 files**; packaging passes; type, null, lint and
+  build gates at their baselines with 0 Information Request diagnostics. No migration, dependency, AWS resource, commit
+  or push.
+- Second Codex verification remediation (2026-10-23): **CX-01 and CX-02 from
+  the [second Codex verification](information-request-codex-verification-2026-10-23.md) are closed (uncommitted),
+  together with the same existence check on four sibling route families found while repairing CX-01; DV-GATE stays open
+  only for the non-waived live and manual release checks.** CX-01: a response patch checks that the caller may view
+  every Requirement it names, including those confirmed for clearing, before membership, removal or lock checks, so a
+  hidden and an unknown Requirement answer the same `403` with the same body; the file routes of a Requirement, group
+  occurrences, files a submission holds and a respondent's review comments follow the same rule, while a caller who may
+  see a target keeps its specific refusal. CX-02: the response workspace carries `authorActions`, the actions the
+  central authorizer and the transition matrix permit on the request now, and the Manage page offers only those, still
+  applying the owner's standing: after the Exchange ends, is rejected or is rescinded only revoking accepted facts
+  stays, on a deleted Exchange nothing does, and Preview as recipient, follow-ups and clocks follow it too. No owner
+  decision was needed. Full backend **5,668 tests in 754 classes**, full frontend **1,728 tests in 289 files**;
+  packaging passes; type, null, lint and build gates at their baselines with 0 Information Request diagnostics. No
+  migration, dependency, AWS resource, commit or push.
+- Codex verification remediation (2026-10-23): **CX-01 to CX-04 from
+  the [Codex verification](information-request-codex-verification-2026-10-22.md) are closed (uncommitted), together with
+  two standing gaps found during the repair and the Exchange request listing's existence check; DV-GATE stays open only
+  for the non-waived live and manual release checks.** CX-01: every signed-in route that names a request checks that the
+  caller may view it before the request is read or locked, so an unknown id and a hidden request answer the same `403`
+  with the same body; the Exchange request listing does the same for an unknown Exchange id; on the `/no-auth/` surface
+  any request but the link's own still answers `404`. CX-02: the Manage page offers Remove and Revoke link while changes
+  are paused or after the request was stopped, and Pause and Extend on a stopped request, from per-action permissions
+  that follow the server rules. CX-03 (decision: current state, current ETags): a retry answers what its command changed
+  as it stands now, and every ETag it returns describes that state; access link issue, rotation and replacement retries
+  stay refused. CX-04 (decision: scoped exception, see Codex Verification Work): a self-identifying custom component
+  needs no id at its call site, and a rendered page must not repeat an id. Standing gaps (decision: fix both here):
+  access link issue, resend and replacement are refused under suspension and after grant revocation; the Outcomes panel
+  no longer offers Promote or Record decision where the server refuses them. Full backend **5,621/749**, full frontend
+  **1,700/289**; packaging passes; type, null, lint and build gates at their baselines with 0 Information Request
+  diagnostics. No migration, dependency, AWS resource, commit or push.
+- Deep analysis backlog remediation (2026-10-22): **DX-28 to DX-56 closed and DX-GATE passed (uncommitted); DV-GATE
+  stays open only for the non-waived live and manual release checks.** Each item was repaired test first through the
+  real authorizer where authorization is involved: authority before state (DX-28), stated refusals (DX-30), review
+  receipts (DX-31), Exchange-end link cutoffs (DX-32), prompts for reviewers (DX-33), evidence ids, wording, scan and
+  hidden-route rules (DX-34 to DX-37), Fields and Template authoring (DX-38, DX-39), parties and group removal (DX-41),
+  participant-level account linking with the sign-in decision (DX-42), no-auth pauses (DX-43), respondent workspace
+  (DX-44), confirmations and packages (DX-45), follow-ups (DX-46), reviews (DX-47), clocks at issue and reminder bursts
+  (DX-48), disposal-safe privacy (DX-49), linking under suspension (DX-50), Exchange starts (DX-51), lock order and
+  after-commit codes (DX-52), legacy shapes (DX-53), help and the operator guide (DX-54), AGENTS.md rules (DX-55) and
+  owner-scope tests (DX-56). Full backend **5,508/746** with zero failures, errors or skips (1:29 h); full frontend
+  **1,672/289** with no failures (three untracked probe files of a separate completeness audit add 6 tests, 2 failing
+  for reasons outside this backlog); packaging passes (05:31); app type gate 334 and strict-null 410 with 0 Information
+  Request; root tsc 0; feature lint 0 errors; full lint unchanged at 59 errors and 46 warnings; Vite passes. Help, API
+  reference, migration notes, operator guide and release notes updated; rule and neutrality sweep clean. No migration
+  (next free V180), dependency, AWS or infrastructure change; no commit or push. See the deep analysis's "Backlog
+  remediation result (2026-10-22)" and
+  its [evidence](evidence/information-request-deep-analysis-2026-10-21/backlog-2026-10-22/README.md).
+- Deep verification remediation (2026-10-21): **DV-01 to DV-05 closed (uncommitted); DV-GATE stays open for the
+  non-waived release checks and the remaining DX backlog.** DV-01: superseding needs the supersede authority on the
+  replacement too, checked before the replacement is read, so an unknown or hidden replacement answers the same `403`;
+  the Supersede dialog lists only open requests the caller manages. DV-02: pausing and extending a clock are owner
+  recovery, refused while the owner is operationally suspended and still possible after grant revocation; clock commands
+  authorize before any state or standing check. DV-03: on an expired request, the overdue notice owed by the clock due
+  time that expired it is rendered, delivered and retried; every other notice of a finished request is still skipped.
+  DV-04: the Exchange listing names `creationOwner` for callers who may create there, and the create dialog and the Due
+  dates panel list Templates, Blueprints, Schemas and due date policies only while the active workspace is that owner,
+  keyed by its identity. DV-05: refused follow-up lineage and replacement-candidate reads state the refusal with Try
+  again and withhold the controls that depend on them. Red then green for each (backend 3 of 6, 4 of 7 and 5 of 16
+  before the repair; React 17 of 44); affected backend suites **427/56**; full backend **5,324/740** with zero failures,
+  errors or skips; full frontend **1,621/282** with no failures or skips; packaging passes (02:25); type, null, lint and
+  build gates at their baselines with 0 Information Request diagnostics. Help (managing 148 lines, operations 149), API
+  reference, operator guide and release notes updated. DX-29 and DX-40 closed; DX-28, DX-30, DX-48 and DX-50 partly. No
+  migration (next free V180), dependency, AWS or infrastructure change; no commit or push. See the report's "Remediation
+  result (2026-10-21)" and
+  its [evidence](evidence/information-request-deep-verification-2026-10-21/remediation-2026-10-21/README.md).
+- Independent deep verification (2026-10-21, later): **not complete; three reproduced P2 findings (DV-01 replacement
+  authorization, DV-02 manual clock suspension, DV-03 expiry notice delivery), plus two P3 findings (DV-04 configuration
+  owner scoping, DV-05 refused author reads).** CS-01 to CS-05 are repaired in the current code and independently
+  verified within their recorded scopes. Fresh full backend **5,304 tests / 738 classes**, including migrations **315 /
+  82**, and full frontend **1,597 / 278** pass with no failures or skips; all eight neutral scenarios **14 / 8**,
+  packaging and Vite pass. Separate probes have eight intended failures and 11 passing controls across 19 cases. The
+  DV-04 identity-change probes are hook-level; the normal organization-menu reset/navigation was inspected and is not
+  claimed as a reproduced browser defect. Raw app TypeScript retains **334** unrelated diagnostics and full lint **59
+  errors / 46 warnings**; feature/baseline gates pass. All **2,591** copied backend/build/infra inputs and their path
+  set match the checkout. See the [deep verification report](information-request-deep-verification-2026-10-21.md)
+  and [evidence](evidence/information-request-deep-verification-2026-10-21/README.md). Next: **DV-01**, then DV-02 and
+  DV-03, then the client findings and remaining DX backlog. Earlier phase-complete rows do not close these findings or
+  the remaining release checks. Analysis only; no production change, migration, dependency, AWS resource, commit, or
+  push. Existing staged deletions were preserved.
+- Current-state audit (2026-10-21): **not complete; five remaining P2 defects reproduced (CS-01/DX-26 trust expansion,
+  CS-02/DX-16 background standing, CS-03/DX-07 recipient binding, CS-04/DX-22 review feedback, CS-05/DX-23 delegation
+  labels).** Fresh feature backend 2,897/372, including migration contracts 189/44, passes; all eight neutral scenarios
+  (14 cases), 38 content-type cases, adjacent authorization/Fields/trust/Blueprint 455/56, frontend 1,584/276, and
+  packaging pass. Added probes fail 12 assertions across those five defects with 15 passing controls including the PDF
+  checks. DX-57 is repaired within the fresh limited-process reproduction. Raw application TypeScript (334 unrelated
+  diagnostics) and full lint (59 errors, 46 warnings) still fail; feature/baseline gates pass. This entry supersedes
+  older open-defect counts within the reviewed scope; the remaining DX-28 to DX-56 backlog is not closed by omission.
+  Next: CS-01, then CS-02, CS-03, and the reviewer paths. See
+  the [audit report](information-request-current-state-audit-2026-10-21.md)
+  and [evidence](evidence/information-request-current-state-audit-2026-10-21/README.md). Analysis only; no production
+  repair, migration, commit, or push. The backend runs are scoped, not a full-repository Maven run.
+- Verification remediation (2026-10-21): **every finding of
+  the [independent verification](information-request-independent-verification-2026-10-21.md) is closed (uncommitted):
+  IV-01 to IV-09 (DX-57, DX-12, DX-13, DX-05, DX-27, DX-09, DX-20, DX-10, DX-21) and the open paths it confirmed, DX-03,
+  DX-04, DX-06, DX-08, DX-11, DX-14, DX-15, DX-17, DX-18, DX-19, DX-24 and DX-25, plus the undefined `config` in
+  `ExchangeInitiation.tsx`.** PDF inspection is metered (16 MiB decoded, 500,000 cross-reference entries, 10,000
+  sections, 1,000,000 stream objects, no image decoding, two at a time); text and Office files are judged by family; a
+  correction resubmission cannot be withdrawn; owners revoke facts on finished requests; requesting-side offers need the
+  source content check; responses carry `editLock` and `evidenceFileCount`; Keep this answer and Confirm as are offered;
+  a role answering a non-Public Field cannot go to a principal outside the owner
+  (`INFORMATION_REQUEST_FIELD_OUTSIDE_AUDIENCE`). Red then green, or a mutation proof, for each; full backend
+  **5,260/734** with 0 failures and 1 error, a conformance fixture the new Field rule refuses (fixed; the class passes
+  on rerun); full frontend **1,584/276**; packaging passes (03:35); root tsc 0; app type gate 334 unrelated (baseline
+  rewritten, 12 entries gone) and strict-null 410, each with 0 Information Request; feature lint 0 errors; full lint
+  unchanged at 59 errors; Vite passes. Help, API reference, operator guide and release notes updated. Still open: DX-07,
+  DX-16, DX-22, DX-23, DX-26, DX-28 to DX-56 and DX-GATE. No migration (next free V180), dependency, AWS or
+  infrastructure change; no commit or push. See the report's "Remediation result (2026-10-21)" and
+  its [evidence](evidence/information-request-verification-2026-10-21/remediation-2026-10-21/README.md).
+- Independent verification (2026-10-21): **not complete; nine existing DX defects independently reproduced (DX-57 P1,
+  eight P2).** Fresh checkout backend 5,120 tests in 728 classes, migrations 315/82, neutral scenarios 13/8, and
+  frontend 1,553/273 pass; packaging passes. Additional probes have 12 behavioral failures plus an isolated
+  PDF-inspection JVM termination. Unbaselined app TypeScript and full lint still fail. See
+  the [verification report](information-request-independent-verification-2026-10-21.md)
+  and [evidence](evidence/information-request-verification-2026-10-21/README.md). Next: DX-57, then source-fact
+  disclosure and retained-record revocation, then respondent completion paths and the remaining DX backlog. No
+  production change, commit or push.
+- P1 repairs (2026-10-21): **DX-01 and DX-02 closed (uncommitted); DX-57 (P1) opened and open.** DX-01: the Create
+  Information Request dialog and the Template editor ask only for the owner scope's Schema list, which already carries
+  platform Schemas (the analysis's editor half was not real); the Request Schema picker offers no retired Schema but
+  keeps the one a Template uses. DX-02: the archive inspector bounds the ZIP64 record and central directory without
+  overflow and caps the directory at 16 MiB; the compound-document inspector refuses negative sizes; both report runtime
+  failures as corrupt. DX-57: PDF inspection still decodes compressed cross-reference and object streams onto the heap,
+  so a 4 MB file stops the JVM; USER DECISION: a decode cap scoped to evidence inspection, not yet made because the
+  session's permission check refused the reflective change to PDFBox's filter registry. Red then green for each; full
+  frontend **1,551/273**; evidence backend suites 90/10 classes; tsc, type, null and lint gates at baseline. No commit
+  or push. See the [deep analysis](information-request-deep-analysis-2026-10-21.md) "Repair result (2026-10-21)".
+- Deep analysis (2026-10-21): **not fully implemented; DX-01 and DX-02 (P1), DX-03 to DX-27 (P2), DX-28 to DX-56 (P3,
+  grouped) and DX-GATE are open.** DX-01 is a regression of FC-20: the Create Information Request dialog lists PLATFORM
+  Schemas without a per-call catch, and the server refuses that list to anyone who is not an App Administrator, so an
+  ordinary author cannot start a request from a Template or Blueprint. DX-02: a crafted ZIP64 evidence upload overflows
+  the central directory bound check in `InformationRequestEvidenceArchiveInspection` and allocates about 2 GB;
+  production exits on `OutOfMemoryError`. The P2s include the RC-21 and RC-11 regressions (fact revocation refused after
+  the Exchange ends; requesting-side fact offers skip the source Requirement policy), Office, CSV and JSON files never
+  conforming under tika-core detection, Internal Fields unanswerable by outside respondents, exponential condition cycle
+  detection, a removed nested entry blocking its parent, locked items left editable, stale readiness after file changes,
+  a literal `{{DUE_AT}}` in bulk reminders and a three-verification link budget. Thirty-six read-only reviews traced 700
+  plan requirements (618 implemented); every finding was checked by a skeptic and every P1 and P2 by a second; client
+  P2s were reproduced with temporary probes. Full backend **5,116/728** with zero failures, errors or skips; full
+  frontend **1,550/273**; packaging, tsc, type, null, lint and build gates pass. The analysis filled the completeness
+  remediation's unfilled gate placeholders from its own runs. No production change, commit or push. See
+  the [deep analysis](information-request-deep-analysis-2026-10-21.md),
+  its [evidence](evidence/information-request-deep-analysis-2026-10-21/README.md) and Deep Analysis Work. Next: DX-01,
+  DX-02, then the P2s in the analysis's order.
+- Completeness remediation (2026-10-20): **SB-01 to SB-04, FC-01 to FC-26 and FC-GATE closed (uncommitted).** All 31
+  items of the [completeness analysis](information-request-completeness-analysis-2026-10-20.md) were implemented from
+  the [remediation prompt](INFORMATION-REQUEST-COMPLETENESS-REMEDIATION-PROMPT.md) in its order, test-first: each item's
+  tests failed on the unrepaired source for the intended reason, then passed after the smallest complete change,
+  followed by the named regression suites. Respondent submission (SB-01 to SB-04): a pending-work contract holds Submit
+  with its reason while answers are unsaved, saving, failed or stale or files are being sent or kept; opening the review
+  saves pending answers first and opens on the preview reloaded for the saved `responseETag`; the review lists only the
+  selected stage, states choices by their labels and uses injective element ids. Load failures (FC-20): ten panels state
+  a refused read with Try again. Conditions (FC-01, FC-07, FC-08): one party never clears, archives or withdraws another
+  party's answer or one a submission holds; such rules are refused at saving and publication with `conditionRuleKey`;
+  writes and uploads to a hidden Requirement answer `409 INFORMATION_REQUEST_REQUIREMENT_HIDDEN_BY_CONDITION`; condition
+  withdrawals go through the evidence collection with an evidence transition. Credentials (FC-02, FC-14): contact proof,
+  session issue and step-up consult the transition matrix after locking the parent, request and link; cancellation and
+  supersession revoke access links with `REQUEST_CANCELLED` or `REQUEST_SUPERSEDED` while open sessions read until they
+  expire; parent rejection, rescission and deletion revoke links with sessions; the rate limiter takes the client
+  address from the resource. Templates (FC-03, FC-16 to FC-19): database-only evidence bounds and unbound collected
+  Fields are refused with section and Requirement keys at write and publication and in the preflight; other stored-rule
+  refusals answer `409 INFORMATION_REQUEST_CONSTRAINT_CONFLICT`; the editor reads the draft's exact Schema Version
+  through the new `GET /schemas/versions/{versionId}`; refusals name condition rules in `conditionRuleKey`; a clone's
+  configuration event names its source. Commands (FC-04 to FC-06, FC-09 to FC-13): `If-Match` in the submission and
+  attestation fingerprints, scans recorded under the mutation gate, authorization before state checks in seven services,
+  `If-Match: *` refused on every Information Request command, audit capture required for lifecycle, party and ending
+  transitions, archived-action exemptions declared per resource kind, and subject exports counted against the daily
+  ceiling. Client P3 (FC-21 to FC-26): help corrected, review dialogs name items by prompt, the Decision Maker failure
+  is shown on the new request, shared time formatting, stroke tokens, and the signed-in respondent page follows the
+  user's theme. See Full Completeness Analysis Work and the analysis's remediation result.
+    - Decisions: DECISION (default from the remediation prompt) for FC-01, FC-02, FC-04, FC-05, FC-06, FC-08, FC-09,
+      FC-10, FC-11, FC-12, FC-13, FC-15, FC-16, FC-21 (a) and FC-26, each as section 3 of the prompt states it; no USER
+      DECISION was taken. Recorded consequences: FC-01, confirming a clear the caller may not perform keeps
+      `HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED`, and confirming one a submission holds is refused with `SUBMISSION_LOCKED`
+      or `CORRECTION_SCOPE_DENIED`; FC-02, the read path still resolves a link that its request's cancellation or
+      supersession revoked, so open sessions keep reading; FC-03, the defensive mapping answers `409` only for SQL
+      states of class 22 or 23 and trigger refusals (`P0001`), connection, lock, serialization and timeout failures
+      still answer `500`, and every Information Request command resource uses it; FC-06, on a finished request any
+      action other than a read or a closed-record action is refused with `403` before any state check; FC-08,
+      publication re-runs the full staged condition check, which is stronger than the non-retain wording and matches the
+      draft rule; FC-09, two no-auth transaction test classes that saved with `If-Match: *` now send the current
+      response ETag, read in a new transaction; FC-10, already implemented in the working tree, so only the API
+      reference note was added; FC-12, `ResourceAuthorizationContextProvider.actionsWhileArchived` is empty by default,
+      the Information Request provider declares its read and closed-record actions and the Requirement provider its read
+      actions; FC-15, `repository/informationrequest/*` is shared inside the Information Request domain, the AGENTS.md
+      rule forbids injecting another domain's repositories, and only the FC-08 path changed
+      (`InformationRequestHiddenResponseFiles` no longer writes artifact rows); FC-16, the new endpoint needs
+      `FIELD_CONFIG_VIEW` on the Schema and the editor falls back to the latest Version only when the draft names none;
+      FC-21 (a), the queue button stays unrendered and its comment and commented-out code are removed; FC-23, the
+      failure reaches the new request's manage page through navigation state, where the Decision Maker notice states it;
+      FC-26, keyed on `accessMode="no-auth"`.
+    - Red and green: 4.1, the promoted deep review probe 12 intended failures and 4 controls of 16, then 16/16; SB-01
+      `pendingWork` 12 of 12; SB-02 `stageReview` 6 of 8; SB-03 1 of 5; SB-04 2 of 8; FC-20 12 of 71; the Information
+      Request client folders 858/119 after. 4.2, server 20 of 109 (FC-01 9, FC-07 7, FC-08 4) then 109/109, client
+      preflight 3 of 19 then 33/5. 4.3, 25 of 134 (FC-02 23, FC-14 2); the 4.2 and 4.3 regression packages (1,830 tests,
+      222 classes) surfaced ten earlier tests pinning the old behavior, all updated. 4.4, server 31 of 405 (FC-03 19,
+      FC-17 9, FC-18 2, FC-16 1), client 4 of 31 then 181/29. 4.5, 42 of 872 (FC-06 24, FC-09 8, FC-11 4, FC-12 2, FC-13
+      2, FC-04 1, FC-05 1); FC-06 re-confirmed with only FC-04 and FC-06 reverted (16 of 24 outsider cases and the FC-04
+      case fail). 4.6, 11 of 138 (FC-23 5, FC-21 2, FC-24 2, FC-22 1, FC-26 1), then 472 of 473 in 62 files; the last
+      case expected a plain space where the shared formatter writes a narrow no-break space, so its expected string was
+      normalized and the step-up and help tests passed 80/80. Gate review of the storage-rule mapping: 9 of 68, then 1
+      of 14 in a second run (`server-storage-rule-red2.log`), then 293/293. FC-25 by source sweep, FC-19 by the
+      neutrality sweep, FC-15 in this plan.
+    - Gates: the deep review's retained probe, unchanged and staged, 16/16 with 0 probe type diagnostics; full frontend
+      **1,550/273** (614.61 s); full backend **5,116/728** with zero failures, errors or skips (59:12 min, 728 XML
+      reports reconciled); packaging passes (03:23 min, run on 2026-10-21 in the same mirror); `tsc` 0 errors; app type
+      gate 339 unrelated and strict-null 415, each with 0 Information Request; feature lint 0 errors and 3 warnings;
+      Vite passes. Help: the templates, access, managing, operations, submission, review and evidence articles updated
+      (each under 150 lines; section 30, registry 24) with help tests; API reference and release notes updated.
+      Neutrality and rule sweep over the changed files: no industry term, em dash, arrow, emoji or inline style added;
+      one leftover explanatory comment in the menu removed. The first full backend attempt stopped at 171 of 721 classes
+      on Docker network exhaustion from leftover Testcontainers networks and was rerun with
+      `-Dquarkus.kafka.devservices.enabled=false`.
+      Evidence: [remediation-2026-10-20](evidence/information-request-completeness-analysis-2026-10-20/remediation-2026-10-20/README.md).
+      No migration (head V179; next free V180), dependency, AWS or infrastructure change; existing changes and the seven
+      staged deletions preserved; no commit or push.
+- Full completeness analysis (2026-10-20, afternoon): **not complete at the time; SB-01, SB-02, FC-01, FC-02 and FC-03 (
+  P2), SB-03, SB-04 and FC-04 to FC-26 (P3) and FC-GATE were open and are now closed (see Completeness remediation
+  above).** The author re-verified the same day's [deep review](information-request-deep-review-2026-10-20.md) in the
+  source and reproduced its retained probe on the current tree (12 intended failures, 4 controls), then six read-only
+  review agents traced Phases 1 to 13 against the plan; every claim kept was re-verified by the author in the cited
+  code. New P2s: a cross-party condition with a clear or archive hidden-data policy refuses the governing party's answer
+  indefinitely (`InformationRequestHiddenResponsePolicyEnforcer.requirePermittedRemovals` requires RESPOND on the
+  co-party's Requirement and nothing can return that answer to no data); the no-auth challenge, session and step-up
+  commands never consult the transition matrix (no caller of `canMutate` for them), cancellation and supersession revoke
+  neither sessions nor bootstrap links, and a rejected, rescinded or deleted Exchange revokes sessions but not links;
+  Template refusals that exist only as database triggers and CHECK constraints (an unbound collected Field at
+  publication, evidence-policy bounds the editor can produce) answer `500 Request failed` without a key. SB-01's repair
+  must also cover in-flight and kept evidence uploads. Fresh verification: full frontend **1,471/266** (518.79 s); full
+  backend **4,986/721** with zero failures, errors or skips (53:49 min, build success, all 721 XML reports reconciled);
+  app type gate 339 and strict-null 415 unrelated diagnostics with 0 Information Request; root tsc, feature lint (0
+  errors, 3 warnings) and Vite pass; mechanical route, enum, DTO, resource-test and configuration-key cross-checks found
+  no further defect. See the [completeness analysis](information-request-completeness-analysis-2026-10-20.md) and
+  its [evidence](evidence/information-request-completeness-analysis-2026-10-20/README.md). No production repair,
+  migration, dependency or infrastructure change; existing changes and staged deletions preserved; no commit or push.
+- EC remediation (2026-10-20): **EC-01, EC-02, EC-03 and EC-GATE closed (uncommitted, web client only).** EC-01: the
+  shared `FieldSelectEditor` single choice is `clearable`, like the Yes or No editor, and reports a clear as `null`, the
+  canonical clear; no clear shows on a read-only (disabled) Field, and a multi-select is still cleared by deselecting
+  (`[]`). The clear also reaches Exchange Fields and Exchange start, whose callers treat `null` as empty. EC-02:
+  `submissionReview.answerText` states a partial answer as its label, value or file statement and reason
+  (`Partly provided: Three records. Reason: ...`) and, after the same day's notes decision, a provided answer's note
+  (`12. Note: ...`). EC-03: the respondent editor passes `information-request-response-field-<element id>`, the same
+  occurrence and Requirement-key element id its container and prompt use, so repeated and nested entries have unique
+  inputs labelled by their own prompts; Exchange Fields keep their ids, and tests that addressed the old respondent id
+  were updated. Red 8 intended failures of 25, then 25/25; causal controls in an isolated copy fail exactly 2 (clear), 4
+  (summary) and 2 (ids) tests with one repair removed, 8 with all, 25/25 restored. The analysis's and the SR review's
+  retained probes: all EC finding cases pass; as retained 12/16, the four failures being by design (two SR probes use
+  the old input id; two analysis probes count textboxes that now include the optional Note), and selector-only copies
+  pass 16/16. Regression folders 518/76; full frontend **1,471/266** (334 s, three workers, no concurrent run); help 72;
+  app type gate 339 and strict-null 415 diagnostics with 0 Information Request; root tsc and Vite pass; `tsc -b` 339
+  existing; feature and shared-editor lint 0 errors, 4 existing warnings; whole-app lint identical (59/46). Backend not
+  rerun: `src`, `infra`, `pom.xml` and `.mvn` are byte-identical to the mirror that passed 4,986/721 earlier the same
+  day. Help: submission summary states each answer's reason or note; Exchange Fields says a single choice has the clear
+  control. Release notes updated. See the analysis's "Remediation result (2026-10-20)". No migration, server, dependency
+  or infrastructure change, commit or push.
+- Current next task: none in the recorded implementation scopes; `LG-16` was decided on 2026-10-31 (an appeal that
+  reopens review keeps the pause, as the code does). Keep live browser, accessibility, deployed
+  delivery/storage/recovery validation and application-wide TypeScript/lint debt separate. Preserve existing changes and
+  staged deletions; no commit or push.
+- Previous next task (2026-10-20 to 2026-10-25): none in the recorded scopes. The completeness remediation (2026-10-20)
+  closed SB-01 to SB-04, FC-01 to FC-26 and FC-GATE; see above and Full Completeness Analysis Work (2026-10-20).
+- Provided-answer notes (2026-10-20, after the EC analysis): **decided and implemented (uncommitted, web client only).**
+  USER DECISION: a `PROVIDED` answer takes an optional note, keeping the submission help's "An item can also take a
+  note". The respondent editor shows **Note** (hint "Optional. Shown with your answer.") for a `PROVIDED` answer and
+  keeps **Explain your answer** for every answer that needs a reason
+  (`structuredResponseRequirementState.narrativeFieldFor`). After switching from an exception answer to `PROVIDED`, the
+  earlier reason shows in the note, where it can be kept, changed or cleared (`clearNarrative`), instead of staying on
+  the response unseen while reviewers see it. A note alone does not answer an unanswered item: `buildResponsePatches`
+  omits the disposition for a note-only change on a `NOT_ANSWERED` response whose shown answer needs no reason, so
+  section progress and readiness are unchanged; a choice, a value, a required reason or an already saved answer still
+  sends the shown answer. Red 7 intended failures of 101 (workspace 3, unit 1, both shells 2, help 1), then 101/101;
+  affected folders 256/28; full frontend **1,454/263** (338 s, three workers, no concurrent run); app type gate 339 and
+  strict-null 415 diagnostics with 0 Information Request; feature lint 0 errors, 3 existing warnings; Vite passes.
+  Backend untouched since the full 4,986/721 runs today. Help: the answering bullet now names the optional **Note** and
+  its earlier reason (149 lines; the autosave bullet was reflowed with the same words); release notes updated. The final
+  review summary still shows a value or files without its note; EC-02 covers the missing partial-answer reason there. No
+  migration, server, dependency or infrastructure change, commit or push.
+- Independent implementation analysis (2026-10-20): **not fully complete at the time; EC-01 and EC-02 (P2), EC-03 (P3),
+  and EC-GATE were open and are now closed (see above).** EC-01: an optional saved single-select answer has no clear
+  control. EC-02: review before submission omits a partial Field or Document answer's choice and explanation. EC-03:
+  repeated Field inputs share their HTML id. The earlier SR repairs pass all nine retained probes. Fresh independent
+  probes: 16 cases, four intended assertion failures and 12 passes; isolated controls fix each cause independently, all
+  seven new cases pass with all diagnostics, and removing the diagnostics restores the four failures. Full frontend
+  **1,449/263** passes with three workers; full backend **4986/721** passes with zero failures/errors/skips using the
+  test-only Kafka Dev Services override. The first frontend invocation and stopped Docker-blocked backend attempt remain
+  recorded separately. Feature type/null/lint and Vite checks pass; whole-app TypeScript/lint debt and
+  live/deployed/manual limits remain separate. See the [analysis](information-request-analysis-2026-10-20.md). No
+  application repair or migration is retained; existing changes and staged deletions are preserved. No commit or push.
+- Previous next work (analysis): EC-01, then EC-02, EC-03 and EC-GATE; closed on 2026-10-20 (see above). Prior scoped
+  closures remain intact.
+
+- SR remediation (2026-10-20): **SR-01, SR-02 and SR-GATE closed (uncommitted, web client only).** SR-01:
+  `responseAnswerState.currentDisposition` is the one rule the respondent editor renders and `buildResponsePatches`
+  sends: the answer chosen, else the saved answer the Template permits, else `PROVIDED` when permitted, else the first
+  permitted answer, else `NOT_ANSWERED` when the Requirement permits none (a view-only item offers no input). Edited
+  explanations and values keep the shown choice, an exception-only Template saves its answer, sparse writes and explicit
+  choices are unchanged, and a value hidden behind an answer other than a value is not sent. Partial-value verification
+  on both shells found that `PARTIALLY_PROVIDED` offered no explanation although the server's `requireNarratives`
+  refuses it without one; the explanation now shows exactly where the server requires a narrative
+  (`asksForExplanation`). SR-02: the controller records a successful save as its patch signature with the `responseETag`
+  of the answers the patch was built from (the prop, not the command ETag), so the same patch against newer answers is
+  pending and autosaves, while a saved patch is not resent before the post-save read, also after an entry command.
+  Test-first: SR-01 red 11 intended failures of 20, SR-02 red 4 of 16; 29 new permanent tests
+  (`StructuredResponseAnswerChoice.test.tsx` 8, `useStructuredResponseWorkspaceController.test.ts` 5, both-shell
+  `InformationRequestRespondentWorkspace.answerChoice.test.tsx` 4, `responseAnswerState.test.ts` +10,
+  `StructuredResponseAutosave.test.tsx` +1, help +1). The review's retained probes pass 9/9; isolated causal controls
+  fail 18 of 39 with both repairs removed, 16 with only SR-01 removed, exactly the 4 SR-02 tests with only SR-02
+  removed, and pass 39/39 restored. Full frontend **1,449/263** (623 s, three workers, beside the backend run); full
+  backend **4,986/721** with zero failures/errors/skips (01:11 h, beside another agent's concurrent backend run on the
+  same database), all 721 XML reports reconciled, migrations 315/82; packaging passes (03:29); app type gate 339 and
+  strict-null 415 diagnostics with 0 Information Request; root tsc, feature lint (0 errors, 3 existing warnings), Vite
+  pass; whole-app lint 59 errors/46 warnings identical to the baseline; `tsc -b` 339 existing diagnostics. Help: the
+  submission article now says a partly provided answer keeps its value with its reason and that changing a value or a
+  reason keeps the answer chosen; autosave promises unchanged. Release notes updated. Left open as a follow-up
+  (pre-existing, product decision): the article says an item can also take a note, but a `PROVIDED` answer offers no
+  note, and a reason saved with an earlier exception answer stays on the response, unseen, after switching to
+  `PROVIDED`. No live browser check (the respondent page needs a backend session verified by an emailed code). See the
+  review's "Remediation result (2026-10-20)". No migration, server, dependency or infrastructure change, commit or push.
+- Independent shared-response completeness review (2026-10-19): **not fully complete at the time; SR-01 and SR-02 (P2)
+  and SR-GATE were open and are now closed (see above).** SR-01: editing a saved exception explanation or partial Field
+  value can send `PROVIDED` instead of the displayed choice; a Template allowing only an exception cannot save it.
+  SR-02: repeating an earlier successful patch after a newer server response skips autosave and says All changes saved.
+  Nine independent probes have six intended assertion failures and three controls; both diagnostic corrections in an
+  isolated copy pass 66/66 including 57 existing response tests, and removing them reproduces the failures. See
+  the [completeness review](information-request-completeness-review-2026-10-19.md).
+- Fresh verification for this review: full backend **4,986/721**, zero failures/errors/skips (56:34 min), all 721 XML
+  reports reconciled; migrations **315/82**, original neutral scenarios **13/8**; full frontend **1,420/260** (355.62
+  s); backend packaging (02:48), scoped type/null/lint, root tsc, Vite and website gates pass. Actual app typed build
+  retains 339 unrelated diagnostics; whole-app lint retains 59 errors and 46 warnings. Live/deployed/manual limits
+  remain separate.
+- Previous phase scope (review): Phases 5, 10 and 12 were reopened only for SR-01, SR-02 and SR-GATE and are complete
+  again within their recorded scopes. The review changed no source; the remediation changed only the web client files
+  named in the review's remediation result. All seven staged deletions are preserved. Earlier scoped closures remain
+  intact. Migration head V179; no migration was needed. No commit or push.
+
+- IA remediation (2026-10-19): **IA-01, IA-02 and IA-GATE closed (uncommitted).** IA-01: archiving a hidden conditional
+  answer now archives the exact current version of each active file (V178
+  `information_request_response_archive_evidence`, `evidence_count`) and withdraws the files with reason
+  `archived-by-condition`, including a file-only answer, recording `ARCHIVED`; file versions and earlier packages are
+  unchanged, reactivation returns the answer empty, and retain, confirmed clear, `PROVIDE_ONCE`, permission and rollback
+  behaviour are unchanged. IA-02: each imported value records the Requirement revision current at intake (V179,
+  backfilled by `recorded_at`); a value recorded while its Requirement collected another Field (or none), or of another
+  type, reconciles as the new answer-independent `FIELD_CHANGED` and is never compared, and a value that no longer fits
+  its Field is `NOT_COMPARABLE` instead of aborting the run; the REST adapter answers 200. Decision (no user input):
+  same Field definition and type is the test for the same meaning, valid because an amendment cannot change a request's
+  Schema Version. New `InformationRequestReboundExternalValueTest` (6),
+  `InformationRequestHiddenEvidenceTransactionTest` 14 (11 new), canonicalizer unit +5,
+  archive/external-source/lifecycle contract additions (including a populated V178 upgrade backfill). Causality:
+  removing only the repair lines in an isolated mirror fails 13 of 31 new and probe cases (18 controls pass); restored
+  byte for byte. The audit's retained probes pass 11/11 against the repair (one test-support call adapted to
+  `insertField`). Full backend **4,986/721** with zero failures/errors/skips (01:04 h), all 721 XML reports reconciled;
+  full frontend **1,420/260** (295 s); scoped type/null gates 0 Information Request diagnostics, feature/help lint 0
+  errors and 3 existing warnings, root tsc, Vite and packaging pass. Help: Template and external sources articles (help
+  tests 68); docs: API reference, migration notes, release notes. See the deep analysis's remediation result. No
+  dependency or infrastructure change, commit or push.
+- Independent deep implementation analysis (2026-10-19): **not fully complete at the time; IA-01 and IA-02 (both P2) and
+  IA-GATE were open and are now closed (see above).** IA-01: archiving a conditional Document leaves its files ACTIVE,
+  so reactivation can submit them without new provision. IA-02: a legal Field-rebinding amendment leaves an earlier
+  imported value that aborts reconciliation with `FieldValidationException` and HTTP 500, including independent valid
+  values. See the [deep analysis](information-request-deep-analysis-2026-10-19.md) and Deep Implementation Audit Work
+  below. Earlier scoped repairs remain intact.
+- Fresh deep-analysis verification: full backend **4,961/720** with zero failures/errors/skips (01:00 h), all 720 XML
+  reports reconciled; Information Request domain packages **2,412/318**; migration contracts **312/82**; original
+  neutral conformance **13/8**; full frontend **1,419/260**. The final 11 independent probes have five intended
+  assertion failures, six passing controls and zero errors/skips; isolated diagnostic controls pass 11/11 and exact
+  restoration reproduces the failures. Scoped type/null/lint, root tsc, Vite and packaging pass. Actual app `tsc -b`
+  retains 339 unrelated diagnostics; whole-app lint retains 59 errors and 46 warnings. Root tsc's empty file list is not
+  app compilation evidence.
+- Previous phase checkpoint: Phases 5, 6, 7, 11 and 12, reopened only for IA-01, IA-02 and their acceptance gate, are
+  complete again within their recorded scopes. Evidence:
+  the [deep analysis](information-request-deep-analysis-2026-10-19.md) and its remediation result. Migration head V179;
+  the next free number is V180, subject to recheck. Preserve existing changes and staged deletions. No commit or push.
+
+- Reviewer file access (2026-10-19): **decided and implemented (uncommitted).** USER DECISION: anyone a review shows an
+  item's content to may also open that item's submitted files, under the same rules as reading it. The package route
+  (`.../submissions/{packageId}/evidence/{versionId}/content|preview`) now also admits a caller for whom
+  `InformationRequestReviewAccess.readsReviewedItem` holds: review reading on the request and on the item's Requirement
+  (with its confidentiality and recent-verification rules) while a review of that submission exists. The Requirement's
+  own evidence routes, the evidence authorization matrix and evidence changes are unchanged; manager-removed files stay
+  hidden. New `InformationRequestReviewerSubmittedEvidenceTest` (7) ran 3 intended refusals and 4 controls before the
+  change and passes 7/7 after; retained read unit +3 (13). Full backend **4,961/720** with zero failures/errors/skips
+  (55:33), all 720 XML reports reconciled; full frontend **1,419/260**; scoped type/null/lint, root tsc and Vite pass.
+  Help: review article; docs: API reference and release notes. See the history audit's reviewer section. No migration,
+  commit or push.
+- HC remediation (2026-10-19): **HC-BUILD, HC-01, HC-02 and HC-GATE closed (uncommitted).** HC-BUILD: the current tree
+  compiles (the `DocumentVersionReadHandle.kt` brace was already restored when remediation started; a fresh mirror
+  `test-compile` passes). HC-01: a file a submission froze is read through
+  `GET /information-requests/{id}/submissions/{packageId}/evidence/{versionId}/content` and `.../preview`:
+  `InformationRequestSubmissionPackageReader.retainedEvidence` proves the exact package member and its item, and
+  `InformationRequestRetainedEvidenceQueryService` authorizes evidence view or manage on the item's Requirement, keeps
+  manager-removed files hidden from others, checks the exact version and the frozen Document Version digest, and applies
+  quarantine/scan release before the shared `InformationRequestEvidenceContentOpener` (session recheck, digest-verified
+  open, preview safety, audit naming the package and item). The active collection keeps its occurrence guard; the review
+  workspace opens submitted files through the package route. HC-02: reconciliation leaves out a value whose Requirement
+  is not in the request's current Version; the value, provenance, decision and discrepancies stay recorded and replays
+  return stored outcomes. Test-first: the audit's probes reproduced 3 intended failures on the current tree; new
+  permanent tests ran 15 with 8 intended failures and 7 controls before the repair. After it:
+  `InformationRequestRetainedPackageEvidenceTest` (12, including an amendment that removes the Requirement and real
+  HTTP), `InformationRequestAmendedExternalValueTest` (6), retained read unit (10) and resource contract (5) pass; the
+  audit's HC-02 probe passes 3/3 and its HC-01 probe keeps 2 by-design failures because it reads through the guarded
+  active collection. Full backend **4,951/719** with zero failures/errors/skips (53:03), all 719 XML reports reconciled;
+  packaging passes. Full frontend **1,418/260**; scoped type/null/lint, root tsc and Vite pass; whole-app lint debt
+  unchanged (59 errors/46 warnings). Help: review and external sources articles; docs: API reference and release notes.
+  See the history audit's remediation result. No migration, commit or push.
+- Continuation build check (2026-10-19): **HC-BUILD (P1) was open; closed by the HC remediation above.** The resumed
+  `DocumentVersionReadHandle.kt` lacks the opening class-body brace after `AutoCloseable`. Fresh `.\mvnw.cmd -B test`
+  exits 1 in production compilation (45.454 seconds), before any tests execute. The original full-run outputs were
+  absent on continuation, so no completed full backend result is claimed for this audit. Earlier isolated-copy packaging
+  is point-in-time evidence only. The audit has not edited production source.
+
+- Continuation verification (2026-10-19): full frontend **1,413/260** passes (350.41 seconds), scoped app/null type
+  gates report **0 Information Request diagnostics** (340/416 total), feature/help lint **0 errors, 3 warnings**, root
+  tsc and Vite pass. Whole-app lint remains **59 errors/46 warnings**. All **4,221** captured continuation source inputs
+  are unchanged, no source files were added, and all seven staged deletions remain. The history audit retains the final
+  compact summary and current compiler log.
+
+- Independent history completeness audit (started 2026-10-18, resumed 2026-10-19): **not fully complete at the time;
+  HC-01 and HC-02 (both P2) were open and are now closed (see above).** Removing a withdrawn group occurrence makes its
+  immutable submitted file unavailable through both preview and download; removing a Requirement by a valid amendment
+  makes retained external values abort reconciliation with HTTP 404. Seven real-PostgreSQL probes have four passes and
+  three intended assertion failures; isolated causal controls pass 7/7, and restored production sources reproduce the
+  same three failures. See
+  the [history completeness audit](information-request-history-completeness-audit-2026-10-18.md). No production repair
+  is retained. Earlier closures and accepted exclusions remain intact.
+
+- LQ remediation (2026-10-18): **LQ-01 and LQ-GATE closed (uncommitted).** A respondent's evidence file and byte
+  allowance now counts every stored version uploaded by the uploader and by every identity a verified account link ties
+  to it: the participant, the account it linked, and every participant linked to that account, whichever request made
+  the link. `InformationRequestEvidenceIntake` resolves them with
+  `InformationRequestRequirementAuthorizationContextProvider.linkedIdentitiesOf`, the account-link source authorization
+  already uses, and sums them with `InformationRequestEvidenceVersionRepository.storedUsageForUploaders`. Uploader
+  provenance, independent allowances for different respondents and groups, the request and grant allowances and the
+  per-file limits are unchanged. New `InformationRequestEvidenceRespondentAllowanceTransactionTest` (9) ran 6 intended
+  failures and 3 passing controls against the unchanged source, and 9/9 after the repair; intake (+1), provider (+2) and
+  persistence contract additions. Targeted suites **499/60**, full backend **4,917/715** with zero failures/errors/skips
+  (49:46), all 715 XML reports reconciled, full frontend **1,413/260**, packaging and scoped gates pass. Help: evidence
+  article limits paragraph; docs: operator guide, API reference, release notes. See the implementation audit's
+  remediation result. No migration, commit or push.
+- Independent implementation audit (2026-10-18): **not fully complete at the time; LQ-01 (P2) was open and is now
+  closed (see above).** Linking a participant to an account reset per-respondent evidence file/byte usage because
+  accounting used the raw uploader principal, while authorization recognized the linked identity as the same respondent.
+  Overall request caps remained enforced. Phase 6 P6-T9 and Phase 12 P12-T5 quota/abuse acceptance were reopened. See
+  the [implementation audit](information-request-implementation-audit-2026-10-18.md). DGR and earlier scoped closures
+  and accepted exclusions remain intact.
+- Fresh audit verification: full backend **4,905 tests in 714 classes, one Exchange notification assertion failure, zero
+  errors/skips** (56:37 min; exit 1). That unchanged test passes in isolation (1/1); the raw full invocation remains
+  failed. All request service tests **1,960/259**, migrations **312/82**, and neutral scenarios **13/8** pass; all 714
+  XML/log class counts reconcile. Full frontend **1,413/260**, backend packaging and scoped type/null/lint/Vite gates
+  pass. Independent fixed-size quota probes: **5 run, three controls pass and two intended failures**; test-only
+  accounting control **5/5**; control-off recheck reproduces the same two failures. Existing whole-app TypeScript (340
+  diagnostics) and lint (59 errors/46 warnings) debt remains.
+- Previous next task (SR remediation): no open SR finding remained. The note on a `PROVIDED` answer then awaited a
+  product decision; it was decided and implemented on 2026-10-20 (see the Provided-answer notes bullet above). IA-01,
+  IA-02 and IA-GATE remain closed in their recorded scopes.
+- Previous next task (review): SR-01, then SR-02, then SR-GATE below. Keep live browser, accessibility, deployed
+  delivery/storage/recovery validation and application-wide TypeScript/lint debt separate. Preserve existing changes and
+  all staged deletions, including the completion-evidence journal deletion. No commit or push.
+- Previous next task (deep analysis): IA-01 test-first, then IA-02, then IA-GATE under Deep Implementation Audit Work.
+- Previous next task (history audit): HC-BUILD, restore compilable production source and rerun backend verification,
+  then HC-01, authorized historical evidence reads, then HC-02, amendment-safe external-value reconciliation, followed
+  by HC-GATE under History Completeness Audit Work. Keep live browser, accessibility, deployed delivery/storage/recovery
+  validation and application-wide TypeScript/lint debt separate. Preserve existing changes and all staged deletions,
+  including the completion-evidence journal deletion. No migration, infrastructure change, commit or push.
+
+- DGR remediation (2026-10-18): **DGR-01 and DGR-02 closed (uncommitted).** Amendments give every active occurrence its
+  Field value set whenever the request has a Schema assignment, repairing occurrences left without one; an amendment
+  whose target Version has a Field Requirement on a request with no Schema is refused with
+  `INFORMATION_REQUEST_AMENDMENT_SCHEMA_CHANGED` (a Schema is assignable only in Draft). New
+  `InformationRequestAmendedFieldOccurrenceTest` (6) plus guard and classifier additions. Affected suites **285/34**,
+  full backend **4,905/714** with zero failures/errors/skips (52:53), full frontend **1,413/260**. The recheck probes
+  pass 16/18; the other two now receive the chosen refusal. See the recheck report's remediation result. No migration,
+  commit or push.
+- Independent DG recheck (2026-10-17): **DG-01 and DG-02 confirmed fixed; two new P3 findings (DGR-01, DGR-02) were open
+  and are now closed (see above).** DGR-01: an occurrence an amendment provisions while the target Version has no Field
+  Requirements gets no Field value set. If a later Version restores one, that entry's Field answer is refused and the
+  minimum stops it being removed, so the request cannot be submitted. DGR-02 (pre-existing root cause): an amendment
+  never assigns the Schema when its first Field Requirement arrives. Root answers then fail, and an amendment that also
+  provisions an occurrence is refused with 409 and no reason code. Named suites **178/25** pass. Independent probes run
+  18: 14 pass, and the 4 non-passing cases reproduce DGR-01 and DGR-02. Frontend submission and help subset **99/9**
+  passes. See the [DG independent recheck](information-request-dg-independent-recheck-2026-10-17.md). No code change,
+  commit or push.
+- DG remediation (2026-10-17): **DG-01, DG-02 and DG-GATE closed (uncommitted).** An amendment provisions a raised group
+  minimum under every active parent occurrence, with nested minimums, keeping existing identities and answers and never
+  reusing a removed path; submission readiness checks configured group bounds independently of existing Requirements
+  (`groupProblems` on the preview and incomplete refusal); a changed enclosing group bound changes the meaning of every
+  nested Requirement, so a submitted stage refuses it while open stages accept it. New
+  `InformationRequestAmendedGroupCardinalityTest` (11) plus classifier, readiness and readiness-list additions. Affected
+  suites **169/22**, full frontend **1,413/260**, full backend **4,896/713** with zero failures/errors/skips (51:50);
+  feature type/null/lint, root tsc and Vite pass. The original probes, rerun unchanged, fail only on their defect-state
+  occurrence-count preconditions. An outside process emptied `target/` during this work, removing
+  `target/ir-deep-analysis-20261017/`. See the report's remediation result. No migration, commit or push.
+- Independent deep implementation analysis (2026-10-17): **not fully complete at the time; DG-01 and DG-02 (P2) were
+  open and are now closed (see above).** An amended group minimum can be bypassed, including closure with an empty
+  package; an ancestor-group change can also bypass the submitted-stage amendment guard. Fresh unchanged backend
+  **4882/712**, migrations **312/82**, neutral conformance **13/8**, frontend **1,412/260** and packaging pass.
+  Independent probes execute 10 cases: six intended behavioral failures, four controls pass, zero errors/skips. Feature
+  type/null/lint and Vite pass; existing broader TypeScript/lint debt and accepted exclusions remain. Next: DG-01,
+  DG-02, then DG-GATE. See
+  the [deep implementation analysis](information-request-deep-implementation-analysis-2026-10-17.md). No application
+  repair is retained; source/index preservation is verified and all seven staged deletions are preserved. Evidence:
+  `target/ir-deep-analysis-20261017/`. No commit or push.
+- Independent IC recheck (2026-10-17): **IC-01, IC-02 and IC-03 confirmed fixed; no new actionable finding in the repair
+  scope.** Fresh backend **278 tests in 38 classes, zero failures/errors/skips** (3:55), including all 10
+  supported-contract independent scope probes; full frontend **1,412/260** (380.76 s). All 38 fresh XML reports match
+  the log; one stale XML is excluded. The unchanged original probes pass 24/26; the two cross-stage fixtures stop at the
+  intentional authoring refusal, and the adapted stage assertions plus explicit refusal test pass. All 2,538 current
+  backend/build/infrastructure inputs match the recorded full backend **4,882/712** run, whose XML/log counts reconcile;
+  that full suite was inspected, not rerun. Feature type/null/lint, root tsc, Vite and fresh backend packaging pass.
+  Existing broader TypeScript/lint backlog and accepted exclusions remain. Production, permanent tests, frontend inputs,
+  Git index and all seven staged deletions are preserved. See
+  the [independent IC recheck](C:/Users/Black/IdeaProjects/doc-hyphen/plans/information-request-ic-independent-recheck-2026-10-17.md).
+  Evidence: `target/ir-ic-independent-recheck-20261017/`. No commit or push.
+- IC remediation (2026-10-17): **IC-01, IC-02, IC-03 and IC-GATE closed (uncommitted).** A substitute completes its
+  primary only while its own condition is true (shared `InformationRequestGoverningCondition.hides`, the same lookup the
+  package collector uses); a staged Template keeps every substitute in its document's submission stage (normalization,
+  publication readiness and the editor's Before publishing list), while cross-stage supporting evidence stays allowed;
+  bundle clock validation and clock authoring share `InformationRequestClockPolicyRules`. Red 14 intended failures in 80
+  tests, green 195/21 targeted, auditor probes 24/26 (the two cross-stage dependency probes now stop at authoring by
+  design). Full gates: backend 4,882/712 with zero failures, errors or skips (49:38), migrations 312/82, frontend
+  1,412/260, feature type/null/lint, root tsc and Vite pass. See the report's "Remediation result (2026-10-17)" in
+  the [completeness analysis](information-request-completeness-analysis-2026-10-17.md). No migration, new cloud
+  resource, commit or push.
+- Independent completeness analysis (2026-10-17): **not fully complete at the time; IC-01, IC-02 and IC-03 (all P2) were
+  open and are now closed (see above).** Retained condition-hidden alternative evidence can satisfy a required item
+  while being omitted from its package; a cross-stage alternative can satisfy an earlier stage without its version
+  entering that stage's hash or frozen membership; configuration-bundle clock validation disagrees with runtime
+  authoring. See the [completeness analysis](information-request-completeness-analysis-2026-10-17.md). Prior scoped
+  closures and accepted exclusions remain intact. No production repair is retained.
+- Fresh verification (independent completeness analysis): **4,839 backend tests in 709 classes, zero
+  failures/errors/skips** (56:56 min), including migrations 312/82 and all eight neutral scenarios 13/8; frontend
+  **1,411/260** (428.49 s). All backend XML/log counts reconcile. Independent original-source probes reproduce seven
+  intended failures with 31 passes in 38 executions, and a source-restored combined run reproduces the same result
+  without errors/skips. A temporary bundle-validator control passes 29/29 and is restored byte for byte. Packaging
+  passes (1:48, tests explicitly skipped). Feature type/null/lint gates and Vite pass; raw app TypeScript/typed build
+  retain 340 diagnostics and whole-app lint retains 59 errors/46 warnings.
+- Current next work: none recorded in the IC scope. The analysis' input-preservation record (4,408 starting inputs,
+  2,526 original backend inputs, Git index) describes the state before the remediation. Evidence:
+  `target/ir-feature-completeness-20261017/` (analysis) and `target/20261017-ic-remediation/` (remediation). Preserve
+  the staged completion-evidence journal deletion. No commit or push.
+
+- Independent AK recheck (2026-10-17): **AK-01 confirmed fixed; no new actionable finding in the repair scope.** Fresh
+  backend **345 tests in 47 classes, zero failures/errors/skips** (5:40), including the original independent probes
+  (9/9), both new permanent transaction classes (11/11), and history unit coverage (13/13). All 47 fresh XML reports
+  match the log. The shared command-model move preserves its code bodies. All 1,705 captured frontend inputs are
+  unchanged; recorded full backend 4,839/709, full frontend 1,411/260 and packaging logs were inspected, not rerun as
+  full gates. Root TypeScript passes with its empty-files limitation. Production, permanent tests, staged deletions and
+  the Git index are preserved. See
+  the [independent audit-key recheck](information-request-audit-key-independent-recheck-2026-10-17.md).
+- AK remediation (2026-10-17): **AK-01 and AK-GATE are closed (uncommitted).** A request transition written inside a
+  command is audited under `<event type>|receipt:<receipt id>|transition:<transition id>`, so callers, operations and
+  requests that share a raw key each keep their own audit record, and retries still replay without one. Transitions
+  outside commands keep their caller keys. The shared command data classes moved to `model/command`. See the remediation
+  result in the [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md).
+- Verification (AK remediation): full backend **4,839 tests in 709 classes, zero failures/errors/skips** (54:57; the
+  review's 4,824 plus 15 new regressions). Full frontend **1,411/260** (249.8 s; an earlier run under concurrent backend
+  load timed out one unrelated document-library test, which passes alone). Packaging passes (1:42, tests skipped).
+  Causal: 7 intended failures in 28 targeted tests before the fix, 50/50 in 8 classes after. Frontend type, lint and
+  Vite gates were not rerun because no frontend file changed.
+- Previous audit-key completeness review (2026-10-16): **not complete within the agreed scope: AK-01 (P2) is open.**
+  Independent PostgreSQL probes reproduce two committed commands but one audit event across respondents, completion-gate
+  managers, and recurrence versus refresh operations. Expanded original-source baseline and restored-source rerun: 9
+  tests, 3 intended failures and 6 passes; a disposable receipt-identity control passes 9/9. See
+  the [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md).
+- Previous overall status (AK remediation): **no open functional finding in the recorded scopes.** AK-01 and AK-GATE,
+  which reopened Phases 5, 7, 9 and 12 for audit-key scope and acceptance, closed on 2026-10-17. Preserve BC, ND, SX,
+  CAL, NS, CE, RN, RS, DT/PV and earlier scoped closures and accepted exclusions.
+- Fresh verification (audit-key review): backend **4,824 tests in 707 classes, zero failures/errors/skips** (58:03);
+  migrations 312/82 and eight neutral scenarios 13/8 included. Frontend **1,411/260**. Packaging, Vite and feature gates
+  pass. Fresh XML/log counts match for all 707 classes; 13 stale suites are excluded. Raw app TypeScript/typed build
+  retain 340 unrelated diagnostics and whole-app lint retains 59 errors/46 warnings.
+- Previous verification (BC remediation): One clean full backend run: **4,824 tests in 707 classes, 0 failures, errors
+  or skips** (54:37; the audit's 4,815 plus the nine new regressions), including 312 migration contract tests in 82
+  classes. Full frontend **1,411/1,411 in 260 files** (5:29, under concurrent backend load); packaging passes (1:55,
+  tests skipped); Vite build passes. Causal: the nine new regressions and their classes (30 tests) have exactly the
+  audit's 5 intended failures against the original sources, then 30/30. Type gates 340/0 and 416/0; help-docs tests
+  66/66.
+- Previous independent BC recheck (2026-10-16): both fixes confirmed; no new actionable findings in the changed scope.
+  Fresh backend **139/139 in 16 classes, zero failures/errors/skips**, including the original independent probes (30/30)
+  and permanent regression classes (30/30); full frontend **1,411/260**; feature type gates and changed-article lint
+  pass. Current backend and packaging inputs match the recorded 4,824-test full-suite and packaging snapshots. The first
+  fresh backend attempt's Docker-discovery error is preserved separately from the clean rerun. See
+  the [independent recheck](information-request-boundary-independent-recheck-2026-10-16.md). Production inputs and the
+  Git index are preserved; no commit or push.
+- Next functional task: none recorded. Migration head V177; AK-01 needed no migration, API change or cloud resource. No
+  commit or push is authorized.
+
+- Previous overall status (boundary audit): **not complete (boundary audit, 2026-10-16): BC-01 and BC-02, both P2, are
+  open.** The [boundary completeness audit](information-request-boundary-completeness-audit-2026-10-16.md) reproduces
+  connector work after execution-grant revocation or operational suspension, and an internal error when separate privacy
+  restriction commands concurrently create the same subject restriction. Reopen Phases 9, 11 and 12 only in those
+  scopes; preserve ND, SX and earlier scoped closures and accepted exclusions.
+- Previous verification (boundary audit): full backend 4,815 tests in 707 classes, zero failures/errors/skips (53:44);
+  migrations 312/82; eight neutral scenarios 13/8; full frontend 1,411/260; packaging passes with tests explicitly
+  skipped. Independent probes: 25 passes and five intended failures in 30 cases; temporary controls pass 30/30; exact
+  source restoration and recompilation reproduce the same five failures. Feature type/lint gates pass; broader
+  TypeScript/lint backlog remains recorded separately.
+- Previous next functional task (boundary audit): BC-01, test-first, then BC-02 and BC-GATE under Background and Privacy
+  Boundary Audit Work below. No production repair is retained by this audit. The report records repair boundaries and
+  the original probe sources.
+- Preservation (boundary audit): all 4,313 starting inputs covered by the audit manifest and the staged Git entries
+  match. Only the report and this plan handoff are retained documentation edits. The staged completion-evidence deletion
+  is preserved; local evidence is under target/ir-full-audit-20261016/. No migration, cloud resource, commit or push.
+
+- Previous overall status (ND remediation): **ND-01 and ND-GATE are closed (2026-10-16); Phases 9 and 12 are complete
+  again.** The P2 finding of the [deep completeness audit](information-request-deep-completeness-audit-2026-10-16.md)
+  was fixed test-first at the user's request, uncommitted; see its "Remediation result (2026-10-16)". Notice delivery
+  and rendering take share locks on the parent Exchange and the request, then the notice and party, before checking
+  eligibility and sending, so a lifecycle change either commits first and the notice is skipped or waits for the
+  delivery; disposal locks the Exchange and request before removing notices.
+- Previous verification (ND remediation): one clean full backend run, **4,815 tests in 707 classes**, 0
+  failures/errors/skips (60:20); packaging passes (2:16, tests skipped). Full frontend **1,411/1,411 in 260 files** with
+  default workers, four workers and serially, each while the full backend suite ran concurrently. Causal: the new
+  15-test notice serialization class has 9 intended failures against the original dispatcher, then 15/15; a 400 ms
+  dialog hold reproduces the policy-dialog failure 3/3 and the repaired queries pass 3/3. Type gates 340/0 and 416/0.
+- Previous next functional task (ND remediation): none confirmed in the checked scopes. Preserve ND, SX, CAL, NS, CE,
+  RN, RS, DT/PV and earlier scoped closures and accepted exclusions.
+- Preservation: no migration, cloud resource, commit or push. The Git index and its staged deletions are unchanged.
+  Evidence is under target/nd01-remediation-20261016/.
+
+- Previous overall status (deep completeness audit, 2026-10-16): **not complete: ND-01 (P2), cancellation versus queued
+  notice delivery, is open.** The [new audit](information-request-deep-completeness-audit-2026-10-16.md) reproduces a
+  notice sent after the real cancellation command commits. Reopen Phase 9 notice lifecycle consistency and Phase 12
+  acceptance only; preserve SX-01 and earlier scoped closures and accepted exclusions.
+- Previous fresh verification (deep completeness audit): full backend 4,800/706, 0 failures/0 errors/0 skips; migrations
+  312/82; eight conformance classes 13/8. Notice baseline and restored source each fail 1/18 assertions with 17 controls
+  passing; temporary control passes 18/18. Full frontend runs: default 1409/1411, four workers 1410/1411, serial
+  1410/1411; isolated failed files 35/35. The policy-dialog gate remains unresolved. Packaging and feature type/lint
+  gates pass; raw app typecheck, typed build and broader lint backlog remain.
+- Previous next task (deep completeness audit): **ND-01**, test-first, then **ND-GATE**. Serialize notice
+  eligibility/sending with parent and request lifecycle in canonical lock order, preserve recipient cutoff and frozen
+  content, and add permanent interleaving tests. Resolve the policy-dialog regression instability and rerun
+  affected/full gates before sign-off.
+- Previous audit preservation (deep completeness audit): no production fix retained, no migration/cloud
+  change/commit/push; all 4,253 inputs and the Git index matched before this report/plan handoff. Evidence:
+  target/information-request-audit-20261016/. The staged completion-evidence deletion is preserved; the linked report
+  holds detailed evidence.
+
+- Previous overall status (SX verification): **SX-01 and SX-GATE are closed (2026-10-16); Phases 9 and 12 are complete
+  again.** The P2 finding of
+  the [independent completeness recheck](information-request-independent-completeness-recheck-2026-10-15.md) was fixed
+  test-first at the user's request, uncommitted; see its "Remediation result (2026-10-16)". Subject ACCESS and EXPORT
+  take the canonical sorted parent-Exchange then request locks before loading their sources, so a saved subject record
+  shows each request at one moment and a competing cancellation or submission waits for it.
+- Fresh verification (SX remediation): one clean full backend run, **4,800 tests in 706 classes**, 0
+  failures/errors/skips (50:00); full frontend **1,411 tests in 260 files** (463 s); packaging passes (1:34, tests
+  skipped). Causal: the new 9-test snapshot class fails 6 intended assertions with 3 passing controls against the
+  original file, then passes 9/9; the auditor's four original probes pass 4/4; affected classes 161 tests in 21 classes.
+- Independent recheck (2026-10-16): **SX-01 and SX-GATE verified closed**, no new finding in the reviewed scope. Fresh
+  **161 tests in 21 classes**, zero failures/errors/skips (05:09 min), include the original four audit probes and nine
+  permanent snapshot tests. Recorded full backend 4,800/706 and frontend 1,411/260 results reconcile to unchanged
+  source; they were not rerun in this turn. See
+  the [current audit result](information-request-independent-completeness-recheck-2026-10-15.md). Evidence:
+  target/sx01-independent-recheck-20261016/.
+- Previous next functional task (SX verification): none confirmed in the checked scopes. Preserve SX, CAL, NS, CE, RN,
+  RS, DT/PV and earlier scoped closures and accepted exclusions.
+- Preservation: no migration, cloud resource, commit or push. The Git index and its seven staged deletions are
+  unchanged. Evidence is under target/sx01-remediation-20261016/.
+
+- Previous overall status (independent recheck): **not complete: SX-01 (P2), subject privacy export snapshot
+  consistency, is open.**
+  The [independent completeness recheck](information-request-independent-completeness-recheck-2026-10-15.md) reproduces
+  both ACCESS and EXPORT saving an ISSUED request beside its later CANCELLED history. The ordinary request-export and
+  non-concurrent privacy controls pass. A temporary shared-source-lock control passes all four probes; exact restoration
+  and recompilation return the two assertion failures. No production repair is retained.
+- Previous fresh verification (independent recheck): full backend **4,791 tests in 705 classes**, 0
+  failures/errors/skips (55:23 min); migrations **312/82** and eight neutral scenarios **13/8**. Full frontend
+  **1,411/260**, retained independent browser/HTTP probes **79/9**, and **26,400** standalone clock invariant cases
+  pass. Feature type/lint gates, Vite and packaging pass; the recorded broader lint/typed-build backlog remains.
+- Previous next task (independent recheck): **SX-01**, then **SX-GATE**. Reopen Phase 9 record export consistency and
+  Phase 12 acceptance only. Preserve CAL, NS, CE, RN, RS, DT/PV and earlier scoped closures, the subject-export quota
+  exemption, permissions, redaction and retention guards.
+- Previous audit preservation (independent recheck): 4,251 starting inputs and the Git index match before the
+  report/plan handoff. Existing staged evidence deletions are preserved. No migration, cloud resource, commit or push;
+  local evidence is under target/ir-independent-audit-20261015/.
+
+- Previous overall status (CAL remediation): **CAL-01, CAL-02, CAL-03 and CAL-GATE are closed (2026-10-15); Phases 9, 10
+  and 12 are complete again.** The three P2 business-calendar findings of
+  the [completeness audit](information-request-completeness-audit-2026-10-15.md) were fixed test-first at the user's
+  request, uncommitted; see its "Remediation result (2026-10-15)". Resolved working periods are clipped to their date
+  and merged before advance, elapsed and retreat walk them, so an immediate pause/resume keeps the deadline across a
+  daylight-saving gap. The policy form keeps every working period through an unrelated edit, edits split and varying
+  days in a **Working hours** list, and carries a 1440 end as **Until midnight**.
+- Previous fresh verification (CAL remediation): one clean full backend run, **4,791 tests in 705 classes**, 0 failures,
+  errors or skips (49:28), and full frontend **1,411 tests in 260 files** (443 s). Causal: with the original calculator
+  the three new spring-gap assertions fail and 11 controls pass; with the original form all four new HTTP republish
+  cases fail. Fixed sources were restored by SHA-256.
+- Previous verification gates (CAL remediation): application baseline gate 340 unrelated/0 feature diagnostics;
+  null-safety gate 416 total/0 feature diagnostics; root tsc and feature/help lint (0 errors, 3 existing warnings) pass.
+  Whole-app lint and the typed build were not rerun; their unrelated backlog is unchanged. The editor was checked at
+  1280 and 375 pixels wide with a deleted temporary harness; live-browser and deployed limits otherwise remain as
+  recorded.
+- Previous exact next functional task (CAL remediation): none open from the completeness audit. Preserve CAL-01..CAL-03
+  with NS/CE/RN/RS/DT/PV and the earlier scoped closures.
+- Previous preservation and limits (CAL remediation): no migration (next V178, subject to recheck), no API change, no
+  new cloud service, no commit or push. Existing staged evidence deletions were preserved. Accepted exclusions remain.
+
+- Previous overall status (completeness audit): **not complete: three P2 business-calendar findings (CAL-01, CAL-02 and
+  CAL-03) remain open.** The [fresh completeness audit](information-request-completeness-audit-2026-10-15.md) confirms
+  that a valid split business calendar double-counts a daylight-saving interval during pause/resume; an unrelated policy
+  edit drops split periods or overwrites a shorter day; and a valid midnight end boundary blocks publication. No
+  production repair was made.
+- Previous verification (completeness audit): backend **4,782 cases in 705 classes reconciled**. The first full run (55:
+  13 min, exit 1) has 4,779 passes, zero assertion failures, three setup errors because the isolated copy omitted
+  infra/cloudformation.yml, and zero skips. The unchanged fixture was copied and all three affected cases passed a
+  targeted rerun (exit 0); this is not a single clean full run. Migration contracts **312/82** and eight neutral
+  scenarios **13/8** pass. Full frontend **1,393 tests in 257 files** and all **72 retained independent probes** pass.
+  New PostgreSQL probes have 2 intended failures and 2 passes; new client probes have 6 intended failures and 1 pass.
+  Temporary mirror-only controls pass 19/19 backend and 7/7 client; exact restoration reproduces the failures.
+- Previous verification gates (completeness audit): application baseline gate 340 unrelated/0 feature diagnostics;
+  null-safety gate 416 total/0 feature diagnostics; root tsc, feature/help/scripts lint (0 errors, 3 existing warnings),
+  Vite and packaging-only Maven verify pass. Whole-app lint retains 59 errors/46 warnings and the typed build still
+  fails on its unrelated TypeScript backlog. These are not clean whole-app gates.
+- Previous next functional task (completeness audit): **CAL-01**, test-first, then CAL-02, CAL-03 and CAL-GATE in the
+  new work table below. Reopen only Phase 9 clock/calendar correctness, Phase 10 policy editing and Phase 12 acceptance.
+  NS-01..NS-04, CE-01, RN/RS/DT/PV and earlier scoped domain/security closures remain intact; the 72 retained probes
+  pass unchanged.
+- Previous preservation and limits (completeness audit): all 4,237 starting inputs, both baseline mirrors and the Git
+  index matched before this documentation handoff. No production fix, migration, new cloud service, commit or push.
+  Existing staged evidence deletions were preserved. Accepted exclusions and live/deployed/visual verification limits
+  remain as recorded; this audit makes no new live-browser or deployment claim. Next migration V178, subject to recheck.
+
+- Previous overall status (CE remediation): **CE-01 and CE-GATE are closed; the null sweep found three more P2 defects (
+  NS-01..NS-03) and P3 display defects (NS-04), not yet repaired.** CE-01 was fixed test-first on 2026-10-15 at the
+  user's request, uncommitted and client only; see
+  the [RN remediation recheck](information-request-rn-remediation-recheck-2026-10-15.md)'s "Remediation result
+  (2026-10-15)". Republishing a policy with escalation disabled keeps it disabled, `0` still escalates at the due time,
+  and the summary states escalation only when set. The same root cause shows up elsewhere: the server's REST JSON sends
+  unset values as explicit `null`, while 226 client response properties allow only `undefined`. See
+  `## Null Sweep Findings (2026-10-15)`. The Workflow condition editor can throw for a schema without a draft version
+  (NS-01) and save a `null[0]/...` occurrence path for grouped requirements (NS-02). Template drafts loaded from a
+  version without file limits report two false problems (NS-03).
+- Previous verification (CE remediation): full frontend **1,376 tests in 254 files** (435 s), all pass. Backend **88
+  tests in 10 classes** pass, including the configured-`Json` contract (6) and the five clock policy/clock classes; the
+  full backend was not rerun, because backend production code is unchanged since 4,776/705. The recheck's own **72
+  probes** (64 retained and 8 clock-policy) pass against the current code. Red first: 4 intended failures and 20 passes,
+  then 24 of 24, with two guard mutations restored by SHA-256.
+- Previous verification gates (CE remediation): `typecheck:app` 0 Information Request diagnostics (340 unrelated); this
+  gate does not check null, because `strict` is false. Root tsc, feature/help lint (0 errors, 3 existing warnings), the
+  Vite build and packaging-only verify (01:36) pass; whole-app lint keeps 59/46. Help: the operations article (149
+  lines) states that escalation carries into a new version, that an empty Escalate after never escalates, and that 0
+  escalates at the due time. Release notes are updated.
+- Previous next functional task (CE remediation): **NS-01..NS-04 and NS-GATE**, once the user chooses between
+  per-consumer guards with accurate types and removing nulls at the API client boundary. Accepted exclusions, the waived
+  width sweep and live/deployed limits remain. Next migration V178, subject to recheck. No commit or push is authorized.
+
+- Previous overall status (RN recheck): **RN-01 and RN-02 are independently verified; one P2 policy-editing issue
+  remains.** The [RN remediation recheck](information-request-rn-remediation-recheck-2026-10-15.md) confirms CE-01: a
+  policy's disabled escalation arrives as escalationAfterMinutes:null, but editing an unrelated duration and publishing
+  submits escalationAfterMinutes:0, enabling immediate escalation for clocks that use the new version. The form and
+  summary check only undefined for this nullable duration. The repaired timestamp consumers and all earlier scoped
+  closures remain verified. No production repair was made by this recheck.
+- Previous verification (RN recheck): fresh full frontend **1,369 tests in 252 files** pass (539.20 s); fresh focused
+  backend **54 tests in 5 classes** pass, zero failures/errors/skips (04:25); the **64 unchanged independent probes**
+  all pass, including the original RN failures. New policy probes give **4 intended failures and 4 passing controls**.
+  Temporary mirror-only null guards make **8/8** pass and are restored by SHA-256; the original failures return. Backend
+  production inputs are unchanged from the previously verified full **4,776/705** evidence; this review did not rerun
+  the full backend suite or infer a new full-suite total.
+- Previous verification gates (RN recheck): fresh packaging-only verify (02:08), Vite build, root tsc and the
+  application baseline gate pass. Application/probe TypeScript has **340 unrelated diagnostics and 0 feature/probe
+  diagnostics**; the typed build retains those unrelated failures. Feature/help/model lint has **0 errors and 3 existing
+  warnings**, whole-app lint **59 errors/46 warnings**. All 104 response timestamp properties match their server
+  contracts, including exactly 44 nullable fields across 28 interfaces; request types are unchanged. Scoped
+  architecture/style/neutrality checks pass and help sizes remain within limits. All 4,238 starting inputs, mirrors and
+  Git index were preserved before this documentation handoff.
+- Previous next functional task (RN recheck): repair **CE-01**, test-first through configured production policy JSON,
+  real XHR clients and the actual publish dialog, then **CE-GATE** below. Preserve disabled null/undefined escalation
+  and distinguish it from deliberate numeric zero or a positive delay. Reopen only Phase 9 policy editing/round-trip
+  accuracy, Phase 10 policy editor/summary and Phase 12 acceptance. Keep RN-01/RN-02, RS-01/RS-02, DT-01/PV-01 and prior
+  domain/security closures closed. Accepted exclusions, the width-sweep waiver and live/deployed limits remain. No
+  migration is indicated; V178 remains subject to recheck. No commit or push is authorized.
+
+- Previous overall status (RN remediation): **complete within the recorded scopes;
+  the [RS remediation recheck](information-request-rs-remediation-recheck-2026-10-15.md)'s RN-01, RN-02 and RN-GATE are
+  closed.** They were fixed test-first on 2026-10-15 at the user's request, uncommitted, and the fix changes the web
+  client only, with no migration, server production change, API change, new AWS service or backwards-compatibility code;
+  see the report's "Remediation result (2026-10-15)". The 44 nullable Information Request response timestamps are typed
+  `?: number | null`, matching the explicit nulls the configured REST serializer writes. A reusable answer without an
+  end says No end date, and otherwise shows its real earlier end. The operations CSV leaves Due empty when no clock is
+  running. The shared time helpers read null as unset, and all of these still read `0` as the epoch. RS-01/RS-02,
+  DT-01/PV-01 and earlier closures are unchanged; server freshness, expiry and authorization are untouched.
+- Previous verification (RN remediation): full frontend **1,369 tests in 252 files** (438 s, two workers), all pass.
+  Focused backend **54 tests in 5 classes** pass, zero failures/errors/skips (03:30); the full backend was not rerun,
+  because backend production code is unchanged since the RS remediation's **4,776 tests in 705 classes** (migrations
+  312/82, scenarios 13/8). New permanent cases: frontend 8 (wire over XHR 3, helpers 2, CSV 1, reuse 1, link 1) and a
+  help assertion update; the backend contract class now runs on the injected configured `Json` with real HTTP, 3 new
+  cases (5 total). Red first: 7 intended failures and 30 passes in 7 focused files; fixed, 37 of 37. Five guard
+  mutations each failed only their intended cases and were restored by SHA-256.
+- Previous verification gates (RN remediation): `typecheck:app` has 0 Information Request diagnostics (340 unrelated,
+  within the 346 baseline); root tsc, feature/help lint (0 errors, 3 existing warnings), the Vite build and
+  packaging-only verify (01:36) pass; whole-app lint keeps its 59 errors/46 warnings with none in changed files. No
+  forbidden characters or industry naming in changed files, and line endings are preserved. Help: the operations article
+  (148 lines) says Due is empty when no clock is running. The API reference and release notes are updated.
+- Previous next functional task (RN remediation): none confirmed in the checked scopes; an independent recheck may
+  verify RN-01 and RN-02. Outside this scope and unchanged: non-Information Request client DTOs (Exchange, Document,
+  Fields/Schema, Communication, Blueprint definition and others) still declare epoch-millisecond times as strings.
+  Accepted exclusions, the waived width sweep and live/deployed limits remain. Next migration V178, subject to recheck.
+  No commit or push is authorized.
+
+- Previous overall status (RS recheck): **RS-01 and RS-02 are independently verified within their repaired scopes; the
+  feature is not yet complete.** The [RS remediation recheck](information-request-rs-remediation-recheck-2026-10-15.md)
+  confirms two new P2 defects: RN-01 displays a false 1970 cutoff for reusable answers whose optional date bounds arrive
+  as null, and RN-02 exports a false 1970 Due value when an operations row has no nearest deadline. The current REST
+  serializer sends explicit nulls; the new consumers guard only undefined. Server fact freshness, expiry enforcement and
+  authorization are unchanged. DT-01, PV-01 and earlier closure scopes remain verified.
+- Previous verification (RS recheck): fresh full frontend **1,361 tests in 252 files** pass (553.58 s); fresh focused
+  backend **51 tests in 5 classes** pass, zero failures/errors/skips (04:59). Recorded full backend **4,776/705** was
+  reconciled against its log and selected XML, including migrations **312/82** and neutral conformance **13/8**; it was
+  not rerun in this review. Backend production inputs are byte-identical to the previous independent **4,774/704** full
+  run, and the only added backend class has 2 fresh passing cases. Retained independent
+  evidence/session/reviewer/preview and canonical RS cases **51/51** pass. Nullable probes give **5 intended failures
+  and 8 passing controls**; mirror-only null guards make **22/22** timestamp probes pass and are restored byte for byte.
+- Previous verification gates (RS recheck): fresh packaging-only verify (01:44), Vite build, root tsc and the
+  application baseline gate pass. App/probe TypeScript retains **340 unrelated diagnostics and 0 feature/probe
+  diagnostics**; the typed build still fails on that baseline. Feature/help/model lint has **0 errors and 3 existing
+  warnings**; whole-app lint remains **59 errors/46 warnings**. Static feature checks find no forbidden characters,
+  scanned industry vocabulary, explicit frontend any, inline styles, oversized production TSX or resource-class JAX-RS
+  annotations. Help sizes remain within limits. All 4,237 original inputs, source mirrors and Git index were preserved
+  before this documentation handoff.
+- Previous next functional task (RS recheck): repair **RN-01 and RN-02**, test-first with explicit-null production
+  response JSON through the real client, then **RN-GATE** below. Model nullable response times accurately or normalize
+  them at the API boundary; preserve actual numeric zero and the canonical epoch-millisecond contract. Reopen only Phase
+  9 export accuracy, Phase 10 nullable date UX and Phase 12 acceptance. Preserve RS-01/RS-02, DT-01/PV-01, earlier
+  domain/security closures, accepted exclusions and live/deployed limits. No production repair was made by this recheck.
+  No migration is indicated; V178 remains subject to recheck. No commit or push is authorized.
+
+- Previous overall status (RS remediation): **complete within the recorded scopes;
+  the [DT/PV remediation recheck](information-request-dt-pv-remediation-recheck-2026-10-15.md)'s RS-01, RS-02 and
+  RS-GATE are closed.** They were fixed test-first on 2026-10-15 at the user's request, uncommitted, and the fix changes
+  the web client only, with no migration, server production change, API change, new AWS service or
+  backwards-compatibility code; see the report's "Remediation result (2026-10-15)". The client's Information Request
+  response types now state every `TimestampSerializer` time as the epoch-millisecond number the server sends (104 fields
+  in 56 interfaces). A review with two or more decisions shows its history ordered by time; an ACTIVE access link whose
+  expiry has passed shows as expired with only Revoke link; the operations CSV writes UTC ISO-8601 times. Recurrence
+  request `firstDueAt` and reminder `cooldownUntil` stay ISO-8601 strings. DT-01, PV-01 and earlier closures are
+  unchanged, and server link expiry enforcement is untouched.
+- Previous verification (RS remediation): full frontend **1,361 tests in 252 files** (496 s, two workers), all pass.
+  Full backend **4,776 tests in 705 classes**, zero failures/errors/skips, exit 0 (50:33, no retry), including
+  migrations **312 in 82 classes** and the eight neutral scenarios' **13 cases**. New permanent cases: frontend 10
+  (real-HTTP response wire 4, access-link expiry 4, decision history order 1, reuse validity 1) plus one help assertion,
+  and backend 2 (`InformationRequestResponseTimestampContractTest`). Red first: on unchanged production code the new and
+  converted tests gave 11 intended failures and 25 passes in 10 focused files; fixed, 36 of 36.
+- Previous verification gates (RS remediation): `typecheck:app` has 0 Information Request diagnostics (340 unrelated,
+  within the 346 baseline); root tsc, feature/help lint (0 errors, 3 existing warnings), the Vite build and
+  packaging-only verify (02:27) pass; whole-app lint keeps its 59 errors/46 warnings with none in changed files. No
+  forbidden characters or industry naming in the 94 changed files, and their line endings are preserved. Help: managing
+  article expiry sentence matches the UI again; operations article 148 lines. The API reference and release notes are
+  updated.
+- Previous next functional task (RS remediation): none confirmed in the checked scopes; an independent recheck may
+  verify RS-01 and RS-02. Outside this scope and unchanged: non-Information Request client DTOs (Exchange, Document,
+  Fields/Schema, Communication, Blueprint definition and others) also declare strings for epoch-millisecond times.
+  Accepted exclusions, the waived width sweep and live/deployed limits remain. Next migration V178, subject to recheck.
+  No commit or push is authorized.
+
+- Previous overall status (DT/PV recheck): **DT-01 and PV-01 are independently verified within their repaired scopes;
+  the overall feature is not yet complete.**
+  The [DT/PV remediation recheck](information-request-dt-pv-remediation-recheck-2026-10-15.md) confirms the two
+  response-timestamp issues already observed during remediation: RS-01 (P2, two numeric decision times crash review
+  history) and RS-02 (P2, an ACTIVE link with elapsed numeric expiry is shown as usable with Resend). These are separate
+  from the repaired date-bearing requests and nominated-recipient preview. No new defect was confirmed in those repaired
+  areas.
+- Previous verification (DT/PV recheck): fresh full backend **4,774 tests in 704 classes**, zero failures/errors/skips,
+  exit 0 (52:06 min); migration **312 cases in 82 classes**, all eight neutral scenarios' **13 cases**, and the **30**
+  timestamp HTTP/preview/resource cases pass. Fresh full frontend **1,351 tests in 250 files** pass (554.85 s).
+  Independent unchanged evidence/session/reviewer probes and new preview ownership cases **41/41** pass, plus the
+  retained real-HTTP-payload author-page replay **1/1**. Response wire/UI probes give **3 intended failures and 8
+  passing controls in 11 cases**; temporary mirror-only consumer controls pass all 11 and were restored byte for byte.
+  Production DTO serialization confirms the numeric response times.
+- Previous verification gates (DT/PV recheck): packaging-only verify passes (01:44, tests explicitly skipped),
+  feature/help lint has 0 errors and 3 existing warnings, and Vite build passes. Application/probe TypeScript has 0
+  feature/probe diagnostics and 340 unrelated; whole-app lint retains 59 errors/46 warnings and the typed build retains
+  its unrelated failures. A scoped mapping finds 91 same-named client response timestamp fields typed as strings; that
+  is cleanup scope, not 91 demonstrated runtime bugs. Original inputs, mirrors and Git index were preserved before this
+  documentation handoff.
+- Previous next functional task (DT/PV recheck): **RS-01 and RS-02 as one coordinated numeric-response-contract
+  repair**, test-first, then **RS-GATE** below. Keep DT-01/PV-01 and earlier closure scopes closed. Server link expiry
+  enforcement remains intact; RS-02 is a client status/action defect. Accepted exclusions and live/deployed limits
+  remain. No production repair was made by this recheck, no migration is indicated, V178 remains subject to recheck, and
+  no commit or push is authorized.
+
+- Previous overall status (DT/PV remediation): **complete within the recorded scopes;
+  the [verification audit](information-request-verification-audit-2026-10-14.md)'s findings DT-01 and PV-01 and its
+  DT-PV-GATE are closed.** They were fixed test-first on 2026-10-15 at the user's request, uncommitted, with no
+  migration, new AWS service, or backwards-compatibility code; see the report's "Remediation result (2026-10-15)". Dated
+  browser commands (reviewer due time, Accepted Fact validity and expiry, Business Decision decided time, and the typed
+  clock client's explicit `receivedAt`) now send epoch milliseconds, the server's existing contract, and recurrence
+  `firstDueAt` keeps its ISO-8601 string. Preview as recipient reads the new
+  `GET /information-requests/{id}/parties/{partyId}/recipient-preview`, the nominated answering party's own projection
+  through the central Requirement party rule, for people who manage the request's parties; ordinary response reads are
+  unchanged.
+- Previous verification (DT/PV remediation): full frontend **1,351 tests in 250 files** (512 s), all pass. Full backend
+  **4,773 tests in 704 classes**, zero failures/errors/skips (53:02, scratchpad mirror byte-identical to the checkout),
+  including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases; a later draft-preview case
+  passed with its class (8 of 8). New permanent cases: frontend 15 (wire 6, author page 3, preview dialog 4, preview
+  sections 2) replacing 2 and updating 3, and backend 30 (timestamp HTTP 19, preview PostgreSQL and HTTP 8, resource
+  contract 3). Red first: 3 wire failures with 3 controls passing, 7 of 7 preview cases against a stub returning the
+  caller's own projection, and 3 author page failures with 16 passing. Three backend guard mutations gave exactly their
+  5 intended failures and were restored by SHA-256. Real captured HTTP payloads replayed through the author page pass.
+- Previous verification gates (DT/PV remediation): `typecheck:app` has 0 Information Request diagnostics (340 unrelated,
+  within the 346 baseline); root tsc, feature/help lint (0 errors, 3 existing warnings) and the Vite build pass;
+  whole-app lint keeps its 59 errors/46 warnings baseline with none in changed files. Help: managing article 149 lines.
+  The API reference and release notes are updated.
+- Previous next functional task (DT/PV remediation): none confirmed in the audited scopes; an independent recheck may
+  verify DT-01 and PV-01. Found while testing and offered as separate work, outside DT-01's six request fields: every
+  response timestamp is also an epoch-millisecond number but the client's response types declare strings, which makes
+  the review decision history throw once a review has two decisions and hides a lapsed access link's expiry from the
+  party row. Accepted exclusions, the waived width sweep and live/deployed limits remain. Next migration V178, subject
+  to recheck. No commit or push is authorized.
+
+- Previous overall status (verification audit): **not fully implemented within the accepted plan scope.**
+  The [verification audit](information-request-verification-audit-2026-10-14.md) confirms DT-01 (P2, browser date
+  strings cannot be decoded by numeric timestamp request serializers) and PV-01 (P2, recipient preview uses the
+  non-answering author's response projection and can show no questions). Reopen only these integration boundaries and
+  final acceptance; earlier closure scopes remain intact.
+- Previous verification (verification audit): full frontend **1,338 tests in 248 files** pass (732.67 s). Fresh full
+  backend coverage is **4,744 unique cases in 701 classes**, all passing after isolated retries: raw full run 0
+  failures, 8 HTTP-server startup errors and 36 skips (exit 1, 49:56); all 44 cases in those eight classes pass in the
+  separate retry (exit 0, 06:11). Migration tests **312 in 82 classes** and eight neutral scenarios' **13 cases** pass.
+  Retained browser probes **37/37** and four independent PostgreSQL parent-lock probes pass. Timestamp wire probes
+  reproduce six date-contract failures; the actual compiled serializers reject all six exact browser bodies and accept
+  all six numeric controls. Real PostgreSQL preview probes give one intended failure and two controls;
+  actual-service-payload author-page replay gives one intended failure and one control. These finding probes are
+  separate from regression totals.
+- Previous verification gates (verification audit): production packaging with tests explicitly skipped, feature/help
+  lint and Vite build pass. Application TypeScript has 0 Information Request diagnostics and 340 unrelated; root tsc
+  passes but has an empty file list. Whole-app lint retains 59 errors/46 warnings and typed build retains the unrelated
+  TypeScript failures. All source inputs and the Git index were preserved before handoff; only this plan and the new
+  report change. The prior lock-order and mock-only undisclosed-preview hypotheses were tested and cleared.
+- Previous next functional task (verification audit): **DT-01**, then **PV-01**, test-first, followed by **DT-PV-GATE**
+  below. No production repair was made in this analysis. Accepted exclusions, waived width sweep and live/deployed
+  verification limits remain. Preserve the staged deletion of the companion completion-evidence journal and the 31
+  absent historical reports; this fresh report holds the durable audit evidence. No migration is indicated; V178 remains
+  the prior candidate subject to recheck. No commit or push is authorized.
+
+- Previous overall status (TB remediation): **complete within the recorded scopes;
+  the [deep audit](information-request-deep-audit-2026-10-14.md)'s findings TB-01 and TB-02 and its TB-GATE are
+  closed.** They were fixed test-first on 2026-10-14 (evening) at the user's request, uncommitted and frontend only,
+  with no migration, server or API change, new AWS service, or backwards-compatibility code. A file preview or download
+  the server refuses now shows its reason, and one refused because the access-link session expired or was revoked
+  returns the respondent to verification: the web client reads the body of any refused file request as JSON before it
+  handles the refusal (the server labels these refusals `*/*`, not `application/json`), so the step-up prompt and the
+  sign-out of a deprovisioned account see the reason too. A respondent's late preview or download opens only while the
+  evidence panel still lists that exact file with that version as its latest, so a refused reread, a newer version or
+  another file in its place discards it. See the
+  report's [remediation result](information-request-deep-audit-2026-10-14.md#remediation-result-2026-10-14-evening).
+- Previous verification (TB remediation): full frontend **1,338 tests in 248 files** (453.17 s), all pass. New permanent
+  cases: frontend 40 (transport 21, respondent page 9, evidence panel 10) with one updated hook case and one updated and
+  one new help assertion, and backend 6 (`InformationRequestNoAuthEvidenceContentRefusalHttpTest`, real HTTP). On a copy
+  of the original source with only the new tests, 25 intended failures and 87 passes. The audit's probes pass unchanged
+  on the fix (37 of 37: TB 14, retained reviewer 23) and still show 9 failures and 5 controls on its untouched copy.
+  Eleven frontend mutations and one mirror-only backend mutation each fail only their intended cases and were restored
+  byte for byte. Backend production inputs are byte-identical to the audit's 4,738-test full run, and the new class
+  passes 6 of 6 in a mirror. The full backend then passed **4,744 tests in 701 classes, zero failures/errors/skips (51:
+  54, mirror identical to the checkout)**, including 312 migration cases in 82 classes and the eight neutral scenarios'
+  13 cases. `typecheck:app` has 0 Information Request diagnostics (340 unrelated); root tsc, changed and feature/help
+  lint (0 errors) and the Vite build pass; whole-app lint keeps its 59-error, 46-warning baseline. A real-browser check
+  against the running local backend confirmed the `*/*` label and the decoded, ended-session refusal for both uses.
+- Previous next functional task (TB remediation): none confirmed in the checked scopes; an independent recheck may
+  verify TB-01 and TB-02. Outside these findings, the evidence `content` and `preview` routes still label their JSON
+  refusals `*/*`; declaring `application/json` there was offered as separate work. Next free migration V178, subject to
+  recheck. No commit or push is authorized.
+
+- Previous overall status (deep audit): **not complete within the accepted scope.**
+  The [deep audit](information-request-deep-audit-2026-10-14.md) confirms TB-01 (P2, evidence Blob errors lose their
+  JSON reason and do not end an expired respondent session in the UI) and TB-02 (P2, a pending respondent evidence
+  opening still runs after a refused evidence-list reread hides its files). Respondent recovery, respondent evidence
+  opening, and the final hardening gate are reopened. Earlier closure scopes and accepted exclusions remain intact.
+- Previous verification (deep audit): full backend **4,738 tests in 700 classes, zero failures/errors/skips (55:28
+  min)**, including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases; full frontend **1,297
+  tests in 245 files** (393.83s), all pass. Retained independent browser probes **23/23** pass. New independent probes
+  have **9 intended behavioral failures and 5 passing controls in 14 cases**; test-owned causal controls pass all 14
+  with unchanged production source. Application/probe TypeScript has zero feature/probe diagnostics and 340 existing
+  unrelated diagnostics. Root tsc, feature/help lint, Vite build, and packaging-only verify (02:05 min, tests explicitly
+  skipped) pass; whole-app lint and typed build retain their existing failures.
+- Previous next functional task (deep audit): **TB-01**, then **TB-02**, test-first, followed by **TB-GATE**. Phases 4,
+  6, 10 and 12 remain open only at these new browser boundaries. No production repair was made by this audit; no commit
+  or push is authorized. V178 is the next migration candidate, subject to recheck; neither finding indicates a
+  migration. Preserve the existing evidence-report deletions: this new durable report records the fresh audit, and the
+  31 absent linked reports remain a separate evidence-consolidation observation.
+
+- Previous overall status (FU remediation recheck): **complete within the recorded FU remediation scopes; FU-01, FU-02,
+  FU-03 and FU-GATE are independently verified by
+  the [FU remediation recheck](information-request-fu-remediation-recheck-2026-10-14.md).** Reviewer openings,
+  request/subject record downloads, and atomic owner export allowances pass the original independent probes and fresh
+  regressions. No new functional defect was confirmed in this recheck. Earlier closures and accepted scopes remain
+  intact.
+- Previous verification (FU remediation recheck): fresh full frontend **1,297 tests in 245 files** (252.17s, four
+  workers), all pass. The initial parallel run had one existing assignee-filter timeout and 1,296 passes; the isolated
+  file's 32 cases and the complete rerun pass with unchanged deadlines. Original independent browser probes **15/15**
+  pass unchanged; eight new reviewer item/Requirement/Version and StrictMode cases give **23/23**. Fresh backend **24
+  tests in five classes**, zero failures/errors/skips (06:26), including all five original PostgreSQL probes and seven
+  permanent owner concurrency cases. All 2,509 backend inputs match the remediation's actual mirror and its full
+  **4,738-test/700-class** run, independently reconciled with its full log and XML results; the full backend was not
+  repeated. Application/probe TypeScript has zero feature/probe diagnostics and 340 unrelated diagnostics; feature/help
+  lint, root tsc and Vite build pass. Original inputs, mirrors and Git index are preserved; only handoff documentation
+  changes.
+- Previous next functional task (FU remediation recheck): none confirmed in FU-01 to FU-03. Preserve separately recorded
+  Audit workspace download and app-wide token-refresh observations, earlier closures, accepted exclusions and
+  manual/deployed verification limits. Next free migration V178, subject to recheck. No production repair was made by
+  this verification; no commit or push is authorized.
+
+- Previous overall status (FU remediation): **complete within the recorded scopes;
+  the [full feature audit](information-request-full-feature-audit-2026-10-14.md)'s findings FU-01, FU-02 and FU-03 and
+  its FU-GATE are closed.** They were fixed test-first, uncommitted, with no migration (see the report's "Remediation
+  result (2026-10-14, afternoon)"). A reviewer's Preview or Download now opens only while the item content that asked
+  still shows the same request, item and Evidence Version; request and subject record downloads save only while their
+  panel is still shown for the same request; and request record exports take a per-owner transaction advisory lock
+  before counting the owner's daily ceiling, so concurrent exports on separate Exchanges cannot pass it together.
+  Earlier closures and accepted scope decisions remain intact.
+- Previous verification (FU remediation): full backend **4,738 tests in 700 classes, zero failures/errors/skips (52:45,
+  mirror)**, including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases; full frontend
+  **1,297 tests in 245 files** (522.59 s), all pass. New permanent cases: frontend 45 (26 retirement cases failed on the
+  original code while the ordinary, same-file and hash-mismatch controls passed) and backend 8 (both same-owner races
+  made two exports and the failing-holder race showed no waiting on the original code; the unit ordering pin failed).
+  The audit's own probes pass unchanged: browser 15/15 and PostgreSQL 5/5. Six frontend guard removals each fail only
+  their intended cases, and a global allowance key fails only the distinct-owner case; all were restored exactly.
+  Application TypeScript has 0 Information Request diagnostics and 340 unrelated; root tsc, feature/help lint (0 errors)
+  and the Vite build pass; whole-app lint keeps its 59-error, 46-warning unrelated baseline.
+- Previous next functional task (FU remediation): none confirmed in the checked scopes; an independent recheck may
+  verify FU-01 to FU-03. Outside this feature, the Audit workspace's export download has the same late-answer shape and
+  is offered as separate work; the app-wide token-refresh observation also stays separate. Next free migration V178,
+  subject to recheck. No commit or push is authorized.
+
+- Previous overall status (full feature audit): **not complete within the recorded scopes.**
+  The [full feature audit](information-request-full-feature-audit-2026-10-14.md) confirms FU-01 (P2, reviewer evidence
+  opens after its view retires), FU-02 (P2, request and subject record downloads survive their owning view), and FU-03
+  (P2, concurrent exports across separate Exchanges exceed the owner daily ceiling). Evidence/reviewer UI, record
+  operations and final hardening are reopened for these findings. Earlier closures and accepted scope decisions remain
+  intact.
+- Previous verification (full feature audit): fresh full backend **4,730 tests in 699 classes, zero
+  failures/errors/skips; 54:41 min**, including 312 migration cases in 82 classes and all eight required neutral
+  scenarios' 13 cases. Fresh full frontend **1,252 tests in 241 files** (293.44 s), all pass. Independent browser probes
+  on original bytes: seven intended failures and eight passes in 15 cases; temporary ownership controls pass all 15.
+  Independent PostgreSQL probes: one intended quota failure and four passes in five cases; a temporary owner lock passes
+  all five. All controls are restored exactly. Application TypeScript has zero feature/probe diagnostics and 340
+  unrelated diagnostics; feature/help lint, root tsc and Vite build pass. Unrelated whole-app lint and typed-build
+  failures remain recorded. Original inputs, full-suite mirrors and the Git index are preserved; only audit handoff
+  documentation is changed.
+- Previous next functional task (full feature audit): **FU-01**, then **FU-02**, then **FU-03**, test-first, followed by
+  **FU-GATE**. Read the report and `## Full Feature Audit Follow-Up (2026-10-14)` before repairing. Preserve earlier
+  respondent/session, release authorization, retry, review and disposal fixes. The separately recorded app-wide
+  token-refresh observation remains outside these findings. Next free migration V178, subject to recheck. No production
+  repair was made by this audit; no commit or push is authorized.
+
+- Previous overall status (DR remediation recheck): **complete within the recorded respondent evidence scopes; DR-01 is
+  independently verified by the [DR remediation recheck](information-request-dr-remediation-recheck-2026-10-14.md).**
+  The hook checks mounting and current request/Requirement after reading the file and before every opening action. Both
+  former failure cases pass; no new functional defect was confirmed in this recheck. Earlier registered closures and
+  accepted scopes remain intact. The separately recorded reviewer/privacy/export download and token-refresh observations
+  remain unresolved outside this repair.
+- Previous verification (DR remediation recheck): fresh full frontend **1,252 tests in 241 files** (522.71 s), all pass.
+  The original 44 independent frontend cases pass unchanged; six additional page-leave and request/Requirement-change
+  cases also pass, giving 50 cases after both controls are restored. Removing either mount or scope guard causes four
+  intended failures. Fresh backend probes **36 tests in seven classes**, zero failures/errors/skips (05:13). All 2,506
+  backend inputs match the prior full backend's **4,730 tests in 699 classes**, including 312 migration cases and all
+  eight neutral scenarios' 13 cases; the full backend was not repeated. Application TypeScript has zero feature/probe
+  diagnostics and 340 unrelated diagnostics; feature/help lint, root tsc and the production Vite build pass. Sources and
+  staged deletions are preserved.
+- Previous next functional task (DR remediation recheck): none confirmed in the checked respondent scope. Preserve the
+  separately offered reviewer/privacy/export download and token-refresh observations, earlier repairs and accepted
+  decisions. Next free migration V178, subject to recheck. No production repair was made by this verification; no commit
+  or push is authorized.
+
+- Previous overall status (DR-01 remediation, before its independent recheck): **complete within the recorded scopes;
+  the [CR remediation recheck](information-request-cr-remediation-recheck-2026-10-14.md)'s finding DR-01 is closed.** It
+  was fixed test-first on 2026-10-14 at the user's request, uncommitted and frontend only, without a migration, an API
+  change, a new AWS service, or backwards-compatibility code. The respondent evidence hook opens a file only if, once
+  the file has been read, the evidence panel that asked for it is still mounted and still shows the same request and
+  Requirement; otherwise it creates no object URL and neither previews nor downloads, so a file arriving after the
+  workspace names another respondent, or after the page was left, is never opened. Ordinary and same-respondent openings
+  and the server's release checks are unchanged. See the
+  report's [remediation result](information-request-cr-remediation-recheck-2026-10-14.md#remediation-result-2026-10-14).
+- Previous verification (DR-01 remediation): full frontend **1,252 tests in 241 files** (430.97 s), all pass. New cases:
+  6 page, 4 hook, and 1 help (plus one updated help assertion); on the original code both changed-respondent page cases
+  and 3 hook cases failed at their intended assertions, and a soft-assertion run showed `window.open` with the earlier
+  respondent's object URL and the download anchor click; 2 mutations caught and restored. The recheck's 44 frontend
+  probes pass unchanged. Backend not rerun: every backend input is byte-identical to the recheck's starting manifest,
+  whose fresh full backend run passed 4,730 tests in 699 classes with its 36 probes. `typecheck:app` has 0 Information
+  Request diagnostics (340 unrelated); changed-file lint, root tsc, and the Vite build pass.
+- Previous next functional task (DR-01 remediation): none in the checked scopes. Next free migration V178, subject to
+  recheck. Outside DR-01's scope, the reviewer's evidence opening and the privacy and record-export downloads have the
+  same late-answer shape and were offered as a separate task; the app-wide token-refresh observation also stays
+  separate. No commit or push is authorized.
+
+- Previous overall status (CR remediation recheck, before its remediation): **not complete within the recorded scopes.**
+  The [CR remediation recheck](information-request-cr-remediation-recheck-2026-10-14.md) independently verifies CR-01's
+  whole-body reset and respondent-owned kept files, but confirms DR-01 (P1): a pending evidence preview or download
+  still opens the earlier respondent's Blob after another respondent's workspace is authoritative and the earlier panel
+  is removed. Evidence opening, browser confidentiality, respondent UX and final sign-off are reopened; earlier closures
+  retain their scopes. No production fix was made by this verification.
+- Previous verification (CR remediation recheck): fresh full backend **4,730 tests in 699 classes, zero
+  failures/errors/skips; 54:49 min**, including 312 migration cases in 82 classes and all eight neutral scenarios' 13
+  cases; full frontend **1,241 tests in 240 files** (647.25 s), all pass. Retained backend probes 36 and frontend probes
+  38 pass unchanged; two extra late-upload ownership cases pass. New opening probes: two intended failures and two
+  same-respondent controls pass. A temporary ownership guard passes all 44 independent frontend cases and is restored
+  exactly; removing body/file ownership reproduces three/two failures. Application TypeScript has zero feature/probe
+  diagnostics and 340 unrelated diagnostics. Feature/help lint, root tsc, Vite build and packaging-only verify pass;
+  unrelated app lint and typed-build failures remain.
+- Previous next functional task (CR remediation recheck): **DR-01**, test-first, then **DR-GATE**. Preserve server
+  release authorization, earlier session/draft/retry repairs and same-respondent openings. Next free migration V178,
+  subject to recheck; this frontend finding does not indicate a migration. The separately recorded app-wide
+  token-refresh observation stays outside this task. No commit or push is authorized.
+
+- Previous overall status (CR-01 remediation, before its independent recheck): **complete within the recorded scopes;
+  the [CA remediation recheck](information-request-ca-remediation-recheck-2026-10-13.md)'s finding CR-01 is closed.** It
+  was fixed test-first on 2026-10-13 at the user's request, uncommitted and frontend only, without a migration, an API
+  change, a new AWS service, or backwards-compatibility code. The respondent page keys its whole body by request and
+  `respondentKey`, so when a reread names another respondent everything shown for the earlier one closes (carried
+  answers, accepted-answer offers, amendments, review results, the submission summary and its permission, results, and
+  dialogs) and late reads or answers for the earlier one are never shown; a file kept to send again belongs to the
+  respondent who chose it. See the
+  report's [remediation result](information-request-ca-remediation-recheck-2026-10-13.md#remediation-result-2026-10-13-late-night).
+- Previous verification (CR-01 remediation): full backend **4,730 tests in 699 classes, zero failures/errors/skips (51:
+  42, mirror)**, including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases (the 5 tests
+  above 4,725 are another editor's new audit-archive test); full frontend **1,241 tests in 240 files** (437.27 s, rerun
+  after the last help edit). New cases: 8 page and 1 help; 7 page cases red on the original code, plus a soft-assertion
+  run reproducing each retained projection; 4 mutations caught and restored. The recheck's probes pass unchanged:
+  frontend 38 of 38, backend 36 of 36. `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature
+  lint, root tsc, the Vite build, and the packaging-only verify (02:38, tests explicitly skipped) pass.
+- Previous next functional task (CR-01 remediation): none in the checked scopes. Next free migration V178, subject to
+  recheck. An app-wide observation outside this feature (a token refresh does not compare the refreshed principal with
+  the loaded user) was offered as a separate task.
+
+- Previous overall status (CA remediation recheck, before its remediation): **not complete.**
+  The [CA remediation recheck](information-request-ca-remediation-recheck-2026-10-13.md) independently verifies CA-01
+  and CA-02, but confirms CR-01 (P1): an authenticated workspace that refreshes under another respondent clears the
+  answer form while retaining the former respondent's private carried answer and submission authority. Pending earlier
+  reads can also populate the retained subtree. Frontend confidentiality and final sign-off remain open. Earlier closure
+  scopes are preserved.
+- Previous verification (CA remediation recheck): fresh full backend **4,725 tests in 698 classes, zero
+  failures/errors/skips (57:37 min)**, including 312 migration cases in 82 classes and all eight neutral scenarios' 13
+  cases; fresh frontend **1,232 tests in 239 files** (650.01 s). Retained backend probes 35 pass, plus one real
+  PostgreSQL projection observation; retained frontend probes 35 pass with only new respondent-input wiring. Three new
+  page cases fail; a temporary whole-body ownership control passes all 38 and is restored. Feature typecheck/lint, root
+  tsc, Vite build and packaging-only verify pass. Unrelated TypeScript/lint backlogs remain.
+- Previous next functional task (CA remediation recheck): **CR-01**, test-first, preserving CA, VC, VR, IR, FA and FB
+  repairs. Next free migration V178, subject to recheck. No production fix was made by this verification.
+
+- Previous overall status (CA remediation, before its independent recheck): **complete within the recorded scopes; the
+  [comprehensive audit](information-request-comprehensive-audit-2026-10-13.md)'s findings CA-01 and CA-02 are
+  closed.** They were fixed test-first on 2026-10-13 at the user's request, uncommitted, without a migration, a
+  new AWS service, or backwards-compatibility code. Unsaved answers are kept per request and per respondent: the
+  workspace returns an opaque `respondentKey` that a renewed session or a newer link for the same recipient keeps
+  and a reassigned recipient or another account does not, a save naming another respondent is refused with
+  `409 INFORMATION_REQUEST_RESPONDENT_CHANGED`, and account linking moves the answers to the account. Interrupted
+  saves, entry changes, submissions, confirmations, and withdrawals keep their `Idempotency-Key` until answered,
+  in a page-owned store per respondent that survives verifying again. See the report's
+  [remediation result](information-request-comprehensive-audit-2026-10-13.md#remediation-result-2026-10-13-night).
+- Previous verification (CA remediation): full backend **4,725 tests in 698 classes, zero failures/errors/skips (52:
+  28)**, including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases;
+  packaging-only verify passes (02:38, tests explicitly skipped); full frontend **1,232 tests in 239 files**
+  (408.20 s). New cases: backend 10 and frontend 28; 10 mutations caught and restored. The audit's probes pass:
+  backend 35 of 35 unchanged, frontend 35 of 35 with a three-line respondent-key wiring change to the draft
+  probe. `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature lint, root tsc, and the
+  Vite build pass.
+- Previous next functional task (CA remediation): none in the checked scopes. Next free migration V178, subject to
+  recheck.
+- Previous overall status (comprehensive audit, before its remediation): **not complete.** The audit
+  confirms CA-01 (P2, a request-only browser draft is shown and autosaved under another respondent)
+  and CA-02 (P2, collection and confirmation retries use fresh keys after a lost response).
+  Frontend recovery and final hardening sign-off are reopened; earlier registered closures retain their scopes.
+- Fresh audit verification: backend **4,715 tests in 696 classes, zero failures/errors/skips (54:47)**,
+  including **312 migration cases in 82 classes** and all eight neutral scenarios' 13 cases; frontend **1,204 tests in
+  237 files** (543.30 s). Retained backend probes and lock controls: 34 pass; a real
+  confirmation database observation also passes. Independent frontend probes: **7 intended assertion
+  failures and 28 passes in 35 cases**; temporary causal controls pass all 35 and are restored.
+  Application TypeScript has zero Information Request/probe diagnostics and 340 unrelated diagnostics;
+  feature lint, root tsc, Vite build, and packaging-only verify pass. Whole-app lint and typed build
+  retain their recorded unrelated failures. Sources and staged deletions were preserved.
+- Previous next functional task (comprehensive audit): **CA-01**, then **CA-02**, test-first. No production
+  repair was made by this audit. Next free migration V178, subject to recheck. Detailed evidence is in the audit report
+  and `target/20261013-comprehensive-audit/`; the staged journal deletion remains intact.
+
+- Previous overall status (VC remediation): **complete within the recorded scopes; the
+  [post-remediation recheck](information-request-post-remediation-recheck-2026-10-13.md)'s findings
+  VC-01 and VC-02 are closed.** They were fixed test-first on 2026-10-13 at the user's request,
+  uncommitted, without a migration, a new AWS service, or backwards-compatibility code. An evidence
+  download or preview confirms its session and authorizes its release again with the session's
+  current verification after the stored file has been read and checked, before its opening is
+  recorded or any of it is sent, and closes the file on a refusal. The respondent page's session
+  writes and clears, and a late account-link answer, take effect only while the page that started
+  them is still mounted. See the report's
+  [remediation result](information-request-post-remediation-recheck-2026-10-13.md#remediation-result-2026-10-13-evening).
+- Latest verification (VC remediation): full backend **4,715 tests in 696 classes, zero
+  failures/errors/skips (51:00)**, including 312 migration cases in 82 classes and the eight neutral
+  scenarios' 13 cases; full frontend **1,204 tests in 237 files** (515.73 s); packaging-only verify passes (01:35, tests
+  explicitly skipped). New cases: backend 19 and frontend 9; 5 mutations caught and restored. The
+  analysis's probes pass unchanged: backend 31 of 31 (the evidence probe 6 of 6 and the retained VR
+  probes 25 of 25) and frontend 22 of 22. `typecheck:app` has 0 Information Request diagnostics (340
+  unrelated); feature lint, root tsc, and the Vite build pass.
+- Previous next functional task (VC remediation): none in the checked scopes. Next free migration V178, subject to
+  recheck.
+- Previous overall status (post-remediation recheck, before its remediation): **not complete.** The
+  [post-remediation recheck](information-request-post-remediation-recheck-2026-10-13.md)
+  validates the four original VR reproductions through the repaired paths, but confirms VC-01 (P1, evidence download and
+  preview released after session cutoff during storage access) and
+  VC-02 (P2, an unmounted respondent page overwrites or clears a new page's session credential).
+  Authorization, evidence handling, respondent UX, and final hardening sign-off are reopened.
+- Previous verification (post-remediation recheck): full frontend **1,195 tests in 237 files**
+  pass; retained backend probes **30 pass** after adapting only the replaced workspace read
+  sequence; retained frontend probes **18 pass unchanged**. New probes reproduce four evidence
+  cutoff failures and three unmount failures, with three valid controls. Fresh full backend:
+  **4,696 tests in 695 classes, zero failures/errors/skips (58:09 min)**,
+  including 312 migration cases in 82 classes and all 8 neutral conformance classes and 13 cases. Feature/help lint,
+  the application diagnostic gate (zero Information Request, 340 unrelated), root tsc, and
+  Vite build pass. See the new report for boundary scope and restored control experiments.
+- Previous next functional task (post-remediation recheck): **VC-01**, then **VC-02**, test-first.
+  Preserve the passing VR, IR, FA, and FB repairs. No production repair was made by this analysis.
+  Next free migration V178, subject to recheck.
+- Previous overall status (VR remediation, before the post-remediation recheck): **complete within the recorded scopes;
+  the
+  [2026-10-13 completeness recheck](information-request-completeness-recheck-2026-10-13.md)'s findings
+  VR-01 to VR-04 are closed.** They were fixed test-first on 2026-10-13 at the user's request,
+  uncommitted, without a migration, a new AWS service, or backwards-compatibility code. Access-link
+  commands and reads authorize with the session's verification as it stands inside their own
+  transaction; a rendered notice is skipped (`RECIPIENT_REASSIGNED`) once its party names another
+  holder, under a share lock on the party; review separation counts the account a recorded participant
+  linked, independently of current party holders; and the respondent page applies a verification or an
+  ended-session report only for the access link and session generation that started it. See the report's
+  [remediation result](information-request-completeness-recheck-2026-10-13.md#remediation-result-2026-10-13-afternoon).
+- Previous verification (2026-10-13 VR remediation): full backend **4,696 tests in 695 classes, zero
+  failures/errors/skips (48:49)**, including 312 migration cases in 82 classes and the eight neutral
+  scenarios' 13 cases; full frontend **1,195 tests in 237 files** (389 s). New cases: backend 33 and
+  frontend 7; 5 mutations caught and restored. The analysis's frontend probes pass unchanged (18 of 18);
+  its backend probes pass 24 of 25 unchanged, and the remaining case, which hand-codes the replaced read
+  sequence, passes with that one call changed to `readCurrent`. `typecheck:app` has 0 Information
+  Request diagnostics (340 unrelated); feature lint, root tsc, and the Vite build pass.
+- Previous next functional task (VR remediation): none in the checked scopes. Next free migration V178, subject to
+  recheck.
+- Previous overall status (2026-10-13 completeness recheck, before its remediation): not complete. The
+  [2026-10-13 completeness recheck](information-request-completeness-recheck-2026-10-13.md)
+  reproduced VR-01 to VR-04: expired protected verification remains usable through an earlier
+  access context (P1), a rendered notice reaches the former holder after party reassignment (P2),
+  review separation loses a historical submitter's linked identity after reassignment (P2), and
+  late work from an old access link or session overwrites or ends a newer verified session (P2).
+  Earlier registered closures and approved scope decisions remain intact. Phases 4, 8, 9, 10,
+  and the final Phase 12 gate are reopened for these findings.
+- Previous verification (2026-10-13 completeness recheck): **4,663 distinct permanent backend
+  cases in 694 classes verified across the full batch and one isolated rerun**, including 312
+  migration cases in 82 classes and all eight neutral scenarios' 13 cases. The full command (56:35) had one test-server
+  port startup error and seven related skips; the affected eight cases
+  passed unchanged with a separate test port (03:42), so no case remains unverified. This is not
+  a single green full-command result. Full frontend: **1,188 tests in 237 files** (587.17 s).
+  Independent backend probes: four intended failures and 25 passes; frontend probes: three
+  intended failures and 15 passes; no probe errors, skips, or unhandled errors. Feature lint,
+  the application diagnostic gate (zero Information Request, 340 unrelated), root tsc, Vite build,
+  and packaging with tests explicitly skipped pass. Raw app lint and typed build retain their
+  unrelated backlogs. No production source, permanent test, migration, infrastructure, or help
+  article changed; evidence is in `target/20261013-completeness-recheck/`.
+- Previous next functional task: **VR-01**, test-first, refresh the verification state used by
+  protected commands and read projections inside their authorization boundary. Preserve
+  unprotected session access and recorded account-link recovery. Then VR-02, VR-03, and VR-04.
+  No repair was implemented by this analysis. Next free migration V178, subject to recheck.
+- Earlier overall status (2026-10-13 IR remediation): **complete within the recorded scopes; the
+  [2026-10-13 deep analysis](information-request-deep-analysis-2026-10-13.md)'s findings IR-01 to
+  IR-05 are closed.** They were fixed test-first on 2026-10-13 at the user's request, uncommitted,
+  without a migration or a new AWS service: every command sent through an access link checks its
+  session, link, and party again inside its own transaction after locking the parent Exchange and
+  the request, and reads through an access link confirm the session before they answer; the
+  operations page, its request detail, and Record preservation belong to the signed-in owner; and
+  evidence, privacy, request clocks, and due date policies withhold a refused reread and offer Try
+  again. See that report's
+  [remediation result](information-request-deep-analysis-2026-10-13.md#remediation-result-2026-10-13).
+- Earlier verification (2026-10-13 IR remediation): full backend **4,663 tests in 694
+  classes, zero failures/errors/skips (52:43)**, including 312 migration cases in 82 classes and the
+  eight neutral scenarios' 13 cases; full frontend **1,188 tests in 237 files** (499 s). The
+  analysis's own probes pass unchanged: backend 4 of 4 and frontend 75 of 75. New cases: backend 43 (23 red before the
+  fix, the lock-order case proven by mutation) and frontend 35 (25 red before,
+  10 proven by mutation); 3 backend and 14 frontend mutations were all caught and restored.
+  `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature lint, root tsc, the
+  Vite build, and the packaging-only verify (01:32) pass; whole-app lint (59 errors, 46 warnings) and
+  buildWithTs keep their unrelated baselines.
+- Earlier next functional task: none in the checked scopes. A pre-existing lock-order observation (contact-code
+  verification and step-up lock the request before its parent Exchange, the reverse
+  of every command) was offered to the user as a separate task. The consolidation cleanup below is
+  unchanged. Next free migration V178, subject to recheck.
+- Earlier overall status (2026-10-13 analysis, before its remediation): not complete. The analysis
+  confirmed IR-01 (P1, a no-auth response committed after its session cutoff) and IR-02 to IR-05 (P2, operations
+  workspace ownership and retained evidence, privacy, clock, and policy data after
+  refused reads). Its fresh suites: backend 4,620 tests in 692 classes (53:09) and frontend 1,153
+  tests in 235 files; its probes: backend 2 intended failures and 2 controls, frontend 5 intended
+  failures and 70 controls.
+- Earlier overall status (2026-10-12): **complete within the recorded scopes; the
+  [2026-10-12 sixth analysis](information-request-sixth-reanalysis-2026-10-12.md)'s finding FB-01
+  is closed.** It was fixed test-first on 2026-10-12 at the user's request, in the web app only,
+  without a migration, a server change, or a new AWS service: the respondent page keeps an
+  interrupted account-link attempt, with the session token it was sent with, when another read
+  ends the session; Link to my account stays above contact verification and resends exactly that
+  command, while the revoked token is removed from the tab and used for nothing else. See that
+  report's
+  [remediation result](information-request-sixth-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status (sixth analysis, before its remediation): not complete. The
+  [2026-10-12 sixth analysis](information-request-sixth-reanalysis-2026-10-12.md) confirms the
+  original FA-01 through FA-06 reproductions now pass, but finds FB-01: a background read that
+  observes an account link's own session cutoff clears its credential and unmounts its retry
+  state after the successful link answer was lost. Preserve refused workspace withholding and
+  recover only the original recorded account-link command. Fresh full frontend: 1,144 tests in
+  234 files pass; retained probes: backend 16/16 and frontend 130/130; the additional real-page
+  probe has one behavioral failure and two passing controls. Fresh full backend: 4,620 tests in
+  692 classes, zero failures/errors/skips (53:51), including all 312 migration cases in 82 classes.
+- Earlier overall status: **complete within the recorded scopes; the
+  [2026-10-12 fifth deep analysis](information-request-fifth-reanalysis-2026-10-12.md)'s six
+  findings, FA-01 through FA-06, are closed.** They were fixed test-first on 2026-10-12 at the
+  user's request, with one migration (V177, document version storage cleanup) and no new AWS
+  service: account linking checks its session inside its own transaction and replays a recorded
+  link after its cutoff, rolled-back version writes leave no untracked bytes, receipt fingerprints
+  compare fields through one canonical encoder, and the submission summary withholds refused reads
+  and keeps the chosen part. See that report's
+  [remediation result](information-request-fifth-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status (fifth analysis, before its remediation): not complete; six open findings,
+  FA-01 through FA-06, reproduced.
+- Verification of the fifth analysis itself (2026-10-12): fresh full backend **4,589 tests in 689
+  classes, zero failures/errors/skips (55:19)**, including 310 migration cases in 81 classes and
+  the eight named neutral scenarios' 13 cases; fresh full frontend **1,129 tests in 233 files**.
+  Independent probes reproduce ten failed behavioral assertions: backend 5 failures and 11 passes,
+  frontend 5 failures and 125 passes with all 123 retained earlier cases passing unchanged.
+  App baseline, feature lint, root tsc, Vite bundling and backend packaging pass; raw app lint and
+  buildWithTs retain the recorded unrelated failures. Production sources, permanent tests,
+  infrastructure and migrations were preserved. Full evidence and limits are in the report.
+- Earlier overall status: **complete within the recorded scopes; the
+  [2026-10-12 fourth re-analysis](information-request-fourth-reanalysis-2026-10-12.md)'s finding is
+  closed.** RY-01 (after the operations queue refused a read, Assigned to still offered the names
+  learned from earlier rows, also while the next read was pending) was fixed test-first on
+  2026-10-12 at the user's request, without a migration, a server change, or a new AWS service.
+  `useLearnedAssignees` returns no learned name from a refusal until a read answers, and a party
+  chosen before the refusal shows as Chosen party. See that report's
+  [remediation result](information-request-fourth-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status: the
+  [2026-10-12 third re-analysis](information-request-third-reanalysis-2026-10-12.md)'s finding was
+  closed. RX-01 (the operations queue and audit search kept earlier results on screen after a
+  refused reread of the same list, and a retry cleared the refusal while they stayed) was fixed
+  test-first on 2026-10-12 at the user's request, without a migration, a server change, or a new AWS
+  service. The shared `useLoadedValue` loader no longer keeps a value when a read fails, so a
+  refused read withholds what the list showed until a read succeeds. See that report's
+  [remediation result](information-request-third-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status: the
+  [2026-10-12 second re-analysis](information-request-second-reanalysis-2026-10-12.md)'s finding was
+  closed. RW-01 (the operations detail kept the previous request's standing, exports, audit page,
+  hold draft, and command state after navigating to another request) was fixed test-first on
+  2026-10-12 at the user's request, without a migration, a server change, or a new AWS service. The
+  page renders its request-owned content keyed by request, the standing hook and the shared
+  `useLoadedValue` loader return values only for their current owner, and paging within one list
+  keeps the shown page. See that report's
+  [remediation result](information-request-second-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status: the
+  [2026-10-12 re-analysis](information-request-reanalysis-2026-10-12.md)'s three findings were
+  closed. RV-01 (Create export made a second export after a lost answer), RV-02 (Send appeal could
+  not recover an appeal already recorded), and RV-03 (Use this answer reported a saved answer as
+  stale) were fixed test-first on 2026-10-12 at the user's request, without a migration, a server
+  change, or a new AWS service. Each command now keeps its key through `useStableIdempotencyKey`
+  until it gets an answer, so a retry replays the recorded result. See that report's
+  [remediation result](information-request-reanalysis-2026-10-12.md#remediation-result-2026-10-12).
+- Earlier overall status: the
+  [2026-10-11 independent recheck](information-request-independent-recheck-2026-10-11.md)'s four
+  findings were closed. RR-01 (the respondent page kept showing a workspace after a reread was
+  refused), RR-02 (privacy deletion and bulk reminders could deadlock across Exchanges), RR-03 (a
+  supplement retried after a lost answer could create a second draft), and RR-04 (a reviewer could
+  not work in a second open assignment once the first was decided) were fixed test-first on
+  2026-10-11 at the user's request, without a migration or a new AWS service. A refused reread
+  withholds the respondent workspace and offers Try again; privacy deletion locks its Exchanges
+  through `InformationRequestMutationGate.lockExisting` in the same order as reminders; the
+  supplement keeps its key until it gets an answer; and the reviewer page works in any open
+  assignment and offers Stage you are deciding. See that report's
+  [remediation result](information-request-independent-recheck-2026-10-11.md#remediation-result-2026-10-11).
+- Earlier overall status: the [2026-10-11 re-analysis](information-request-deep-analysis-2026-10-11.md)'s
+  RA-01 to RA-03 (raw access link after a refused read, out-of-order worksheet answers, bulk reminder
+  deadlock) and its test-model cleanup were closed earlier the same day (see its
+  [remediation result](information-request-deep-analysis-2026-10-11.md#remediation-result-2026-10-11)).
+- Earlier overall status: the [2026-10-10 deep analysis](information-request-deep-analysis-2026-10-10.md)'s
+  DA-01 to DA-04 (route-scoped author and reviewer pages, same-key lifecycle and receipt
+  serialization, review command keys kept until a known result) were closed on 2026-10-11 (see its
+  [remediation result](information-request-deep-analysis-2026-10-10.md#remediation-result-2026-10-11)).
+- Earlier overall status: the [2026-10-10 implementation audit](implementation-audit-2026-10-10.md)'s
+  F01 to F04 were closed on 2026-10-10 (see its
+  [remediation result](implementation-audit-2026-10-10.md#remediation-result-2026-10-10)). A live
+  stack deploy and disposal run with the task credentials remain to be done by the operator.
+- Earlier overall status: the second 2026-10-10 recheck's open
+  decisions and follow-ups were implemented on 2026-10-10. The
+  [second 2026-10-10 independent recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10-2.md)
+  verified RC-27's closure, including the original failure probes and actual hold/claim contention,
+  and found no new functional gap in its checked paths. Its
+  [remediation result](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10-2.md#remediation-result-2026-10-10)
+  implements every open decision with the recommended, more protective answer, at the user's
+  request and without a migration: evidence belongs to the party that provided it, Business
+  Decisions are read only through request administration, review reasons follow item content,
+  email assignment names only people who already have access to the Exchange, linking a subject
+  needs privacy management, no access link follows account linking, hold and schedule
+  administration takes `If-Match` and locks before its retry lookup, reviewers recover
+  verification in place, and a recurrence replay keeps its recorded source. The user may reverse
+  any of them.
+  The [2026-10-10 independent recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10.md)
+  confirmed RC-26 and RC-28 to RC-34 and reopened RC-27: a shared subject export disappeared when
+  another source's evidence artifact, evidence version, Document, or Document Version was held, and
+  such holds were accepted after the claim opened. Its
+  [remediation result](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10.md#remediation-result-2026-10-10)
+  closes it test-first: each other source contributes the full key set its own disposal checks,
+  and V176 refuses a hold on a record of any request an open claim names, including a record added
+  after the claim. Earlier closures and approved decisions retain their scopes.
+- Latest verification (2026-10-11, after the independent recheck remediation): full backend **4,588 tests in 689
+  classes, zero failures, errors, or skips (52:25)**, including 2,289
+  Information Request tests in 346 classes and all 310 migration contract tests in 81 classes, in a
+  scratch mirror identical to the checkout; full web suite **1,082 tests in 228 files**;
+  `typecheck:app` (0 Information Request diagnostics), root `tsc --noEmit`, changed-path eslint,
+  help tests, and Vite bundling passed. The recheck's own probes, run unchanged, pass 47 of 47 (frontend) and 3 of 3
+  (backend). Reds were observed before every fix, including a real PostgreSQL
+  deadlock for RR-02 through the privacy service, and mutation proofs cover the assertions written
+  alongside their code. Whole-app lint (59 errors, 46 warnings) and the 340 unrelated TypeScript
+  diagnostics are unchanged.
+- Previous verification (2026-10-11, after the re-analysis remediation): full backend **4,582 tests in 687 classes, zero
+  failures, errors, or skips (52:08)**, in a scratch mirror
+  identical to the checkout's `src`, `infra`, `pom.xml`, and `.mvn`, so the analysis evidence under
+  `target/` stayed untouched; full web suite **1,067 tests in 226 files**; `typecheck:app` (0
+  Information Request diagnostics), root `tsc --noEmit`, changed-path eslint, and Vite bundling
+  passed. The analysis's frontend probes pass 21 of 21 once its two worksheet probes carry the new
+  `draftRevision` (19 of 21 unchanged). Reds were observed before every fix, including a real
+  PostgreSQL deadlock for RA-03, and mutation proofs cover the tests written alongside their code.
+  Whole-app lint (59 errors, 46 warnings) and the 340 unrelated TypeScript diagnostics are unchanged.
+- Previous verification (2026-10-11, after the deep analysis remediation): full backend 4,575 tests
+  in 685 classes, zero failures, errors, or skips (54:21); full web suite 1,057 tests in 226 files;
+  the analysis's frontend probes passed 8 of 8.
+- Previous verification (2026-10-10, after the implementation audit remediation): full backend
+  4,562 tests in 682 classes, zero failures, errors, or skips (57:55); full web suite 1,033 tests in
+  223 files; `typecheck:app`, root `tsc --noEmit`, changed-path eslint, help tests, and Vite
+  bundling passed.
+- Previous verification (2026-10-10, after the recheck decisions): full backend **4,553 tests in 680
+  classes, zero failures, errors, or skips (51:16)**, in a scratch mirror of the final sources; a
+  regression of 1,265 tests in 185 classes passed first (14:03). The full web suite (1,020 tests in
+  221 files), root `tsc --noEmit`, `typecheck:app` (0 Information Request diagnostics), eslint on
+  the 39 changed web files, Vite bundling, and packaging-only verify (3:46, tests explicitly
+  skipped) passed. Overlapping authenticated HTTP requests now cover hold and schedule
+  administration. No browser journey, width sweep, or remote check was run; the newest journal entry
+  records the commands, the reds, and the mutation proof.
+- Independent RC-27 verification (2026-10-10, analysis, history): **291 backend tests in 29 classes, zero failures,
+  errors, or skips**, in a verified scratch mirror. The focused run passed 289 (272 permanent
+  tests and 17 retained independent probes, 6:44); two new contention probes passed eight actual
+  advisory-lock waits (2:39), including records gained after scope insertion. Help tests 39 and
+  root `tsc --noEmit` passed. All 4,066 starting source hashes and the inventory match. Only
+  planning documents changed; no plan was deleted. Commands and limits are in the newest journal entry.
+- Previous full-suite verification (2026-10-10, after the RC-27 remediation): **4,518 backend tests in 674 classes, zero
+  failures,
+  errors, or skips (53:38, finished 11:09 on 2026-10-10), `BUILD SUCCESS`**, in a scratch mirror of
+  the final sources with V176, including 81 migration contract classes and all eight conformance
+  classes. A targeted regression of 368 tests in 48 classes passed first, and the recheck's retained
+  probes, rerun unchanged, pass 17 of 17. The full web suite (1,009 tests in 221 files), help tests,
+  root `tsc --noEmit`, and `typecheck:app` (0 Information Request diagnostics) passed. The RC-27
+  remediation journal entry records the commands, the reds, and the mutation proof.
+- Independent recheck verification (2026-10-10, analysis, history): 195 permanent backend tests in 18 classes passed,
+  zero failures/errors/skips. The final independent run has 17 cases: nine intended assertion
+  failures, six passing unit probes, two passing disposal controls, zero errors/skips. It includes
+  a service-generated export containing held submitted evidence. Help tests 39 and root `tsc --noEmit` pass.
+  No production code was changed; all 4,063 starting source hashes and the inventory match.
+  Detailed reproduction, commands, limits, and the historical deletion assessment are in the
+  first 2026-10-10 report and its independent post-remediation journal entry.
+- Previous full-suite verification (historical, before the independent recheck): **4,482 backend tests in 672 classes,
+  zero
+  failures, errors, or skips (50:53, finished 00:39 on 2026-10-10), `BUILD SUCCESS`**, in a scratch
+  mirror of the final sources with V174 and V175, including 80 migration contract classes and all
+  eight conformance classes. The full web suite (1,009 tests in 221 files) passed after the last
+  help edit, and root `tsc --noEmit` passed. The deep follow-up remediation journal entry records
+  the commands, the reds, and the two test setups corrected after a first full run.
+- Deep follow-up check verification (2026-10-09, analysis, history): it recorded RC-26 to RC-34 (three P1, five P2, one
+  P3) and dispositioned fifteen leads without repair; 201 existing
+  targeted unit tests and 60 transaction tests passed, and seventeen temporary probes produced 13
+  intended assertion failures and four passing controls, with zero errors or skips.
+- Previous full backend (2026-10-09, after the C01 and C02 cleanup, before any RC-26 to RC-34 work):
+  4,438 tests in 667 classes, zero failures, errors, or skips (50:52), including all eight
+  conformance classes and 78 migration contract classes. It ran in a scratch mirror of the
+  checkout's sources, because `quarkus:dev` was running from the checkout, without the deep
+  follow-up check's temporary probes, which that check has since removed; the mirror matched the
+  checkout's sources afterwards.
+- Previous status: **complete within the recorded scopes.** The
+  [third 2026-10-09 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-09-3.md)
+  confirmed the latest RC-17 repair with independent denial, actual write-refusal, and unchanged
+  artifact assertions, and found no new functional gap. Its two P3 cleanups, C01 (hidden-item
+  release-note wording) and C02 (fixture data class placement), were closed later the same day,
+  with repairs to a bulk IDE reformat (help size budget, applied migrations, and backup files); see
+  that report's cleanup result. The earlier
+  [second 2026-10-09 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-09-2.md)
+  confirmed the original follow-up repairs and reproduced one historical-answer/correction bypass:
+  a Document fixed by an earlier package could be withdrawn when a later package hid it and an open
+  correction returned only its controlling Field. A follow-up closed it test-first the same day,
+  with condition clearing and confirmations under such a correction (see that report's
+  remediation result). The other registered findings retain their closure scopes. The earlier
+  [2026-10-09 post-remediation recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-09.md)
+  reopened RC-17 for two verified paths after a withdrawal (a `PROVIDE_ONCE` confirmation's decision
+  and conditional clearing of fixed evidence); a follow-up closed them test-first the same day,
+  together with fixed Fields under clearing and archiving, entry removal, and items hidden at
+  submission (see that report's remediation result). RC-09 to RC-25 from the
+  [second-pass recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-08-2.md)
+  were implemented test-first on 2026-10-08 with the recommended answers to its open questions (RC-10 drafts, RC-12
+  Shares, RC-14 group reviewers, RC-17 "answers once", RC-19 follow-ups, RC-20
+  holds, RC-21 fact revocation, RC-24 continuation), recorded under the second-pass tasks below and
+  in the recheck's remediation result. RC-01 to RC-08 and the historical register keep their
+  closure scopes. The closures cover the registered paths; they do not certify unexamined ones,
+  and the rechecks' observations and unverified leads stay recorded.
+- Earlier verification (2026-10-09, after the C01 and C02 cleanup): focused backend 24 tests in a
+  scratch mirror (correction, provide-once, given-once, and the V173 contract over the restored
+  chain), zero failures, errors, or skips (6:39), with every test source compiled. Full frontend
+  1,009 tests in 221 files (471.94 s); help tests 39, root tsc, the app baseline (zero Information
+  Request), and changed-article lint passed. The full backend run just before the cleanup, on the
+  reformatted sources, passed 4,438 tests in 667 classes (55:04), and a bytecode comparison showed
+  the reformat changed no behavior.
+- Third recheck verification (2026-10-09, analysis, history): broad backend and cross-cutting regression plus
+  independent verification **2,125 tests in 298 classes**, zero failures, errors, or skips (8:18).
+  This includes five temporary expected-behavior cases and 2,120 permanent tests in 297 classes;
+  all 22 RC-17 transaction cases pass. Full frontend 1,009 tests in 221 files passed (422.90 s).
+  App baseline and changed-help lint passed. All 4,048 starting source hashes and the inventory
+  match after probe removal. Root TypeScript and handoff checks are in the newest journal entry.
+- Earlier implementation verification (2026-10-09, after the RC-17 correction remediation): full backend 4,438 tests
+  in 667 classes, zero failures, errors, or skips (50:23); packaging-only verify passed (2:43, tests
+  explicitly skipped); full frontend 1,009 tests in 221 files (341.28 s). Vite bundling,
+  changed-file and feature lint, help tests, root tsc, the UI AST scan, and the app baseline (340
+  reviewed unrelated, zero Information Request) passed; raw full app lint and TypeScript fail
+  outside this feature exactly as before. The second recheck's own probe, rerun unchanged, now fails
+  only its defect observation.
+- Second recheck verification (2026-10-09, analysis, history): broad backend and cross-cutting regression
+  2,112 tests in 296 classes, zero failures, errors, or skips (8:34); full frontend 1,009 tests in
+  221 files (440.64 s). Final focused run: 19 passed (2:19), comprising four independent repair
+  controls, one defect observation, and 14 permanent cases. The observation proves the remaining
+  defect, not a repair. App baseline passed (340 reviewed unrelated, zero Information Request),
+  changed-help lint passed, and all 4,046 starting source hashes and the inventory match after
+  probe removal. Handoff checks and verification limits are in the newest journal entry.
+- Earlier implementation verification (2026-10-09, after the RC-17 follow-up): full backend 4,430 tests in 666
+  classes, zero failures, errors, or skips (49:20); packaging-only verify passed (3:24, tests
+  explicitly skipped); full frontend 1,009 tests in 221 files (347.96 s). Vite bundling (12.41 s),
+  changed-file and feature lint (571 feature files), 39 help tests, root tsc, the UI AST scan, and
+  the app baseline check (340 reviewed unrelated, zero Information Request) passed. Raw full app
+  lint and TypeScript still fail outside this feature with the same 59 errors and 46 warnings and
+  the same 340 diagnostics. Website gates were not rerun (no website change).
+- First recheck verification (2026-10-09, analysis, history): broad backend and cross-cutting regression 2,100
+  tests in 295 classes, zero failures, errors, or skips (9:01); full frontend 1,009 tests in 221
+  files (442.60 s). The final focused run passed three observation cases plus the two existing
+  Field-mode cases (3:06); the observations prove defects, not fixes. Changed-file lint and the
+  app baseline passed (340 reviewed unrelated diagnostics, zero Information Request). All 4,045
+  starting source hashes and the file inventory are unchanged after probe removal. Full backend,
+  packaging, migration upgrades, and browser journeys were not rerun. Final handoff checks are in
+  the newest companion journal entry.
+- Historical verification (2026-10-08, after RC-09 to RC-25): full backend 4,418 tests in 665 classes,
+  zero failures, errors, or skips (48:36); packaging-only verify passed (2:38, tests explicitly
+  skipped); full frontend 1,009 tests in 221 files (344.61 s). Vite bundling (11.84 s), changed-file
+  and feature lint (571 feature files), 39 help tests, root tsc, the UI AST scan, and the app
+  baseline check (340 reviewed unrelated, zero Information Request) passed. Raw full app lint and
+  TypeScript still fail outside this feature with the same 59 errors and 46 warnings and the same
+  340 diagnostics. Website gates were not rerun (no website change).
+
+- Earlier regression after RC-06 to RC-08 (2026-10-08, history): full backend 4,338 tests in 646 classes, zero
+  failures, errors, or skips (49:42); packaging-only verify passed (2:36, tests explicitly
+  skipped); full frontend 1,007 tests in 221 files. Vite bundling, feature lint, help tests, root
+  tsc, and the app baseline check passed with zero Information Request diagnostics. Raw full app
+  lint and TypeScript still fail outside this feature (59 errors and 46 warnings; 340 reviewed
+  diagnostics), unchanged. Website gates were not rerun (no website change); their 2026-10-07
+  results are historical.
+
+- Historical remediation: the program was reopened on 2026-09-30,
+  Phase 13 was implemented on 2026-10-01, and gap remediation ran from 2026-10-05 to 2026-10-07.
+    - Phase 13 (`P13-T1` to `P13-T8`) is complete, and its gate passed: the full backend suite (3,471 tests) and the
+      full web-app suite (817 tests) are green.
+    - Phase 13 closed GA-002 part 1, GA-092, GA-167, and GA-168. It also fixed two defects no task
+      covered: Blueprint field defaults were refused for the Exchange owner, and Exchange start
+      refusals were never shown in the web app.
+    - The 2026-10-05 check reconfirmed GA-001 to GA-014 and its maintained
+      [remediation register](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-CHECK-2026-10-05.md#remediation-register)
+      tracked them to closure. Every historical finding from GA-015 to GA-166 was then revalidated
+      against the working tree, added to that register, and closed with tests first and the
+      evidence recorded there and in the historical gap register companion journal entry. Every register item is
+      closed within their original scopes; the current recheck identifies additional paths needing work.
+    - Historical register verification (2026-10-07, clean build): full backend suite 4,276 tests in 637 classes, 0
+      failures, errors, or skips (48:34); full web-app
+      suite 1,000 tests in 220 files; `npm run typecheck:app` 0 Information Request diagnostics (340 reviewed
+      unrelated); changed-file eslint, character, and industry-neutrality scans clean of new findings.
+    - Follow-up validation (2026-10-07): malformed nested IDs on no-auth request routes now return
+      `400` before resolving access or updating session usage. Focused tests 10 passed; affected
+      backend regression 328 passed; help checks 39 passed; both TypeScript checks passed with the
+      existing unrelated app baseline. The full suites above were not rerun for this bounded fix.
+    - Subject decision (user, 2026-10-07): keep `SUBJECT` as identity only. Refuse it as a
+      Requirement contributor or confirmation role at Template save and publication, and remove
+      it from those authoring choices. Implemented and verified: focused backend 40 passed,
+      corrected acceptance journeys 4 passed, authoring/party/help regression 81 passed, and all
+      51 migration contracts in the affected batch passed. The initial 402-case backend batch had
+      two outdated acceptance expectations; their corrected cases passed in the targeted rerun.
+    - The earlier count of 166 gaps (11 high, 65 medium, 90 low), plus 28 decisions, is historical.
+      The original register remains staged for deletion and was preserved; read its committed copy
+      with `git show 979bd25b:plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-GAP-AUDIT.md`.
+- Previous status (superseded by the audit): Phases 1 through 12 and the repeated remediation gate were marked complete;
+  Phase 12
+  finished on 2026-09-30 (design decisions under `### Phase 12 design decisions (2026-09-30)`). Phase 10's manual width
+  check (1440, 1024, 768, and 360 CSS pixels across the
   author, respondent, reviewer, authenticated, and no-auth journeys) was explicitly waived by the user
   on 2026-09-28 ("You can skip this"). It was not run and is not claimed as passing.
+- Compartment decision (user, 2026-10-05, GA-011 "1a, 2a"): a confidentiality compartment key is a
+  label meaning the Requirement needs recent verification; there is no per-party clearance. An
+  access-link respondent verifies again with a new code sent to the party's contact address, and an
+  access session counts as verified for `app.information-request.access-session.step-up-window`
+  (default 15 minutes) after it is issued or last stepped up. Signed-in callers keep the account
+  step-up (5 minutes).
 - Scanner decision (user, 2026-09-25): the Information Request feature and every other feature must
   work in production without a malware scanner. Malware scanning moved out of this program into
   `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`, which the user will implement later.
@@ -30,69 +1801,2668 @@
 - Phase 12 history: Phase 12 was requested in full by the user and completed on
   2026-09-30. Its final verification: full backend suite 3,379 tests green, full frontend suite 786
   tests green, `verify -DskipITs=false` green with no integration test classes, and a V150 upgrade
-  test on populated data. V149 and V150 are not applied to the local database, whose history ends at
-  V144; `quarkus:dev` applies V145 through V150 on its next reload, and none may be edited once the
-  local history shows it.
+  test on populated data. On 2026-10-01 the local database's Flyway history had reached V151;
+  `quarkus:dev` applies V152 on its next reload, and no applied migration may be edited.
 - Development stage: the platform has no production users and is in active development. No
   backwards-compatibility code may be written, and the compatibility mechanisms already shipped are
   now defect work. See `## Development-Stage Constraint` and
   `## Development-Stage Compatibility Removal`.
-- Current work: none in progress. The paragraph below about Phase 12 completion is historical.
-- Exact next task: confirm the Phase 13 design decisions and the open decisions in the gap audit.
-  Then start `P13-T1` (which also closes GA-002), continue through `P13-T8`, and close the remaining
-  high-severity gaps GA-001 and GA-003 through GA-011, followed by the medium and low gaps, all
-  under the mandatory TDD protocol.
-- Earlier follow-ups: recorded under the Phase 12 exit gate in
-  the evidence file (listing performance task, CloudWatch alarm deploy, IAM, Personal Request Schema
-  decision, audit `organization_id`). Flyway head is V151. V151 was taken on 2026-10-01 by the
-  signup and sign-in security remediation; V152 through V160 remain unallocated.
+- Current work: none confirmed in the checked scopes. BC-01 connector worker continuation, BC-02 subject restriction
+  concurrency and BC-GATE closed on 2026-10-16. ND-01 notice lifecycle consistency and ND-GATE, and SX-01 subject
+  privacy export snapshot consistency and SX-GATE, closed on 2026-10-16; earlier FU and other scoped closures remain
+  intact.
+- Earlier completed work (through 2026-10-12): no confirmed functional repair remained in the checked scopes. The
+  2026-10-11
+  independent recheck's RR-01 to RR-04 and the re-analysis's RA-01 to RA-03 are closed. The RR
+  remediation recorded one same-class observation outside the findings: the record export's
+  Create export and the respondent's Appeal still key each attempt afresh (see its remediation
+  result); fix them only when the user asks. The deep analysis's
+  DA-01 to DA-04 are closed, the implementation
+  audit's F01 to F04 are closed (deploying the stack is an operator step), RC-27's V176
+  closure is independently verified, and the second 2026-10-10 recheck's decisions are implemented
+  with the recommended answers. Other RC findings and C01/C02 retain their closure scopes.
+- Subsequently planned cleanup: consolidate unique rationale, decisions, and evidence from the nine
+  older rechecks and the proposal, then replace their inbound references before deleting those
+  ten files. Keep the new independent check, the active plan, completion evidence, CHECK-2026-10-05's unique
+  register, and the deferred scanner plan until their durable content or future work is preserved.
+  No cleanup deletion was part of the decision work. The second recheck's decisions (co-assigned
+  evidence, Business Decision and review-reason audiences, email-assignment enumeration,
+  subject-link permission, access after account linking, record-administration stale-client and
+  schedule concurrency, reviewer verification recovery, recurrence replay source identity) are
+  implemented with the recommended answers; the user may reverse any of them. Checkout Flyway
+  head is V177 (V177 by FA-03; V176 by RC-27; V174 and V175 by RC-26 to RC-28 and RC-34; V173 by
+  the 2026-10-07 recheck remediation; V151 by signup and sign-in security remediation). The next
+  free migration number is V178, subject to recheck before allocation.
+
+- Earlier follow-ups: recorded under the Phase 12 exit gate in the evidence file (listing
+  performance task, CloudWatch alarm deploy, IAM, audit
+  `organization_id`).
 - Latest implementation result: see `## Latest Implementation Result`.
 - Carried into Phase 12: external sources have REST and help but no screen (Phase 11 decision 12);
   a remote connector, if ever scoped, needs its own security review and the shared signer noted in
-  decision 2. The Personal Request Schema entitlement decision and the Phase 9 AWS and legacy
-  trigger issues remain open as recorded in prior evidence.
-- Phase 11: complete. Verification and mutation proof are recorded in the Phase 11 evidence entries.
-- Phase 10: complete. Verification and mutation proof are recorded in the Phase 10 evidence entry.
-- Phase 9: complete. Verification and mutation proof are recorded in the Phase 9 evidence entry.
-- Phase 8: complete. Template review plans (V136), package review cycles with assignments,
+  decision 2. Personal Field and Schema authoring remains closed by Phase 12 decision 11. The
+  Phase 9 AWS follow-ups remain recorded in prior evidence; legacy-owner triggers were removed
+  by V149 and are not current open work.
+- Previous Phase 12 status: complete again; the 2026-10-14 full feature audit's FU-01, FU-02, FU-03 and FU-GATE closed
+  the same day. Earlier hardening closures retain their recorded scopes.
+- Phase 11: complete again. RC-10 (imported-value reconciliation and listing) and RC-24 (continuation
+  checks) closed on 2026-10-08. Verification and mutation proof are recorded in the Phase 11 evidence entries.
+- Previous Phase 10 status: complete again; FU-01 (a reviewer's file opened after its item content retired) and FU-02
+  (record downloads saved after their panel retired) closed on 2026-10-14. Earlier CR-01 (every respondent projection,
+  pending read and answer, dialog, and kept file
+  belongs to the respondent the workspace names) closed on 2026-10-13. CA-01 (draft ownership by respondent) and
+  CA-02 (interrupted command retry keys) closed on 2026-10-13. VC-02 (session writes and clears, and a late account-link
+  answer, from a
+  respondent page that has unmounted) closed on 2026-10-13, with remount and StrictMode cases.
+  Earlier closure: VR-04 (late results from a prior access link or session affecting a newer
+  verified session) closed on 2026-10-13. Earlier verification and mutation proof retain their scopes.
+- Previous Phase 9 status: complete again; FU-02 (request and subject record downloads) and FU-03 (the owner's daily
+  export ceiling under concurrent exports, owner allowance lock, no migration) closed on 2026-10-14. Earlier VR-02 (a
+  pending rendered notice delivered to the former party holder after
+  reassignment) closed on 2026-10-13. RC-27, reopened on 2026-10-10 for other-source record holds, closed
+  the same day (each other source's full key set, and V176 request-record hold guards). RC-26 (recertification lifetime,
+  V174), RC-28 (reference and claim serialization, V174), and RC-30 (another owner's Schema is refused before its
+  details) remain closed. Earlier RC-09 (subject export reads), RC-20 (hold and export metadata), and RC-22 (notices
+  after revocation) closed on 2026-10-08; RC-05
+  refresh scheduler progress closed on 2026-10-07 (V173 retry state).
+- Phase 8: complete again; FU-01 (reviewer evidence opening after the review or item retires) closed on 2026-10-14.
+  Earlier VR-03 (historical submitter account equivalence lost by review separation
+  after party reassignment) closed on 2026-10-13. RC-26 (recertifications keep their source records and evidence, V174)
+  closed on 2026-10-09 with the Phase 9 disposal work. RC-11 (Accepted Fact values), RC-13 (override and finding write
+  policy),
+  RC-14 (distinct reviewers), and RC-21 (review and fact integrity) closed on 2026-10-08, after RC-08
+  protected review-related content disclosure the same day. The
+  existing Template review plans (V136), package review cycles with assignments,
   worksheets, decisions, overrides, findings, corrections with allowlists, comments, remediation,
   reconsideration, and appeal (V137), Accepted Facts and Business Decisions (V138), the
   `RESPONSE_REVIEW` executor, the walking fixtures, and the reviewer and respondent review UI are
   done.
-- Phase 7: complete. Staged and whole-package submission with frozen packages, multi-party
+- Previous Phase 7 status: complete again; RC-17 historical locks under a later hidden package's correction,
+  reopened by the second 2026-10-09 recheck, closed the same day, and a confirmation given once
+  keeps its decision unless a correction returns it. RC-19 (follow-up party copies and target Versions) closed on
+  2026-10-08,
+  after RC-07 carry-forward source disclosure and RC-06 successor replay the same day; RC-01, RC-02,
+  and RC-04 retain their 2026-10-07 closure scopes. Staged and whole-package submission with frozen packages,
+  multi-party
   Submission Attestation, amendments with effective-binding advance, reconfirmation, and pending
   Notice Intents, supplement, superseding, recurrence, and refresh follow-ups, the walking
   fixtures, the respondent submission UI, and executor registration with issuance are done.
-- Phase 6: complete. Evidence persistence, storage and content identity, Requirement-scoped access,
+- Previous Phase 6 status: complete again; FU-01, the reviewer browser evidence path, closed on 2026-10-14. Earlier
+  VC-01 (evidence download and preview released after a session ended during
+  the storage read) closed on 2026-10-13. RC-17 withdrawal of historically fixed evidence under a correction that
+  did not return it, reopened by the second 2026-10-09 recheck, closed the same day, as did
+  indirect clearing after a withdrawal. RC-16 (hidden Document files) and RC-25 (unknown-request evidence reads)
+  closed on 2026-10-08. Evidence persistence, storage and content identity, Requirement-scoped access,
   upload, replacement, withdrawal, reads, evaluation, policy validation, intake limits, content
   inspection, the optional scanner port, quarantine release rules, supporting-evidence links, the
   walking fixtures, and the respondent evidence UI are done and verified. No new AWS service or paid
   resource type is authorized.
-- Phases 1 and 2: no additional standalone defect identified in the inspected foundation and
-  Template paths. Their adapters and recipient-facing integration are included in the new findings.
-- Phase 3: complete. P3-T11b through P3-T11d existing-runtime credential hooks are complete through
+- Phases 1 and 2: complete. Phase 2's RC-29 (condition literals and pinned Field types at save and
+  publication), RC-32 (required Template audit failures roll back), and RC-33 (Version-level audit
+  provenance) closed on 2026-10-09.
+- Phase 3: complete again. RC-31 (delegates must exist and be eligible) and RC-34 (one active party
+  per role, V175) closed on 2026-10-09. RC-12 (one request Share per acting party) and RC-19 (Blueprint default parties)
+  closed on 2026-10-08; RC-03 group-grantee resolution closed on
+  2026-10-07. P3-T11b through P3-T11d
+  existing-runtime credential hooks are complete through
   P5-R26 through P5-R28. Future evidence/version/package preservation remains in later phases.
-- Phase 4: complete. Independent credentials, owner-funded grants, party authorization, transaction-safe
+- Previous Phase 4 status: complete again; VC-01 (evidence reads after a session ends during storage access) closed
+  on 2026-10-13: the session and the release's authorization are confirmed again after the read.
+  Earlier closure: VR-01 (current session validation discarding newly computed verification
+  state before protected authorization) closed on 2026-10-13. RC-17's historical fixed-answer/correction policy
+  boundary, reopened by
+  the second 2026-10-09 recheck, closed the same day: the central correction policy excludes an
+  answer given once that the correction did not return. RC-17's direct Field lock and RC-18 (replays and check ordering)
+  closed on
+  2026-10-08, as did the RC-06 to RC-08 disclosure paths, and RC-03's central
+  Requirement repair retains its 2026-10-07 closure scope. Independent credentials, owner-funded grants, party
+  authorization, transaction-safe
   OTP limits, and recipient-safe workspace and request-detail projection are verified.
-- Phase 5: complete. Occurrence-level disclosure filtering, nested saves, group creation authorization, response
+- Previous Phase 5 status: complete again; RC-17's indirect hidden-response writes and entry removal, reopened by the
+  2026-10-09
+  recheck, closed the same day; since the second recheck's follow-up, condition effects under a correction respect
+  answers given once too. RC-15 (an unreadable hidden Field blocked saves) and RC-16 closed on
+  2026-10-08. Occurrence-level
+  disclosure filtering, nested saves, group creation authorization, response
   editor refusal/clear handling, party command lock ordering, PostgreSQL party concurrency
   evidence and party credential lifecycle hooks are complete. The integrated gate passed.
-- Verification: use this recheck's current results and the newest evidence entry. The earlier
+- Verification: use the latest verification above and the newest evidence entry. The earlier
   2026-09-13 passing gate is retained as history, not reused as current verification.
 - Entitlement decision: `INFORMATION_REQUESTS` is included in Personal and Business. Platform-admin
   feature overrides are the only per-owner feature control. Subscription rollout grants and their
   configuration were removed. An active organization grant also sponsors its members when they use
   the Personal Information Request Settings scope. Older task text describing a second owner rollout
   gate is historical and superseded by this decision.
-- Future-phase boundaries remain: evidence/upload/package behavior stays in Phases 6-7; item-level
-  correction allowlists remain with P8-T3 and currently fail closed. An administrative surface for
-  explicit execution-grant revocation remains a future scoping decision.
-- Completion evidence: `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`.
+- Scope boundaries: evidence/upload/package behavior and item-level correction allowlists are
+  implemented in Phases 6-8. An administrative surface for explicit execution-grant revocation
+  remains a future scoping decision.
+- Historical audit evidence: [history completeness audit](information-request-history-completeness-audit-2026-10-18.md),
+  whose HC-BUILD, HC-01, HC-02 and HC-GATE are closed (see its remediation result).
+  The [implementation audit](information-request-implementation-audit-2026-10-18.md) retains the LQ closure.
+  The [deep implementation analysis](information-request-deep-implementation-analysis-2026-10-17.md),
+  the [completeness analysis](information-request-completeness-analysis-2026-10-17.md) and
+  the [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md) retain their
+  earlier scoped closures. The earlier companion `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` is
+  staged deleted; preserve that deletion.
 - Implementation source of truth: this plan. Design input:
   `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PROPOSAL.md`.
 
 Historical task results live in the companion evidence journal. Preserve unrelated working-tree
 changes and do not rewrite the proposal as part of this remediation.
+
+## Completeness Re-check Work (2026-10-29)
+
+At the owner's request to confirm the feature is fully implemented, five read-only reviewers traced every planned
+capability of Phases 1 to 13 through its service, REST route, web screen, tests and help (templates and Fields;
+runtime, parties, lifecycle and access; responses, conditions and evidence; submission and review; clocks, notices,
+records and operations), and every P1 and P2 and most P3 findings were re-checked in the code. A route-by-route
+reconciliation found that every web API call matches a backend route; the 27 request routes without a web caller are
+API-only by recorded decision or unused reads. The owner then asked for the P1 and P2 to be repaired with the defaults
+proposed with the findings. Each repair was test first and failed for its intended reason before the fix.
+
+- [x] `CK-01` (P1, Phases 1, 2 and 10): let the web client create a Schema for Information Requests; a Template
+  accepts only `INFORMATION_REQUEST` Schemas, the schema editor never stated a target and the server defaults to
+  `EXCHANGE`, so typed answers could not be authored without the API. **Closed 2026-10-29:** the schema editor (org
+  Fields tab and Platform Administration) asks **Used for** (Exchanges or Information Requests) when creating, sends
+  `targetResourceType`, and the Schemas list marks request Schemas; Exchange, Blueprint and Workflow pickers already
+  filter by target. Tests: `SchemaEditorDialog.test.tsx` (4 new, red: no target sent, no choice offered),
+  `SchemaCard.test.tsx` (2). Help: Fields overview and Templates articles.
+- [x] `CK-02` (P2, Phases 2 and 5): make a condition that reads a Document see its files, and refuse confirmation
+  sources. A disposition predicate read only the stored disposition, which a file upload never sets. **Closed
+  2026-10-29:** condition evaluation counts a `DOCUMENT` source with no stated disposition (or `NOT_ANSWERED`) as
+  `PROVIDED` once its own current files complete its evidence policy (`InformationRequestDocumentFileCompletion`, over
+  the facts reader extracted from the evidence evaluation so no evaluation cycle forms); a stated disposition wins and
+  a hidden Document's files never count. A condition rule that reads a `RESPONSE_ATTESTATION` Requirement is refused on
+  saving and publication, and the editor no longer offers confirmations as sources and flags existing ones. The
+  respondent page already rereads conditions after every file change; hidden answers follow the existing
+  enforcement on the next save. Tests: `InformationRequestDocumentConditionSourceTransactionTest` (4; 2 red),
+  `InformationRequestTemplateConfigurationValidatorTest` (2 new; 1 red), `conditionPredicateSources.test.ts` (2; red),
+  `templatePreflightRules.test.ts` (2 new; 1 red). Help: Templates article.
+- [x] `CK-03` (P2, Phases 7, 8 and 10): give reviewers a reachable way to ask for a supplemental request. **Closed
+  2026-10-29:** the review DTO carries `canRequestSupplement` (supersede or request-supplement authority and a
+  permitted `CREATE_SUCCESSOR` under the `SUPERSEDE` continuation) and `requestETag`; the review page offers **Request
+  more information** with the existing reason list and says that whoever manages the request issues the draft (a
+  reviewer may not be able to open it, so no link is offered). Tests:
+  `InformationRequestReviewRecordAudienceTransactionTest` (1 new; red), `InformationRequestReviewWorkspace.test.tsx`
+  (2 new; red). Help: confirmations and review articles.
+- [x] `CK-04` (P2, Phases 3 and 12): let an owner whose plan lapsed withdraw an unissued draft so it cannot block the
+  Exchange's end. **Closed 2026-10-29:** `InformationRequestContinuationGuard.requireOwnerWithdrawal` refuses a request
+  without an execution grant only during operational suspension; cancellation and switching the completion gate off use
+  it, while switching the gate on, superseding and issuing still need the live plan. The Manage page offers Cancel and
+  the gate switch (off only) on a Read only draft. Tests: `InformationRequestDraftAuthorActionTransactionTest` (2 new;
+  red: `SubscriptionDenialException`), `authorActionPermissions.test.ts` (2 new; red), and five older web expectations
+  that pinned the refusal updated. Help: issuing and overview articles; the standing notice text.
+- [x] `CK-05` (P2, Phase 9): let an organization's hold managers place a hold on a request they do not administer.
+  **Closed 2026-10-29** with a narrower route than the proposed default: request-level views keep decision 14, and
+  instead the operations queue (which Organization Owners and Administrators may read) offers **Place hold** on each
+  row for callers who manage holds, reusing the owner-scoped placement command and dialog. Tests:
+  `InformationRequestOperations.test.tsx` (2 new; red). Help: operations and record preservation articles.
+- [x] `CK-06` (P2, Phases 9 and 12): stop scheduled disposal while the owner is operationally suspended, as the
+  operator guide states. **Closed 2026-10-29:** the disposal worker skips an operationally suspended owner's retention
+  schedule; a disposal already claimed finishes, and commercial lapse does not pause disposal. Tests:
+  `InformationRequestDisposalTransactionTest` (1 new; red: the request was disposed). Docs: operator guide, record
+  preservation article, API reference.
+- [x] `CK-07` (P3): retired and earlier Template Versions cannot be inspected; an all-retired Template opens as an empty
+  editor (`TemplateEditor.tsx` renders the draft or latest published Version only). **Closed 2026-10-31:** the Versions
+  tab offers **View version N** on every listed Version and marks the shown one; the editor reads the chosen Version
+  through the version read route and shows it read-only (`getInformationRequestTemplateVersion`,
+  `useInspectedTemplateVersion`), the header says **Viewing version N, published** or **retired** with **Show current
+  version**, and a Template with no draft and no published Version opens its latest retired Version. Tests:
+  `TemplateEditor.test.tsx` (4 new; red). Help: Template Versions article.
+- [x] `CK-08` (P3): the New Information Request dialog loses its Template list when listing Blueprints is refused (one
+  `Promise.all` in `useRequestSourceOptions.ts`; only with feature overrides). **Closed 2026-10-31:** the Blueprint
+  listing is read on its own; when it is refused the dialog keeps its Templates and one-off choice and says Blueprints
+  could not be listed, with Try again (`blueprintsUnavailable`). Tests: `useRequestSourceOptions.test.ts`,
+  `CreateInformationRequestDialog.test.tsx` (red).
+- [x] `CK-09` (P3): respondents on an Exchange not yet accepted see answerable items and get a generic refusal on every
+  save; no web code handles `INFORMATION_REQUEST_PARENT_STATE_INVALID`. **Closed 2026-10-31:** the response workspace
+  carries `exchangeAccepted`, false while the Exchange is still a draft; the respond page then shows a notice and keeps
+  answers read-only (`readOnly` through the structured response controller), and
+  `INFORMATION_REQUEST_PARENT_STATE_INVALID` is worded for saves, occurrence commands, uploads and submissions. Tests:
+  `InformationRequestRespondentWorkspace.parentState.test.tsx` (new), `StructuredResponseSaveRefusal.test.tsx`,
+  `submissionLabels.test.ts` (new), `requirementEvidenceLabels.test.ts`,
+  `InformationRequestResponseWorkspaceServiceTest` (red; the workspace service reads the Exchange status through
+  `ExchangeLifecycleStateService`). Help: overview article.
+- [x] `CK-10` (P3): **Create link** is offered for a participant party on an Exchange that requires sign-in and is
+  always refused (`PartyRow.tsx` passes `permissions.change`). **Closed 2026-10-31:** `authorActions.issueAccessLinks`
+  is true only when the caller manages parties and the Exchange does not require recipient sign-in
+  (`InformationRequestParentSnapshot.requireRecipientSignIn`, filled by `ExchangeLifecycleStateService`;
+  `InformationRequestAuthorActionTransactionTest` red); the web `parties.issueLinks` gates Create link and Resend link.
+  Tests: `authorActionPermissions.test.ts`, `PartyRow.test.tsx` (red). Help: issuing article.
+- [x] `CK-11` (P3): a condition's clear or archive can withdraw files another party in the same role uploaded
+  (`InformationRequestHiddenResponseFiles.active` takes every active file; plausible, not run). **Closed 2026-10-31:**
+  `InformationRequestHiddenResponseFiles.activeChangeableBy` filters a Requirement's active files through
+  `InformationRequestEvidenceGate.changeableBy`, and the hidden response enforcer uses it when it retains, counts,
+  clears or archives, so a condition clear withdraws or archives only the files the acting party may change; the
+  amendment recorder's existence check is unchanged. Test: `InformationRequestHiddenResponseSettlingTest` (1 new; red:
+  both parties' files were withdrawn).
+- [x] `CK-12` (P3): the upload size guard states the limit in raw bytes (`InformationRequestEvidenceUploadSizeFilter`).
+  **Closed 2026-10-31:** the upload size guard and the record export limit state their limit through
+  `InformationRequestEvidenceSizes.describe` (for example 25 MiB) instead of raw bytes. Test:
+  `InformationRequestEvidenceUploadSizeFilterTest` (1 new; red).
+- [x] `CK-13` (P3): the Manage page's **Request a supplement** sends free text as a reason code, refused with
+  `REASON_CODE_INVALID`; the help promises a later Version that no screen sends. **Closed 2026-10-31:** the Manage
+  page's **Request a supplement** takes its reason from the same list as the review page (`SUPPLEMENT_REASON_OPTIONS`)
+  and sends the code. Tests: `FollowUpPanel.test.tsx` (red). Help: issuing and confirmations articles (a later Template
+  Version only through the API).
+- [x] `CK-14` (P3): the documented administrator recovery withdrawal of a submission has no reachable control. **Closed
+  2026-10-31:** the request's page lists **Submissions** for callers who manage parties while the request is issued or
+  in progress and changes are allowed, with **Withdraw** on withdrawable packages through the existing withdrawal dialog
+  (`submission-recovery-panel`). Tests: `SubmissionRecoveryPanel.test.tsx` (5), `submissionRecoveryAccess.test.ts` (2),
+  `InformationRequestAuthorWorkspace.test.tsx` (2 new; red). Help: confirmations article.
+- [x] `CK-15` (P3): only the newer of two differing accepted facts is marked, the mark never clears, and Promote is
+  shown for corrected items and restricted subjects the server refuses; the outcomes help says otherwise. **Closed
+  2026-10-31:** the conflict between facts is derived when they are read
+  (`InformationRequestAcceptedFactStanding.views()`, `InformationRequestAcceptedFactKey`): a current fact is CONFLICTING
+  when another current fact of the same owner, subject, Field and purpose holds a different value, naming the newest,
+  and reads NONE again once that fact is revoked or superseded (`InformationRequestAcceptedFactTransactionTest`, 1 new;
+  red: the earlier fact read NONE); `InformationRequestPartyQueryServiceTest` (1 new; red) pins `processingRestricted`.
+  A SUBJECT party carries `processingRestricted`; the Manage page withholds Promote with its reason for corrected
+  answers (the recorded corrections are read once and shared with the Corrections section) and for restricted subjects.
+  Recorded limitation: a manager without privacy management cannot read corrections, so Promote stays offered there and
+  the server refuses it. Tests: `promotionEligibility.test.ts` (new), `RequestOutcomesPanel.test.tsx` (2 new; red).
+  Help: outcomes article.
+- [x] `CK-16` (P3): requesting-side facts are offered as reusable answers that recertification always refuses. **Closed
+  2026-10-31:** `offers()` lists only facts the responding parties may see, since recertification never accepted a
+  requesting-side fact; the requesting-side branch is gone. Tests: `InformationRequestAcceptedFactEligibilityTest`
+  (red), `InformationRequestAcceptedFactTransactionTest`, `InformationRequestAcceptedFactDisclosureTransactionTest` and
+  `InformationRequestFactRecertificationTransactionTest` adjusted. API reference updated.
+- [x] `CK-17` (P3, needs an owner decision): exceptions on confirmation items are API-only without a recorded decision.
+  **Closed 2026-10-31 (owner decision: add a screen):** the respond page offers **Record an exception** on a
+  confirmation whose Template permits one (Not applicable, Unavailable, Exception requested, Provided elsewhere or
+  Waived): the caller chooses the exception and gives a reason, saved as the confirmation's response through the
+  response patch route under the response ETag; the card states a recorded exception and offers **Change exception**.
+  Tests: `attestationException.test.ts` (3; red), `SubmissionAttestationCard.test.tsx` (3 new; red),
+  `useInformationRequestSubmission.test.ts` (1 new; red), `InformationRequestSubmissionSection.test.tsx` (1 new; red);
+  submission folder 13 files, 82 tests, tsc and eslint clean. Help: confirmations article; API reference.
+- [x] `CK-18` (P3): **From your previous submission** shows raw stored values and JSON. **Closed 2026-10-31:** **From
+  your previous submission** states each earlier answer as it was entered (`carryForwardFormatting.ts`: a choice by its
+  label, a flag as Yes or No, a value through the shared Field formatting, and an answer other than a value with its
+  kind and reason). Tests: `InformationRequestCarryForwardList.test.tsx` (red), `carryForwardFormatting.test.ts` (new).
+- [x] `CK-19` (P3): a notice intent that fails to render five times keeps the health alarm on with no remedy. **Closed
+  2026-10-31:** the health count of overdue notice intents leaves out an intent whose render failures reached the
+  maximum (`countNoticeIntentsWithoutNoticeBefore(cutoff, maximumRenderAttempts)`), since the worker never retries it
+  and the operations queue already lists it as a failed notice. Test:
+  `InformationRequestNoticeRenderFailureTransactionTest` (1 new; red). Docs: operator guide row, due dates article, API
+  reference.
+- [x] `CK-20` (P3): Markdown Communication bodies are emailed as plain text (`sendPreparedEmail(..., false)`). **Closed
+  2026-10-31:** `InformationRequestEmailNoticeSender` renders a Communication notice's Markdown to HTML, wraps it like
+  Workflow notifications (`communication-wrapper.ftl`, bare HTML if the wrapper fails) and sends it as HTML; platform
+  default notices stay text and the stored body is unchanged. Test: `InformationRequestEmailNoticeSenderTest` (2 new;
+  red). Help: due dates article.
+- [x] `CK-21` (P3): the due dates article says an unfilled value makes the notice retry (it is sent with the literal
+  token) and the operations article says every responding party is reminded (only those with outstanding items are).
+  **Closed 2026-10-31:** the due dates article says an unfilled value is sent as its literal token and only a failed
+  render is retried five times; the operations article says reminders go only to responding parties whose role still has
+  unsubmitted or returned items. Help 97/97.
+- [x] `CK-22` (P3): `app.records.storage-location`, `app.records.permitted-transfer-regions`,
+  `app.records.member-removal-party-decision` and `app.information-request.export.max-bytes` are in neither
+  `application.properties` nor the operator guide; the migration notes' range stops at V190. **Closed 2026-10-31:** the
+  four keys are declared in `application.properties` in the `${ENV:default}` style and described in the operator guide;
+  the migration notes name V152 to V191.
+- [x] `CK-GATE`: **Ran 2026-10-31.** affected backend 30 classes, 345 tests, zero failures, errors or skips
+  (`mirror-a/final.log`); full backend 6,077 tests in 817 classes (1:21 h, `mirror-a/full.log`) with zero errors or
+  skips and one failure, a unit expectation in `InformationRequestLifecycleServiceTest` kept from before CK-04
+  (cancelling a grantless draft still had to check the live plan), corrected to the CK-04 rule and rerun green 30/30;
+  full frontend 2,124 tests in 331 files (585.9 s under load): 2,122 pass and the two that timed out
+  (`RequestOutcomesPanel`, `InformationRequestOperations`) pass when rerun alone, 79/79; root `tsc --noEmit` 0 errors;
+  eslint over every changed web folder clean; help 97/97; no migration, dependency or AWS resource.
+
+Tree state recorded while checking (not changed): at 17:28 an IDE reformat outside the program's sessions rewrote 1,276
+files (next-line braces to same-line, import order, shortened qualified names, re-wrapped JSX text). A normalized diff
+against the tree of the 17:50 green full backend run shows formatting, imports and qualifiers only. It pushed
+`informationRequestEvidenceArticle.tsx` (165 lines) and two other articles past the 150-line limit, so the help size
+test fails, and left eight help sentences without a space next to inline markup (one fixed in the Templates article
+by this work). 25 untracked `*~` backups remain under `src` and `web-app/src`, and 88 of this plan's links point to
+reports and evidence no longer on disk. The live and manual release checks under DV-GATE and `LG-16` remain open.
+On 2026-10-31 the three oversize articles were reflowed to 145, 149 and 130 lines without changing a word, the remaining
+six wrapped sentences got their space back, and 4 `*~` backups are left.
+
+## Line-by-Line Gap Analysis Work (2026-10-26)
+
+The [line-by-line gap analysis](information-request-gap-analysis-2026-10-26.md) read every line of the feature's code
+and its foundation changes and reopened the program: 1 P1 and 37 P2 findings confirmed in the code and 324 verified P3
+findings, all open, nothing repaired. Each item names its finding ids in the analysis evidence
+(`plans/evidence/information-request-gap-analysis-2026-10-26/findings/`), where every location, quote and failure
+scenario is recorded. Repair each item under the Mandatory Protocol: promote or write the failing test first (through
+the real `DefaultAuthorizationService` where authorization is involved, and over HTTP where the defect is in
+serialization or mapping), then the smallest complete change, then the affected suites. Items that need an owner
+decision say so.
+
+Owner decisions (USER DECISION, 2026-10-26, the recommended option of each): `LG-02` (A) an "Assigned to you" page lists
+every request where the caller holds an active party role and opens its respond, review or manage page, with a menu
+entry while the caller has assigned work; the reviewer queue becomes part of it, which ends the deferral of the
+unrendered queue button. `LG-03` (A) an active, unexpired delegated authority gives its delegate a scoped grant through
+the central authorizer: view the request and act on the named Requirements (or every Requirement of the party) with the
+delegating party's role; a grant is refused for a party whose role answers nothing and for a Requirement outside the
+party's role; the conformance proof uses the real grant command; API only, help corrected. `LG-05` (A) reviewers must be
+signed in: Reviewer by email is refused when it would create a participant (an Exchange that requires sign-in still
+resolves the address to the recipient's account), participant reviewer parties are refused at review assignment and
+delegation, and Add party offers Reviewer only for people and groups. `LG-07` (A) a notice owed to a group party is sent
+to every active member with an email, one recorded notice per member; for another organization's group the requesting
+side sees counts and states, never member addresses. `LG-16` (A) a complete submission pauses every running clock of the
+request as a system pause, and a returned correction, a reopening appeal or a withdrawal resumes it with the time that
+was left; a manual pause is never resumed automatically; reminders and overdue notices go only to parties with
+outstanding items. `LG-52` (A) the probe files move to `plans/evidence/leftover-web-probes/<original folder name>/` and
+the four folders leave `web-app/`.
+
+- [x] `LG-01` (P1, Phases 3 and 4): let an Exchange's status change only through its named lifecycle commands (recipient
+  decision, end, rescind) with an explicit allowed-transition table and their own authorization. `PUT /exchanges/{id}`
+  needs only `EXCHANGE_VIEW` and writes any status except `ACCEPTED_STARTED`, `REJECTED` and `RESCINDED`, so a viewer,
+  commenter or recipient can set an active Exchange to `INITIATED`, which blocks every response, review and submission
+  on its requests while their clocks keep running, or reopen an ended, rejected or rescinded Exchange; no audit event is
+  written. Refuse `INITIATED` and every change from a terminal state on the generic update and audit every transition.
+  Evidence: `B02-lifecycle-01`. **Closed 2026-10-26:** `ExchangeStatusTransitions` (from `INITIATED` or
+  `ACCEPTED_STARTED` only to acceptance, rejection, ending or rescission; nothing from a finished state) guards
+  `updateExchangeInternal` and the Workflow auto-accept action; the generic update refuses `INITIATED` (`400`) and a
+  finished state answers `409` (`ExchangeStatusTransitionException`); `ExchangeLifecycleAudit` records every transition,
+  now also access-link decisions (`PUBLIC_LINK`) and Workflow transitions (`WORKFLOW`). Tests
+  `ExchangeStatusTransitionHttpTest` (HTTP, real authorizer; red 5 of the 6 status cases, the ending-audit control
+  passing), `ExchangeNoAuthDecisionAuditTest` (red 2 of 2), `ExchangeApprovalEventHandlerEndingTest`; green in the
+  991-test Exchange and Template batch.
+- [x] `LG-02` (P2, Phases 3, 4 and 10): give a signed-in request party who holds no Share on the parent Exchange a way
+  to reach their respond, review or manage workspace. Party assignment grants only a request Share, so the Exchange
+  cannot be listed or opened, no page lists a user's assigned requests (the review queue button is unrendered), no
+  notice is sent at issue and reminder notices carry no link. Decide the entry point (an assigned-work listing, an
+  issued notice with an app link for signed-in parties, or an Exchange read for request parties) and test it end to end.
+  Evidence: `F06-integration-01`. **Closed 2026-10-26:** decision A: `GET /information-request-assignments`
+  (`InformationRequestAssignedWorkService` over `InformationRequestCallerPartyResolver`, which finds direct, group and
+  linked-participant parties) and the **Assigned to you** page and menu entry, with the review queue on the same page;
+  `assignedWork` uses the same resolver and the unused `ShareService.holdsActiveShareOn` is gone. Tests
+  `InformationRequestAssignedWorkHttpTest` (HTTP, real authorizer; red 404 on all 3),
+  `InformationRequestAssignedWork.test.tsx` and `AssignedWorkNavigation.test.tsx`; overview and review help updated.
+- [x] `LG-03` (P2, Phases 3 and 4): make delegated authority work for a delegate who is not a party. The central
+  authorizer refuses a principal with no request Share (`NO_GRANT`) before the Requirement policy consults the
+  authority, a same-role delegate gains nothing from its scope, the grant accepts delegates who can never act, and the
+  S2 conformance proof inserts a Share by raw SQL. Prove it through the real authorizer without raw-SQL Shares and
+  decide whether it needs a screen. Evidence: `B03-party-access-01`. **Closed 2026-10-26:** decision A: a registered
+  `ResourceGrantSource` (`InformationRequestDelegatedAuthorityGrantSource`, through `ResourceGrantSourceRegistry` in
+  `DefaultAuthorizationService`, grant kind `DELEGATED_AUTHORITY`) gives an active, unexpired authority's delegate read
+  on the request and the party role's capabilities on the named Requirement (or every Requirement of the party); grants
+  are refused for a party whose role answers nothing (`DELEGATED_AUTHORITY_PARTY_INELIGIBLE`) and for a Requirement
+  outside the party's role (new `DELEGATED_AUTHORITY_REQUIREMENT_INELIGIBLE`).
+  `MultiPartyStagedEvidenceRequestConformanceTest` drops its raw-SQL delegate Share and runs through the real authorizer
+  (red: `NO_GRANT`; grant refusals not thrown); the unit fixture and group tests now give delegates no Share; API only,
+  help and API reference corrected.
+- [x] `LG-04` (P2, Phases 2 and 4): refuse `ATTESTOR` as the answering role of a Field or Document Requirement at save,
+  publication and in the editor, or give that role the response and upload capabilities; today such an item can never be
+  answered and a required one blocks submission. Evidence: `B03-party-access-03`. **Closed 2026-10-26:**
+  `InformationRequestTemplateRoleValidator` refuses `ATTESTOR` as the answering role of a FIELD or DOCUMENT Requirement
+  at save and publication, and the editor offers Attestor only for a confirmation item (`answeringRoles.ts`). Tests in
+  `InformationRequestTemplateSubmissionPolicyValidationTest` (red 2) and `requirementRoleChoices.test.tsx` (red 3); the
+  old test that let Attestor answer documents now covers Contributor and Preparer; templates help updated.
+- [x] `LG-05` (P2, Phases 4 and 8): refuse participant-principal reviewer parties at review assignment and delegation
+  (and decide whether `REVIEWER` may be assigned by email at all), or expose the reviewer read, worksheet, decision and
+  finding commands on the no-auth surface; such an assignment can never be decided. Evidence: `B08-review-02`. **Closed
+  2026-10-26:** decision A: `requireSignedInReviewer` refuses a participant Reviewer at party assignment, assignment by
+  email on an Exchange without required sign-in, and reassignment, and `InformationRequestReviewAccess.reviewerParty`
+  refuses a participant reviewer party at review assignment and delegation (new `REVIEWER_SIGN_IN_REQUIRED`); delegation
+  candidates leave participants out; Add party offers Reviewer only for people and groups. Tests in
+  `InformationRequestPartyAssignmentServiceTest` (red 2), `InformationRequestReviewerPartyTransactionTest` (red),
+  `AddPartyDialog.test.tsx` (red 1).
+- [x] `LG-06` (P2, Phase 8): resolve reviewer queue membership through the reviewer party's current acting principals,
+  as `actsAs` does, not through the principal frozen on the assignment row; a reassigned or account-linked reviewer
+  never sees the work and the Exchange tab's Review action misses it. Evidence: `B08-review-03`. **Closed 2026-10-26:**
+  the reviewer queue lists active assignments of the Reviewer parties the caller acts for now
+  (`InformationRequestCallerPartyResolver`, then `actsAs`), through `findActiveForReviewerParties`, instead of the
+  principal frozen on the assignment. `InformationRequestReviewerPartyTransactionTest` reassigns the party and reads the
+  queue through the central authorizer (red: empty queue for the new holder); green with the review, authorization and
+  party suites (447 tests).
+- [x] `LG-07` (P2, Phase 9): deliver reminder, overdue and amendment notices owed to a principal-group party (a trusted
+  group recipient) to its members, or record a decision; the contact resolver returns no endpoint for groups, so every
+  such notice is undeliverable. Evidence: `B09-clock-notice-03`. **Closed 2026-10-26 (decision A):** a notice owed to a
+  group party is rendered once and recorded for each active member
+  (`InformationRequestPartyContactResolver.recipientsOf`, one idempotency key per member, V181 unique index on intent
+  and recipient); a member who left or is held back is skipped as `RECIPIENT_REASSIGNED`, one without an address is
+  undeliverable; group notices carry `recipientWithheld` and no masked endpoint (Notices tab: "To a group member"), and
+  an amendment's notice state combines its members; group case in `InformationRequestNoticeTransactionTest` red then
+  green, outbound notice contract and `NoticeHistoryPanel.test.tsx` added.
+- [x] `LG-08` (P2, Phase 10): load Add party and Reassign candidates (people, groups, subjects) from the request owner's
+  scope, with the same other-workspace notice the create dialog and Due dates panel use, instead of the session's active
+  organization. Evidence: `F01-authoring-01`. **Closed 2026-10-26:** `usePartyCandidates(owner)` loads people, groups
+  and subjects only while the request's owner is the active workspace; otherwise Add party and Reassign show the create
+  dialog's other-workspace notice and offer only email and trusted holders (a typed subject reference stays possible and
+  the server decides); `usePartyCandidates.test.ts` and `AddPartyDialog.test.tsx` red (4 of 20) then green; managing
+  help updated.
+- [x] `LG-09` (P2, Phases 3 and 4): resolve an email address to an existing account before treating it as an outside
+  individual when adding a party by email, so `requireTrustedOrganizationForB2b` and trust suspension apply to
+  registered members of other organizations, as the Exchange email paths already do. Evidence: `B03-party-access-02`.
+  **Closed 2026-10-26:** `InformationRequestPartyEligibilityService.requireAddressEligible` resolves the address to a
+  registered (non-temporary) account and applies the owner's sharing policy to that account (a trusted organization
+  where one is required, trust suspension), as the Exchange email paths do; two cases in
+  `InformationRequestPartyEligibilityServiceTest` red then green, and `InformationRequestPartyWritersTest` stubs the new
+  check; managing help and API reference updated.
+- [x] `LG-10` (P2, Phases 3 and 4): make enabling `requireRecipientSignIn` (and the validity days) durable: the generic
+  update writes them with bulk JPQL while the managed `Exchange` is stale, and `clearVerification` then dirties it, so
+  the next flush rewrites every column and restores the old flag; prove it through the database. Evidence:
+  `FD2-authz-shares-exchange-entitlement-01`. **Closed 2026-10-26:** `updateExchangeInternal` refreshes the locked
+  Exchange after its bulk writes (`ExchangeRepository.refresh`) before `clearVerification`, so the sign-in requirement
+  and access validity persist; HTTP persistence test in `ExchangeStatusTransitionHttpTest` (red `false|7|`, green
+  `true|3|`).
+- [x] `LG-11` (P2, Phase 6): stop trusting a client-declared `END_TO_END` mode for file-backed evidence: it skips
+  content inspection, the accepted-type refusal and malware scanning (recorded as a final `SKIPPED`) while other parties
+  can still download the bytes. Evidence: `B06-evidence-01`. **Closed 2026-10-26:**
+  `InformationRequestEvidenceIntake.admit` refuses a declared `END_TO_END` upload with
+  `409 INFORMATION_REQUEST_EVIDENCE_OPAQUE_CONTENT_REFUSED` before anything is stored, so every evidence version is
+  inspected and scanned (the web always uploads `INTERNAL`); intake, file behavior and upload service tests red (3) then
+  green; evidence help corrected.
+- [x] `LG-12` (P2, Phases 3 and 9): limit the Exchange ending refusal to requests the caller may view and authorize
+  cancel-remaining per request; an Exchange Editor without request capabilities learns the ids and count of hidden
+  requests and can cancel them by ending. Evidence: `B12a-contract-backend-01`, `F06-integration-06`. **Closed
+  2026-10-26:** the ending refusal names only requests the caller may view, and ending with cancel-remaining needs
+  `INFORMATION_REQUEST_CANCEL` on every remaining request, otherwise
+  `409 INFORMATION_REQUEST_REMAINING_REQUESTS_NOT_CANCELLABLE` and nothing is cancelled;
+  `InformationRequestExchangeEndingHttpTest` (HTTP, real authorizer, Exchange Editor) red 2 of 2 then green; the End
+  dialog counts in the singular and explains the new refusal (`exchangeEndRefusal.test.ts`), which also repairs
+  `F06-integration-10`; Exchange lifecycle help updated.
+- [x] `LG-13` (P2, Phases 9 and 11): filter refresh rules in `GET .../successors` by the caller's view of their
+  Requirement, as carry-forwards already are; the read discloses Requirement keys and lead days of items the caller may
+  not view. Evidence: `B12a-contract-backend-02`, `B02-lifecycle-07`. **Closed 2026-10-26:** `GET .../successors` lists
+  every refresh rule to a caller who manages follow-ups and otherwise only the rules of Requirements the caller may view
+  (`InformationRequestRefreshRuleRepository.findRequirementIdsByKey`), as carry-forwards are filtered;
+  `InformationRequestRefreshRuleDisclosureHttpTest` (HTTP, real authorizer) red then green; also closes
+  `B02-lifecycle-07`.
+- [x] `LG-14` (P2, Phases 3, 9 and 12): finish the unfinished requests of a deleted Exchange (cancel with a stable
+  reason, as rejection and rescission do) or treat them as finished for open-request and committed-evidence quotas,
+  disposal and privacy deletion; today they stay open, read-only and counted forever. Evidence: `B02-lifecycle-02`.
+  **Closed 2026-10-26:** deleting an Exchange cancels its unfinished requests with the reason `PARENT_DELETED` (the
+  deleted parent's non-terminal effect is now `CANCEL`, as for rejection and rescission), so they stop counting as open
+  requests and committed evidence and can be disposed of; requests of Exchanges deleted before the change are not
+  backfilled (development data only). `InformationRequestExchangeDeletionHttpTest` (HTTP; red: request stayed `ISSUED`),
+  matrix and parent lifecycle unit tests red then green; the credential cutoff test now also expects the cancellation;
+  overview help, API reference and release notes updated.
+- [x] `LG-15` (P2, Phase 9): hold scheduled reminders, overdue points and `EXPIRE_REQUEST` expiry while the parent
+  Exchange is `INITIATED`, where every response mutation and manual reminder is refused. Evidence:
+  `B09-clock-notice-01`. **Closed 2026-10-26:** clock points wait while the parent Exchange is `INITIATED`, as for
+  drafts; issuing there leaves clocks alone, and the Exchange's move from `INITIATED` to `ACCEPTED_STARTED` rebases each
+  running clock of an issued request whose received time defaulted so its whole budget counts from acceptance
+  (`RESUMED`, `EXCHANGE_ACCEPTED`); every acceptance path passes the previous status, the Workflow auto-accept action
+  included. `InformationRequestClockTransactionTest` (red: the request expired while `INITIATED`),
+  `InformationRequestLifecycleServiceTest` and `InformationRequestParentLifecycleServiceTest` cases red then green; new
+  help article Due dates and reminders. **Completed 2026-10-29 (status check follow-through):** a draft approval that
+  starts the Exchange without recipient acceptance (`exchange.draft_approved` with `requireRecipientAcceptance` off) set
+  `ACCEPTED_STARTED` without the requests' parent lifecycle, so requests issued while it was a draft kept their original
+  due times; it now applies the parent lifecycle with the previous status, as the other acceptance paths do.
+  `ExchangeApprovalEventHandlerAttributionTest` "a draft approval that starts the Exchange without recipient acceptance
+  moves its requests on from the draft" red (no call, `lggate-lg25-lg15-red-and-corrections.log`), then 4/4
+  (`lggate-lg25-lg15-green.log`).
+- [x] `LG-16` (P2, Phases 7 and 9): decide and implement clock behavior after a complete submission (Phase 9 decision 7
+  stops clocks only at terminal states): a request waiting only for review is reminded, made overdue and, with
+  `EXPIRE_REQUEST`, expired, after which review and `CLOSE` are refused. Needs an owner decision. Evidence:
+  `B09-clock-notice-02`. **Closed 2026-10-26 (decision A):** `InformationRequestClockHold` pauses every running clock
+  when a submission completes the request (system pause, `SUBMISSION_COMPLETE`) and resumes only the clocks it paused,
+  with the time left, when work returns to the respondents (a correction is opened or the completing submission is
+  withdrawn; an appeal that only reopens review keeps the pause), never a hand pause; scheduled and manual reminders and
+  overdue notices go only to parties whose role answers a shown Requirement that is unsubmitted or returned
+  (`InformationRequestRespondentWork`). `InformationRequestClockHoldTransactionTest` (2 cases) and an
+  `InformationRequestReminderServiceTest` case red then green; notice and operations fixtures give their group parties
+  an answering role. **Open question for the owner (2026-10-29):** the code keeps (re-applies) the pause when an appeal
+  reopens review, while decision A says a reopening appeal resumes the clock, and no record shows that deviation
+  approved. Recommendation: keep the pause, because the respondent owes nothing while the request waits on review; the
+  help and API reference already describe only correction and withdrawal as resuming. **USER DECISION (2026-10-31): keep
+  the pause.** An appeal that only reopens review keeps the clocks paused; they resume only when a correction is opened
+  or the completing submission is withdrawn. No code, help or API change.
+- [x] `LG-17` (P2, Phase 9): record notice render failures, give up after bounded attempts and stop a failing intent
+  from starving newer ones; fix the blank-sender fallback that throws on `{{USER_EMAIL}}` for requests created by a
+  non-user principal. Evidence: `B09-clock-notice-04`. **Closed 2026-10-26:** each failed render is recorded
+  (`information_request_notice_render_failure`, V182, code `RENDER_FAILED`), a failed intent is tried after every intent
+  that has not failed and is given up after five failures (`FAILED`), and the sender of a request no account created
+  renders an empty email instead of throwing; `InformationRequestNoticeRenderFailureTransactionTest` (2 cases) and a
+  real-interpolator `InformationRequestNoticeRendererTest` case red then green; the outbound notice contract covers
+  V182.
+- [x] `LG-18` (P2, Phases 7 and 9): refuse `AMEND` on a `DRAFT` request, or owe no `REQUIREMENTS_AMENDED` notices for
+  one; parties of an unissued request are emailed that the information requested of them changed. Evidence:
+  `B07-submission-01`. **Closed 2026-10-27:** an amendment of a `DRAFT` request re-pins its Requirements and owes no
+  `REQUIREMENTS_AMENDED` notices; the amendment tests fail on the old code and pass in the broad backend run (1,372
+  tests).
+- [x] `LG-19` (P2, Phases 9 and 10): return arrays from `InformationRequestReminderResource.send` and the
+  delegated-authority list (a Kotlin `List` entity answers 400 `REQUEST_BODY_INVALID` after the command committed,
+  reproduced at runtime) and add HTTP-level tests; Send reminders never reports success today. Evidence:
+  `B12b-contract-web-01`. **Closed 2026-10-27:** `InformationRequestReminderResource.send` and the delegated-authority
+  list answer JSON arrays; HTTP-level resource tests reproduce the 400 on the old code and pass now, and the operations
+  page reports the queued count and next reminder time.
+- [x] `LG-20` (P2, Phase 5): evaluate an active collected Field with no stored value as empty (`IS_EMPTY` true,
+  comparisons false) instead of `UNKNOWN`, so an "is empty" condition asks its Requirement on a fresh request. Evidence:
+  `B05-response-01`. **Closed 2026-10-27:** an active collected Field with no stored value evaluates as empty
+  (`IS_EMPTY` true, comparisons false); so is a Field collected only by a hidden Requirement, and a Field no Requirement
+  collects stays unknown (condition evaluation tests).
+- [x] `LG-21` (P2, Phases 5 and 7): allocate a new group occurrence's identity from every stored path of the group under
+  its parent (or remap removed occurrences during amendment); after an amendment, an add reuses a removed path and fails
+  with 409 for good. Evidence: `B05-response-02`. **Closed 2026-10-27:** a new group occurrence takes an identity from
+  every stored path of the group under its parent, so an add after an amendment never reuses a removed path (occurrence
+  service and path tests).
+- [x] `LG-22` (P2, Phase 5): make nested groups answered by different roles operable: disclose ancestor occurrences to a
+  party that may create the child group and authorize remove and reorder against the affected subtree, not every
+  authored binding under the group. Evidence: `B05-response-03`. **Closed 2026-10-27:** a party that may create a nested
+  group sees the ancestor occurrences without their answers, and remove and reorder are authorized against the affected
+  subtree, refused only when it holds another party's nested answers (occurrence tests through the real authorizer).
+- [x] `LG-23` (P2, Phase 7): let a `PROVIDE_ONCE` answer be reconfirmed after its package was withdrawn and an amendment
+  changed its meaning (or keep the amendment guard for withdrawn packages); today readiness demands reconfirmation that
+  the given-once lock refuses. Evidence: `B07-submission-02`. **Closed 2026-10-27:** decision: an amendment that changes
+  the meaning of a `PROVIDE_ONCE` answer after its package was withdrawn is refused with
+  `INFORMATION_REQUEST_AMENDMENT_SUBMITTED_SCOPE_CHANGED`, keeping the given-once lock (amendment guard and transaction
+  tests). **Completed 2026-10-29 (status check follow-through):** the withdrawn given-once amendment had no test against
+  stored data. `InformationRequestProvideOnceTransactionTest` "a withdrawn submission names its answer given once, which
+  the amendment guard keeps from changing meaning" covers it through the real amendment path and passed without a
+  production change, the guard being complete (class 11/11 in `lg24-lg23-red.log` and `lg24-lg23-f02-18-green.log`).
+- [x] `LG-24` (P2, Phases 2, 6 and 10): validate accepted `CONTENT_TYPE` values as media types at save and publication
+  and offer typed choices in the editor; a value such as `PDF` refuses every upload. Evidence: `B01-template-02`.
+  **Closed 2026-10-27:** accepted `CONTENT_TYPE` values must be media types (no wildcard or parameters, stored
+  lowercase) at save and publication, refused with `INFORMATION_REQUEST_TEMPLATE_INVALID` naming the Requirement, and
+  the editor offers file types to pick (web red then green). **Completed 2026-10-29 (status check follow-through):** a
+  media type with parameters is refused instead of stripped, every refusal names its section, and publication refuses a
+  stored `CONTENT_TYPE` that is not a bare media type (a draft saved before the rule).
+  `InformationRequestTemplateConfigurationValidatorTest` and `InformationRequestPublicationReadinessTransactionTest` red
+  3 (`lg24-lg23-red.log`), then 207/207 with the LG-23 and F02-18 classes (`lg24-lg23-f02-18-green.log`).
+- [x] `LG-25` (P2, Phases 2, 11 and 12): map Fields engine refusals (`FieldValidationException`,
+  `FieldsPreconditionException`) to stable 4xx answers in every request resource, handle a Template whose Schema was
+  retired after publication, and check the target Field contract when offering reusable facts; both paths answer 500
+  today. Evidence: `B01-template-01`, `B11-external-facts-02`. **Closed 2026-10-27:** Fields engine refusals map to
+  `400 INFORMATION_REQUEST_FIELD_VALUE_INVALID` and stale Field preconditions to `412` in every request resource, a
+  retired Schema at creation answers `409 INFORMATION_REQUEST_TEMPLATE_VERSION_SCHEMA_UNAVAILABLE`, and reusable facts
+  are offered only when the target Field contract accepts them. **Completed 2026-10-29 (status check follow-through):**
+  `InformationRequestResource` and `InformationRequestGroupOccurrenceResource` had no Fields branch (500), and the
+  response and access-link resources answered 400 without the code; all four now use one mapping in
+  `InformationRequestCommandHttp`. `InformationRequestFieldsRefusalResourceTest` (five routes, both refusals) red 7 of
+  10 (`lggate-lg25-lg15-red-and-corrections.log`), then 10/10 (`lggate-lg25-lg15-green.log`). The read-only offer point
+  does not apply: publication refuses answerable read-only Fields.
+- [x] `LG-26` (P2, Phase 8): run review settlement after a reviewer assignment, as recording, override and assignment
+  changes do (or refuse recording while a stage is understaffed); otherwise a stage settles while the review stays
+  `IN_REVIEW` for good. Evidence: `B08-review-01`. **Closed 2026-10-27:** a reviewer assignment runs review settlement
+  like recording, override and assignment changes, so a stage completed by the assignment settles at once (review
+  transaction test red on the old code).
+- [x] `LG-27` (P2, Phases 8 and 10): keep a reason a reviewer types before choosing an outcome; the worksheet sends it
+  as a clear and says it was saved. Evidence: `F03-review-submission-01`. **Closed 2026-10-27:** the review worksheet
+  keeps a reason typed before an outcome is chosen and asks for the outcome before saving instead of sending a clear
+  (web red then green).
+- [x] `LG-28` (P2, Phases 8 and 10): show respondent-visible reviewer comments that are not attached to a finding, and
+  let a respondent comment where the server allows it. Evidence: `F03-review-submission-02`. **Closed 2026-10-27:**
+  respondents see respondent-visible reviewer comments that belong to no finding and can comment where the server allows
+  it (backend and web tests red on the old code).
+- [x] `LG-29` (P2, Phase 10): show a Document Requirement's help text and Required or Optional marker while files are
+  collected (Phase 10 decision 8). Evidence: `F04-respondent-01`. **Closed 2026-10-27:** a Document Requirement shows
+  its Required or Optional marker and help text above its files while files are collected (web red then green).
+- [x] `LG-30` (P2, Phase 10): store the response revision each session-stored draft was based on and treat a changed
+  server answer as stale on restore; restored drafts overwrite newer answers saved elsewhere. Evidence:
+  `F04-respondent-02`. **Closed 2026-10-26:** each session-stored draft now keeps the `responseRevision` it started from
+  (rebased on the respondent's own saves); a draft whose answer changed elsewhere is held for review instead of
+  autosaved, **Answers saved elsewhere** shows the latest saved answer with **Keep saved answer**, a draft equal to the
+  latest answer is dropped, and a saved draft leaves session storage at once; the Field precondition stays the latest
+  read because the value set ETag is shared by the whole occurrence (the per-answer revision is the base, as the item
+  asks); `StructuredResponseDraftBase.test.tsx` (8 cases, 6 red then green) and two pinned storage expectations updated.
+- [x] `LG-31` (P2, Phases 4 and 10): recognize a lapsed step-up on a protected item (a distinct refusal) and show the
+  step-up panel; today saves keep failing with a generic 403 until a manual reload. Evidence: `F04-respondent-03`.
+  **Closed 2026-10-27:** a save refused only because a protected item's step-up lapsed answers
+  `403 INFORMATION_REQUEST_CONFIDENTIALITY_DENIED` (`InformationRequestVerificationRequiredException`); the workspace
+  reloads, offers verifying again, keeps the unsaved answer in the tab and saves the others (backend and web tests red
+  on the old code).
+- [x] `LG-32` (P2, Phase 10): give Template condition values typed inputs (a Boolean choice, the Field's options, number
+  and date formats); a Boolean `true` cannot be typed. Evidence: `F05-template-01`. **Closed 2026-10-26:** Template
+  condition values now take their Field's form (`ConditionValueField`): a Yes or No choice, the Field's options by label
+  (ticked for is one of and is none of), date and date-time inputs storing the Fields canonical form, a number hint, and
+  text typed with its spaces (trimmed only on save); `ConditionPredicateRow.test.tsx` (7 cases) red then green.
+- [x] `LG-33` (P2, Phase 10): warn before discarding unsaved Template edits and recover a stale (412) draft without
+  losing them. Evidence: `F05-template-04`. **Closed 2026-10-26:** going back to Templates or switching Settings tab
+  with unsaved changes asks first (`SettingsLeaveDialog`, `useUnsavedSettingsWork`), closing or reloading the page
+  warns, and a stale (412) save offers **Keep my changes** (adopts the latest draft ETag and saves the local document)
+  or **Open latest draft**; decision: navigation to another page of the app is not guarded, because the app's
+  `BrowserRouter` offers no route-leave hook (as for the Workflow designer); `TemplateEditor.test.tsx` (4 cases) and
+  `SettingsLeaveGuard.test.tsx` (3 cases) red then green.
+- [x] `LG-34` (P2, Phase 9): make disposal reference checks aware of the batch and of order: a privacy deletion refuses
+  every request referenced by another request in the same batch, and a superseding follow-up and its source refuse each
+  other forever (`LINEAGE_SUCCESSOR` against `SUPERSEDED_REQUEST`). Evidence: `B10-records-01`, `B11-external-facts-03`,
+  `M2-migrations-01`, `M3-migrations-01`. **Closed 2026-10-27:** disposal checks ignore references within the claimed
+  privacy batch, finalize referring requests first, and V183 clears a superseded request's link when its successor is
+  disposed; the resumed scratch run passes all 20 disposal and 22 privacy transaction cases through the real authorizer
+  (the broader run has one unrelated evidence fixture assertion awaiting rerun).
+- [x] `LG-35` (P2, Phases 4 and 9): detach or dispose `participant_account_link` rows so a request through which an
+  account was linked can be disposed; the NOT NULL reference refuses every retention and privacy disposal with
+  `ACCOUNT_LINK`. Evidence: `B10-records-02`, `M1-migrations-01`, `M2-migrations-01`, `M3-migrations-02`. **Closed
+  2026-10-27:** V184 makes `participant_account_link.linked_via_information_request_id` nullable with
+  `ON DELETE SET NULL`, so disposal keeps the account link and clears the request it names; `ACCOUNT_LINK` is no longer
+  a disposal reference (disposal transaction test red on the old code).
+- [x] `LG-36` (P2, Phases 4 and 9): key each contact-challenge audit event uniquely; the challenge counter resets on
+  verification, so later cycles repeat earlier keys and `AuditRecorder` reports them captured without inserting.
+  Evidence: `B04-noauth-core-01`. **Closed 2026-10-27:** each contact-challenge audit event is keyed by the link, its
+  challenge counter and the challenge expiry, so later cycles after a verification record their own events (contact
+  proof transaction test red on the old code).
+- [x] `LG-37` (P2, Phase 9): resolve the owner of personal (`user:`) audit streams in archive verification and isolate
+  per-segment failures; today the loop aborts and later segments lose their integrity event and alert line. Evidence:
+  `FD3-audit-record-preservation-01`. **Closed 2026-10-27:** archive verification resolves personal (`user:`) stream
+  owners through `LedgerProcessor.ownerOfStream` and records each segment separately, logging a failed one with the
+  alert marker instead of aborting the batch (`AuditArchiveSchedulerTest` red on the old code).
+- [x] `LG-38` (P2, Phases 9 and 10): page and filter the operations queue in the database or bound its work; every page
+  loads the owner's whole history. Evidence: `B03-party-access-04`. **Closed 2026-10-27:** the operations queue filters
+  by state, Exchange, title, request id and assignee, orders and pages in the database
+  (`InformationRequestOperationsCriteria`), and reads service-level or exception filters in chunks of 500 (operations
+  transaction test red on the old code).
+- [x] `LG-39` (P3, Phases 2 and 10): repair or record a decision for the 26 verified P3 findings on Template authoring,
+  backend and editor: `B01-template` 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 14; `F05-template` 03, 05, 06, 07, 08, 09,
+  10, 11, 12, 13, 14, 15, 16, 17, 18. **Closed 2026-10-27:** repaired B01-template 03 (group count, depth, path and
+  occurrence bounds), 04 (condition source and substitute scopes), 05 (canonical list order and hash), 06 (draft save
+  locks its Template), 07 (one `403` for unknown, hidden and never-published Templates), 08 (Field existence before a
+  Schema, one-off text limits), 10 (anchor and rule keys lowercased), 11 (dead queries removed) and 12
+  (`GET .../versions/{versionNumber}`, `versions`, last-Version warning), and F05-template 03, 05 to 16 and 18 (Versions
+  panel, preflight rules, copy description and Schema rule, role order, picker reads with Try again, stale list guard,
+  stated list refusals, Workflow Template resolution, waiver hint, tests); decisions recorded for B01-09 (members keep
+  reading published configurations), B01-14 (materializer consolidation deferred) and F05-17 (legacy dialog split
+  deferred); see P3 outcomes in the gap analysis. Backend 538 Template tests and web Template, Blueprint, Workflow and
+  help suites pass.
+- [x] `LG-40` (P3, Phases 3, 9, 11 and 13): repair or record a decision for the 9 verified P3 findings on lifecycle,
+  creation, follow-ups and Blueprint starts: `B02-lifecycle` 03, 04, 06, 08, 09, 10, 11, 12, 13. **Closed 2026-10-27:**
+  repaired B02-lifecycle 03 (due refreshes follow the matrix's source states and skip Exchanges that can no longer take
+  requests), 04 (request Workflow instances cancelled on cancel, supersede and expiry events and when the Exchange is
+  rejected, rescinded or deleted), 06 (supplement reasons are machine codes, chosen from a list in the dialog), 08
+  (Blueprint party defaults limited to the Exchange's participants, never the initiator), 09 (deleted or inactive
+  Blueprints refused with `INFORMATION_REQUEST_BLUEPRINT_UNAVAILABLE`, unknown ids answered like hidden ones), 10
+  (follow-up copies checked as the admitting user), 11 (capacity message names the plan limit,
+  `INFORMATION_REQUEST_RECURRENCE_COMPLETE`) and 13 (unused registry, catalog and branch members removed); decisions
+  recorded for B02-lifecycle 12 (refresh rules and recurrences stay permanent) and the kept members of 13; see P3
+  outcomes in the gap analysis. Red run fails each new test for its intended reason; green run 680 tests in 93 classes
+  pass.
+- [x] `LG-41` (P3, Phases 3 and 4): repair or record a decision for the 19 verified P3 findings on parties, Requirement
+  access and the no-auth surface: `B03-party-access` 05, 06, 08, 09, 10, 11, 12, 13, 14; `B04-noauth-core` 02, 03, 04,
+  05, 06, 07, 08, 09, 10, 11. **Closed 2026-10-27:** party/access refusals, reassignment history, receipt-protected
+  subjects, link revocation times, session ownership/replays, credential-first locking, positive defaults and dead-code
+  cleanup are implemented; decisions for B03-05/09, B04-07/08 and retained live-session locks are recorded in P3
+  outcomes; affected party/session/access suites pass, and the protected-content refusal is red then green through the
+  real central authorizer.
+- [x] `LG-42` (P3, Phase 5): repair or record a decision for the 12 verified P3 findings on responses, conditions and
+  groups: `B05-response` 04, 05, 06, 08, 09, 10, 11, 12, 13, 14, 15, 16. **Closed 2026-10-27:** condition restoration
+  settles before removals, amended retained answers reactivate, final Field ETags and answer/occurrence audit details
+  are returned, value-free dispositions clear values, retained hiding preserves correction revisions, private Template
+  metadata is withheld and saves are bounded; affected response/condition/occurrence suites pass, with decisions for
+  query consolidation and the shared Information Request repository boundary recorded in P3 outcomes.
+- [x] `LG-43` (P3, Phase 6): repair or record a decision for the 14 verified P3 findings on evidence: `B06-evidence` 02,
+  03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15. **Closed 2026-10-27:** all evidence repairs and the FC-15
+  repository-boundary decision are recorded in P3 outcomes; the resumed evidence suites pass, removal/withdrawal HTTP
+  refusals are red then green with INFORMATION_REQUEST_EVIDENCE_REQUEST_INVALID, and sized multipart fixtures restore
+  hidden/unknown target checks (120-case rerun, zero failures/errors/skips); help, API reference, release notes and
+  operator/recovery guidance updated, with typecheck and focused help lint passing.
+- [x] `LG-44` (P3, Phase 7): repair or record a decision for the 11 verified P3 findings on submission, attestation and
+  amendments: `B07-submission` 03, 04, 05, 06, 07, 08, 10, 11, 13, 14, 15. **Closed 2026-10-27:** reconfirmation
+  includes Field values and file-only answers, hidden assertions cannot count, explained exceptions and stable
+  role-order assents are enforced, preview checks continuation, group/linked notice readers resolve correctly, reasons
+  validate before storage and correction refusals are indistinguishable; B07-07 retains documented recovery withdrawal
+  rights; all new tests fail first as intended, then 162 affected tests and 22 privacy tests pass with zero
+  failures/errors/skips; help, API and release notes updated, typecheck and focused lint pass.
+- [x] `LG-45` (P3, Phases 8 and 10): repair or record a decision for the 33 verified P3 findings on reviews, backend and
+  screens: `B08-review` 04, 05, 06, 07, 09, 10, 11, 12, 13, 14, 15, 16; `F03-review-submission` 03, 04, 05, 06, 07, 08,
+  09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23. **Closed 2026-10-27:**
+  current-stage/read-only/revocation/recusal and own-record boundaries, stable input/item refusals, correction/audit
+  integrity, authorization-filtered preview snapshots and workspace recovery repaired test first; P3 scope decisions
+  recorded. Affected backend batches 33, 46, 92 and final 19 pass with zero failures/errors/skips; web 190 plus 34
+  shell/history cases pass; root tsc, app baseline (zero Information Request diagnostics) and scoped lint pass.
+  Help/API/release notes updated; no migration.
+- [x] `LG-46` (P3, Phase 9): repair or record a decision for the 14 verified P3 findings on clocks and notices:
+  `B09-clock-notice` 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18. **Closed 2026-10-27:** retry selection,
+  reminder dispatch/deduplication, immutable transmitted content, due-cycle eligibility, draft budgets/effective start,
+  from-now defaults, bounded inputs, policy privacy, stable revisions and overdue instants repaired test first;
+  metric/event/explicit-date and intra-domain decisions recorded. Backend 160/165 first pass; all five regressions
+  repaired and verified in 43 passing follow-up cases, then the final superseded-point red fixed with 6/6 green. Clock
+  UI 13/13 and count/CSV UI 36/36 pass; root tsc, app baseline and scoped lint pass. Help/API/release notes updated; no
+  migration.
+- [x] `LG-47` (P3, Phase 9): repair or record a decision for the 27 verified P3 findings on audit, record exports,
+  privacy, disposal and record preservation: `B10-records` 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16;
+  `FD3-audit-record-preservation` 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14. Closed 2026-10-28: V185; all 27
+  findings repaired or explicitly decided; final backend batches 15/15 and 66/66, UI 18/18, types/lint and targeted
+  rule/neutrality checks pass; detailed red/green evidence and corrected fixture history are in the resume journal.
+- [x] `LG-48` (P3, Phases 8 and 11): repair or record a decision for the 14 verified P3 findings on external sources and
+  accepted facts: `B11-external-facts` 01, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 15, 16, 17. Closed 2026-10-28:
+  boundary repairs and all 14 P3 outcomes recorded; final backend batches pass 85 and 17 tests, UI 13; root type/scoped
+  lint/rule checks pass; V186, help/API/release notes and journal updated.
+- [x] `LG-49` (P3, Phases 3 to 12): repair or record a decision for the 46 verified P3 findings on contracts, entities
+  and migrations: `B12a-contract-backend` 03, 04, 05, 06, 07, 08, 09, 10; `B12b-contract-web` 02, 04, 05, 06, 07, 08,
+  09, 10, 12; `B13-entities` 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11; `M1-migrations` 02, 03, 04, 06, 08, 09, 10, 11;
+  `M2-migrations` 02, 03, 05, 08; `M3-migrations` 03, 04, 05, 06, 07, 09. Closed 2026-10-28: all 46 outcomes recorded;
+  final backend 105/105, frontend 133, 39 and 14; root/app types, scoped lint, help/CRLF and targeted rules pass; V187
+  to V189, docs and journal updated.
+- [x] `LG-50` (P3, Phase 10): repair or record a decision for the 76 verified P3 findings on the Manage, operations,
+  respondent and Exchange screens and help: `F01-authoring` 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16,
+  17, 18, 19, 20, 21; `F02-operations` 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+  21, 22, 23, 24; `F04-respondent` 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23;
+  `F06-integration` 02, 03, 04, 05, 07, 08, 09, 10, 11, 12, 13, 14, 15. **Closed 2026-10-29:** all 76 findings repaired
+  or decided; per-finding outcomes in `lg50-outcomes-f01-f06.md`, `lg50-outcomes-f02-operations.md` and
+  `lg50-outcomes-f04-respondent.md` (gap report: LG-50 outcomes). Decisions: `F01-authoring` 15, 16, 17 and 19;
+  `F02-operations` 01, 02, 05, 07 and 21; the move and remove part of `F04-respondent-09`. Contract additions without a
+  migration: the response workspace's `purpose=MANAGEMENT` and `creatableGroupKeys`, lineage `series`,
+  `nextOccurrenceCreatable` and each refresh rule's due state, `EXCHANGE_ENDING_HELD_BY_WORKFLOW`, and KiB, MiB and GiB
+  in size refusals. Every repair was red for its intended reason, then green; help, the API reference and the release
+  notes are updated.
+- [x] `LG-51` (P3, Phases 1, 3, 4 and 12): repair or record a decision for the 23 verified P3 findings on the Fields,
+  command, document, authorization and Exchange foundation: `FD1-fields-commands-documents` 01, 02, 03, 04, 05, 06, 07,
+  08, 09, 10, 11; `FD2-authz-shares-exchange-entitlement` 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13. **Closed
+  2026-10-29:** 20 findings repaired, `FD1-06` completed after the hand-back, `FD2-05` and `FD2-06` decided, `FD2-07`
+  and `FD2-08` resolved by LG-49 and LG-02 (`lg51-outcomes.md`, gap report: LG-51 outcomes). Red
+  `lg51-foundation-batch1-red.log` and `lg51-foundation-batch2-red.log`, green `lg51-foundation-green.log` (126 classes,
+  1,112 tests); its 1 failure and 8 errors were stale tests from LG-47 and LG-20, corrected. The API reference, help,
+  release notes and the Exchange Not Ended notice title are added. No migration (V190 went to the LG-GATE follow-through
+  of V189).
+- [x] `LG-52` (repository hygiene): remove or relocate the leftover audit probe folders
+  `web-app/.audit-completeness-20261022/`, `web-app/audit-probes/`, `web-app/.audit-review/` and
+  `web-app/.audit-verification-20261021/`, which `npm test` picks up (one probe test fails on a missing `ResizeObserver`
+  stub). Deleting them needs the owner's approval. **Closed 2026-10-29 (owner decision A):** the four folders were
+  moved, unchanged, to `plans/evidence/leftover-web-probes/<original folder name>/` with a README, so `npm test` no
+  longer runs them.
+- [x] `LG-GATE` (Phase 12): after the repairs, rerun the full backend and frontend suites, packaging and the type, null,
+  lint and build gates; update help, the API reference and release notes for every user-visible change; run the rule and
+  neutrality sweep over the changed files. **Passed 2026-10-29:** full backend 6,040 tests in 809 classes with zero
+  failures, errors or skips (58:31); full frontend 2,074 tests in 323 files (304.6 s); packaging passes (03:27); Vite
+  build passes; root tsc exit 0, app baseline 310 and strict-null 386 with 0 Information Request diagnostics; eslint
+  over every web file changed since 2026-10-28 20:55 exit 0; the rule and neutrality sweep of the 513 changed files
+  finds no em dash, arrow, emoji, industry term, inline style or Button without an id or circular shape, only
+  pre-existing comments in moved lines; help articles under 150 lines. V190 repairs the V189 claim scope this gate
+  exposed. Evidence: `lggate-*.log` and the resume journal.
+
+Follow-ups confirmed while closing the gap analysis (2026-10-29), outside its findings. **All ten are repaired or
+decided (2026-10-29, Claude, uncommitted)**; each repair was red for its intended reason and then green
+(`followups-*.log` in the gap analysis evidence):
+
+- `PUT /exchanges/{id}` still needs only `EXCHANGE_VIEW` for fields outside the owner mutation, so a viewer can
+  overwrite `rejectionReason`, also on a finished Exchange (`ExchangeUpdateService`); it shares the root cause of
+  `B02-lifecycle-01`. `ExchangeResource.updateExchange` has no `ForbiddenException` branch, so a caller without
+  `EXCHANGE_EDIT` gets 500 instead of 403. **Repaired:** the update refuses a `rejectionReason` with `400` (the
+  reason belongs to the acceptance decision) and `updateExchange` answers `403` for a `ForbiddenException`;
+  `initialShareMessage`, the one other field outside the owner mutation, is never written by the update.
+- `ExchangeLifecycleAudit.recordTransition` logs and swallows audit capture failures, so a status change can
+  commit without its audit event. **Repaired:** a capture failure propagates and the status change rolls back.
+- An ending Workflow's confirmation cancels the remaining requests without checking the caller's
+  `INFORMATION_REQUEST_CANCEL` (`ExchangeApprovalEventHandler.requestsPermitEnding` passes no caller access);
+  LG-51 repaired only its attribution. **Repaired:** the cancel authority is checked when the ending is asked
+  for, and the Workflow's confirmation, which has no caller, refuses the ending with
+  `REMAINING_REQUESTS_NOT_CANCELLABLE` when a remaining request was created after that check.
+- The Assigned to you list and its menu flag keep finished requests (`InformationRequestAssignedWorkService`).
+  **Repaired:** both leave out closed, cancelled, superseded and expired requests.
+- A `PARTICIPANT` principal is still checked as an outside individual (`InformationRequestPartyEligibilityService`),
+  and follow-up party copies skip `requireSignedInReviewer` (`InformationRequestPartyMaterializationService`).
+  **Repaired:** a participant is checked by its address, as the account it belongs to when there is one, and
+  follow-up copies and Blueprint defaults apply `requireSignedInReviewer` (a participant Reviewer is not copied,
+  and a Blueprint default one is refused).
+- V181 uses `NULLS NOT DISTINCT`, which needs PostgreSQL 15 or later, while `infra/cloudformation.yml` leaves the
+  RDS engine version unpinned. **Decided:** the migration notes state the requirement and the version check
+  before upgrading; pinning `EngineVersion` changes the RDS resource and is left to the owner.
+- A Document no Exchange holds has no authorization context provider, so its audit is refused; no production path
+  reaches it today. **Decided:** refusal is the safe answer while nothing reaches it; a provider comes with the
+  first path that audits such a Document.
+- Request DTOs, data classes and `toDto` still sit in `SchemaDefinitionService.kt`, `FieldDefinitionService.kt` and
+  other `service/fields` files; JAX-RS annotations are still on `ExchangeResource`, `ExchangeDocumentVersionResource`
+  and the sibling `resource/user` resources; `InformationRequestPartyContactResolver` reads `isActive`, which is
+  always true. **Repaired:** six request bodies moved to `resource/model/FieldsRequests.kt` and five value classes
+  to `model/fields`; `FieldDefinitionDtoMapper` and `SchemaDefinitionDtoMapper` hold the mapping;
+  `ExchangeResource`, `ExchangeAcceptanceResource` and `ExchangeDocumentVersionResource`, the directly annotated
+  resources this program changed, route through `operations` interfaces; the `isActive` check is removed
+  (`FD2-authz-shares-exchange-entitlement-06` keeps participant deactivation out of scope). **Decided:** the other
+  73 directly annotated resources (285 endpoints, `resource/user` among them) predate the rule and are outside this
+  program; each moves to an operations interface when it is next changed.
+- Three P3 repairs the status check could not confirm stay open: `B03-party-access-13` (health indicators keep a
+  fixed zero threshold; the `SUBJECT` Share capability entry stays though no subject party gets a Share),
+  `B03-party-access-14` (no database race test for same-key subjects; no direct tests of request read authorization
+  or related request visibility) and `B08-review-16` (no test of the reconsideration and appeal prior-reviewer
+  exclusion or of review queue membership through a group or linked account). **Repaired:** indicators carry no
+  threshold and are breached above zero; `SUBJECT` left the request Share capabilities and V191 drops it from the
+  Share role check; new tests cover the same-key subject race over HTTP, `InformationRequestReadAuthorization` and
+  `RelatedRequestVisibility`, the reconsideration and appeal exclusion, and queue membership through a group.
+  **Decided:** the queue finds parties through the same resolver for groups and linked participants, and a
+  participant cannot hold a Reviewer party, so the linked account case has no separate test.
+- Code hygiene: `InformationRequestArrayAnswerHttpTest` holds an unrelated organization member test before its
+  fields, the `LedgerProcessor` KDoc leaves out the `user:` streams, and `InformationRequestDocumentPlaceholderResource`
+  uses fully qualified names. **Repaired:** the member test is now `OrganizationMemberRemovalHttpTest`, the KDoc
+  names the `user:<userId>` streams, and the resource imports its types.
+
+Outside this program but found while tracing it: eleven application, audit and identity-domain endpoints return a Kotlin
+`List` in a `Response` and therefore always answer 400 (listed in the analysis). Delivery risk: nothing since commit
+`979bd25b` (2026-10-01) is committed, including migrations V152 to V180; V175 can still fail on a database that holds
+duplicate active parties. Fresh verification for the analysis: full backend **5,722 tests in 761 classes** with zero
+failures, errors or skips; packaging passes; full frontend **1,757 tests in 292 files** without the leftover probe
+folders; app type gate 334 and strict-null 410 with 0 Information Request diagnostics. See
+the [runs](evidence/information-request-gap-analysis-2026-10-26/runs.md). Analysis only; no production change,
+migration, dependency, AWS resource, commit or push.
+
+## Codex Verification Work (2026-10-25, sixth report)
+
+The [sixth Codex verification](information-request-codex-verification-2026-10-25.md) is an independent pass written over
+the fifth report's file; the
+fifth report and its remediation result are preserved in
+[report-before-independent-pass.md](evidence/information-request-codex-verification-2026-10-25/report-before-independent-pass.md).
+It found 1 P2 open in the working tree. The same day's remediation closes it test first; the report's "Remediation
+result (2026-10-25)" and
+the [remediation evidence](evidence/information-request-codex-verification-2026-10-25/independent-pass-remediation/README.md)
+record the rule, tests and runs.
+
+- [x] `CX-01` (P2): record every change the connector worker commits as classified, immutable history. **Closed on
+  2026-10-25:** the worker no longer sets an exchange's state, attempt count, next attempt time, external reference,
+  completion time or failure code itself; `InformationRequestConnectorExchangeRecorder` applies each change and records
+  it in the same transaction as a request transition with its own audit event: `START_EXTERNAL_SOURCE_ATTEMPT`
+  (`information_request.external.attempt`, the claim and its five-minute lease), `SCHEDULE_EXTERNAL_SOURCE_RETRY`
+  (`.retry`, outcome `FAILURE`), `RECORD_EXTERNAL_SOURCE_PENDING` (`.pending`), `COMPLETE_EXTERNAL_SOURCE` (`.complete`,
+  before the result's values) and `FAIL_EXTERNAL_SOURCE` (`.fail`, outcome `FAILURE`, every ending including those found
+  before a call). Each names the platform service account, requires its audit capture, is keyed by exchange, attempt and
+  step, and carries only `connectorExchangeId`, `connectorKey`, `requirementId`, `state`, `attemptCount`, and
+  `nextAttemptAt` or `failureCode`. Connector-returned values require their capture too, so a completion is recorded
+  whole or not at all. V180 widens the transition mutation check; the catalog (version 37), the history's mutation
+  mapping, an `auditOutcome` on the history command and `nextAttemptAt` in the audit allow-list follow. The matrix
+  admits the progress changes where external source records are kept and an ending for any locked request past draft.
+  Tests: `InformationRequestConnectorExchangeHistoryTransactionTest` (7, PostgreSQL, real authorizer, refused captures,
+  overtaken and repeated processing), `InformationRequestConnectorExchangeHistoryContractTest` (3),
+  `InformationRequestConnectorExchangeRecorderTest` (4), and additions to the matrix, catalog and payload policy tests;
+  red 11 of 12 in 3 classes, green 221/221 in 34 classes. The audit's probe failed 2/2 unchanged and passes 2/2 adapted
+  only to the worker's new constructor. Help: the external sources and operations articles; API reference, operator
+  guide, migration notes, recovery runbook and release notes updated.
+
+Verified: full backend **5,722 tests in 761 classes**, full frontend **1,750 tests in 290 files**, packaging and the
+Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the changed or added files finds no em dash, arrow, emoji, new comment, unfinished
+marker, industry term or JAX-RS annotation outside an operations interface. Migration V180; no dependency, AWS
+resource, commit or push. Next: the non-waived live and manual release checks under DV-GATE.
+
+## Codex Verification Work (2026-10-25, fifth report)
+
+The [fifth Codex verification](evidence/information-request-codex-verification-2026-10-25/report-before-independent-pass.md)
+found 1 P1 open in the
+working tree. The same day's remediation closes it test first; the report's "Remediation result (2026-10-25)" and the
+[remediation evidence](evidence/information-request-codex-verification-2026-10-25/remediation-2026-10-25/README.md)
+record the rule, tests and runs.
+
+- [x] `CX-01` (P1): authorize the related requests that audit history and record exports name. **Closed on 2026-10-25:**
+  a request's `.../audit-events` keeps a `successorRequestId` or `supersededByRequestId` payload value only when the
+  central authorizer lets the caller view the request it names (`InformationRequestRelatedRequestVisibility`, one
+  decision per related request per read); otherwise the key is withheld and counted in `withheldKeyCount`, and the
+  event, its sealed record and the owner audit search are unchanged. A new record export freezes
+  `request.supersededByRequestId`, and each recertification's `sourceInformationRequestId` with that source's package,
+  item, Requirement, Field Value Revision, review and evidence version ids, as `null` with a redaction marker when its
+  creator may not view that request (`InformationRequestRecordRelatedRequests`), and the hash covers what is stored.
+  Reading an export verifies the stored hash, then applies the same rule for the reader and reports
+  `withheldRelatedRequestCount`; the stored export never changes. Subject exports read through privacy keep them. The
+  follow-up history uses the same visibility helper. Tests: `InformationRequestRelatedRequestRecordTransactionTest` (4,
+  real authorizer, HTTP, built from the audit probe's fixture), a recertification export case in
+  `InformationRequestFactRecertificationTransactionTest`, `InformationRequestRecordRelatedRequestsTest` (7), and
+  additions to the payload policy, audit service and export service unit tests; red 14 of 46 in 6 classes at their
+  disclosure assertions, with the recertification case failing at its own disclosure assertion once its setup was
+  corrected (1 of 13). The audit's probe passes unchanged. Help: the operations article; API reference, operator guide
+  and release notes updated.
+
+Verified: full backend **5,705 tests in 758 classes**, full frontend **1,749 tests in 290 files**, packaging and the
+Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the changed or added files finds no em dash, arrow, emoji, new comment, unfinished
+marker, industry term or JAX-RS annotation outside an operations interface. No migration, dependency, AWS resource,
+commit or push. Next: the non-waived live and manual release checks under DV-GATE.
+
+## Codex Verification Work (2026-10-24, fourth report)
+
+The [fourth Codex verification](information-request-codex-verification-2026-10-24.md) found 1 P1 open in the
+working tree. It was written to the third report's file name, so the third report's remediation record survives in
+its [evidence](evidence/information-request-codex-verification-2026-10-24/remediation-2026-10-24/README.md) and the
+record script there. The same day's
+remediation closes CX-01 test first; the report's "Remediation result (2026-10-24)" and the
+[remediation evidence](evidence/information-request-codex-verification-2026-10-24/remediation-2026-10-24-lineage/README.md)
+record the rule, tests
+and runs.
+
+- [x] `CX-01` (P1): authorize both ends of every relation the follow-up history returns. **Closed on 2026-10-24:**
+  `InformationRequestLineageQueryService.lineage` authorizes the request it is read for, then checks view access through
+  the central authorizer for the request each relation names: the source a follow-up came from and each follow-up are
+  returned only to a caller who may view them, and left out, as if they did not exist, for anyone else.
+  `nextOccurrenceDueAt`, which counts every occurrence of the series, and the new `everyOccurrenceCreated` are given
+  only to a caller who may view every occurrence; the Follow-up requests panel says every scheduled request was created
+  only on that flag and leaves the due check to the server when the due time is withheld. A superseded request's header
+  names `supersededByRequestId` only to a caller who may view the replacement. Persisted lineage is unchanged. Tests:
+  `InformationRequestLineageVisibilityTransactionTest` (6, both directions, the due time, a finished series, HTTP, the
+  header; red 6 of 6 at the denial assertions), `InformationRequestHeaderProjectionServiceTest`,
+  `InformationRequestDtoMapperTest`, `InformationRequestSuccessorResourceContractTest`, `FollowUpPanel.test.tsx` and
+  `followUpAvailability.test.ts` (red 1 of 22 against the original panel). The audit's probe passes unchanged. Help: the
+  managing article; API reference, operator guide and release notes updated.
+
+Verified: full backend **5,683 tests in 756 classes**, full frontend **1,748 tests in 290 files**, packaging and the
+Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the changed or added files finds no em dash, arrow, emoji, new comment, unfinished
+marker, industry term or JAX-RS annotation outside an operations interface. No migration, dependency, AWS resource,
+commit or push. Next: the non-waived live and manual release checks under DV-GATE.
+
+## Codex Verification Work (2026-10-24, third report)
+
+The [third Codex verification](information-request-codex-verification-2026-10-24.md) found 1 P2 and 1 P3 open in
+the working tree. The same day's remediation closes both; the report's "Remediation result (2026-10-24)" and the
+[remediation evidence](evidence/information-request-codex-verification-2026-10-24/remediation-2026-10-24/README.md)
+record the rules, tests and runs.
+
+- [x] `CX-01` (P2): offer the draft supersession and draft follow-up scheduling the server permits on the Manage page.
+  **Closed on 2026-10-24:** `authorActionPermissions` derives draft supersession from the projected `supersede` action
+  and the owner recovery rule, as for an issued request, and the Manage page mounts the Follow-up requests panel on
+  drafts, where `scheduleFollowUps` and an active standing offer the recurrence schedule and refresh rules; creating a
+  follow-up still waits until the request is issued. No server change. Tests: `authorActionPermissions.test.ts`,
+  `RequestLifecycleActions.test.tsx`, `FollowUpPanel.test.tsx` and the Manage page tests (red 9 of 96 in 4 files against
+  the original components), and `InformationRequestDraftAuthorActionTransactionTest` (6) through the real authorizer and
+  services: the draft projection on an active and a draft Exchange over HTTP, superseding a draft with another draft, a
+  draft's recurrence whose next occurrence waits until issue, a deleted Exchange, and a lapsed plan. Help: the managing
+  article; API reference, operator guide and release notes updated.
+- [x] `CX-02` (P3): move the feature's test data classes into model packages. **Closed on 2026-10-24:** the 73 data
+  classes listed and 6 more in this feature's tests outside the scanned paths live in `model` subpackages of their test
+  packages (66 new model files), with public and internal visibility kept and private nested classes made `internal`;
+  generic nested names became descriptive, the duplicate nested `ReviewFixture` gave way to the shared one, and
+  `CredentialCommandCutoffCase.SOURCE` follows its class. The repeated scan finds 0 data classes outside a model
+  package. The 23 data classes in tests of other areas followed the same day at the user's request (22 new model files,
+  29 test files changed, the 36 affected test classes 378/378), so no test data class sits outside a model package.
+
+Verified: full backend **5,674 tests in 755 classes**, full frontend **1,741 tests in 289 files**, packaging and the
+Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the changed or added files finds no em dash, arrow, emoji, new comment, unfinished
+marker, industry term or JAX-RS annotation outside an operations interface. No migration, dependency, AWS resource,
+commit or push. Next: the non-waived live and manual release checks under DV-GATE.
+
+## Codex Verification Work (2026-10-23, second report)
+
+The [second Codex verification](information-request-codex-verification-2026-10-23.md) found 1 P1 and 1 P2 open in
+the working tree. The same day's remediation closes both test first; the report's "Remediation result (2026-10-23)" and
+the [remediation evidence](evidence/information-request-codex-verification-2026-10-23/remediation-2026-10-23/README.md)
+record the rules, tests and runs.
+
+- [x] `CX-01` (P1): authorize each Requirement a response patch names before its membership, removal or lock is checked.
+  **Closed on 2026-10-23:** `InformationRequestResponseDraftService` checks view access to every Requirement a patch
+  names and every id confirmed for clearing, then membership, removal and locks, then respond access; a replay checks
+  its targets the same way. A hidden and an unknown Requirement answer the same `403` with the same body; a caller who
+  may view a Requirement keeps its specific refusal. Tests:
+  `InformationRequestResponseTargetAuthorizationTransactionTest` (the audit's probe through the real authorizer, the
+  confirmed-clear case, the assigned control), `InformationRequestHiddenRequirementHttpTest` (signed-in and access-link
+  surfaces), a draft service unit test. The FC-01 refusal of one party confirming the clear of another party's answer
+  stays: when the caller may not see that Requirement it now answers `403` like an unknown one, and
+  `409 HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED` remains for a caller who may see but not answer it;
+  `InformationRequestHiddenFieldSaveTransactionTest` and `InformationRequestHiddenEvidenceTransactionTest` were updated
+  to that rule.
+- [x] Same rule on four sibling route families, found by a read-only sweep while repairing CX-01 and confirmed in the
+  code. **Closed on 2026-10-23:** the file routes of a Requirement authorize view, manage or the route's own action
+  before the Requirement, file or lock is read (`InformationRequestEvidenceGate.requireEvidenceTarget`); group
+  occurrence changes answer an unknown key or occurrence like one the caller may not change and authorize before lock,
+  parent, order and count checks, with one parent message; a file a submission does not hold answers `404` only to a
+  caller who may open every file of that submission; a respondent's review comment answers an item it may not see like a
+  missing one before the decided check, offers recent verification only for an item it could see once verified, and
+  refuses a finding or comment it may not see like a missing one. Tests: `InformationRequestHiddenRequirementHttpTest`,
+  `InformationRequestHiddenGroupHttpTest`, `InformationRequestRetainedPackageEvidenceTest` (two cases),
+  `InformationRequestReviewCommentTargetTransactionTest`.
+- [x] `CX-02` (P2): project action-specific permissions into the author workspace and apply them to the outcome,
+  follow-up and clock controls. **Closed on 2026-10-23:** `InformationRequestAuthorActionService` computes
+  `authorActions` (issue, cancel, supersede, completion gate, parties, recipient preview, clocks, follow-up scheduling
+  and creation, promotion, revocation, decisions) from the central authorizer and
+  `InformationRequestTransitionMatrix.canMutate` for the parent Exchange and the request state, only for a caller who
+  manages the request; `authorActionPermissions` combines it with the request state and the owner's standing. Tests:
+  `InformationRequestAuthorActionTransactionTest` (active, ended, rejected, rescinded, deleted and draft Exchanges, a
+  respondent, the workspace over HTTP, decision agreement), `authorActionPermissions.test.ts`, `RequestOutcomesPanel`,
+  `FollowUpPanel`, `RequestLifecycleActions` and Manage page tests.
+
+Verified: full backend **5,668 tests in 754 classes**, full frontend **1,728 tests in 289 files**, packaging and the
+Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the changed or added files finds no em dash, arrow, emoji, new comment, unfinished
+marker, industry term or JAX-RS annotation outside an operations interface. No migration, dependency, AWS resource,
+commit or push. Next: the non-waived live and manual release checks under DV-GATE.
+
+## Codex Verification Work (2026-10-22)
+
+The [Codex verification](information-request-codex-verification-2026-10-22.md) found 1 P1, 2 P2 and 1 P3 open in
+the working tree. The 2026-10-23 remediation closes all four test first; the report's "Remediation result (2026-10-23)"
+and
+the [remediation evidence](evidence/information-request-codex-verification-2026-10-22/remediation-2026-10-23/README.md)
+record the rules, decisions, tests and runs.
+
+- [x] `CX-01` (P1): authorize the target request before any lookup, lock or nested read, uniformly for queries and
+  mutations. **Closed on 2026-10-23:** `InformationRequestReadAuthorization.requireVisibleTarget` runs before the first
+  lookup or lock on every signed-in path, directly or through the mutation and evidence gates;
+  `InformationRequestQueryService.findById` authorizes view first; the delegated authority listing, the access link
+  listing and lock, and the document placeholder query authorize before they read. No-auth sessions are bound to their
+  link's request and keep `404` for any other. The Exchange request listing authorizes before it looks up the Exchange.
+  Tests: `InformationRequestUnknownTargetHttpTest` (94 routes plus the listing), `InformationRequestQueryServiceTest`;
+  red 86 of 94 with the checks reversed (the other 8 routes already authorized first) and 2 of 110 for the listing.
+- [x] `CX-02` (P2): separate the author page's permissions for changes, access reductions and each clock action.
+  **Closed on 2026-10-23:** `authorActionPermissions` derives party change, access reduction, clock start or resume,
+  clock pause or extend, and the completion gate from the request state and standing; the Parties panel, party rows,
+  access link actions and the clock panel use it. Tests: `authorActionPermissions.test.ts`, `PartyRow.test.tsx`,
+  `RequestClockPanel.test.tsx`, `InformationRequestAuthorWorkspace.test.tsx`; red 3 page cases against the original
+  components.
+- [x] `CX-03` (P2): a replay must not pair a later body with an earlier ETag. **Closed on 2026-10-23 with the owner's
+  decision "Current state, current ETags":** every replay answers its target as it stands now and every ETag it returns
+  describes that state: completion gate, lifecycle, ad hoc, Template and Blueprint creation, amendments, successors,
+  follow-up definitions, file collection and upload, parties, delegated authority, answers, recertification, account
+  linking and access link revocation. Access link issue, rotation and replacement replays stay refused because a raw
+  token is shown once. REST and Application-Service Rules, the API reference and the release notes state the rule.
+  Tests: `InformationRequestReplayCurrentStateTransactionTest` and a retried-after-a-later-change case in nine classes;
+  red 14 of 126 and 4 of 96.
+- [x] `CX-04` (P3): ids at custom component call sites. **Closed on 2026-10-23 with the owner's decision "Scoped
+  exception":** like DX-55, a custom component that gives its own rendered root a stable id needs no id at its call
+  site. Neither does a wrapper that renders no element of its own: Dialog, Tooltip, Fragment, context providers, or an
+  icon inside an identified control. A rendered page must not repeat an id: `shared/testing/duplicateIds.ts` asserts it
+  next to the unnamed-control check in 18 page and panel tests. AGENTS.md is unchanged.
+- [x] Standing gaps found while repairing CX-02, with the owner's decision "Fix both here": access link issue, resend
+  and replacement call `requireContinuation` and are refused under suspension (`403 SUBSCRIPTION_SUSPENDED`) and after
+  grant revocation (`409 INFORMATION_REQUEST_EXECUTION_GRANT_REVOKED`), while revocation stays possible; the Outcomes
+  panel offers Promote and Record decision, with Reconsider and Appeal, only when changes are allowed, and revoking an
+  accepted fact stays. Tests: `InformationRequestAccessLinkStandingTransactionTest` (red 2 of 3),
+  `RequestOutcomesPanel.test.tsx` (red 2).
+
+Verified: full backend **5,621/749**, full frontend **1,700/289**, packaging and the Vite build pass;
+type, null and lint gates at their baselines (334, 410, 59 errors / 46 warnings) with 0 Information Request diagnostics;
+root `tsc` passes. The rule sweep of the 95 changed or added files finds no em dash, arrow, emoji, explanatory comment,
+unfinished marker, industry term or JAX-RS annotation outside an operations interface. Q1 to Q3 keep the recorded
+behavior. No migration, dependency, AWS resource, commit or push. Next: the non-waived live and manual release checks
+under DV-GATE.
+
+## Independent Deep Verification Work (2026-10-21)
+
+The [deep verification report](information-request-deep-verification-2026-10-21.md) supersedes older
+open counts for the paths it verifies. It records the complete fresh regression run and the separate
+failing probes. No repair was made during that review; its evidence does not close the rest of the DX backlog.
+
+- [x] `DV-01 / DX-29` (P2): authorize the supersede replacement for the caller. The reason is already in the current
+  fingerprint; preserve that behavior and replay checks. **Closed on 2026-10-21:** `replacementRequest` authorizes
+  `INFORMATION_REQUEST_SUPERSEDE` on the replacement before reading it; unknown and unauthorized ids answer the same
+  `403`; the dialog lists only open requests the caller manages. Tests:
+  `InformationRequestSupersedeReplacementAuthorizationTransactionTest`, `SupersedeRequestDialog.test.tsx`.
+- [x] `DV-02 / DX-50` (P2): apply operational suspension to manual clock pause and extension while preserving the
+  explicitly allowed recovery after execution-grant revocation. **Closed on 2026-10-21:** pause and extend call
+  `requireOwnerRecovery(locked)`; clock commands authorize first. Test:
+  `InformationRequestClockSuspensionTransactionTest`.
+- [x] `DV-03 / DX-48` (P2): deliver the overdue notice caused by an expiring clock under an explicit rule that preserves
+  cancellation, reassignment, and other notice cutoffs. **Closed on 2026-10-21:** only a `RESPONSE_OVERDUE` notice whose
+  clock event belongs to the clock and due cycle of the request's `EXPIRED` event is exempt from `REQUEST_FINISHED`, at
+  rendering and delivery. Test: `InformationRequestScheduledStandingTransactionTest` (+6).
+- [x] `DV-04 / DX-40` (P3): derive configuration from the resource owner and key client loads/selections by owner
+  identity. Cover direct session changes and the complete menu journey; the current hook probe does not prove a defect
+  after the menu's reset/navigation. **Closed on 2026-10-21:** listing `creationOwner`, `shared/ownerWorkspace.ts`,
+  sources and due date policies read only in the owner's workspace and keyed by its identity. Tests:
+  `useRequestSourceOptions.test.ts`, `ownerWorkspace.test.ts`,
+  `ExchangeInformationRequestsTab.workspaceSwitch.test.tsx`, `CreateInformationRequestDialog.test.tsx`,
+  `RequestClockPanel.test.tsx`, `InformationRequestExchangeSummaryServiceTest`.
+- [x] `DV-05 / DX-30` (P3): distinguish refused lineage and replacement-list reads from successful empty results, with
+  retry and dependent-control withholding. **Closed on 2026-10-21:** both reads go through `useServerRead` with a
+  loading state, Try again and withheld dependent controls. Tests: `FollowUpPanel.test.tsx`, `useFollowUps.test.ts`,
+  `SupersedeRequestDialog.test.tsx`.
+- [ ] `DV-GATE`: promote the retained probes during repair, rerun affected and full regression gates, reconcile the
+  remaining DX-28 to DX-56 work, and complete the non-waived release checks. Keep unrelated application TypeScript/lint
+  failures explicit. **Partly done on 2026-10-21:** probes promoted into permanent tests (adapted copies kept in the
+  remediation evidence), affected and full gates rerun, DX-29 and DX-40 closed and DX-28, DX-30, DX-48 and DX-50
+  narrowed; the non-waived release checks and the remaining DX items stay open. **Updated on 2026-10-22:** DX-28 to
+  DX-56 are closed and the full gates rerun (DX-GATE); only the non-waived live and manual release checks stay open.
+
+Verified: full backend **5,304 / 738**, included migrations **315 / 82**, eight neutral scenarios **14 / 8**, full
+frontend **1,597 / 278**, packaging and Vite. Separate probes: backend **8 pass / 4 fail**;
+frontend **3 pass / 4 fail**, for the intended behaviors in the report. Raw application TypeScript and
+full lint remain at their reviewed failing baselines. No production repair, migration, commit, or push.
+Exact next implementation task: the non-waived live and manual release checks under DV-GATE; the DX backlog is closed
+(2026-10-22).
+
+## Current-State Audit Work (2026-10-21)
+
+The [current-state audit](information-request-current-state-audit-2026-10-21.md) and its
+[retained evidence](evidence/information-request-current-state-audit-2026-10-21/README.md) take precedence
+over earlier audit counts for the reproduced paths. They verify the dirty checkout, including later repairs.
+The companion completion-evidence file is already staged for deletion and was not restored.
+
+- [x] `CS-01 / DX-26`: enforce trust eligibility in group-mediated grants and exact Requirement acting-party facts.
+  Preserve continuation for already-eligible parties. Independently verified in the later deep verification, including
+  seven PostgreSQL regressions.
+- [x] `CS-02 / DX-16`: enforce suspension, grant revocation and continuation policy before scheduled clock effects and
+  outstanding notice delivery. Independently verified in ten PostgreSQL regressions; manual clock commands remain DV-02.
+- [x] `CS-03 / DX-07`: reconcile referenced recipient bindings during trusted re-invitation and primary replacement
+  without erasing request-party history. Independently verified in five transaction regressions.
+- [x] `CS-04 / DX-22`: coordinate review-management and worksheet/decision feedback so an earlier success cannot hide a
+  later refusal. Independently verified in seven workspace React regressions.
+- [x] `CS-05 / DX-23`: give non-manager reviewer delegation an authorized candidate projection with distinguishable
+  labels. Independently verified in six PostgreSQL and four React regressions, within the report's scope.
+- [ ] `CS-GATE`: the CS repairs have permanent regressions and fresh full-suite verification. The remaining DX backlog,
+  DV findings, raw application gates, and non-waived live/manual release checks remain open under DV-GATE.
+
+Verification: feature backend **2,897 tests / 372 classes**, including **189 migration tests / 44 classes**;
+all eight neutral scenarios **14 cases / 8 classes**, plus **38** content-type cases; adjacent authorization,
+Fields, trust and Blueprint tests **455 / 56**; full frontend **1,584 / 276**; package passes with tests explicitly
+skipped for that separate packaging run. Repeated classes across these runs are not summed as unique tests.
+The fresh PDF subprocess refuses the compressed payload under a 128 MiB heap and accepts an ordinary PDF.
+No production repair, new migration, AWS resource, commit or push. Neutrality, help-size and snapshot checks
+are recorded in the report and evidence. That historical next task was `CS-01 / DX-26`; use the later DV section for
+current work.
+
+## Deep Analysis Work (2026-10-21)
+
+- [x] DX-01 (P1, Phase 10, FC-20 regression): the Create Information Request dialog failed for every caller who is not
+  an App Administrator because it listed PLATFORM Schemas, which the server refuses to them. **Closed on 2026-10-21:**
+  the dialog and the Template editor ask for the owner scope's Schema list only (`fieldScopeFor`), which
+  `findAllForOrganization` and `findAllForUser` already fill with platform Schemas; `schemaScopesFor` and
+  `distinctSchemas` are removed; the Request Schema picker offers no retired Schema but keeps the one a Template already
+  uses. The analysis's second effect (editor never lists platform Schemas) was not real. Tests:
+  `CreateInformationRequestDialog.test.tsx`, `InformationRequestTemplatesTab.test.tsx`, `TemplateEditor.test.tsx`.
+- [x] DX-02 (P1, Phase 6): a crafted ZIP64 upload overflowed the central directory bound check and allocated about 2 GB;
+  a compound document with a negative stream size answered 500. **Closed on 2026-10-21:**
+  `InformationRequestEvidenceArchiveInspection` compares the record position and directory by subtraction and refuses a
+  directory over `maximumDirectoryBytes` (16 MiB) before allocating;
+  `InformationRequestEvidenceCompoundDocumentInspection` refuses a negative entry size; both report any runtime failure
+  as corrupt. The PDF path is DX-57. Tests: `InformationRequestEvidenceContentInspectorTest` (negative stream size, two
+  overflowing ZIP64 records, the directory bound).
+- [x] DX-03 (P2, Phases 1 and 2): refuse at publication or issue a Field Requirement answered by an outside contributor
+  whose binding is not PUBLIC and writable, and mirror it in the preflight. **Closed on 2026-10-21 (verification
+  remediation, uncommitted).**
+- [x] DX-04 (P2, Phase 2): replace the exponential condition cycle walk with a visited-set search and cap Requirements,
+  rules and predicates per Template. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-05 (P2, Phase 8, RC-21 regression): let the parent policy admit fact revocation and the request fact list on
+  ENDED, REJECTED and RESCINDED parents; show Revoke on cancelled, superseded and expired requests; test through the
+  real authorizer. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-06 (P2, Phase 4): base read-side manager standing on a read action so the owner of a terminal request keeps the
+  management workspace, party names and Corrections. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-07 (P2, Phase 3): re-inviting a trusted participant must not delete an `exchange_recipient` binding a request
+  party references. Current repair independently verified by CS-03 transaction regressions in the later deep
+  verification.
+- [x] DX-08 (P2, Phase 5): leave Requirements of removed occurrences out of the group change authorization so a parent
+  can be removed or reordered after a nested entry was removed. **Closed on 2026-10-21 (verification remediation,
+  uncommitted).**
+- [x] DX-09 (P2, Phases 5, 7 and 10): project per-item editability (stage lock, correction scope) and render locked
+  items read-only; drop a disposition edit equal to the stored value; let a refused patch be discarded. **Closed on
+  2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-10 (P2, Phase 7): give amendment reconfirmation items a Confirm unchanged action that sends the current answer.
+  **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-11 (P2, Phases 5 and 7): reactivate a hidden answer when an amendment makes its Requirement unconditional or
+  moves it to a TRUE rule. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-12 (P2, Phase 6): detect content type with the file name as a hint and compare declared and detected types by
+  family so OOXML, CSV, JSON and XML files can conform. **Closed on 2026-10-21 (verification remediation,
+  uncommitted).**
+- [x] DX-13 (P2, Phase 7): refuse withdrawing a correction resubmission, or restore the corrected package and reopen the
+  correction. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-14 (P2, Phases 7 and 10): let the attestation card choose the acting party when the caller holds several.
+  **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-15 (P2, Phase 7): follow the latest occurrence that may be followed so a recurrence series continues after a
+  cancellation or supersession. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-16 (P2, Phase 9): apply the continuation guard (grant revocation, operational suspension, SEND_REMINDER) to
+  scheduled reminders, overdue notices and expiry, or record the decision. Current scheduled-standing repair
+  independently verified by CS-02; manual suspension and expiry notice delivery remain DV-02 and DV-03.
+- [x] DX-17 (P2, Phase 9): give manual bulk reminders a due time or token-free text so no literal `{{DUE_AT}}` is sent.
+  **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-18 (P2, Phase 9): include covering holds in the Records tab standing before every early return. **Closed on
+  2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-19 (P2, Phase 3): authorize request creation (ad hoc, Template, Blueprint) right after the Exchange lock,
+  before the deleted, matrix and entitlement checks. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-20 (P2, Phase 10): reload the submission preview after evidence upload, replacement and withdrawal. **Closed on
+  2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-21 (P2, Phase 10): derive Document answers in the review before submitting and in section progress from
+  evidence, not the stored disposition. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-22 (P2, Phase 10): keep one message slot in the review workspace so later refusals are not hidden by an earlier
+  management success. Current shared-feedback repair independently verified by CS-04 workspace tests.
+- [x] DX-23 (P2, Phase 10): give reviewer delegation recipient-safe labels for candidates. Current candidate projection
+  independently verified by CS-05 service and React tests.
+- [x] DX-24 (P2, Phase 13, predates the program): map Blueprint participant defaults to and from the Exchange start
+  shape; remove the two baseline type errors in `ExchangeInitiation.tsx`. **Closed on 2026-10-21 (verification
+  remediation, uncommitted).**
+- [x] DX-25 (P2, Phase 4): restore the contact-proof challenge budget on successful verification so `maxUses` is the
+  effective limit. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-26 (P2, Phase 4): apply trust eligibility to group-mediated grants on requests and their parent Exchange.
+  Current repair independently verified by CS-01 initialized-authorization PostgreSQL tests.
+- [x] DX-27 (P2, Phase 8, RC-11 regression): apply the source Requirement content check to requesting-side accepted-fact
+  offers. **Closed on 2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-28 (P3, RC-18): authorize before state disclosure in the evidence, response and occurrence, clock,
+  external-source and imported-value, follow-up scheduling and recertification, review comment, reconsideration and
+  Business Decision commands and in Template Version resolution; extend the authorization-order test. Clock start and
+  change authorize first since the DV-02 repair (2026-10-21); the other commands remain. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** the evidence, response and occurrence, external-source and imported-value,
+  generated-output, recurrence and refresh-rule, recertification, review comment, reconsideration, appeal and Business
+  Decision commands authorize the caller before reading state, locks, `If-Match` or grant standing; respondent commands
+  check request VIEW first and keep their own refusals; Template Version selection and instantiation resolve only
+  Versions the owner holds. Tests: `InformationRequestCommandAuthorizationOrderTransactionTest`,
+  `InformationRequestTemplateVersionReferenceTest`, `BlueprintTemplateVersionReferenceTest`,
+  `InformationRequestTemplateInstantiationServiceTest`.
+- [x] DX-29 (P3): authorize the supersede replacement for the caller; include the reason in the supersede retry
+  signature. **Closed on 2026-10-21 by DV-01;** the reason was already in the fingerprint.
+- [x] DX-30 (P3, FC-20 gaps): state refused reads with Try again in the supersede candidates, follow-up lineage, request
+  Reviews panel and remaining author reads. Supersede candidates and follow-up lineage done by DV-05 (2026-10-21); the
+  request Reviews panel and remaining author reads remain. **Closed on 2026-10-22 (deep analysis backlog,
+  uncommitted):** the request Reviews panel and the party dialogs state refused reads with Try again. Tests:
+  `RequestReviewsPanel.test.tsx`, `AddPartyDialog.test.tsx`, `ReassignPartyDialog.test.tsx`.
+- [x] DX-31 (P3, plausible, FC-04): add If-Match to the override, assignment, assignment-change and reopen fingerprints.
+  **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** override, assignment-change and reopen receipts include
+  the `If-Match` value. Tests: `InformationRequestReviewTransactionTest`,
+  `InformationRequestReviewDecisionTransactionTest`, `InformationRequestReviewIntegrityTransactionTest`.
+- [x] DX-32 (P3, plausible, FC-02): revoke access links with a cutoff when an Exchange end cancels remaining requests.
+  **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** a request cancelled by an Exchange end has its access
+  links revoked with reason `REQUEST_CANCELLED` in the same transaction. Test:
+  `InformationRequestExchangeCompletionServiceTest`.
+- [x] DX-33 (P3, FC-22 regression): carry recipient-safe prompts to reviewers; name amendment changes by prompt.
+  **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** review items carry the Requirement `prompt`; the
+  amendment summary names changes by prompt. Tests: `InformationRequestReviewWorkspace.test.tsx` and its split suites,
+  `InformationRequestAmendmentSummary.test.tsx`, `RequestOutcomesPanel.test.tsx`.
+- [x] DX-34 (P3, SB-04): make evidence panel ids injective. **Closed on 2026-10-22 (deep analysis backlog,
+  uncommitted):** evidence panel and offer ids are composed injectively. Tests: `RequirementEvidencePanel.test.tsx`,
+  `ReusableAnswerOffer.test.tsx` and the respondent workspace suites.
+- [x] DX-35 (P3): word upload-limit and evidence-policy refusals by the limit that applied. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** upload refusals state the limit that applied and policy values in words. Tests:
+  `InformationRequestEvidenceIntakeTest`, `requirementEvidenceLabels.test.ts`.
+- [x] DX-36 (P3): pending scans do not make coverage DEFICIENT; keep repeated finding codes by detail; apply condition
+  visibility to evidence detail and content routes or record the decision. **Closed on 2026-10-22 (deep analysis
+  backlog, uncommitted):** a file awaiting its scan counts toward minimums; repeated finding codes are kept by detail;
+  item and file routes of a condition-hidden Requirement answer `404`. Tests:
+  `InformationRequestHiddenTargetTransactionTest`, `RequirementEvidencePanel.test.tsx`.
+- [x] DX-37 (P3): name reviewer downloads by the declared file name. **Closed on 2026-10-22 (deep analysis backlog,
+  uncommitted):** reviewer downloads use the declared file name. Test: `ReviewItemContent.test.tsx`.
+- [x] DX-38 (P3): multi-select clear on a Schema-required binding; Blueprint defaults respect read-only and skip
+  incompatible values; lock Schema draft and publish. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** an
+  answer emptied by deselection or blank text is cleared and the Template decides; Blueprint Field defaults skip
+  read-only bindings and log an incompatible value; Schema commands lock the Schema first. Tests:
+  `SchemaAssignmentDefaultAndSparseValueTest`, `SchemaDefinitionLifecycleLockTest`,
+  `SchemaDefinitionTenantBoundaryTest`.
+- [x] DX-39 (P3): Template copy only from a published Version; Definition status after retiring with a draft; refusal
+  keys for references and text length; refusals inside the copy and retire dialogs. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** copy only from a published Version; retiring sets the Definition status from the
+  remaining Versions; refusal keys and text limits (`400`); refusals shown inside the dialogs. Tests:
+  `InformationRequestTemplateLifecycleServiceTest` and the Template dialog suites.
+- [x] DX-40 (P3): take the create dialog sources and Start clock policies from the request or Exchange owner, not the
+  session. **Closed on 2026-10-21 by DV-04.**
+- [x] DX-41 (P3): party history for Blueprint and follow-up parties; reason codes instead of 404; group removal and
+  request parties; owner check for PARTICIPANT in Exchange access grant. **Closed on 2026-10-22 (deep analysis backlog,
+  uncommitted):** Blueprint, follow-up and successor parties record `ASSIGN_PARTY`; party and delegation refusals carry
+  `PARTY_ASSIGNMENT_INVALID`, `PARTY_NOT_REASSIGNABLE`, `PARTY_ALREADY_REVOKED` and the `DELEGATED_AUTHORITY_*` codes;
+  deleting or deactivating a group revokes its request parties (`GROUP_REMOVED`) and a group with an active request
+  Share is deactivated; Exchange access grants resolve a PARTICIPANT only for its owner. Tests:
+  `InformationRequestPartyWritersTest`, `InformationRequestDelegatedAuthorityServiceTest`,
+  `InformationRequestCredentialCutoffTransactionTest`, `OrganizationGroupDeletionTest`,
+  `ExchangeAccessManagementServiceTest`, `PrincipalGroupServiceTest`,
+  `InformationRequestTemplateWalkingSkeletonRuntimeTest`.
+- [x] DX-42 (P3): participant-level account link; reachable ACCOUNT_LINKED refusal; any live Share in the conflict
+  check; ended trust and B2B policy at upgrade; decide requireRecipientSignIn for unlinked participants. **Closed on
+  2026-10-22 (deep analysis backlog, uncommitted):** linking is per participant (every active party gets its own account
+  Share and cutoff); contact proof refuses a linked party's link as linked; the conflict check covers every live direct
+  Share; the owner's sharing policy applies at linking. DECISION: once the Exchange requires recipient sign-in, a
+  participant who never linked cannot link (`RECIPIENT_SIGN_IN_REQUIRED`) and is reassigned to an Exchange recipient;
+  the Exchange settings say so. Tests: `InformationRequestUpgradedPartyAccessTransactionTest`,
+  `InformationRequestParticipantAccountUpgradeServiceTest`, `InformationRequestRequirementPolicyEvaluatorTest`,
+  `ExchangeSettingsPanel.test.tsx`, `respondentAccessRefusal.test.ts`.
+- [x] DX-43 (P3): reset the contact-proof panel after a session ends; ignore Enter on an empty code; send the real
+  Retry-After. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** `Retry-After` states the seconds left on
+  the current pause; Enter ignores an empty code; the panel clears the sent notice and code when a session starts or
+  ends. Tests: `AuthRateLimitServiceTest`, `InformationRequestNoAuthRateLimitTest`, `ContactProofPanel.test.tsx`.
+- [x] DX-44 (P3): Move up and down by one; section progress for cleared values; accepted-answer reuse keeps a permitted
+  disposition; prune hidden-clear confirmations; client mirror under redacted per-occurrence evaluation. **Closed on
+  2026-10-22 (deep analysis backlog, uncommitted):** Move up and down by one; Field progress ignores cleared values;
+  accepted-answer offers only where the binding permits PROVIDED; hidden-clear confirmations are pruned; a withheld
+  per-occurrence result falls back to the server's projection. Tests:
+  `InformationRequestFactRecertificationTransactionTest`, `occurrenceOrder.test.ts`, `sectionSummaries.test.ts`,
+  `InformationRequestResponseWorkspaceServiceTest`.
+- [x] DX-45 (P3): attestation refusals do not lapse silently; Withdraw only for withdrawable packages; Keep enabled in
+  refusing mode. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** refusals no longer lapse (expiry only on
+  assents); packages report `current` and `withdrawable`; a replaced package refuses withdrawal as replaced; Keep stays
+  enabled while refusing. Tests: `InformationRequestAttestationPolicyEvaluatorTest`,
+  `InformationRequestSubmissionTransactionTest`, `SubmissionPackageList.test.tsx`, `SubmissionAttestationCard.test.tsx`.
+- [x] DX-46 (P3): offer follow-up actions only in the states the matrix allows. **Closed on 2026-10-22 (deep analysis
+  backlog, uncommitted):** follow-up actions follow the matrix states. Test: `FollowUpPanel.test.tsx`.
+- [x] DX-47 (P3): a withdrawn review is not settled for respondents; Override only on open stages; reload after a stale
+  worksheet; keep typed text until the command answers; align manager findings with help. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** only decided reviews count for respondents and replies; Override only on open stages
+  and undecided items; stale saves reload with choices kept; typed text stays until recorded; managers add findings.
+  Tests: `InformationRequestReviewQueryTransactionTest`, `ReviewWorkspaceManagement.test.tsx`,
+  `InformationRequestReviewResults.test.tsx`, `useReviewManagement.test.ts`.
+- [x] DX-48 (P3): rebase a draft clock at issue; deliver overdue notices for EXPIRE_REQUEST; one reminder after an
+  extension; paused clocks show time left. Overdue notices for `EXPIRE_REQUEST` delivered since DV-03 (2026-10-21); the
+  other three remain. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** a draft clock is rebased at issue
+  (`RESUMED`, `REQUEST_ISSUED`; the received time stays frozen by the database); only the latest due reminder is sent
+  and earlier ones record `REMINDER_SUPERSEDED`; paused clocks show time left. Tests:
+  `InformationRequestClockTransactionTest`, `InformationRequestLifecycleServiceTest`, `RequestClockPanel.test.tsx`.
+- [x] DX-49 (P3): subject export and correction under an open disposal claim; Download record after disposal;
+  per-request audit of privacy deletion denials. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** access,
+  export and corrections refuse with `DISPOSAL_IN_PROGRESS` and are recorded; refused deletions record
+  `record.disposal.denied` per request; `recordExportAvailable` hides Download record after disposal. Tests:
+  `InformationRequestPrivacyTransactionTest`, `PrivacyPanel.test.tsx`.
+- [x] DX-50 (P3): operational suspension stops clock pause and extend and account linking, or the docs say otherwise.
+  Clock pause and extend stopped since DV-02 (2026-10-21); account linking remains. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** participant account linking is refused while operationally suspended; revocations
+  stay allowed (decision 7); operator guide and help corrected. Tests:
+  `InformationRequestUpgradedPartyAccessTransactionTest`,
+  `InformationRequestParticipantAccountLinkResourceContractTest`, `AccountLinkOffer.test.tsx`.
+- [x] DX-51 (P3): reset the Exchange dialog after Manage Information Request; run request entitlement checks before
+  Blueprint library files are copied. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** the Exchange dialog
+  resets after Manage Information Request, View Exchange and recreation; Library files are copied only after the
+  Blueprint request is created. Tests: `ExchangeInitiationReopen.test.tsx`,
+  `ExchangeBlueprintInformationRequestStartTest`.
+- [x] DX-52 (P3): ordered locks in organization member removal; send challenge emails after commit. **Closed on
+  2026-10-22 (deep analysis backlog, uncommitted):** member and group removal lock the affected requests in identifier
+  order first (`gate.lockExisting`); contact and step-up codes are sent after commit
+  (`InformationRequestVerificationCodeMailer`). Tests: `InformationRequestOwnershipChangeTransactionTest`,
+  `InformationRequestGroupRemovalServiceTest`, `InformationRequestContactProofRecordingTransactionTest`,
+  `InformationRequestAccessSessionStepUpTransactionTest`, `InformationRequestVerificationCodeMailerTest`.
+- [x] DX-53 (P3): remove the audit ledger organization-only fallback and the evidence external-reference branch.
+  **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** ledger streams and copies use the owner pair alone;
+  `documentVersionId` is required in the entity and `fileBacked` is removed from evidence facts. The audit
+  `organization_id` column stays in the hash-chained envelope as current behavior (no migration). Tests:
+  `LedgerProcessorTest`, the evidence suites.
+- [x] DX-54 (P3): correct the evidence, platform administration and Templates help, the operator guide body-size note,
+  the scanning plan path and the lowercase "exchange" in the external sources article. **Closed on 2026-10-22 (deep
+  analysis backlog, uncommitted):** evidence, Templates and platform administration help, the operator guide body-size
+  row, the scanning plan path and the external sources wording are corrected. Test: `helpDocs.test.tsx`.
+- [x] DX-55 (P3, AGENTS.md): move data classes out of services; add RequestHandlers for the group occurrence and
+  carry-forward pairs; remove comments in nine test classes and one client doc comment; split two multi-attribute tags;
+  decide ids on inline help elements. **Closed on 2026-10-22 (deep analysis backlog, uncommitted):** Blueprint
+  instantiation models moved to `model/blueprint` (the collected Field was already a model);
+  `InformationRequestGroupOccurrenceRequestHandler` and `InformationRequestCarryForwardRequestHandler` shared by both
+  surfaces, and the no-auth occurrence routes rethrow JAX-RS refusals; comments removed from the nine test classes and
+  one client file; two tags split. DECISION: inline `<b>`, `<li>` and `<code>` inside help prose are exempt from the id
+  rule; block elements keep ids. Tests: the resource contract suites,
+  `InformationRequestBlueprintInstantiationServiceTest`.
+- [x] DX-56 (P3): test the personal-owner denial of `RecordOwnerScopeAccess` and owner audit search. **Closed on
+  2026-10-22 (deep analysis backlog, uncommitted):** personal-owner admit and deny, same-id organization and
+  `currentOwner()` cases, and a personal owner audit search isolation case. Tests: `RecordOwnerScopeAccessTest`,
+  `InformationRequestAuditExportTransactionTest`.
+- [x] DX-57 (P1, Phase 6, found by the DX-02 repair review): `InformationRequestEvidenceContentInspector.document` loads
+  every PDF upload with `Loader.loadPDF`, and PDFBox 3.0.8 decodes compressed cross-reference and object streams fully
+  onto the heap (`COSStream.createView`, no stream cache), so a 4 MB file stops a JVM running
+  `-XX:+ExitOnOutOfMemoryError`; a capped main-memory or temp-file stream cache does not help. USER DECISION
+  (2026-10-21): a decode cap scoped to evidence inspection (wrap PDFBox's registered filters so one file decodes at most
+  a fixed number of bytes and image-only filters are refused during inspection; pass through otherwise), with a test
+  that fails if a PDFBox upgrade changes the registry. Not yet made: the reflective change to `FilterFactory` needs the
+  user's permission in the session. `DocumentThumbnailService` uses the same loader for Exchange documents. **Closed on
+  2026-10-21 (verification remediation, uncommitted).**
+- [x] DX-GATE (Phase 12): after the repairs, rerun the full backend and frontend suites, the type, null, lint and build
+  gates and packaging; update help, the API reference and release notes; neutrality and rule sweep; no commit or push.
+  **Closed on 2026-10-22:** full backend **5,508/746** with zero failures, errors or skips (a first full run failed two
+  cases in tests whose expectations the backlog changed: the walking skeleton's delegated authority refusal and the
+  event consumption test's 1,000-event drain, both fixed and rerun); full frontend **1,672/289** with no failures;
+  packaging passes; type, null, lint and build gates at their baselines with 0 Information Request diagnostics; help,
+  API reference, migration notes, operator guide and release notes updated; the sweep of changed Information Request
+  files finds no em dash, arrow, emoji, explanatory comment or industry term.
+
+Evidence: [deep analysis](information-request-deep-analysis-2026-10-21.md) and
+its [evidence directory](evidence/information-request-deep-analysis-2026-10-21/README.md). The analysis changed no
+production source, test, migration or help article.
+
+## Full Completeness Analysis Work (2026-10-20)
+
+- [x] SB-01 (P2, Phases 5, 7 and 10): share pending-answer state, in-flight and kept evidence uploads, save failures and
+  stale recovery with the submission section; refuse to open or confirm the review dialog while any of them is
+  unresolved; reload the workspace and preview after a successful save; cover staged, correction and no-review final
+  submissions on both route shells. Promote the deep review's four save-boundary probes first. **Closed on 2026-10-20:**
+  a pending-work contract (`shared/respondentPendingWork.ts`, `useRespondentPendingWork`) carries unsaved, saving,
+  failed and stale answers and files being sent or kept from the structured response controller and each Requirement's
+  evidence hook to the submission panel, whose Submit is held with the reason while any is unresolved; opening the
+  review saves pending answers first and opens only on the preview reloaded for the saved `responseETag`, and a failed
+  save keeps it closed with the error. Tests: `InformationRequestRespondentWorkspace.submissionBoundary.test.tsx` (the
+  promoted probe, both shells), `InformationRequestRespondentWorkspace.pendingWork.test.tsx` (no-review final, failed
+  save, file being sent, kept file, staged and correction submissions, both shells), `respondentPendingWork.test.ts`,
+  `useReviewBeforeSubmitting.test.ts`.
+- [x] SB-02 (P2, Phases 7 and 10): derive the review list from the selected stage (Template sections or a recipient-safe
+  preview manifest) bound to the preview's revision; cover stage changes, sequential stages, corrections and
+  whole-package behavior. **Closed on 2026-10-20:** the review list comes from the Template sections of the stage the
+  loaded preview names, or every section when the request is submitted whole. Tests:
+  `InformationRequestRespondentWorkspace.stageReview.test.tsx` (stage change, sequential stages, correction, whole
+  package, both shells), the promoted probe's stage cases, `submissionReview.test.ts`.
+- [x] FC-01 (P2, Phase 5): decide and implement cross-party hidden-data behavior for `CLEAR_WITH_CONFIRMATION` and
+  `ARCHIVE_OUTSIDE_ACTIVE_RESPONSE` rules whose source and governed Requirements have different contributor roles
+  (refuse at publication, treat as retain-securely, or let a manager clear with a recorded condition effect); keep the
+  refusal of one party clearing another party's data; test both roles, confirmation, archive and reactivation. **Closed
+  on 2026-10-20:** DECISION (default from the remediation prompt): saving and publication refuse a
+  `CLEAR_WITH_CONFIRMATION` or `ARCHIVE_OUTSIDE_ACTIVE_RESPONSE` rule whose governed Requirement has another
+  `contributorRole` than a Requirement it reads, naming the rule in `conditionRuleKey`, and the preflight mirrors it;
+  the enforcer keeps every governed answer the caller may not respond to hidden and retained, and an explicit
+  confirmation of such a clear is still refused with `HIDDEN_RESPONSE_CLEAR_NOT_PERMITTED`. Tests:
+  `InformationRequestHiddenFieldSaveTransactionTest`, `InformationRequestHiddenEvidenceTransactionTest` (another party's
+  Document archived or cleared, reactivation, the refused confirmation), `InformationRequestResponseDraftServiceTest`,
+  `InformationRequestPublicationReadinessTransactionTest` (cross-role refusal for both policies, the retain control, a
+  stored role change at publication), `templateDraftValidation.test.ts`.
+- [x] FC-02 (P2, Phases 3 and 4): evaluate the transition matrix for `ISSUE_CONTACT_CHALLENGE`, `ISSUE_ACCESS_SESSION`
+  and `STEP_UP_ACCESS_SESSION` after their locks; revoke bootstrap links together with sessions when the parent is
+  rejected, rescinded or deleted; define cancellation and supersession effects on sessions and links; add
+  terminal-request and terminal-parent cases to the contact-proof, session and step-up tests. **Closed on 2026-10-20:**
+  DECISION (default from the remediation prompt): contact proof, session issue and step-up lock the parent Exchange,
+  request and link and refuse through `InformationRequestTransitionMatrix.canMutate` (`STATE_INVALID` or
+  `PARENT_STATE_INVALID`); cancellation and supersession revoke the request's access links with `REQUEST_CANCELLED` or
+  `REQUEST_SUPERSEDED` while sessions read until they expire; parent rejection, rescission and deletion revoke links
+  after the sessions, each recorded. Tests: `InformationRequestContactProofServiceTest`,
+  `RequestAccessSessionServiceTest` and `InformationRequestAccessSessionStepUpServiceTest` (cancelled, superseded,
+  ended, rejected, rescinded and deleted cases), `InformationRequestParentLifecycleServiceTest`,
+  `InformationRequestLifecycleServiceTest`, `InformationRequestCredentialCutoffTransactionTest` (terminated parent,
+  cancellation).
+- [x] FC-03 (P2, Phase 2): refuse at the service level, with section and requirement keys, a collected Field the named
+  Schema Version does not bind and the evidence-policy bounds V88 enforces (minimum file count, total against file size,
+  issue age, validity and coverage capture); mirror them in the client preflight; map constraint violations defensively.
+  **Closed on 2026-10-20:** `InformationRequestTemplateEvidenceBounds` and
+  `InformationRequestTemplateFieldMembershipValidator` refuse the V88 evidence bounds and unbound collected Fields with
+  `INFORMATION_REQUEST_TEMPLATE_INVALID` and the section and Requirement keys at draft write and publication, and the
+  preflight mirrors the bounds; `InformationRequestCommandHttp.storageRuleRefused` answers a change a stored rule
+  refuses (SQL state class 22 or 23, or `P0001`) with `409 INFORMATION_REQUEST_CONSTRAINT_CONFLICT` for every
+  Information Request command resource, while other storage failures still answer `500`. Tests:
+  `InformationRequestTemplateConfigurationValidatorTest` (15 bound cases and a control),
+  `InformationRequestPublicationReadinessTransactionTest` (unbound Field at write and at publication, bounds at write),
+  `InformationRequestTemplateResourceContractTest`, `InformationRequestCommandHttpTest`,
+  `InformationRequestResourceContractTest`, `InformationRequestNoAuthRequestResourceContractTest`,
+  `InformationRequestResponseResourceContractTest`, `templateDraftValidation.test.ts`.
+- [x] SB-03 (P3, Phase 10): resolve single and multiple choice labels through the collected Field binding's options in
+  the final review summary, with a safe fallback for an unresolvable code. **Closed on 2026-10-20:** the review summary
+  states a single or multiple choice through its collected Field binding's options, keeps retired labels and falls back
+  to the stored code. Tests: the promoted probe's four choice cases, `submissionReview.test.ts`.
+- [x] SB-04 (P3, Phase 10): compose input, prompt, container and focus identities injectively from the occurrence path
+  and Requirement key so distinct valid keys never collide. **Closed on 2026-10-20:** `shared/responseElementKeys.ts`
+  composes occurrence, group and Requirement element keys injectively (readable for keys in the key grammar, escaped
+  otherwise) for inputs, prompts, containers, explanations, choices and submission focus, keeping the
+  `information-request-response-field-` prefix. Tests: `responseElementKeys.test.ts`,
+  `StructuredResponseFieldEditing.test.tsx` (keys that differ only in hyphens, nested entries), the promoted probe's
+  identity cases.
+- [x] FC-04 (P3, Phase 7): decide whether the If-Match value belongs to the command fingerprint and apply one rule to
+  the submission, attestation, review and publication receipts. **Closed on 2026-10-20:** DECISION (default from the
+  remediation prompt): the submission and attestation fingerprints include `precondition.canonicalForm()`, like review
+  decisions and Template publication. Test: `InformationRequestSubmissionTransactionTest` (a key reused with another
+  reviewed version conflicts; the same version replays).
+- [x] FC-05 (P3, Phases 6 and 7): evaluate submission readiness from the collected facts, or record scan assessments
+  under the request lock, with a scan-versus-submit race test. **Closed on 2026-10-20:** DECISION (default from the
+  remediation prompt): `InformationRequestEvidenceMalwareAssessmentService` takes `InformationRequestMutationGate.lock`
+  before recording an assessment. Test: `InformationRequestEvidenceScanRaceTransactionTest`.
+- [x] FC-06 (P3, Phases 3, 7 and 8): decide whether RC-18's authorize-before-state-disclosure rule covers the
+  submission, attestation, review, accepted-fact and amendment services and, if so, authorize after the locks and before
+  the state and continuation checks. **Closed on 2026-10-20:** DECISION (default from the remediation prompt):
+  submission (package and withdrawal), attestation, review decisions, findings and assignments, accepted facts and
+  amendments authorize right after their locks, before any state, continuation, lock-status or assertion check. Test:
+  `InformationRequestCommandAuthorizationOrderTransactionTest` (eight commands; a closed request, a lapsed grant and a
+  locked stage).
+- [x] FC-07 (P3, Phase 5): refuse writes and uploads to condition-hidden Requirements with a stable code and filter the
+  evidence list route like the workspace projection. **Closed on 2026-10-20:** `InformationRequestConditionVisibility`
+  refuses a patch or upload whose Requirement its condition hides at that occurrence with the new
+  `INFORMATION_REQUEST_REQUIREMENT_HIDDEN_BY_CONDITION`, and the evidence list shows no files for it. Tests:
+  `InformationRequestHiddenTargetTransactionTest` (patch, upload, list and a list control on both surfaces),
+  `InformationRequestResponseDraftServiceTest`.
+- [x] FC-08 (P3, Phases 5, 6 and 7): route condition effects through the evidence collection service with submission
+  lock checks and evidence transitions, or refuse cross-stage conditions over submitted Requirements. **Closed on
+  2026-10-20:** DECISION (default from the remediation prompt): condition clears and archives withdraw files through
+  `InformationRequestEvidenceCollectionService.withdrawForCondition`, which checks the open artifact and records the
+  evidence transition with `hidden-by-condition` or `archived-by-condition`; a submission-locked governed answer is
+  retained; publication re-runs the staged condition check. Tests: `InformationRequestHiddenEvidenceTransactionTest` (a
+  submitted first stage, a Document given once, the transition), `InformationRequestPublicationReadinessTransactionTest`
+  (a stored cross-stage condition at publication), `InformationRequestGivenOnceCorrectionTransactionTest`,
+  `templateDraftValidation.test.ts`.
+- [x] FC-09 (P3, Phases 5 and 6): decide and apply one `If-Match: *` rule across the response, occurrence, evidence,
+  clock, amendment, recertification and exact-ETag handlers. **Closed on 2026-10-20:** DECISION (default from the
+  remediation prompt): every Information Request handler uses `CommandPreconditionHeader.requiredExact` and `required`
+  is removed, so `If-Match: *` answers `428 COMMAND_PRECONDITION_REQUIRED`. Tests: the wildcard cases in the response,
+  group occurrence, evidence, clock, amendment, recertification, submission and no-auth request resource contract tests,
+  `CommandPreconditionHttpTest`.
+- [x] FC-10 (P3, Phase 6): apply the per-file ceiling to uploads without a declared length before buffering, or record
+  the 50 MB bound as accepted. **Closed on 2026-10-20:** DECISION (default from the remediation prompt): already
+  implemented in the working tree, the buffered file's size is checked against its surface's ceiling before its bytes
+  are read or hashed; the API reference now records the 50 MB body bound for an upload without `Content-Length`. Tests:
+  `InformationRequestEvidenceUploadServiceTest` (a file or replacement above its surface's limit is refused from its
+  size before its bytes are read), `InformationRequestEvidenceUploadSizeFilterTest`.
+- [x] FC-11 (P3, Phases 3 and 9): decide whether lifecycle, party and ending transitions require audit capture like the
+  credential paths. **Closed on 2026-10-20:** DECISION (default from the remediation prompt): issuing, cancelling and
+  superseding, party assignment, reassignment and revocation, and the cancellations made as an Exchange ends or is
+  rejected or rescinded set `requireAuditCapture = true`, so a failed capture answers `500` and rolls the command back.
+  Tests: `InformationRequestLifecycleAuditCaptureTransactionTest`, `InformationRequestLifecycleServiceTest`,
+  `InformationRequestPartyRevocationServiceTest`, `InformationRequestExchangeCompletionServiceTest`.
+- [x] FC-12 (P3, Phases 3 and 4): remove or wire the dead `RECOVERY` read actor, and move the terminal-request read
+  exemption out of `DefaultAuthorizationService` into the registered evaluator shape. **Closed on 2026-10-20:** DECISION
+  (default from the remediation prompt): `InformationRequestReadActor.RECOVERY` is removed, and
+  `DefaultAuthorizationService` asks `ResourceAuthorizationContextRegistry.actionsWhileArchived`, which the Information
+  Request provider fills with its read and closed-record actions and the Requirement provider with its read actions;
+  behavior is unchanged. Tests: `InformationRequestArchivedActionPolicyTest`,
+  `InformationRequestClosedRecordAuthorizationTest`, `InformationRequestTransitionMatrixTest`.
+- [x] FC-13 (P3, Phases 9 and 12): decide whether subject exports count against the per-owner daily ceiling and record
+  it. **Closed on 2026-10-20:** DECISION (default from the remediation prompt): the export window counts both export
+  kinds and `createSubjectExport` checks the daily ceiling after locking its sources. Tests:
+  `InformationRequestRecordExportServiceTest`, `InformationRequestRecordExportWindowTransactionTest`.
+- [x] FC-14 (P3, Phase 4): pass the client address into `InformationRequestNoAuthRateLimit` from the resource instead of
+  reading `AuthTokenContext` in the service. **Closed on 2026-10-20:** the no-auth access resource passes
+  `AuthTokenContext.clientIp`, and the limiter charges that address, or the unknown address, without reading any request
+  context. Tests: `InformationRequestNoAuthRateLimitTest`, `InformationRequestNoAuthAccessResourceContractTest`.
+- [x] FC-15 (P3, convention): record whether the feature's subdomains may inject each other's repositories; otherwise
+  route the notice dispatcher, Workflow operand service, disposal eligibility, hidden-response files and the template
+  repository users through service methods. **Closed on 2026-10-20:** DECISION (default from the remediation prompt):
+  `repository/informationrequest/*` is shared inside the Information Request domain, and the AGENTS.md rule forbids
+  injecting another domain's repositories; only the FC-08 path changed, `InformationRequestHiddenResponseFiles` no
+  longer writes artifact rows. No test; recorded here.
+- [x] FC-16 (P3, Phases 2 and 10): resolve a draft's bindings from its exact Schema Version, not only the Schema's
+  latest, so older-Version drafts list Fields and run the membership preflight. **Closed on 2026-10-20:** DECISION
+  (default from the remediation prompt): the editor reads the draft's named Schema Version through the new
+  `GET /schemas/versions/{versionId}` (`fieldsService.getSchemaVersion`, `useNamedSchemaVersion`), lists and labels its
+  Fields and runs the membership preflight, falling back to the latest Version only when the draft names none. Tests:
+  `TemplateEditor.test.tsx` (an earlier Schema Version), `SchemaDefinitionTenantBoundaryTest`,
+  `FieldsResourceContractTest`.
+- [x] FC-17 (P3, Phase 2): carry condition-rule refusals in their own refusal key. **Closed on 2026-10-20:**
+  `InformationRequestTemplateRefusalDto.conditionRuleKey` carries condition-rule refusals on the server and client, and
+  **Show** opens the condition it names; `groupKey` names only repeatable groups. Tests:
+  `InformationRequestPublicationReadinessTransactionTest`, `InformationRequestTemplateResourceContractTest`,
+  `InformationRequestTemplateConditionContractValidatorTest`,
+  `InformationRequestTemplateConditionLiteralValidationTest`, `templateDraftValidation.test.ts`.
+- [x] FC-18 (P3, Phase 2): record the source Version when cloning a Template. **Closed on 2026-10-20:** a clone
+  configures its draft through `configureCopiedDraft`, whose Template version event names `sourceTemplateDefinitionId`,
+  `sourceTemplateVersionId` and `sourceVersionNumber`. Tests: `InformationRequestTemplateAuthoringServiceTest`,
+  `InformationRequestTemplateLifecycleServiceTest`.
+- [x] FC-19 (P3, neutrality): rename `invoiceRequirement` and `invoiceBinding` in
+  `InformationRequestTemplateMaterializerTest`. **Closed on 2026-10-20:** `invoiceRequirement` and `invoiceBinding` are
+  now `itemRequirement` and `itemBinding`; the neutrality sweep finds no industry term in any changed file. Test:
+  `InformationRequestTemplateMaterializerTest`.
+- [x] FC-20 (P3, Phase 10): give review results, amendment summary, carry-forward list, reusable answers, access links,
+  placeholders, outcomes, party candidates and source options a stated error state with Try again instead of an empty
+  list. **Closed on 2026-10-20:** review results, amendments, carried-forward answers, reusable answers, access links,
+  expected documents, outcomes, party candidates (add and reassign) and request sources state a refused read with Try
+  again and drop any earlier value. Tests: `InformationRequestReviewResults.test.tsx`,
+  `InformationRequestAmendmentSummary.test.tsx`, `InformationRequestCarryForwardList.test.tsx`,
+  `useReusableAnswers.test.ts`, `InformationRequestStructuredResponsePanel.test.tsx`,
+  `InformationRequestAuthorWorkspace.test.tsx`, `RequestOutcomesPanel.test.tsx`, `usePartyCandidates.test.ts`,
+  `AddPartyDialog.test.tsx`, `CreateInformationRequestDialog.test.tsx`.
+- [x] FC-21 (P3, help): correct the review article's My reviews reference or restore the queue navigation and remove the
+  explanatory comment; correct the templates article for `OPEN_REQUEST_LIMIT_REACHED`; say that file removal is API-only
+  in the evidence article. **Closed on 2026-10-20:** DECISION (default from the remediation prompt) for (a): the queue
+  button stays unrendered and its comment and commented-out code are removed; the review article names Reviews assigned
+  to you, reached from an Exchange's Information Requests tab; the templates article keeps New Template offered at the
+  open request limit; the evidence article says removing a file is available only through the API. Test:
+  `helpDocs.test.tsx`.
+- [x] FC-22 (P3, Phase 10): name items by prompt in the finding dialog and the correction summary. **Closed on
+  2026-10-20:** the finding dialog and the correction summary name items by prompt through `useReviewRequirementLabels`.
+  Test: `InformationRequestReviewWorkspace.test.tsx`.
+- [x] FC-23 (P3, Phases 10 and 13): surface a failed Decision Maker auto-assignment in the creation dialog. **Closed on
+  2026-10-20:** `useCreateInformationRequest` hands the naming failure to `onCreated`, the Exchange tab passes it in
+  navigation state, and the new request's manage page states it beside **Make me the Decision Maker**. Tests:
+  `CreateInformationRequestDialog.test.tsx`, `InformationRequestAuthorWorkspace.test.tsx`.
+- [x] FC-24 (P3, Phase 10): use the shared time formatting helper in the Versions panel and the step-up panel. **Closed
+  on 2026-10-20:** the Versions panel and the step-up panel use `formatInformationRequestTime`. Tests:
+  `TemplateEditor.test.tsx`, `StepUpPanel.test.tsx`.
+- [x] FC-25 (P3, AGENTS.md): replace the ten literal `1px solid` strokes with `tokens.strokeWidthThin`. **Closed on
+  2026-10-20:** the ten Styles files use `${tokens.strokeWidthThin} solid`, and no `1px solid` remains in the feature's
+  Styles files. No test; checked by source sweep.
+- [x] FC-26 (P3, Phase 10): decide whether the signed-in respondent route follows the user's theme and apply it.
+  **Closed on 2026-10-20:** DECISION (default from the remediation prompt): the respondent workspace wraps its page in
+  the light FluentProvider only for `accessMode="no-auth"`, so the signed-in route follows the user's theme. Test:
+  `InformationRequestRespondentWorkspace.test.tsx`.
+- [x] FC-GATE (Phase 12): after the repairs, rerun the retained probes, the affected response, submission, evidence,
+  condition, template, no-auth, review and UI suites, the full backend and frontend suites, the type, null, lint and
+  build gates, packaging and the help review; record the decisions taken for FC-01, FC-06, FC-09, FC-11, FC-13, FC-15
+  and FC-26; keep application-wide debt and live, deployed and manual checks separate; preserve existing changes and
+  staged deletions; no commit or push. **Closed on 2026-10-20:** the deep review's retained probe, unchanged and staged,
+  passes 16/16 with 0 probe type diagnostics; full frontend **1,550/273** (614.61 s); full backend **5,116/728** with
+  zero failures, errors or skips (59:12 min, 728 XML reports reconciled); packaging passes (03:23 min, run on 2026-10-21
+  in the same mirror); type, null, lint and build gates at their baselines with 0 Information Request diagnostics; help,
+  API reference and release notes updated; neutrality and rule sweep clean; the decisions are recorded in Status.
+  Application-wide debt and live, deployed and manual checks stay separate.
+
+Evidence: [completeness analysis](information-request-completeness-analysis-2026-10-20.md) and
+its [evidence directory](evidence/information-request-completeness-analysis-2026-10-20/README.md) (scripts, outputs,
+suite summaries and the six agent reports). The analysis changed no production source, test, migration or help article.
+Remediation: the analysis's "Remediation result (2026-10-20)" and
+the [remediation evidence](evidence/information-request-completeness-analysis-2026-10-20/remediation-2026-10-20/README.md).
+
+## Independent Implementation Analysis Work (2026-10-20)
+
+- [x] EC-01 (P2, Phases 5 and 10): promote the independent optional single-select clearing case into the regular
+  shared-editor and workspace tests, then expose the existing canonical null-clear path without changing read-only
+  behavior. Keep boolean, text and multi-select behavior covered. Closed 2026-10-20: `FieldSelectEditor` single choice
+  is `clearable` and reports `null`; no clear on a read-only Field or a multi-select (cleared by deselecting, `[]`).
+  `FieldSelectEditor.test.tsx` (4), `fieldValuePayload.test.ts` +1, and the Yes or No, single-select, text and read-only
+  cases in `StructuredResponseFieldEditing.test.tsx`.
+- [x] EC-02 (P2, Phase 10): preserve a partial answer's disposition, typed value or file statement, and explanation in
+  review before submission. Promote both Field and Document probes, and cover the rendered dialog and both respondent
+  shells. Closed 2026-10-20: `submissionReview.answerText` states
+  `Partly provided: <value or Files attached>. Reason: <explanation>` and, after the notes decision,
+  `<value>. Note: <note>`. `submissionReview.test.ts` +2 and
+  `InformationRequestRespondentWorkspace.submissionReview.test.tsx` (the rendered dialog in both shells).
+- [x] EC-03 (P3, Phase 10): pass a unique input id derived from the runtime Requirement occurrence to the shared Field
+  editor, retaining prompt associations. Cover multiple and nested occurrences. Closed 2026-10-20:
+  `information-request-response-field-<element id>` from the occurrence path and Requirement key; flat and nested entry
+  cases in `StructuredResponseFieldEditing.test.tsx` check unique ids and each input's own prompt label.
+- [x] EC-GATE (Phase 12): after the production repairs, run the retained probes, response/submission/recovery/session
+  and shared Field editor regressions, full suites, type/null/lint/build gates, and help review. Do not weaken
+  documented clearing, partial-answer or final-review behavior. Keep broader application debt and live/deployed/manual
+  checks separate. No migration is indicated. Preserve existing changes and staged deletions; no commit or push. Closed
+  2026-10-20: red 8 of 25, green 25/25; causal controls 2/4/2 per removed repair and 8 with all removed, 25/25 restored;
+  retained probes 12/16 as retained with four by-design selector failures and 16/16 selector-only; regression folders
+  518/76; full frontend 1,471/266; type/null/lint/build at their baselines with 0 Information Request diagnostics;
+  backend inputs byte-identical to the passing 4,986/721 mirror; help strengthened (72). No live browser check.
+
+Evidence: [implementation analysis](information-request-analysis-2026-10-20.md),
+its [retained probes](evidence/information-request-analysis-2026-10-20/README.md), and the repair's "Remediation result
+(2026-10-20)"
+with [its gate summary](evidence/information-request-analysis-2026-10-20/remediation-2026-10-20/README.md).
+
+## Shared Response Completeness Review Work (2026-10-19)
+
+- [x] SR-01 (P2, Phases 5 and 10): preserve the displayed permitted disposition when editing a saved explanation or
+  Field value; use one resolution rule for rendering and patch construction, including a Template whose only permitted
+  answer is an exception. Promote the independent Document, partial Field, and single-choice probes into permanent tests
+  before the smallest shared client repair. Keep sparse writes and intentional answer changes intact. Closed 2026-10-20:
+  `responseAnswerState.currentDisposition` (moved from the requirement folder) is rendered by
+  `StructuredResponseRequirement` and sent by `buildResponsePatches`; it is total, so a Requirement that permits no
+  answer resolves to `NOT_ANSWERED` and offers no input. Partial-value verification found no explanation for
+  `PARTIALLY_PROVIDED`, which the server requires on save; `asksForExplanation` now mirrors the server's narrative rule.
+  Red 11 intended failures of 20; `StructuredResponseAnswerChoice.test.tsx` (8), `responseAnswerState.test.ts` +10 and
+  the both-shell saved-choice cases.
+- [x] SR-02 (P2, Phases 5 and 10): associate a successful save with its authoritative response revision, so repeating
+  its patch after a newer server response is a pending edit and autosaves. Promote the independent controller and actual
+  workspace probes first. Preserve suppression of duplicate saves before a post-save reread, newer in-flight edits,
+  stale recovery, respondent ownership, and stable retry keys. Closed 2026-10-20: a save is recorded as
+  `{signature, responseETag}` with the ETag of the answers the patch was built from (the prop, not the command ETag,
+  which an entry command changes before the reread). Red 4 intended failures of 16;
+  `useStructuredResponseWorkspaceController.test.ts` (5, including the entry-command and in-flight cases),
+  `StructuredResponseAutosave.test.tsx` +1 and the both-shell re-entered-answer cases.
+- [x] SR-GATE (Phase 12): after both client repairs, run the independent probes, permanent
+  response/autosave/recovery/session regressions, full frontend and backend suites, scoped type/null/lint and packaging.
+  Review the help without weakening its answer-choice or autosave promises. Keep application-wide compiler/lint debt and
+  live/deployed/manual limits separate. No migration is indicated. Preserve earlier closures, existing changes and
+  staged deletions. No commit or push. Closed 2026-10-20: retained probes 9/9; causal controls 18/16/4 intended failures
+  of 39 with both, SR-01 only and SR-02 only removed, 39/39 restored; response, respondent and reusable-answer folders
+  182/27; help 69; full frontend 1,449/263; full backend **4,986/721** with zero failures/errors/skips (01:11 h, beside
+  another agent's concurrent backend run on the same database), all 721 XML reports reconciled, migrations 315/82;
+  packaging passes (03:29); type/null/lint/build gates at their baselines with 0 Information Request diagnostics. Help
+  strengthened, not weakened; the pre-existing note gap on `PROVIDED` answers was recorded as a follow-up awaiting a
+  product decision, then decided (optional note) and implemented the same day; see Status. No live browser check.
+
+Evidence: [completeness review](information-request-completeness-review-2026-10-19.md)
+and [retained probes and results](evidence/information-request-completeness-review-2026-10-19/README.md). The audit
+changed no production source; both diagnostic source corrections were confined to an isolated copy and removed again.
+The repair is described in the review's "Remediation result (2026-10-20)", with its gate summary and causal-control
+script
+in [the remediation evidence](evidence/information-request-completeness-review-2026-10-19/remediation-2026-10-20/README.md).
+
+## Deep Implementation Audit Work (2026-10-19)
+
+- [x] IA-01 (P2, Phases 5, 6, 7 and 12): promote the conditional Document archive probes and remove archived file
+  versions from the active collection without losing immutable bytes, provenance or historical package reads. Cover an
+  answered envelope, a file-only answer, reactivation and actual submission; preserve retain behavior, confirmed clear,
+  `PROVIDE_ONCE`, correction/stage locks, authorization, audit and rollback. Reopens the file-backed interaction of
+  P5-T4b and RC-16 only; earlier clear/hidden/fixed-answer closures retain their scopes. Closed 2026-10-19: the archive
+  branch archives the exact current version of each active file (V178 `information_request_response_archive_evidence`,
+  `evidence_count`) and withdraws the files with reason `archived-by-condition`, including a file-only answer (an
+  envelope is created when none exists), recording `ARCHIVED`; versions and earlier packages are unchanged and
+  reactivation returns the answer empty. `InformationRequestHiddenEvidenceTransactionTest` 14 (11 new) and archive
+  contract additions.
+- [x] IA-02 (P2, Phases 7, 11 and 12): promote the Field-rebinding/imported-value probes. Define deterministic
+  reconciliation for a retained value recorded under an earlier Requirement/Field meaning. Keep its original type,
+  canonical value, provenance and decision; keep valid current comparisons working and never overwrite an answer. Cover
+  service and REST behavior, mixed current/history values, rejection, replay and unchanged contracts. The diagnostic
+  type guard is not a complete production policy. HC-02's removed-Requirement repair remains closed in its original
+  scope. Closed 2026-10-19: each imported value records the Requirement revision current at intake (V179, backfilled by
+  `recorded_at`); a value whose revision collected another Field (or none), or whose type differs, reconciles as the new
+  answer-independent `FIELD_CHANGED` and is never compared; a value that no longer fits its Field reconciles as
+  `NOT_COMPARABLE` instead of throwing. New `InformationRequestReboundExternalValueTest` (6), canonicalizer unit +5,
+  external-source and lifecycle contract additions.
+- [x] IA-GATE (Phase 12): after the repairs, run permanent and independent probes, affected
+  response/evidence/submission/amendment/reconciliation and access regressions, full backend/frontend suites, scoped
+  type/null/lint and packaging. Review help without weakening archive or retained-record promises. Record
+  application-wide compiler/lint debt and live/deployed/manual validation separately. Preserve previous scoped repairs,
+  existing changes and staged deletions. No commit or push. Closed 2026-10-19: retained probes 11/11 against the repair;
+  mirror causal control 13 intended failures and 18 controls with the repair lines removed; full backend 4,986/721 (01:
+  04 h, zero failures/errors/skips); full frontend **1,420/260** (295 s); scoped type/null/lint, root tsc, Vite and
+  packaging pass; help strengthened, not weakened. Application-wide compiler/lint debt and live/deployed validation
+  remain separate.
+
+Evidence: [deep implementation analysis](information-request-deep-analysis-2026-10-19.md) and
+its [retained reproducible evidence](evidence/information-request-deep-analysis-2026-10-19/README.md); the repairs are
+described in its remediation result. Flyway head V179 (V178 by IA-01, V179 by IA-02); the next free migration is V180,
+subject to recheck.
+
+## History Completeness Audit Work (2026-10-19)
+
+- [x] `HC-BUILD` (P1, prerequisite): restore the missing class-body opening brace after `AutoCloseable` in
+  `model/document/DocumentVersionReadHandle.kt`, which is already absent in the continuation input snapshot. Rerun
+  production compilation and the complete backend suite; the 2026-10-19 attempt executed no tests. Do not report the
+  unrecoverable original full run or the earlier isolated-copy packaging as a current-tree pass. Closed 2026-10-19: the
+  brace was already restored when remediation started; a fresh mirror compiles and the full backend run executes on the
+  current tree.
+
+- [x] `HC-01` (P2, Phases 6, 7 and 9): promote the retained historical-evidence probes and provide an authorized
+  exact-version read for retained package members after their withdrawn occurrence is removed. Prove exact package
+  membership and current caller/item/confidentiality authorization; preserve active-collection occurrence guards,
+  session checks, digest verification, quarantine/scan policy and read audit. Add denial cases for other packages,
+  callers and items. Do not remove the current collection guard globally. Closed 2026-10-19: package-bound
+  `.../submissions/{packageId}/evidence/{versionId}/content|preview`, membership by package reader, item Requirement
+  authorization, frozen digest check and the shared opener; the review workspace uses it; the active collection keeps
+  its guard.
+- [x] `HC-02` (P2, Phases 7 and 11): promote the amendment/external-value probes and define deterministic reconciliation
+  behavior for values whose Requirement has left the current Version. Retain source/provenance/history and allow current
+  values to reconcile; preserve permission, rejection, expiry, confidentiality, replay and no-silent-overwrite rules.
+  Cover mixed current and historical values and the real REST response. Closed 2026-10-19: values whose Requirement is
+  not in the current Version are left out of a reconciliation and stay recorded;
+  `InformationRequestAmendedExternalValueTest` (6) covers mixed values, replay, rejection and the REST adapter.
+- [x] `HC-GATE` (Phase 12): rerun the promoted and independent probes, affected historical-read/amendment/reconciliation
+  suites, full backend/frontend gates and applicable type/null/lint/build checks. Review matching help articles without
+  weakening the retained-record or reconciliation promises; record existing application-wide debt and manual/deployed
+  validation separately. No production repair has been made by this audit. Closed 2026-10-19: see the gates in the
+  history audit's remediation result.
+
+Evidence: [history completeness audit](information-request-history-completeness-audit-2026-10-18.md) and its retained
+probe sources and JSON summaries. The ignored original `target/` logs were absent on resumption; do not infer a
+completed full-backend result from them. The replacement full command failed in production compilation before running
+tests; its log is recorded under `.codex-temp/ir-history-audit-20261019/` and retained with the audit evidence. Preserve
+the staged deletion of the companion completion-evidence journal; this audit report carries the detailed evidence.
+
+## Linked-Identity Quota Audit Work (2026-10-18)
+
+- [x] LQ-01, P2: preserve one respondent's evidence file/byte allowance across participant account linking. Resolve
+  linked principal histories within the request, preserve immutable uploader attribution, and keep independent
+  allowances for genuinely different respondents. Promote the five fixed-size PostgreSQL probes into permanent coverage
+  and add replacement, retained/withdrawn version and pre-existing-link cases. Closed 2026-10-18: the intake sums stored
+  usage across the uploader's verified account-link identities;
+  `InformationRequestEvidenceRespondentAllowanceTransactionTest` (9) failed 6 intended cases before the repair and
+  passes 9/9 after it. See the implementation audit's remediation result.
+- [x] LQ-GATE: verify LQ-01 with evidence/account-upgrade quota regressions, request-wide cap and separate-respondent
+  controls, then the full backend/frontend suites and scoped type, null-safety, lint and packaging gates. Keep the
+  documented per-respondent promise. Record broader application compiler/lint debt separately and preserve earlier
+  scoped closures and accepted exclusions. Closed 2026-10-18: targeted suites 499/60, full backend 4,917/715 with zero
+  failures, errors or skips, full frontend 1,413/260, scoped type/null/lint, root tsc, Vite and packaging pass;
+  application debt unchanged (340 TypeScript diagnostics, 59 ESLint errors and 46 warnings).
+
+See the [implementation audit](information-request-implementation-audit-2026-10-18.md), its retained diagnostic source
+and its remediation result. Phase 6 P6-T9 and Phase 12 P12-T5, reopened for this scope only, are closed again. No commit
+or push is authorized.
+
+## DG Independent Recheck Work (2026-10-17)
+
+- [x] DGR-01 (P3): give occurrences an amendment provisions their Field value set whenever the request has a Schema
+  assignment, and repair existing occurrences missing one. Closed 2026-10-18; see
+  the [DG independent recheck](information-request-dg-independent-recheck-2026-10-17.md) remediation result.
+- [x] DGR-02 (P3): refuse an amendment that first asks for Field answers on a request without a Schema assignment, with
+  a catalogued reason code. Closed 2026-10-18; see the same remediation result.
+
+## Deep Implementation Analysis Work (2026-10-17)
+
+- [x] DG-01 (P2): enforce amended repeatable-group minimums for populated, initially empty, and nested groups. Reconcile
+  occurrences safely or refuse unsupported changes, and independently reject undersized submissions. Preserve
+  identities, history, preconditions, replay, and submitted-stage locks. Closed 2026-10-17; see the report's remediation
+  result.
+- [x] DG-02 (P2): account for ancestor-group policy when classifying and guarding amendments. Refuse changes reaching
+  submitted descendant stages while retaining valid amendments to unsubmitted stages. Preserve the direct-group refusal
+  control. Closed 2026-10-17; see the report's remediation result.
+- [x] DG-GATE: add permanent database regressions for both findings, pass affected group/amendment/submission and
+  conformance suites, repeat required regression gates, and review affected help. Existing repair closures and accepted
+  scope exclusions remain intact. Closed 2026-10-17; see the report's remediation result.
+
+Detailed behavior, fresh tests, environment recovery, preservation, and repair boundaries are in
+the [deep implementation analysis](information-request-deep-implementation-analysis-2026-10-17.md). The staged
+completion-evidence deletion remains preserved.
+
+## Independent Completeness Analysis Work (2026-10-17)
+
+- [x] IC-01 (P2): stop condition-hidden or unknown alternative evidence from silently completing a required item; retain
+  active/absent/reactivated controls and exact package proof. Closed 2026-10-17; see the report's remediation result.
+- [x] IC-02 (P2): define and enforce supported stage boundaries for substitute evidence so every relying scope hashes
+  and freezes its exact dependency, with publication, attestation, edit/withdrawal and amendment coverage. Closed
+  2026-10-17; see the report's remediation result.
+- [x] IC-03 (P2): align bundle clock validation with authoring for zero escalation, overlapping working periods and
+  duplicate reminders, with permanent public-resource/service parity tests. Closed 2026-10-17; see the report's
+  remediation result.
+- [x] IC-GATE: run focused red/green tests, affected regressions and full acceptance gates, review any affected help,
+  and preserve earlier closures and exclusions. This audit's seven behavioral failures and passing controls are retained
+  in `target/ir-feature-completeness-20261017/`; see
+  the [analysis report](information-request-completeness-analysis-2026-10-17.md). Closed 2026-10-17; see the report's
+  remediation result.
+
+## Audit-Key Completeness Review Work (2026-10-16)
+
+The [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md) confirms AK-01, P2.
+Preserve earlier scoped closures and accepted exclusions.
+
+- [x] AK-01 (closed 2026-10-17): `InformationRequestTransitionHistoryService` keys the audit event of any transition
+  written inside a command by event type, active receipt and transition
+  (`<event type>|receipt:<receipt id>|transition:<transition id>`, at most 145 characters), so resource, operation and
+  canonical actor scope come from the receipt instead of each caller. Same-caller retries replay the receipt and add no
+  record; transitions outside commands keep their caller keys, preserving clock, refresh, cutoff and cascade events. A
+  sweep confirmed every client-key caller, including clock changes and amendments, reaches the history service only
+  inside `CommandReceiptService.runOnce`, and receipt-less paths use server-id keys only. `AuditRecorder` duplicate
+  handling is unchanged because other domains rely on it. The shared command data classes moved to `model/command`.
+- [x] AK-GATE (closed 2026-10-17): `InformationRequestAuditCommandScopeTransactionTest` (7) and
+  `InformationRequestAuditOperationScopeTransactionTest` (4) cover caller, caller-kind, operation and resource
+  separation with retry controls, and check that no committed transition lacks its own audit record by business
+  transaction id; four `InformationRequestTransitionHistoryServiceTest` cases cover key scoping and length. Before the
+  fix 7 of 28 targeted tests failed as intended; after it 50/50 in 8 classes pass. Full backend 4,839/709, full frontend
+  1,411/260 and packaging pass. Help already promises a complete record with no extra record on retry and needed no
+  change; the API reference and release notes describe the audit identity.
+
+AK-01 and AK-GATE closed on 2026-10-17 (uncommitted). See the remediation result in
+the [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md).
+
+## Background and Privacy Boundary Audit Work (2026-10-16)
+
+All three tasks closed on 2026-10-16; see
+the [audit report](information-request-boundary-completeness-audit-2026-10-16.md)'s "Remediation result (2026-10-16)".
+The audit confirmed two new P2 defects; earlier registered closures retain their scopes.
+
+- [x] BC-01 (P2): apply the existing continuation policy before a connector call is claimed and again before its result
+  is recorded. Preserve active execution, commercial-lapse completion, lifecycle checks, lease/retry behavior,
+  validation and audit. Promote the four stopped-state probes and their active/lapse controls. Scope: Phase 11 worker
+  continuation and Phase 12 acceptance.
+- [x] BC-02 (P2): serialize restriction lookup and creation by owner and subject even when no active restriction exists.
+  Promote the real PostgreSQL race and same-key/different-subject controls. Preserve independently audited privacy
+  commands, same-key replay, lifting, tenant isolation and the active unique invariant. Scope: Phase 9 privacy command
+  concurrency and Phase 12 acceptance.
+- [x] BC-GATE: retain permanent regressions, run affected privacy/connector/authorization and HTTP suites, then full
+  backend/frontend and applicable type/lint/build gates; review help and record exact results. Preserve ND-01, SX-01,
+  earlier closures, accepted exclusions, the reviewed broader diagnostic baseline and staged deletions.
+
+Repair order: BC-01, BC-02, BC-GATE. Both causes were addressed with the existing continuation policy and a PostgreSQL
+transaction-scoped advisory lock; no migration or new cloud resource was needed and V177 remains the head. No commit or
+push is authorized.
+
+## Notice Lifecycle Audit Work (2026-10-16)
+
+Both tasks closed on 2026-10-16; see the [audit report](information-request-deep-completeness-audit-2026-10-16.md)'s
+"Remediation result (2026-10-16)".
+
+- [x] `ND-01` (P2) Serialize queued notice delivery with request/parent lifecycle.
+  See [the audit](information-request-deep-completeness-audit-2026-10-16.md) and
+  target/information-request-audit-20261016/notice-probes.kt.txt. A cancellation committed while delivery waits on its
+  party must not be ignored through stale request state. Keep both valid serial orderings, party reassignment,
+  retry/Sequence behavior, frozen content and audit intact.
+    - Result: `InformationRequestRepository.findRequestByIdForShare` takes explicit `FOR SHARE` locks on the parent
+      Exchange and the request and then refreshes both (a locked refresh of `Exchange` is a Hibernate follow-on lock
+      that reads the row before waiting). `deliver` and `claimAndRender` use it before any eligibility check; `deliver`
+      then locks and refreshes the notice and takes the party share lock, and sends under all of them. Disposal finalize
+      takes `gate.lockExisting` before removing notices. The non-refreshing
+      `InformationRequestOutboundNoticeRepository.lock` was removed.
+      `InformationRequestNoticeLifecycleSerializationTransactionTest` (15 tests) covers cancellation, expiry,
+      satisfaction, supersession, parent termination and reassignment in both serial orders, the audit's two controls
+      and a concurrent disposal. Red against the original dispatcher: 9 intended failures; repaired: 15/15.
+- [x] `ND-GATE` Close ND-01 with permanent regressions, affected notice/lifecycle/disposal/authorization tests, full
+  backend and frontend verification, help review and an exact evidence handoff. Investigate the policy round-trip test
+  that fails in all three fresh full frontend runs while its isolated two-file run passes. Preserve the recorded broader
+  TypeScript/lint baseline and earlier closures.
+    - Result: full backend 4,815 tests in 707 classes, 0 failures, errors or skips; packaging passes. The policy-dialog
+      failure was tabster leaving `aria-hidden` on the background after the only tabster consumer, the unmounted
+      always-open dialog, disposed it (or, with a tabster sibling, hiding the dialog itself under `act()`) whenever a
+      publish took over 250 ms; reproduced 3/3 with a 400 ms hold and fixed 3/3 by `hidden: true` queries in the payload
+      wire test, which also has a 20 s journey timeout; the operations filter test has 15 s. Full frontend 1,411/1,411
+      with default, four and one worker, each under a concurrent full backend run. Help wording unchanged; API reference
+      and release notes updated.
+
+## Export Snapshot Audit Work (2026-10-15)
+
+Both tasks closed on 2026-10-16; see
+the [audit report](information-request-independent-completeness-recheck-2026-10-15.md)'s "Remediation result
+(2026-10-16)".
+
+- [x] **SX-01, P2:** make subject ACCESS and EXPORT capture a coherent source-request snapshot. Retain the independent
+  cancellation interleavings as permanent regressions and cover submission during capture, several source Exchanges,
+  refusal/rollback and authorization/redaction. Reuse canonical parent-before-request locking or prove a consistent
+  database-snapshot strategy. Preserve immutable export content, the current subject-export quota exemption and disposal
+  reference guards. The temporary lock control is restored and is evidence, not a retained repair.
+    - Result: `InformationRequestRecordExportService.createSubjectExport` loads its sources with `gate.lockExisting`,
+      the canonical sorted parent-Exchange then request lock already used by privacy deletion, so assembly and
+      persistence run under those locks and competing commands wait. The unused `InformationRequestRepository`
+      dependency was removed. `InformationRequestSubjectExportSnapshotTransactionTest` (9 tests) keeps the Access/Export
+      cancellation interleavings and covers submission during capture, two source Exchanges, refusal rollback with lock
+      release, authorization before locking and compartment redaction. Red against the original file: 6 intended
+      failures, 3 passing controls; repaired: 9/9.
+- [x] **SX-GATE:** run the original independent probes, affected privacy/export/lifecycle regressions and full suites;
+  review help and preservation; update acceptance with exact results. Earlier scoped closures remain closed.
+    - Result: the original four probes pass 4/4 (one positional constructor argument dropped); affected classes 161
+      tests in 21 classes pass; full backend 4,800 tests in 706 classes, 0 failures, errors or skips (50:00); full
+      frontend 1,411 tests in 260 files (463 s); packaging passes (1:34, tests skipped). Help wording unchanged (it
+      already states the restored behavior); API reference and release notes updated; Git index and staged deletions
+      unchanged.
+
+Repair order: SX-01, then SX-GATE. No migration or new cloud service was needed; no commit or push is authorized.
+
+## Calendar Correctness Audit Work (2026-10-15)
+
+The [completeness audit](information-request-completeness-audit-2026-10-15.md) independently reproduced three P2
+defects. Earlier scoped closures remain verified. All four tasks closed on 2026-10-15.
+
+| Task     | Status | Required behavior                                                                                                                                                                                                                     |
+|----------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| CAL-01   | [x]    | Normalize resolved business working intervals consistently across advance, elapsed and retreat. Preserve the original deadline through an immediate pause/resume, including the persisted Europe/Berlin spring-gap split-window case. |
+| CAL-02   | [x]    | Preserve every working period when unrelated policy fields change. Support or explicitly protect split windows and different daily hours; never silently rewrite their calendar during publication.                                   |
+| CAL-03   | [x]    | Preserve the valid 1440 end-of-day boundary through loading, validation and controls, without accepting an invalid start boundary. A valid full-day policy must allow unrelated edits.                                                |
+| CAL-GATE | [x]    | Keep the independent failures as permanent tests; run clock/policy PostgreSQL, HTTP, client and full regression gates; review help and record acceptance accurately. Preserve NS/RN/RS/DT/PV and earlier security/domain closures.    |
+
+Closed on 2026-10-15, test-first, as recorded in the audit's "Remediation result (2026-10-15)". CAL-01 had reopened
+Phase 9 only for business-calendar interval and pause/resume correctness, CAL-02 and CAL-03 Phase 10 only for lossless
+policy editing and the midnight end boundary, and CAL-GATE Phase 12 acceptance. Full backend 4,791/705 and full frontend
+1,411/260 pass. No migration.
+
+## Null Sweep Findings (2026-10-15)
+
+Found while remediating CE-01; see the "Found while testing, not repaired here" part of
+the [RN remediation recheck](information-request-rn-remediation-recheck-2026-10-15.md)'s remediation result. The
+server's REST JSON writes every unset nullable property as an explicit `null`, and 226 such properties in Information
+Request response DTOs are typed `?: T` on the client. `tsconfig.app.json` has `"strict": false`, so no type check
+catches an undefined-only guard. The repair approach is still to be chosen by the user: either guard each consumer and
+type the 226 properties accurately, or remove nulls at the API client boundary.
+
+- [x] **NS-01**, P2: the Workflow condition editor's `bindingFinderFor` throws `TypeError` when a schema's
+  `draftVersion` or `latestPublishedVersion` is `null`. Confirmed by a differential probe.
+- [x] **NS-02**, P2: `firstOccurrencePath` turns a top-level group's `parentGroupKey: null` into `null[0]/...`, so a
+  Workflow condition on a grouped requirement saves a wrong occurrence path. Confirmed by a differential probe.
+- [x] **NS-03**, P2: a template draft loaded from a version with no file-count or file-size limit reports two false
+  validation problems ("needs at least as many files allowed as it requires", "needs a positive file size limit").
+  Confirmed by a differential probe.
+- [x] **NS-04**, P3, read from code and not each probed: running clocks show "Time left when paused"; never-disposing
+  retention schedules say "disposed null days after"; evidence sizes appear as "null B" or "0 bytes"; a narrative-only
+  correction shows "No value"; a group without a maximum shows "0 to null entries".
+- [x] **NS-GATE**: probe each with explicit-null payloads through the real client and component, keep omitted-value and
+  numeric/zero controls, rerun the CE, RN, RS, DT and PV cases and the broad gates, and reconcile help and this plan.
+
+Closed on 2026-10-15 with per-consumer guards and accurate types, as chosen by the user; see the RN recheck report's
+"Null sweep remediation (2026-10-15)". All 226 properties are typed `?: T | null`. The 12 behavior guards each have
+explicit-null tests, real-client HTTP coverage where they read their own data, and a mutation that fails only their
+cases. The new `npm run typecheck:null-safety` gate (strictNullChecks over Information Request code) reports 0. Red
+13/40, then focused 63/63, full frontend 1,393/257, backend 90/10, and the recheck's 72 probes pass. NS-01 and NS-02 had
+reopened Phase 9 (Workflow conditions), NS-03 and NS-04 Phase 10, and NS-GATE Phase 12. Server behavior is not
+implicated. No migration is indicated.
+
+## RN Remediation Recheck Work (2026-10-15)
+
+Read the [independent RN remediation recheck](information-request-rn-remediation-recheck-2026-10-15.md). RN-01/RN-02
+pass their original explicit-null timestamp reproductions and their gate is independently verified within scope. CE-01
+concerns a separate nullable policy duration; the implicated production files were unchanged by RN remediation.
+
+- [x] **CE-01** Preserve disabled escalation when an existing due date policy is read, described and republished. Start
+  with the configured serializer's escalationAfterMinutes:null response through the real client and actual policy
+  dialog, change only an unrelated field, and assert the POST still omits escalationAfterMinutes. Align the nullable
+  response duration type and both form/summary consumers. Keep omitted-value, explicit-zero immediate escalation,
+  positive-delay and new-policy controls. Add permanent tests that cannot conceal null by omitting the property.
+- [x] **CE-GATE** Run configured policy serialization and real XHR/form/summary/publish cases, applicable backend policy
+  contracts, full frontend and feature type/lint/build/help checks plus packaging. Keep all 64 independent
+  RN/RS/DT/PV/evidence/ownership cases and earlier closure scopes green. Reconcile the plan and report; retain intended
+  failing audit probes separately from baseline passes. Confirm older clocks keep their pinned version and disabled
+  escalation is distinct from zero. No new API, migration or infrastructure is indicated.
+
+CE-01 and CE-GATE were closed on 2026-10-15, see the report's "Remediation result (2026-10-15)". The policy version's
+`escalationAfterMinutes` and Communication ids are typed `| null`. `formFromVersion` and `clockPolicySentence` treat
+null as disabled and keep `0` and positive delays. The real panel over XHR republishes null and omitted without
+`escalationAfterMinutes`, and zero and 120 unchanged. Red 4/20, then 24 of 24, with two guard mutations. The recheck's
+own 72 probes pass, and its captured POST is byte-identical to the corrected control. Backend 88 tests in 10 classes,
+including the five clock classes and the configured-`Json` policy case. Full frontend 1,376 tests in 254 files.
+`typecheck:app`, lint, Vite and packaging pass. CE-01 had reopened Phase 9 only for policy editing/round-trip accuracy
+and Phase 10 only for its editor and summary; CE-GATE had reopened Phase 12 acceptance. Server semantics for disabled
+versus zero escalation are already distinct and remain intact. Preserve RN/RS/DT/PV closures, accepted exclusions,
+live/deployed limits and staged evidence/journal deletions. No production repair was retained, and no commit or push is
+authorized.
+
+## Previous RS Remediation Recheck Work (2026-10-15)
+
+The following RN work was closed by remediation and independently verified in its repaired scopes.
+The [earlier RS remediation recheck](information-request-rs-remediation-recheck-2026-10-15.md) and its remediation
+evidence retain the history. RS-01/RS-02, DT-01/PV-01 and earlier closure scopes remain verified. Current CE work is
+tracked above.
+
+- [x] **RN-01** Correct reusable-answer validity for canonical responses with two null bounds or one null and one
+  numeric bound. Start with configured production DTO serialization through XHR and the real offer component. Show No
+  end date when neither bound exists, otherwise the real earlier bound. Keep numeric/numeric, omitted-value and
+  epoch-zero controls. Treat null and undefined as absence without dropping numeric zero; align the nullable client
+  contract or normalize at the API boundary. Closed 2026-10-15, see the report's "Remediation result (2026-10-15)":
+  `ReusableAnswerOffer` excludes null and undefined and keeps zero. The nullable client contract is aligned: 44 response
+  timestamps are `?: number | null`. Over XHR, the production offer client and the real component show No end date, the
+  real cutoff, and the epoch for an end at `0`. The backend contract test pins the configured serializer's explicit
+  nulls.
+- [x] **RN-02** Export an empty Due cell when the operations response carries nearestDueAt:null, including no-clock and
+  no-running-clock rows. Preserve UTC ISO output for actual numeric dates and numeric zero. Cover the real operations
+  client and CSV exporter, and ensure shared date formatters do not render null as 1970. Closed 2026-10-15:
+  `operationsCsv` writes empty for null and UTC ISO-8601 for any number, including zero. `formatInformationRequestTime`
+  and `formattedTime` read null as unset. The production operations client over XHR feeds the real exporter, and a real
+  HTTP queue read for an issued request without a clock returns `"nearestDueAt": null`. Help says Due is empty when no
+  clock is running.
+- [x] **RN-GATE** Pin explicit-null response fields using the configured server serializer and real client consumers.
+  Preserve canonical numeric review/link tests, date-bearing requests, nominated-party preview, evidence refusal and
+  asynchronous ownership cases. Run affected and broad frontend regressions, applicable backend contracts, feature
+  type/lint/build/help checks and packaging as appropriate; reconcile the plan and report. Keep intentionally failing
+  audit probes separate from baseline passes. Review the 44 nullable fields among the 104 converted response timestamp
+  properties without claiming each is a demonstrated runtime bug or changing intentional ISO string contracts. Done
+  2026-10-15: all 44 are `?: number | null`, and a consumer scan found no other undefined-only guard on them. Red 7
+  intended failures and 30 passes in 7 focused files, then 37 of 37. Five guard mutations each failed only their
+  intended cases and were restored by SHA-256. `InformationRequestResponseTimestampContractTest` is now a `@QuarkusTest`
+  on the injected configured `Json` with real HTTP (5 of 5). Focused backend 54 tests in 5 classes (contract, timestamp
+  HTTP, preview PostgreSQL/HTTP, preview resource contract, policy evaluator) and packaging pass; the full backend was
+  not rerun, because backend production code is unchanged since the 4,776-test run. Full frontend 1,369 tests in 252
+  files. `typecheck:app` 0 Information Request diagnostics (340 unrelated); root tsc, feature/help lint and the Vite
+  build pass; whole-app lint unchanged at 59/46. Help, API reference and release notes updated. Evidence:
+  `target/20261015-rn-remediation/`.
+
+RN-01, RN-02 and RN-GATE were closed on 2026-10-15; Phases 9, 10 and 12 are complete again. RN-02 had reopened Phase 9
+only for CSV accuracy; RN-01/RN-02 had reopened Phase 10 only for nullable date UX; RN-GATE had reopened Phase 12
+acceptance. Underlying review-domain logic and server fact freshness, no-auth expiry and authorization remain closed in
+their recorded scopes. The review made no production repair. Preserve staged evidence/journal deletions, accepted
+exclusions and live/deployed limits. No migration, commit or push is authorized.
+
+## Previous DT/PV Remediation Recheck Work (2026-10-15)
+
+The following work was closed by RS remediation and independently verified within its repaired scopes. Read
+the [earlier recheck report](information-request-dt-pv-remediation-recheck-2026-10-15.md) and its remediation evidence
+for history. DT-01, PV-01 and their scoped gate remain independently verified. New nullable-response work is tracked
+above.
+
+- [x] **RS-01** Align canonical numeric Information Request response timestamp models and the review-history consumer.
+  Start with actual serialized numeric response JSON through the production client and a review containing two
+  decisions; preserve zero/one-decision controls, history order, permission and item separation. Review the 91 mapped
+  response properties consistently without changing intentional string contracts. Closed 2026-10-15, see the report's
+  "Remediation result (2026-10-15)": `models.tsx` types 104 response time fields in 56 interfaces as `number`, matched
+  field by field to each Kotlin DTO's `TimestampSerializer` (every response field with a client counterpart; 17 API-only
+  properties have none), and `ReviewDecisionHistory` sorts `decidedAt` numerically. The formatting helpers, operations
+  CSV (UTC ISO-8601), reuse validity and reminder outcome consume numbers; recurrence request `firstDueAt` and reminder
+  `cooldownUntil` stay ISO strings. Tests: the real review page over XHR with two decisions, a three-decision order
+  case, and backend `InformationRequestResponseTimestampContractTest` pinning numeric `decidedAt`.
+- [x] **RS-02** Compare numeric access-link expiry correctly and restore the party-row expired label and actions for an
+  ACTIVE-but-elapsed link. Start with the actual serialized DTO through XHR and the real party row. Preserve explicit
+  EXPIRED, not-yet-expired, undated and REVOKED controls and current server expiry enforcement. Closed 2026-10-15:
+  `partyAccessLink` compares `expiresAt <= now`. The access links read through the production client over XHR render in
+  the real `PartyRow` as expired, without Resend link and with Revoke link. `partyAccessLink.test.ts` covers
+  ACTIVE-but-elapsed, the exact expiry millisecond, usable over expired, undated and REVOKED; `PartyRow` keeps the
+  explicit EXPIRED control. The backend contract test pins numeric `expiresAt`/`createdAt`. No server change.
+- [x] **RS-GATE** Keep DT/PV request-wire, nominated-party authorization, undisclosed filtering and asynchronous
+  ownership tests green. Run affected HTTP/client/UI cases, full regressions, migrations/conformance, packaging and
+  feature type/lint/build/help gates, then reconcile the handoff. Retain intentional probe failures separately from
+  regression passes. Done 2026-10-15: red 11 intended failures and 25 passes in 10 focused files on unchanged production
+  code, then 36 of 36. Full frontend 1,361 tests in 252 files. Full backend 4,776 tests in 705 classes, zero
+  failures/errors/skips (50:33), including migrations 312/82 and the eight neutral scenarios' 13 cases; packaging
+  passes. `typecheck:app` 0 Information Request diagnostics (340 unrelated); root tsc, feature/help lint (0 errors, 3
+  existing warnings) and the Vite build pass; whole-app lint unchanged at 59/46. Help, API reference and release notes
+  are reviewed and updated. Evidence: `target/20261015-rs-remediation/`.
+
+RS-01, RS-02 and RS-GATE were closed on 2026-10-15; Phases 8, 10 and 12 are complete again. RS-01 had reopened Phase 8
+reviewer UX; RS-01 and RS-02 had reopened Phase 10 and Phase 12 acceptance. Underlying review-domain logic, no-auth
+expiry enforcement, ordinary response authorization, and the earlier TB/FU/DR/CR repairs retain their scopes. Preserve
+the staged evidence/journal deletions; the new report contains the durable evidence.
+
+## Verification Audit Follow-Up (2026-10-14)
+
+Read the [verification audit](information-request-verification-audit-2026-10-14.md) before changing these boundaries.
+Existing Template, authorization, response, evidence, submission, review-domain, record, and Blueprint closures retain
+their recorded scopes.
+
+- [x] **DT-01** Align the canonical timestamp request wire representation for reviewer due dates, Accepted Fact
+  validity/expiry dates, Business Decision decided time, and explicit clock received time across server DTOs, client
+  models and form/service payloads. Start with real REST deserialization and production client-wire failures. Preserve
+  optional-date omission, domain/permission/idempotency rules, and recurrence's intentional ISO-string first-due
+  contract. Closed 2026-10-15: epoch milliseconds, the server's existing representation; numeric client request types,
+  `epochMillisFromLocalInput` in the three dialogs, real-HTTP server contract test (19) and form-to-wire client test
+  (6).
+- [x] **PV-01** Supply an author-authorized nominated-recipient preview projection instead of reusing the author's
+  ordinary response workspace. Start with a real non-answering owner/Decision Maker and separate Contributor, then test
+  the actual author page. Preserve exact-party authorization and undisclosed Requirement filtering; update the managing
+  help claim with the repaired behavior. Closed 2026-10-15: `GET .../parties/{partyId}/recipient-preview` with the
+  shared `InformationRequestRecipientTemplateProjection` and the policy evaluator's `disclosesToParty`; PostgreSQL and
+  HTTP (7), resource contract (3), author page and dialog tests; help updated.
+- [x] **DT-PV-GATE** Run affected real HTTP/browser cases, full backend and frontend regressions, migration/conformance
+  checks, production packaging, feature type/lint/build gates, and help checks. Reconcile source preservation and
+  complete only the repaired scopes. Retain distinct raw invocation, retry, and intentionally failing probe results in
+  the handoff. Closed 2026-10-15: full backend (4,773 tests in 704 classes); full frontend 1,351 in 250 files; feature
+  gates pass.
+
+DT-01 reopens Phase 8 dated command integration and the explicit Phase 9 clock-client date contract. DT-01 and PV-01
+reopen Phase 10; both reopen Phase 12 acceptance. Normal Start clock UI, ordinary response authorization and earlier
+TB/FU/DR/CR closures are not shown broken by these findings. All three reopenings closed on 2026-10-15.
+
+## Transport Boundary Audit Work (2026-10-14)
+
+The [deep audit](information-request-deep-audit-2026-10-14.md) traces the current plan, backend, frontend, migrations,
+documentation and tests. Its two confirmed defects are browser boundaries; it establishes no backend authorization
+bypass. All production/test sources and the Git index are preserved.
+
+- [x] TB-01, P2: safely decode JSON error bodies returned for evidence Preview and Download Blob requests before
+  interpreting their reason codes. Add permanent browser-adapter and real-page expiry/revocation, ordinary refusal,
+  malformed/non-JSON error, and successful-file controls. Preserve successful Blobs and existing
+  session-generation/identity ownership. Seven intended failures and three controls reproduce this through the unchanged
+  production Axios client, real commands/hook/page, and a temporary localhost HTTP server; a test-owned decoder passes
+  all ten. Check authenticated error/step-up consumers within the repair. Closed: `services/jsonErrorBody.ts`
+  `decodeJsonErrorBody`, called first in `apiClient`'s response error handler, replaces the Blob body of a refused file
+  request (at most 64 KiB) with its JSON object when it is one, whatever the response declares: the server labels
+  refused `content` and `preview` reads `*/*` (its `@Produces(WILDCARD)`), so a label-based decoder would have left
+  every real refusal unread. Cut-off JSON, a JSON text or list, a page that is not JSON, an oversized body and every
+  successful file stay as sent. An expired or revoked session now reaches `onAccessSessionEnded` for Preview and
+  Download, so the page clears the session credential, closes the workspace body and shows contact verification with the
+  server's message; other refusals show the server's reason, and the token-refresh, step-up and deprovisioning handling
+  see a refused file request's reason too. 21 transport cases over Axios's XHR adapter and a localhost server and 9
+  real-page cases (19 failed on the original code), plus `InformationRequestNoAuthEvidenceContentRefusalHttpTest` (6,
+  real HTTP) pinning the JSON refusal body of both routes.
+- [x] TB-02, P2: discard a pending respondent evidence opening once the current evidence list refuses or no longer
+  permits that exact file. Check read standing and artifact/Version visibility before object-URL creation, Preview or
+  Download, while retaining mount/scope guards and ordinary openings. Two real-panel failures prove URL allocation and
+  browser actions after a supported reread hides all files; two ordinary controls pass. The test-owned refusal control
+  passes all four and is not a production fix. Closed: `useRequirementEvidence.open` keeps the evidence the panel last
+  rendered in a layout-effect ref and, once the file has been read, opens it only while the panel is still mounted,
+  still shows the same request and Requirement, and still lists that artifact with that version as its latest
+  (`offersOpening`). A refused reread, a newer version of the file or another file in its place discards it before any
+  object URL, preview or download; a late file still opens when the reread shows it, including after Try again shows it
+  again. 10 real-panel cases (4 failed on the original code); the ordinary hook case now lists the file it opens.
+- [x] TB-GATE: retain the independent reproductions, add permanent behavioral regressions, run affected/full suites and
+  earlier closure probes, inspect help/API guidance and neutrality, verify source preservation, and record actual
+  build/manual limits before final sign-off. Existing frontend 1,297 and backend full-suite passes do not close failures
+  that their current tests do not exercise. Done: full frontend 1,338 tests in 248 files, all pass; on a copy of the
+  original source with only the new tests, 25 intended failures and 87 passes; the audit's probes 37 of 37 unchanged on
+  the fix and 9 failures with 5 controls on its untouched copy; 11 frontend mutations and one mirror-only backend
+  mutation fail only their intended cases and were restored byte for byte; `typecheck:app` 0 Information Request
+  diagnostics (340 unrelated); root tsc, changed and feature/help lint (0 errors) and the Vite build pass; whole-app
+  lint keeps its 59-error, 46-warning baseline. Backend production inputs are byte-identical to the audit's 4,738-test
+  full run; the new backend class passes 6 of 6 in a mirror. The full backend then passed **4,744 tests in 701 classes,
+  zero failures/errors/skips (51:54, mirror identical to the checkout)**, including 312 migration cases in 82 classes
+  and the eight neutral scenarios' 13 cases. Help (evidence 149 lines), the API reference and release notes updated;
+  operator guide and recovery runbook have no affected statement; neutrality and forbidden-character scans clean. In the
+  desktop app's browser pane, the app's own modules read refused `content` and `preview` from the running local backend:
+  the 409 arrives labelled `*/*`, is decoded, and reports the ended session for both uses. Not run: a verified
+  respondent's journey with a real file, physical popup or download rendering, the waived width sweep and deployed
+  checks.
+
+No new migration, AWS service, compatibility mechanism, commit or push was introduced. The companion evidence-journal
+deletion is preserved; the new audit report holds this session's durable handoff.
+
+Repair order: TB-01, TB-02, then TB-GATE; all three closed on 2026-10-14 (evening). Earlier closure scopes, accepted
+product decisions and the staged completion-evidence deletion remain intact. Next migration V178, subject to recheck;
+the repairs require no migration. No commit or push is authorized.
+
+## Full Feature Audit Follow-Up (2026-10-14)
+
+The [full feature audit](information-request-full-feature-audit-2026-10-14.md) reads the plan and code, reruns both full
+suites, and confirms three gaps using independent behavioral and PostgreSQL probes. No production repair is part of this
+analysis.
+
+- [x] FU-01, P2: discard reviewer evidence content after its initiating view or request/item scope retires, before
+  object-URL allocation, Preview or Download. Add permanent real-component/page tests for both modes and ordinary
+  openings. Preserve exact Evidence Version identity and server release checks. Closed: `useReviewEvidenceOpening` reads
+  the file and opens it only while the item content is still mounted, still shows the same request, submission item and
+  Requirement, and still lists that exact Evidence Version; a refused read follows the same rule. 14 component and 10
+  review-page cases (15 failed on the original code); the audit's reviewer probes pass unchanged.
+- [x] FU-02, P2: discard pending request-record and subject-record downloads after their owning view, workspace or
+  request retires. Add permanent tests through both actual panels and retain verified-record refusal and normal download
+  controls. Check mounting as well as exact ownership before saving any file. Closed: `useRecordExports.download` saves
+  only while its panel is mounted and still shows the same request, `usePrivacyRecordDownload.download` only while its
+  list is mounted, and neither reports a retired refusal; the hash check, verification and export-read audit are
+  unchanged. 18 hook and real-panel cases (11 failed on the original code) cover Back to another request, workspace
+  switches, tab changes and a refused privacy reread; the audit's 11 record probes pass unchanged.
+- [x] FU-03, P2: make request-record export quota consumption atomic per canonical owner across separate Exchanges. Add
+  real PostgreSQL final-place concurrency coverage plus organization/personal owners, distinct-owner progress, rollback
+  and replay-at-ceiling controls. Preserve rolling-day expiry and current request-record-only policy. A temporary owner
+  lock makes the audit's unchanged probes pass; it is restored and is not a production design. Closed:
+  `requireWithinDailyCeiling` takes `InformationRequestRecordExportRepository.lockOwnerAllowance` (a transaction
+  advisory lock on the canonical owner) before it counts; no migration.
+  `InformationRequestRecordExportAllowanceConcurrencyTransactionTest` (7, PostgreSQL) covers organization and personal
+  races, distinct owners, a failing holder, a refused creation, replay at the ceiling and the rolling day; 3 failed on
+  the original code, a global key fails the distinct-owner case, and the audit's five PostgreSQL probes pass unchanged.
+- [x] FU-GATE: rerun affected and full suites after repairs; inspect help, API contracts, industry neutrality,
+  deployment/manual limitations and source preservation; record fresh evidence before final sign-off. Existing unrelated
+  compiler/lint backlogs remain separate. Do not close any finding on a source-only assertion or on a temporary
+  probe-copy control. Done: full backend 4,738 tests in 700 classes with zero failures, full frontend 1,297 tests in 245
+  files, the audit's probes 15/15 and 5/5 unchanged, `typecheck:app` 0 Information Request diagnostics, root tsc,
+  feature/help lint, the Vite build and a packaging-only verify (03:46, tests explicitly skipped); review, operations
+  and record preservation help, the API reference, operator guide and release notes updated; neutrality and
+  forbidden-character scans clean; mirror inputs identical to the checkout. Not run: a live browser journey, physical
+  popup or download rendering, the waived width sweep and deployed checks. Independent verification:
+  the [FU remediation recheck](information-request-fu-remediation-recheck-2026-10-14.md) passes the original 15 browser
+  and five PostgreSQL probes, eight additional browser cases, fresh backend 24 and full frontend 1,297 after isolating
+  one unchanged-deadline timing failure. All 2,509 backend inputs match the verified 4,738-test full run; accepted
+  limitations remain.
+
+Repair order: FU-01, FU-02, FU-03, then FU-GATE; all four closed on 2026-10-14 (afternoon). Earlier closure scopes,
+accepted product decisions and the staged completion-evidence deletion remain intact. Next migration V178, subject to
+recheck; the browser repairs require no migration. No commit or push is authorized.
+
+## CR Remediation Recheck Work (2026-10-14)
+
+The [independent recheck](information-request-cr-remediation-recheck-2026-10-14.md) verifies CR-01 and records a
+separate pending-read browser side effect.
+
+- [x] DR-01, P1: discard an earlier respondent's late evidence read after its owning view retires, before object-URL
+  creation, preview opening or download triggering. The authoritative workspace already names the replacement respondent
+  and the old panel is removed, but the awaited handler still calls window.open or an anchor click. Add permanent
+  rendered-page behavioral coverage for both modes and current-respondent controls. Two independent failures reproduce
+  the actions; the existing useStillMounted helper used as an isolated control passes all 44 independent frontend cases
+  and is restored byte for byte. Preserve current-respondent openings, the server's release checks and all earlier
+  ownership/retry closures. Closed: `useRequirementEvidence.open` awaits the file and returns before
+  `URL.createObjectURL`, `window.open`, or the download anchor click unless the panel is still mounted
+  (`useStillMounted`) and still shows the same request and Requirement (`useScopeGuard`). A late file for a retired
+  panel is discarded; ordinary and same-respondent openings are unchanged.
+- [x] DR-GATE: retain the 36 backend and 38 frontend independent probes, the two extra late-upload cases and both
+  opening controls; run affected and full suites, inspect help and industry neutrality, and record the restored
+  source/preservation evidence before final sign-off. The two opening failures are now resolved and independently
+  verified by the [DR remediation recheck](information-request-dr-remediation-recheck-2026-10-14.md): full frontend
+  1,252, original independent frontend 44 plus six additional cases, fresh backend probes 36, and identical backend
+  inputs for the prior 4,730-test run. Existing unrelated TypeScript/lint failures and accepted manual/live scope limits
+  remain recorded. Done: 6 page, 4 hook, and 1 help case (plus one updated help assertion), 2 mutations, the recheck's
+  44 frontend probes unchanged, full frontend 1,252 tests in 241 files with zero failures, backend inputs byte-identical
+  to the recheck's 4,730-test run and its 36 probes, `typecheck:app` 0 Information Request diagnostics, changed-file
+  lint, root tsc, Vite build, evidence and access articles, API reference, and release notes.
+- CR-01 remains closed within its recorded body-state and kept-file scope. No production source, permanent test,
+  migration, infrastructure or help article is changed by this analysis. The staged completion-journal deletion remains
+  intact; the new report holds the evidence.
+
+## CA Remediation Recheck Work (2026-10-13)
+
+The [independent recheck](information-request-ca-remediation-recheck-2026-10-13.md) confirms the CA repairs and one
+remaining browser ownership boundary.
+
+- [x] CR-01, P1: reset all respondent projections when the authoritative workspace respondent changes, including carried
+  answers, submission previews and permissions, open dialogs, accepted-answer offers and other adjacent reads. Prevent
+  an earlier respondent's delayed read/result from populating the new respondent's view. Preserve the page-owned
+  per-respondent command stores, same-respondent verification recovery, kept files and account-link draft transfer.
+  Three independent full-page cases reproduce the failure; the whole-body identity control passes and is restored.
+  Closed: the page keys `RespondentWorkspaceBody` by request and `respondentKey`, and the page's kept-file store is
+  keyed by respondent too (found during the repair: it offered the earlier respondent's kept file to the next one); a
+  same-respondent refresh keeps the body mounted.
+- [x] CR-GATE: add permanent behavioral coverage, retain earlier regression probes, rerun affected and full suites,
+  review help and scope, and update the handoff before final sign-off. Done: 8 page and 1 help case, 4 mutations, the
+  recheck's probes unchanged (frontend 38 of 38, backend 36 of 36), full backend 4,730 in 699 classes and full frontend
+  1,241 in 240 files with zero failures, packaging-only verify, access and evidence articles, API reference, and release
+  notes.
+- CA-01 and CA-02 remain closed in their recorded scopes. This analysis changes only the report and plan, with no commit
+  or push.
+
+## Comprehensive Audit Remediation Work (2026-10-13)
+
+The [comprehensive audit](information-request-comprehensive-audit-2026-10-13.md) records the reproductions, controls,
+fresh suites,
+scope assessment, and preserved inputs. No repair was implemented by this analysis.
+
+- [x] CA-01, P2: scope persisted and in-memory drafts to the stable, authoritative respondent
+  identity and request. Preserve same-party verification renewal and link rotation; prevent a
+  replacement recipient or different account from seeing or autosaving the former actor's draft.
+  Cover both access surfaces, account linking, remounts and late saves. Closed: the workspace returns
+  `respondentKey` (a digest of the principal it was read for); drafts and the workspace are keyed by request and
+  respondent; saves name their respondent and the server refuses another's; account linking moves the answers.
+- [x] CA-02, P2: keep the original command key until a definite answer for response saves, group
+  add/remove/reorder and confirmations. Preserve stale-write protection, current replay authorization,
+  and a new key for a genuinely new intent. Inspect adjacent submission and withdrawal callers. Closed: one key
+  per command identity until an answer, for structured commands, submission, confirmation, package and evidence
+  withdrawal, in a page-owned store per request and respondent that survives a new session.
+- [x] CA-GATE: retain the earlier closure regressions; add permanent behavioral coverage for both
+  findings, run affected and full suites, review help and scope, then update the handoff.
+
+## Post-Remediation Recheck Work (2026-10-13)
+
+The [post-remediation recheck](information-request-post-remediation-recheck-2026-10-13.md)
+confirms the original repair paths and two remaining boundaries. Both were closed test-first on
+2026-10-13; the report's remediation result records the rules, tests, and verification. Keep the
+recorded exclusions and prior remediation intact.
+
+- [x] VC-01, P1: retain verification-aware authorization before evidence storage access and
+  confirm session and protected authorization again after storage and media validation, before
+  recording access or returning download/preview content. Refuse revocation, expiry, and lapsed
+  protected verification without releasing bytes; close the handle on refusal. Add permanent
+  storage-overlap cases and preserve unprotected active-session reads. Closed: after the file is
+  read and its media type checked, `confirmCurrent` runs again and the release is authorized again
+  with the context it returns; the file is opened once and closed on any refusal.
+- [x] VC-02, P2: invalidate respondent session-generation ownership when the page unmounts.
+  Prevent its late verification and background-read refusal from changing a remounted page's
+  credentials. Add remount and StrictMode cases; preserve same-page generation protection,
+  previous-request cleanup, unsaved answers, kept files, and pending account-link recovery.
+  Closed: the access link's `replace` refuses once its page has unmounted (StrictMode-safe), and an
+  account link answered after its page closed no longer clears credentials or navigates.
+- Phases 4, 6, 10, and 12 are complete again. The Phase Summary statuses for Phases 8 and 9 were
+  reconciled to Complete by the recheck; their repaired notice and historical-review paths are
+  independently validated.
+- Industry-neutral naming and forbidden-character checks on the remediation's changed
+  production and test files found no leakage. No new AWS service or migration is indicated.
+
+## Completeness Recheck Remediation Work (2026-10-13)
+
+The [completeness recheck](information-request-completeness-recheck-2026-10-13.md) records four
+additional findings and their independent reproductions. All four were closed test-first on
+2026-10-13; its remediation result records the rules, tests, and verification. Earlier closures, the
+scanner decision, identity-only Subjects, and other approved exclusions are intact.
+
+- [x] VR-01, P1: use current protected verification for every access-link command and read projection.
+  Prove natural verification expiry between context resolution and the locked command cannot
+  commit a protected answer, and an earlier context cannot return protected workspace content.
+  Preserve unprotected reads and writes while the session is active, ordinary step-up, recorded
+  account-link recovery, and the preceding session-cutoff fixes. Inspect the shared callers. Closed:
+  the session check returns the current context and all 14 commands continue with it; reads rebuild
+  once through `readCurrent` when verification lapsed, and evidence is released the same way.
+- [x] VR-02, P2: reauthorize the frozen notice recipient at delivery after party reassignment,
+  including failed-attempt retries and concurrent reassignment. Preserve immutable notice content
+  and endpoint history; record skipped attempts rather than rewriting the recipient. Closed: delivery
+  share-locks the party and skips with `RECIPIENT_REASSIGNED`, retries included.
+- [x] VR-03, P2: resolve historical response and submission principal equivalence independently of
+  mutable current party holders. Keep a participant's linked account excluded by configured review
+  separation after reassignment. Extend the policy-boundary reproduction through a real recorded
+  submission, reviewer assignment, decision, and override, preserving immutable provenance. Closed:
+  recorded principals include their account-link equivalents; assignment and decision journeys pass.
+- [x] VR-04, P2: bind contact-verification completion and session-ended callbacks, including storage
+  writes, to their initiating link and session generation. Cover replacing a link for the same
+  request and ordinary renewal on the same link with multiple late expired-session results.
+  Preserve unsaved answers, kept files, and pending account-link recovery. Closed: the respondent link
+  carries a session generation, and late results for an older generation change nothing within one
+  mounted page. VC-02 above tracks the separately reproduced unmount/remount boundary.
+
+## Deep Analysis Remediation Work (2026-10-13)
+
+The [deep analysis](information-request-deep-analysis-2026-10-13.md) records five confirmed gaps.
+All five were closed test-first on 2026-10-13; its remediation result records the rules, tests,
+and verification. Earlier closures and approved scope exclusions are intact.
+
+- [x] IR-01, P1: make no-auth session validation and the command's authorization/mutation share
+  a safe transaction boundary. Prove a session revocation or recipient-sign-in cutoff that
+  commits first prevents a later save with that session, while ordinary saves and legitimate recorded recovery
+  still work. Inspect all other adapters with the same split. Closed: the 14 command entry points
+  check the session after their parent and request locks, reads confirm it before answering, and
+  the first-view and evidence-open records are gated the same way.
+- [x] IR-02, P2: scope the operations page and loaders to the current authenticated owner.
+  Switching organization or personal scope must withhold earlier rows, choices, selections,
+  drafts, commands, and late read/export results, then load the current owner. Closed: panels and
+  the request detail are keyed by the signed-in owner, an export stops without a file once its
+  queue unmounts, and Record preservation is keyed the same way.
+- [x] IR-03, P2: withhold evidence metadata and actions after a refused list reread, support
+  retry, and retain unsent uploads independently. Guard requirement ownership and read ordering.
+  Closed with the shared `useServerRead` and Try again; a kept file waits for the next read.
+- [x] IR-04, P2: withhold subjects, privacy histories, restrictions, and their actions after
+  a refused reread, support scoped retry, and preserve only appropriate unsent user drafts. Closed:
+  the three reads are one refusal-safe read with Try again.
+- [x] IR-05, P2: withhold prior request clocks and due-date-policy content/actions after a
+  refused reread. Implement explicit loading, refusal, and recovery states in both custom loaders.
+  Closed: both loaders read through `useServerRead`; a failed clock change keeps its key.
+
+## Deep Analysis Remediation Work (2026-10-12)
+
+The [sixth analysis](information-request-sixth-reanalysis-2026-10-12.md) verifies the six original
+reproductions below and reopens overall completion for their page-level interaction. Evidence and
+the independent failing probe are under `target/20261012-sixth-analysis/`. FB-01 was closed
+test-first on 2026-10-12; its red, repair, mutation proofs and verification are recorded in the
+report's remediation result, with logs in `target/20261012-fb-remediation/`.
+
+- [x] FB-01, P2: preserve recovery of a pending account link after another read observes the link's
+  own credential cutoff. Keep its original request/session/account/key/party ETag and recovery
+  credential available outside the workspace/offer lifetime, or recover the recorded result before
+  discarding them. Keep revoked workspace data withheld and refuse revoked credentials for new
+  work. Cover background-read refusal, ordinary successful linking and direct lost-answer replay
+  through the real respondent page and client adapters.
+
+The [fifth analysis](information-request-fifth-reanalysis-2026-10-12.md) records the sources,
+independent reproductions, passing controls, exact commands and limits. Existing phase checkmarks
+retain their historical scope; these findings reopened completion. All six were closed test-first on
+2026-10-12; each behavioral red, repair, mutation proof and verification is recorded in the report's
+remediation result, with logs in `target/20261012-fa-remediation/`. Preserve the probes under
+`target/20261012-fifth-analysis/`.
+
+- [x] FA-01, P1: put session authentication's locking reads inside the owning service transaction;
+  prove valid account linking through the adapter without a caller-created transaction.
+- [x] FA-02, P2: recover an already recorded account-link command through the adapter and client
+  after its own credential cutoff, bound to the original account/request/command, while refusing
+  revoked credentials for new work. Preserve existing cutoff and service replay controls.
+- [x] FA-03, P2: make a failed evidence upload or replacement leave no untracked version bytes;
+  provide safe, retryable cleanup through existing infrastructure and cover failures after storage
+  and during commit, without deleting committed or referenced versions.
+- [x] FA-04, P2: replace ambiguous receipt fingerprint string concatenation with an unambiguous
+  canonical serializer; retain accepted separator-containing Decision/evidence cases and audit
+  adjacent fingerprints while preserving normal replay, conflict and actor/resource isolation.
+- [x] FA-05, P2: withhold refused submission-preview data and commands, announce initial failures,
+  support retry/session recovery and clear obsolete errors while preserving unsaved response work.
+- [x] FA-06, P2: ignore superseded preview reads and preserve the selected submission stage through
+  ordinary response refreshes; bind review/submit controls and validators to the intended stage.
+
+## Gap Remediation Work
+
+This is the completed work from the 2026-10-05 check, with GA-001 split to preserve the historical
+finding's broader credential scope. Every historical register item was revalidated and closed.
+Closure evidence and exact commands are in the maintained register and the companion journal
+entries for each remediation.
+
+- [x] GA-001-A: Delegated authority grants and revocations atomically record immutable history,
+  classified audit, and transactional domain events, with replay and redaction coverage.
+- [x] GA-001-B: Bootstrap link, contact-proof, access-session, and participant account upgrade
+  mutations need request-specific audit and history. Split into bounded recording paths:
+    - [x] GA-001-B1: Explicit bootstrap link issue, rotate, replace, and revoke commands, with
+      request-specific history, audit, events, redaction, replay, and transactional rollback.
+    - [x] GA-001-B2: Automatic credential cutoffs during party and parent lifecycle changes,
+      contact proof, access-session mutations, and participant account upgrade, split into:
+        - [x] GA-001-B2a: Automatic link cutoffs on party revocation, reassignment, and member
+          removal, and session cutoffs on parent rejection, rescission, and deletion (V155).
+        - [x] GA-001-B2b: Contact challenge, refused code, and session issuance records, with the
+          parent-first lock order (V156).
+        - [x] GA-001-B2c: Participant account link records and the link cutoffs an upgrade makes.
+- [x] GA-002 part 2: Expose frozen Blueprint document placeholders through an author read and UI path.
+- [x] GA-003: Return discoverable hidden-data clear targets and handle FALSE and UNKNOWN in the UI.
+- [x] GA-004: Revoke the upgraded user's derived Share when the party is revoked or reassigned.
+- [x] GA-005: Apply organization sharing eligibility to ordinary party assignments.
+- [x] GA-006: Provide a respondent input path for configured evidence attributes.
+- [x] GA-007: Enable correction attestation and replacement submission for the active package.
+- [x] GA-008: Let managers reach and assign an unassigned pending review.
+- [x] GA-009: Revalidate group replay access, filter occurrences, and return a consistent current ETag.
+- [x] GA-010: Enforce required sign-in across bootstrap credentials and existing request sessions.
+- [x] GA-011: Confirm compartment and step-up semantics, then support the protected no-auth journey.
+- [x] GA-012: Apply publication readiness to private Versions, revalidate stored draft Schema
+  eligibility when publishing, and preserve structured amendment refusals and transactional rollback.
+- [x] GA-013: Refuse request-owned private Versions through reusable request and Blueprint
+  references, and private Definitions through reusable Template authoring, without changing private
+  creation, amendments, or follow-ups.
+- [x] GA-014: Replace reconfirmed App User-only attribution with canonical principal pairs:
+    - [x] GA-014-A: Template Definition and Version creation, publication, retirement, private
+      publication and amendments, and database freeze guards.
+    - [x] GA-014-B: Request and party creation and reassignment, notice identity resolution, and
+      record export attribution (V160).
+    - [x] GA-014-C: Bootstrap Share Link issuance and replacement attribution (V161).
+- [x] GA-047: Schedule due expiry refreshes and prevent duplicate per-source follow-ups.
+- [x] GA-056: Include holds on Submission Packages, Evidence, Outbound Notices, and exports in disposal.
+- [x] GA-158: Replace the delegated authority fixture's industry-specific instrument reference with
+  `authority-record:doc-42` and inspect changed artifacts for neutral naming and process rules.
+- [x] GA-015 to GA-166: revalidate every historical finding and close it, test-first. Migrations
+  V160 to V172; the per-item closure evidence is the remediation register in the check file.
+- [x] Follow-up validation: reject malformed nested identifiers on every no-auth request route
+  before resolving access or consuming a session use. This addresses the observation recorded
+  after the closed remediation register; it does not reopen its historical findings.
+- [x] Subject policy: reject `SUBJECT` as a Requirement contributor and confirmation role at
+  configuration save and publication; remove it from authoring choices, retain subject identity
+  parties, and update help. Cover reusable and private authoring, publication, and amendments.
+
+## Recheck Remediation Work (2026-10-07)
+
+The [2026-10-07 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-07.md)
+records the counterexamples and source references, and its remediation result records their
+closure. Prior task checkmarks retain their historical meaning. All five were implemented
+test-first and verified on 2026-10-07; the companion journal entry has the exact commands.
+
+- [x] RC-01: Reauthorize recurrence and refresh-rule definition replay reads after access changes;
+  preserve original receipt results, retained-history reads, and no duplicate writes.
+  Done: a replay authorizes `INFORMATION_REQUEST_VIEW` through the central authorizer before
+  returning the recorded definition; removed Shares, retained reads, actor-scoped keys, and no
+  second write are covered against PostgreSQL with real Shares.
+- [x] RC-02: Complete successful follow-up definition validators and revision participation, including
+  resulting ETags, authorized replay, stale writes, and concurrent commands.
+  Done: both definitions advance the request aggregate revision, record the resulting ETag in
+  the receipt, and return it in the `201` `ETag` header; a replay returns the recorded ETag.
+  Sequential, concurrent, and resource contract tests.
+- [x] RC-03: Resolve supported delegated grantees through active principal equivalence for Requirement
+  authorization and acting-party resolution, keeping the central Share gate and exact scope.
+  Done: authority facts carry the delegate's active equivalents (active group members and linked
+  participant accounts), used by the central Requirement evaluator and acting-party resolution;
+  the Share gate is unchanged.
+- [x] RC-04: Reject invalid recurrence and refresh bounds before persistence with stable input errors;
+  retain database checks and prove clean HTTP refusals and rollback.
+  Done: `400 INFORMATION_REQUEST_FOLLOW_UP_SCHEDULE_INVALID` before any lock or write (interval 1 to
+  1000, stop count at least one, first due from 1970 to the end of 9999, lead days zero or more);
+  a second refresh rule for one document is `409 INFORMATION_REQUEST_SUCCESSOR_SOURCE_INVALID`.
+  V135 checks are unchanged.
+- [x] RC-05: Prove and repair eventual progress past at least 50 persistently blocked refresh rules
+  without starving later eligible owners. Use existing infrastructure.
+  Done: V173 retry state with a definition-preserving guard; never-tried rules and due retries are
+  selected first, failures back off from 1 hour to 24 hours, and the due comparison no longer
+  overflows. Proven with 50 blocked earlier rules and one later eligible rule across four passes.
+- [x] Recheck evidence correction: GA-078 has a backend list endpoint and automatic party-change
+  revocation, with audit help; the claimed frontend section is absent and was not required by the
+  Phase 10 design. Corrected the register and superseded active rollout/compatibility text.
+
+## Recheck Remediation Work (2026-10-08)
+
+The [current recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-08.md)
+records three additional gaps confirmed by four isolated service/resource-adapter observations
+with real central authorization; its remediation result records their closure. Earlier closures
+retain their original scopes. All three were implemented test-first and verified on 2026-10-08;
+the companion journal entry "Recheck remediation (`RC-07`, `RC-08`, `RC-06`)" has the exact
+commands, red and green results, and limits.
+
+- [x] RC-07, P1, first: enforce source and successor Requirement disclosure for carry-forward
+  narratives and Field values, including source confidentiality and current audience. Write
+  permanent failing cases for unassigned sources, expired verification, removed Shares/groups,
+  and both authenticated and no-auth surfaces; retain allowed reads, fresh files/assent, and
+  explicit reconfirmation. Withhold inaccessible offers without blocking permitted successor work.
+  Done: an entry is returned only when the central authorizer allows Requirement view of both the
+  successor and the source item's Requirement; others are left out while the successor
+  Requirement stays answerable. PostgreSQL service, authenticated adapter, and no-auth HTTP tests;
+  red 6 of 7, green with 44 affected tests.
+- [x] RC-08, P1: apply item disclosure to current review findings, decisions, comments, correction
+  details, worksheet content, and protected file metadata. Start with the reproduced finding
+  narrative red, then cover adjacent paths. Retain safe standing/counts and management operations;
+  cover unverified/verified reviewers, standing-only administrators, revoked item access, and
+  shared resource surfaces.
+  Done: item content visibility governs findings and their remediations, comments, decision
+  narratives, worksheet entries (including the save answer), and returned file names; standing,
+  counts, earlier-finding filtering, and management stay. PostgreSQL tests through the review
+  list and detail adapters; red 4 of 5 plus the corrected mapper case.
+- [x] RC-06, P2: authorize the recorded successor on explicit successor, recurrence, and refresh
+  replay before projecting it. Write permanent removed-successor-Share cases first; preserve
+  source scope, actor-scoped receipts, retained reads, original ETags, and no duplicate mutation.
+  Done: the shared replay authorizes view of the recorded successor after the unchanged source
+  check. PostgreSQL tests for all three routes, the resource adapter (`403`), retained
+  `RECORD_OWNER` replay with the recorded ETag, and actor-scoped keys; red 3 of 5. RC-06 to RC-08
+  green together with 133 affected tests; full backend 4,338 tests passed.
+
+## Recheck Remediation Work (2026-10-08, second pass)
+
+The [second-pass recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-08-2.md)
+records seventeen further gaps, their sources, reproductions, and required fixes. RECHECK-1 to
+RECHECK-7 are its PostgreSQL observations; a copy of the probe class is kept at
+`target/20261008-recheck2-InformationRequestRecheckProbeTest.kt`. Earlier closures retain their
+scopes. Work each item test-first: a permanent red that fails on the intended behavior after its
+central-authorizer preconditions pass, the smallest complete fix, then affected regressions.
+The 2026-10-08 session recorded repairs for all seventeen this way; the companion journal entry
+"Second-pass remediation (`RC-09` to `RC-25`)" has the exact commands, red and green results, and
+limits. The first 2026-10-09 recheck reopened RC-17's withdrawal residuals, and a follow-up closed
+them. The second recheck confirmed those repairs and reopened one historical-answer/correction
+path, which a further follow-up closed the same day.
+
+- [x] RC-09, P1, first: list and read a `SUBJECT_RECORD` export only through owner-scope privacy
+  handling or for a caller allowed to export every source request; a request-level exporter of one
+  source sees neither the export nor its content. Keep per-Requirement withholding and recent
+  verification inside the export.
+  Done: `GET /information-request-privacy-requests/{privacyRequestId}/record-export` reads it in the
+  owner scope (`MANAGE_PRIVACY`, integrity, recent verification, a read audit event per source);
+  request-path list, read, and replay need export authority over every source. The privacy
+  request row offers **Download record**. Red 3 of 5 plus the contract case.
+- [x] RC-10, P1: reconciliation and imported-value listing disclose a response value only for a
+  Requirement the caller may view or review under the central Requirement policy, including recent
+  verification; otherwise record the outcome and withhold the value. Decide whether unsubmitted
+  drafts may be compared at all.
+  Done. Decision: drafts stay comparable, but only for callers whom the Requirement policy lets
+  view, review, or export the Requirement; for others only `NOT_COMPARABLE` and `EXPIRED`, which
+  never depend on the answer, are reported, with no discrepancy; a protected Requirement's values
+  are left out without recent verification. Red 5 of 5; a later broad-run regression (a closed
+  request's reviewer lost `NOT_COMPARABLE`) was fixed with its own fresh-run and replay reds.
+- [x] RC-11, P1: promotion, the promoted-from list, and requesting-side offers apply the source
+  Requirement's view, review, or export policy, including recent verification, before promoting or
+  returning a value; leave inaccessible values out.
+  Done, including promotion replays, revocation, and respondent offers. Red 6 of 6.
+- [x] RC-12, P2: derive a principal's request capability from all of its active parties on assignment,
+  revocation, reassignment, and follow-up copies (or give each party its own Share), and resolve a
+  party from a Share unambiguously. Cover both orders, reviewers, account links, and re-assigned
+  participants' new links.
+  Done: each acting party, including a linked participant account, has its own Share; capability
+  is the union of active Shares; lookup by Share prefers the active, newest party. Red 4 of 4.
+- [x] RC-13, P2: apply compartment recent verification and the other role-independent write policies
+  to overrides, administrator findings, and comments; refuse findings on items no stage covers.
+  Done (`409 INFORMATION_REQUEST_REVIEW_ITEM_NOT_COVERED`). Red 4 of 4.
+- [x] RC-14, P2: count distinct deciding principals toward minimum, quorum, and all-reviewer rules,
+  and refuse a second assignment or decision for one principal in a stage, including through group
+  membership; decide whether a group party counts as one reviewer.
+  Done. Decision: a group party is one reviewer slot; one principal is assigned to and decides a
+  stage once, whichever party it acts through. Red 2 of 2.
+- [x] RC-15, P2: decide hidden-Field emptiness without disclosing content and refuse only changes that
+  would remove data the caller cannot see or clear; unrelated saves proceed.
+  Done with a system read of the stored value. Red 2 of 3 (refusal control passed).
+- [x] RC-16, P2: apply the condition's hidden-data policy to Document evidence, list hidden files as
+  clear targets, and freeze no hidden item's files into a package.
+  Done. Red: case 1; case 2 proven by two separate production mutations (see the journal).
+- [x] RC-17, P2: after the user decides what "The party answers once" means (first saved answer or
+  first submission, and how corrections reopen it), enforce it on response, evidence, and
+  attestation writes, or remove the mode.
+  Done. Decision (recommended, applied at the user's request to implement every gap): the answer
+  may change until it is first submitted in a package and stays fixed afterwards, even after that
+  submission is withdrawn, unless an open correction returns it. The shared lock enforced direct
+  Field changes on 2026-10-08 (red 1 of 2, control passed); the 2026-10-09 rechecks reopened
+  three bypasses, each closed test-first the same day:
+    - [x] Apply the historical fixed-answer rule to confirmations after withdrawal, preserving
+      the existing correction/reconfirmation behavior. Done: a confirmation given once may be given
+      again only with the decision its role gave; controls cover before the first submission, a
+      standing package, an open correction, and ordinary mode.
+    - [x] Lock indirectly cleared or archived answers and evidence, not only explicit patch targets;
+      inspect occurrence removal for the same invariant. Done: condition effects that would clear,
+      withdraw, or archive an answer given once are refused (hiding under `RETAIN_SECURELY` stays
+      allowed), and removing an entry holding one is refused. Items a submission held as `HIDDEN`
+      now stay open. Reds: confirmation, Document clearing, Field clearing, Field archiving, entry
+      removal, and hidden at submission.
+    - [x] Preserve the historical fixed-answer rule when a later package held the item as `HIDDEN`
+      and an open correction returned only another item. Reproduced by the second 2026-10-09
+      recheck: after correcting the controlling Field, a contributor withdraws the fixed Document
+      without a Document correction item. Done: a correction reopens an answer given once only
+      when it returns it; otherwise the shared lock refuses the change and the central correction
+      policy excludes it. The same rule now governs condition clearing and confirmations under a
+      correction. Reds: hidden-package withdrawal (lock and central authorizer), clearing under a
+      correction, and a confirmation under a correction; controls cover a never-visible hidden
+      item, ordinary mode, and a returned answer and confirmation.
+- [x] RC-18, P3: authorize before preconditions, locks, nested lookups, and state disclosure; replays
+  of party, delegated-authority, evidence, and export commands answer with the caller's current
+  projection rules.
+  Done, including the next occurrence's supersede check on the latest occurrence. Red: 2 replay
+  cases, 5 outsider cases, 1 file replay, 1 occurrence case.
+- [x] RC-19, P3: apply party eligibility to Blueprint default parties and follow-up copies; bind a
+  follow-up's target Version to the source definition.
+  Done: Blueprint defaults refuse creation; follow-ups skip and record (`partiesNotCopied`) and pin
+  only the source's Version or a later published Version of its Template
+  (`409 INFORMATION_REQUEST_SUCCESSOR_TARGET_INVALID`). Red 3 intended, 2 controls passed.
+- [x] RC-20, P3: return hold details from disposal standing only to callers who may read holds;
+  validate hold targets; withhold item-specific review metadata of withheld items in exports.
+  Done: `withheldHolds` summaries, `RecordPreservationTargets`, redacted export stubs. Red 4
+  intended, controls passed.
+- [x] RC-21, P3: refuse assignments to settled stages; bind retests to the same item; classify
+  review-plan changes in amendments; give `WAIVED` items `DECLARED` confidence; bind supersession to
+  the caller's authority; attribute facts to the package's subject; decide how a fact is revoked after
+  its source request or Exchange finishes.
+  Done. Decision (recommended): revocation stays possible after the source request finishes or its
+  Exchange ends, as an owner-level record correction (`REVOKE_FACT` matrix branch). Red for each
+  part; the amendment refusal case was redesigned once and then failed red.
+- [x] RC-22, P3: skip and record notices whose party, request, or parent no longer qualifies.
+  Done (`SKIPPED` attempts with the reason, audited as denied). Red 2 of 2.
+- [x] RC-23, P3: complete receipt fingerprints (Template publish, assignment change, fact revocation),
+  refuse `If-Match: *` where an exact revision is required, scope audit keys to the actor, replay
+  concurrent same-key retries, and stop deriving Subject identity from the key alone.
+  Done. Red for each part.
+- [x] RC-24, P3: decide which closed-record actions continue under a lapsed or revoked grant, and apply
+  the continuation check to the remaining manager record mutations.
+  Done. Decision: fact revocation and pausing or extending a clock continue; the completion gate is
+  an owner recovery needing `CANCEL`; additions need a live grant with `RESPOND`, `REVIEW`, or
+  `SEND_REMINDER`. Red 2 of 2 (revocation control passed).
+- [x] RC-25, P3: send `Cache-Control: no-store` with raw access-link tokens; map an unknown request on
+  evidence reads to `404`.
+  Done. Red 2 of 2.
+
+### Post-correction verification cleanup (2026-10-09)
+
+The third 2026-10-09 recheck verifies every registered functional closure within its scope. These
+two nonfunctional findings do not reopen RC-17 or add another functional gap ID.
+
+- [x] C01, P3: in `docs/information-requests/release-notes.md`, describe the hidden-item exception
+  as an item never submitted while shown. A later hidden submission cannot erase an earlier
+  visible once-answer submission. The updated help and API reference already describe this.
+- [x] C02, P3: move the new correction transaction test's private `Scenario` data class into an
+  appropriate test model package in a dedicated file, following `AGENTS.md`; retain its
+  existing behavior and test coverage.
+
+## Deep Follow-Up Remediation Work (2026-10-09)
+
+The [fourth recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-09-4.md)
+contains the original reproduction details and every old lead's disposition. Its remediation
+result reported all nine closed test-first on 2026-10-09. The
+[2026-10-10 independent check](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10.md)
+verifies eight and reopens RC-27 for other-source record holds; its remediation result closes
+RC-27 the same day with V176. Earlier bounded closures retain their scopes.
+
+- [x] RC-26, P1, first: retain source provenance and evidence needed by live recertifications;
+  cover retention/privacy disposal and reference creation during disposal.
+- [x] RC-27, P1, reopened 2026-10-10 and closed the same day: preserve multi-source exports
+  required by another source's record hold as well as its parent holds and retention. Each other
+  source contributes the full key set its own disposal checks (its owned records and the stored
+  Documents and Document Versions it would delete) to the assessment and the persisted claim scope;
+  V176 refuses a hold on a record of any request an open claim names, including a record added
+  after the claim, and a claim naming a request while any of its records is held. Permanent tests
+  cover both orderings for seven record types and both hold scopes, a service-generated export with
+  held submitted evidence, the assessment-to-claim race, and privacy deletion.
+- [x] RC-28, P1: serialize reference creation with disposal assessment/claim so an object cannot
+  become referenced after being selected for irreversible deletion.
+- [x] RC-29, P2: validate condition literals and the pinned Field type at save/publication,
+  including ad hoc creation.
+- [x] RC-30, P2: establish Schema visibility before returning lifecycle, type, or authored details.
+- [x] RC-31, P2: resolve delegate existence and owner/sharing eligibility for all supported kinds.
+- [x] RC-32, P2: propagate required audit and invalid-draft failures for Template mutations;
+  preserve explicitly permitted degradation and prove transactional rollback.
+- [x] RC-33, P3: include the changed Version and relevant revisions in Version-level audit events.
+- [x] RC-34, P2: prevent duplicate active `(request, role, principal)` assignments and reassignment
+  collisions before reserving capacity, preserving different roles and assignment after revocation.
+
+The fourth report retains the decisions about subject-link permission, co-assigned evidence,
+decision/review-reason audiences, access after account linking, record-administration concurrency,
+reviewer verification recovery, and recurrence replay source identity. They are not silently
+classified as implemented or as authorization bypasses.
+
 ## Plan and Evidence Update Protocol
 
 Future sessions must keep the active plan and completion evidence split.
@@ -109,6 +4479,10 @@ Future sessions must keep the active plan and completion evidence split.
   task boundaries, or future-session instructions.
 - In older task text, references to a journal or journaled decisions mean the companion completion evidence file unless
   a section explicitly says otherwise.
+- Note (2026-10-29): `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` is staged for deletion in this
+  working tree. Since the 2026-10-26 gap analysis the program has kept its completion evidence in
+  `plans/evidence/information-request-gap-analysis-2026-10-26/` (the resume journal, the outcome files and the logs);
+  sessions add evidence there until the owner decides whether the companion file returns.
 
 ## Mandatory Protocol for Every Implementation Session
 
@@ -126,10 +4500,10 @@ the test-first, implementation, verification, and handoff stages.
    Confirm that the task, proposed identifiers, test data, and shipped configuration satisfy the
    industry-neutral platform rules in `AGENTS.md` before writing the first test.
 5. Use test-driven development:
-   - Write or update the smallest automated test that expresses the next required behavior.
-   - Run the focused test and confirm that it fails for the intended behavioral reason.
-   - Do not treat compilation errors, broken fixtures, or unrelated failures as the required red
-     state.
+    - Write or update the smallest automated test that expresses the next required behavior.
+    - Run the focused test and confirm that it fails for the intended behavioral reason.
+    - Do not treat compilation errors, broken fixtures, or unrelated failures as the required red
+      state.
 6. Implement the smallest complete production change that makes the new test pass.
 7. Run the focused test again until it passes, then refactor while keeping it green.
 8. Run all phase-specific tests and the affected backend or frontend regression suites. Record the
@@ -299,19 +4673,19 @@ subject type, evidence type, and downstream outcome:
 ## Delivery Shape and Release Cut Lines
 
 This document is a master roadmap for a multi-release program, not a single sprint or implementation
-session. The following milestones are separately testable and releasable behind default-off rollout
+session. The following milestones are separately testable and releasable under the current entitlement
 controls:
 
 1. Foundation program: Phase 1 makes the existing Fields engine safe, version-aware,
    principal-aware, and reusable. It is a prerequisite program, not a small preparatory patch.
 2. Controlled skeleton: Phases 2 through 4 establish Templates, runtime requests, canonical
-   authorization, recipient-bound access, audit, and lifecycle without general production rollout.
+   authorization, recipient-bound access, audit, and lifecycle through existing feature controls.
 3. Collection MVP: Phases 5 through 7 complete structured responses, evidence, and immutable
    no-review submission for the basic walking skeleton. This is the earliest controlled pilot cut.
 4. Review and operations: Phases 8 through 10 add review, remediation, clocks, records, and complete
    user journeys.
 5. Conformance and release: Phases 11 and 12 prove cross-process behavior and complete migration,
-   packaging, quota, documentation, and rollout gates. Connector work is not part of the MVP cut.
+   packaging, quota, documentation, and release gates. Connector work is not part of the MVP cut.
 
 Before starting a task that cannot fit one implementation session, split it into journaled,
 dependency-ordered subtasks, each with one bounded failing behavior, implementation change, and
@@ -359,6 +4733,9 @@ the system that owns downstream process outcomes outside the Information Request
   separate scope, and security review exist.
 - Any representation that using DocuHyphen alone guarantees compliance with a law or standard.
 - A new AWS service or paid cloud resource type without explicit user confirmation.
+- Subject Identity merge and supersession operations. `V85` stores the tenant-bound merge and supersession lineage,
+  but no service, API, or screen merges or supersedes subjects; building them is an explicit follow-up outside this
+  program's delivered scope (GA-088).
 
 ## Verified Repository Baseline
 
@@ -379,46 +4756,46 @@ test for the same failure modes:
    requires changes to the sealed types, adapters, and guards that branch on it, and those code
    sites belong in the same task.
 
-| Area | Current repository reality | Required response in this plan |
-|---|---|---|
-| Blueprints | `blueprint_definition` is mutable and has no version table. Its Schema link uses stable `schema_definition_id`. | Preserve current Blueprint behavior. Add an exact Template Version reference for future instantiations without inventing Blueprint version history. |
-| Blueprint and Document Library defaults | `BlueprintParticipantDefault`, `BlueprintDocumentDefault`, and `BlueprintFieldDefault` already configure participants, Document Library-derived document metadata, and Field defaults. `BlueprintDefinitionService.copyChildren` preserves them during clone. | Reuse these defaults during request instantiation. Define explicit mappings into request party roles, Requirement defaults, and document placeholders rather than creating a parallel Blueprint-default mechanism. |
-| Schema Assignment | `SchemaAssignmentService` accepts a Schema Definition and resolves the latest published version. `schema_definition.target_resource_type` is `VARCHAR(48) NOT NULL DEFAULT 'EXCHANGE'` with no CHECK constraint, so a new target value needs no migration. The `@Transactional` annotation sits on the three-argument `assignSchema` overload only; the four-argument overload relies on its caller's transaction, currently `ExchangeInitiationService.initiateExchange`. | Add an internal assign-exact-published-version path for Information Requests while preserving the legacy assign-latest path. Register `INFORMATION_REQUEST` as a Schema target through the service and adapter, not a database migration. Give every new assignment entry point its own explicit transaction boundary instead of inheriting one. |
-| No-auth access | The legacy Exchange stores one Exchange-wide token hash and verified window plus `recipientOtpHash`, `recipientOtpExpiry`, and `noAuthAccessValidityDays`; the emailed OTP is the gate that issues the token. `Exchange.requireRecipientSignIn` is an existing per-Exchange owner choice that disables the no-auth path, and `resendNoAuthPrimaryRecipientInvitation` refuses when it is true. A separate `ShareLink` model hashes a token for one Share and is partially wired through no-auth Exchange metadata retrieval and the central authorizer, but it currently represents direct `PUBLIC_LINK` access rather than recipient contact proof, has no request-party session or rotation lineage, does not enforce every stored password or domain field, and has no production creation or atomic use-count path. | Keep the Exchange credential for the legacy shell. Extend `ShareLink` into a bootstrap-only mode bound through a request-party Share, enforce every configured constraint, and add request-bound verified sessions. Treat `requireRecipientSignIn` as an authoritative owner policy that blocks bootstrap-link issuance for that Exchange; never silently override it. Do not add a duplicate request-credential table unless implementation proves the compatible `ShareLink` extension cannot satisfy the contract. |
-| Caller identity | `AuthorizationContextFactory` resolves only authenticated users and applications, while `PrincipalRef` already supports participants and public links. | Keep `PrincipalRef` canonical and build the no-auth request context at the adapter boundary without changing the global authentication pipeline. |
-| Authorization | `Action`, `Capability`, `RoleCapabilities`, `Share`, `ShareConstraints`, `ResourceType`, and `DefaultAuthorizationService` are the central stack. `Action` has 105 values, each mapping to exactly one `Capability`. `ResourceType` names twelve values but only three are Share-bearing: `share_resource_type_check` in the V1 baseline restricts `share.resource_type` to `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`, no later migration widens it, and `ShareService.grant` is only ever called with `ResourceType.EXCHANGE`. Every Share is Exchange-role-typed, capability derivation always calls `forExchangeShareRole`, `share_role_name_check` restricts `role_name` to the seven Exchange roles, and `parentRef` is not enforced. `ShareService` maps any non-Exchange Share audit event to `AuditOwnerScope.Platform`. | Add resource-scoped Share roles, explicit parent-grant inheritance, and a central resource-policy evaluator. Widen `share_resource_type_check` and `share_role_name_check` in the same migration that introduces request resource types and role keys; without the resource-type change every request-party Share insert fails a check constraint. Characterize and regress the three resource types that can actually hold a Share, and treat the other nine as enum-only values that need no Share migration. Correct the non-Exchange Share audit owner before request-party Shares exist. Do not create a second authorization system. |
-| Resource authorization context | `ResourceAuthorizationContextRegistry.resolve` returns null when a `ResourceType` has no `ResourceKind` mapping or no registered provider, and `DefaultAuthorizationService` treats null as permission to skip the archived and suspended denies. `collectOrgMembershipGrants` then falls back to `AuthorizationContext.activeOrgId`, so an unresolvable resource derives organization-role capabilities from the caller's active organization rather than the resource owner. `ResourceKind` has eleven values against twelve `ResourceType` values: `APPLICATION` and `WORKFLOW_WEBHOOK_ENDPOINT` map to null deliberately, and `DOCUMENT` maps to a kind that has no registered provider. | The existing generic path fails open, so fail-closed is a correction to current behavior rather than a property new types inherit. Add an explicit unresolved-context deny policy, remove the `activeOrgId` fallback for mapped resource kinds, and characterize the present behavior of `DOCUMENT`, `APPLICATION`, and `WORKFLOW_WEBHOOK_ENDPOINT` before changing it. Register the request kinds only after their providers exist. |
-| Fields port | `FieldResourceAdapter` is whole-resource only, `setValues` has no Value Set or expected revision, and Field Value authorship is App User-only. | Generalize the Fields command and authorization ports for binding, occurrence, Value Set, canonical principal provenance, and concurrency. |
-| Fields caller reachability | Current authenticated Field resources can obtain `USER` or `APPLICATION` principals. An external registered User is reachable now, while `PARTICIPANT` and `PUBLIC_LINK` Field calls require a synthetic service or adapter test until the Phase 4 no-auth surface exists. | Test the service and adapter contracts with explicit synthetic participant and public-link principals in Phase 1, identify those tests as pre-exposure contract tests, and add real no-auth endpoint coverage when Phase 4 exposes the path. |
-| Fields scope vocabulary | `FieldScopeKind` and three V36 checks use `PLATFORM` and `ORGANIZATION`; other domains use differing persisted vocabularies such as `APP`, `ORG`, and `PERSONAL`. Personal scope is also blocked in code, not only in the schema: `ScopeReference` is `Platform` or `Organization` only while `OwnerContext` already has `Personal`, `ExchangeFieldResourceAdapter.ownerScope` returns null for a personally owned Exchange, `SchemaAssignmentService.assertSchemaVisibleToResource` casts to `ScopeReference.Organization` and rejects anything else, and `BusinessFieldsSubscriptionGuard.requireConfigurationMutation` calls `requireNotNull(organizationId)` for every non-`PLATFORM` scope. | Preserve the existing Fields spelling and extend it exactly to `PLATFORM`, `ORGANIZATION`, and `PERSONAL`. Use the same spelling for Information Request Templates while leaving unrelated existing domain enums unchanged. Rewrite all affected Fields checks explicitly. Extend `ScopeReference` with a personal owner and correct all four code sites in the same task; extending the enum alone yields a scope that throws on first use. |
-| Fields commercial guard | `SchemaAssignmentService.setValues` and every assignment mutation call `BusinessFieldsSubscriptionGuard.requireResourceMutation`, which resolves the resource's `SubscriptionContext` and re-checks the owner's live plan for `PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS` on each write. | Route Information Request Field writes through the request's `RequestExecutionGrant` instead of a live owner-plan lookup. Organization-owned Field-bearing requests require both `INFORMATION_REQUESTS` and `BUSINESS_FIELDS_AND_SCHEMAS`; Personal Information Requests include their typed response data. |
-| Attribution foreign keys | `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`, and Share grant and revoke App User columns are nullable foreign keys to `app_user`. | Add parallel canonical principal kind and ID columns during expand, preserve valid legacy App User foreign keys while dual-writing, and state the later contract decision explicitly. Never place participant or public-link IDs into an App User foreign-key column. |
-| Document Versions | `DocumentVersion` has no content hash, its creator is nullable App User-shaped, and version bytes use a hardcoded local path with replacement semantics. The mutable Document row owns the current hash. | Add typed provider-neutral write-once locators, version-level hashing, and canonical principal provenance with truthful legacy states. |
-| End-to-end encryption | `DocumentEncryptionMode.END_TO_END` exists even though current frontend upload paths send `INTERNAL`. Server-side inspection and malware scanning cannot establish plaintext safety for opaque end-to-end ciphertext. | Keep end-to-end encrypted Document Versions ineligible to satisfy a file-backed Evidence Requirement until a separately approved inspectable representation and security contract exists. Do not claim ciphertext scanning establishes plaintext safety. |
-| Record preservation | `AuditLegalHold` already stores a generic organization plus resource type and resource ID reference and has place and release behavior, but its authorization, subscription guard, owner model, history, and only disposal consumer are audit-specific. It cannot represent a personal owner safely, and no business-record purge pipeline exists. | Generalize the existing hold persistence and service behind a neutral record-preservation contract, preserve compatible audit APIs and the physical table during rollout, add personal ownership and append-only lifecycle history, and avoid a second active hold table for the same resource. Build reference-aware disposal before claiming evidence is purge-eligible. |
-| Outbound notices | Communications are mutable and delivery logs do not retain recipient endpoints, rendered content, or content hashes. | Build immutable notice and append-only delivery-attempt records rather than describing them as existing. |
-| Variables and Sequences | `{{TOKEN}}` and side-effecting `{{SEQ:KEY}}` interpolation are live in Exchange naming and Communication rendering. Sequence interpolation increments persisted state. | Claim each Notice Intent before rendering, render once, consume each configured sequence occurrence under the same idempotent transaction, and persist rendered content and hashes so retries never increment a Sequence again. |
-| Content safety | Content-type tooling exists, but malware scanning does not. | Resolved on 2026-09-25: scanning is optional, evidence upload works without it, and the scanner is planned in `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`. |
-| Command safety | There is no reusable client-command idempotency receipt or `If-Match` infrastructure. | Add shared command-receipt and HTTP precondition foundations before retryable request mutations. |
-| Transactional events | `DomainEvent` and `DomainEventPublisher` are already neutral. Their durable implementation, qualifier, mapped entity, repository, dispatcher, scheduler, metrics, and physical table are Workflow-branded. The event outbox has only nullable `organization_id`, so it cannot distinguish platform from personal ownership, and `idempotency_key` is globally unique with no type or owner prefix. A separate `audit_outbox` exists for immutable audit intent. | Preserve the neutral public contract, generalize only the durable implementation vocabulary, add explicit event owner kind and ID, and reuse the existing physical event table. Define and test an explicit idempotency-key namespace for Information Request events so a request key can never collide with a Workflow key in the shared global unique index. Keep audit and domain-event intents distinct but correlated and transactional; do not create a request-specific event outbox. |
-| Audit | Audit event keys and categories are a closed catalog at version 14. `AuditRecorder` can accept an explicit actor but otherwise falls back to request authentication, and `AuditOwnerScope` is only platform or organization. `AuditActorKind` already includes `PUBLIC_LINK`. Roughly twenty existing call sites resolve owner as `organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform`, so every personally owned Exchange already records its audit events under platform scope. | Add Information Request catalog entries and personal owner scope, and always pass explicit canonical actor data for request mutations, including no-auth actions. Enumerate and correct the existing organization-or-platform fallbacks that a request mutation can reach through Exchange, Document, Document Version, access-management, and hold services; otherwise a personal request inherits the same mislabelling through code the plan reuses rather than replaces. |
-| Entitlement | `PlanFeature` has no Information Requests value and persisted feature overrides are organization-only. | Add an owner-neutral commercial entitlement override controlled by platform administration. Include Information Requests in Personal and Business without a second rollout gate. |
-| Subscription trials and enforcement | User and organization trial grants and requests exist, and subscription enforcement has global `OFF`, `REPORT_ONLY`, and `ENFORCE` modes. A trial may expire after a request is issued. | Resolve issuance through the existing effective-subscription and enforcement services, snapshot trial or paid entitlement provenance in the execution grant, and prove trial expiry does not strand reserved issued work. |
-| External participants | `ExternalParticipant` and `external_participant` exist with `owner_organization_id`, normalized email, and verification metadata, but no code path ever constructs or persists one. The repository exposes only `findById`, used by three read-only display paths, and `findByOwnerAndEmail` has no caller, so the table is empty in every environment. No production code emits a `PrincipalKind.PARTICIPANT` principal. | This is greenfield, not an extension. Build the owner-scoped participant identity lifecycle, including creation, contact verification, owner-scoped lookup, collision handling, and registration-upgrade lineage, and add personal ownership to the existing empty table as a forward-only schema change. Do not plan a data backfill, ambiguity report, or legacy-row resolution pass for a table with no rows. |
-| Email-only recipient identity today | The existing email recipient path does invent an App User: `ExchangeRecipientSelectionResolver.resolveExternalEmail` creates `AppUser(isTemporary = true, isActive = false)` for every `EXTERNAL_EMAIL` selection. `ExchangeRecipientService.recordExternalEmailPrimaryDecision` and `ExchangeAccessManagementService.resendNoAuthPrimaryRecipientInvitation` both require `share.principalKind == PrincipalKind.USER`, so acceptance, resend, and `ExternalEmailAcceptancePolicyService` are structurally bound to User-kind Shares. | Never invent an App User for Information Request access. Because the reusable Exchange acceptance, resend, and eligibility paths assume a User-kind Share, record an explicit decision for each one: reuse it only for User-backed request parties, or implement a participant-principal equivalent. A participant-principal request party cannot silently flow through the existing recipient decision paths. |
-| Exchange recipient binding | `exchange_recipient.direct_share_id` is `NOT NULL UNIQUE`, the V63 trigger `validate_exchange_recipient_share_binding` requires that Share to be a direct, non-owner Share whose `resource_type` is `EXCHANGE` and whose `resource_id` equals the recipient's Exchange, and `uq_exchange_recipient_primary` permits one `PRIMARY` recipient per Exchange. | A recipient's single Share is permanently pinned to its Exchange, so a request-party Share cannot be attached through `direct_share_id`. Reference an `ExchangeRecipient` by ID from the request party and bind the bootstrap `ShareLink` to the request-party Share, leaving the existing recipient invariant untouched. Do not model several request contributors as several primary recipients. |
-| Trusted Organizations | V59 through V65 implement trust relationships, revisioned party policies, suspension, trusted person and group selection, recipient attestation, validation, and group access reconciliation. | Reuse these services for organization-owned request party assignment, replacement, group expansion, acceptance, and registration upgrade. Treat trust suspension as a separate security and eligibility axis and define its effect on new and already-issued work without weakening current reconciliation. |
-| Principal Groups and recipient replacement | `ShareService` already materializes and reconciles group inheritance, propagates role and constraints, activates pending Shares, and revokes descendants. `ExchangeAccessManagementService.replacePrimaryRecipient` already replaces an eligible pending trusted recipient transactionally, but it requires a sender organization, an `INITIATED` Exchange, a `PENDING` acceptance status, a trusted-person or trusted-group selection, and an authenticated App User caller. | Generalize and reuse these methods for Information Request resource roles and party reassignment. Add only request-specific history, completed-work, session, precondition, and policy behavior. Treat the organization-sender, draft-only, pending-only, trusted-only, and authenticated-caller preconditions as five separate explicit policy decisions for request parties rather than inherited defaults. |
-| Issued capacity | No persisted request-local execution grant or reservation ledger exists. | Capture and reserve conservative completion limits atomically at issuance so a later commercial lapse cannot strand assigned work. |
-| Exchange lifecycle | Existing Fields and Documents enforce Exchange lifecycle rules, but no parent-child request transition contract exists. | Add an explicit Exchange and Information Request transition matrix with transactional race protection. |
-| Workflow trigger registry | `WorkflowTriggerEventRegistry` is Flyway-seeded and drives both the Workflow trigger dropdown and `$subject.*` autocomplete through `subject_fields_json`. `WAIT_FOR_COUNTERPARTY_CLEARANCE` is an existing related waiting primitive. | Register Information Request events through an explicit migration with safe subject-field descriptors and evaluate the existing waiting primitive before adding any overlapping Workflow behavior. |
-| Webhooks and connectors | `WorkflowWebhookEndpoint`, `WebhookWorkflowActionHandler`, application identity, destination policy, signing, and outbound delivery already provide an integration foundation. | Reuse applicable identity, destination-security, signing, delivery, and retry components. Keep structured-evidence or verification connector contracts distinct where they require request, polling, imported-value, or verification semantics that outbound Workflow webhooks do not provide. |
-| Realtime | Authenticated Exchange experiences use `RealtimeEventService`, viewer and presence registries, and a WebSocket tied to User Sessions. There is no request-party no-auth realtime identity. | Keep ETag and precondition conflict handling authoritative for all clients. Reuse authenticated realtime only for optional notifications, do not require a no-auth WebSocket for correctness, and do not imply live collaborative editing unless separately scoped. |
-| Model layout | Entities and DTOs currently use flat `model/entity` and `model/dto` packages. Dedicated DTO mappers live primarily in flat `model`, with a few in `model/dto` and one in `resource/mapper`; no `model/mapper` package exists. | Keep entities and DTOs in their existing flat packages and place new dedicated pure DTO mappers in flat `model` with domain-qualified names. Use domain subpackages for services, resources, and repositories, and do not create a third mapper convention in this program. |
-| Help registry | `helpDocsRegistry.tsx` is 58 lines and the repository limit is under 60. | Refactor registry composition before registering an Information Requests section. |
-| REST compatibility | Existing Exchange Field updates use sparse `PUT`. | Add canonical sparse `PATCH`, retain `PUT` temporarily as a deprecated compatibility alias, and migrate the frontend. |
-| Flyway | The observed migration head is V75 and no initiative range is reserved. | Use the migration allocation rules in this plan and revalidate the head before every migration task. |
-| Website | Existing marketing content includes concrete use-case examples and legacy non-neutral identifiers. | Treat marketing examples as explanatory content. Do not use them as product naming precedent or rename unrelated legacy assets in this program. |
+| Area                                       | Current repository reality                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Required response in this plan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|--------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Blueprints                                 | `blueprint_definition` is mutable and has no version table. Its Schema link uses stable `schema_definition_id`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Preserve current Blueprint behavior. Add an exact Template Version reference for future instantiations without inventing Blueprint version history.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Blueprint and Document Library defaults    | `BlueprintParticipantDefault`, `BlueprintDocumentDefault`, and `BlueprintFieldDefault` already configure participants, Document Library-derived document metadata, and Field defaults. `BlueprintDefinitionService.copyChildren` preserves them during clone.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Reuse these defaults during request instantiation. Define explicit mappings into request party roles, Requirement defaults, and document placeholders rather than creating a parallel Blueprint-default mechanism.                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Schema Assignment                          | `SchemaAssignmentService` accepts a Schema Definition and resolves the latest published version. `schema_definition.target_resource_type` is `VARCHAR(48) NOT NULL DEFAULT 'EXCHANGE'` with no CHECK constraint, so a new target value needs no migration. The `@Transactional` annotation sits on the three-argument `assignSchema` overload only; the four-argument overload relies on its caller's transaction, currently `ExchangeInitiationService.initiateExchange`.                                                                                                                                                                                                                                                                                                                                                           | Add an internal assign-exact-published-version path for Information Requests while preserving the legacy assign-latest path. Register `INFORMATION_REQUEST` as a Schema target through the service and adapter, not a database migration. Give every new assignment entry point its own explicit transaction boundary instead of inheriting one.                                                                                                                                                                                                                                                                                           |
+| No-auth access                             | The legacy Exchange stores one Exchange-wide token hash and verified window plus `recipientOtpHash`, `recipientOtpExpiry`, and `noAuthAccessValidityDays`; the emailed OTP is the gate that issues the token. `Exchange.requireRecipientSignIn` is an existing per-Exchange owner choice that disables the no-auth path, and `resendNoAuthPrimaryRecipientInvitation` refuses when it is true. A separate `ShareLink` model hashes a token for one Share and is partially wired through no-auth Exchange metadata retrieval and the central authorizer, but it currently represents direct `PUBLIC_LINK` access rather than recipient contact proof, has no request-party session or rotation lineage, does not enforce every stored password or domain field, and has no production creation or atomic use-count path.              | Keep the Exchange credential for the legacy shell. Extend `ShareLink` into a bootstrap-only mode bound through a request-party Share, enforce every configured constraint, and add request-bound verified sessions. Treat `requireRecipientSignIn` as an authoritative owner policy that blocks bootstrap-link issuance for that Exchange; never silently override it. Do not add a duplicate request-credential table unless implementation proves the compatible `ShareLink` extension cannot satisfy the contract.                                                                                                                      |
+| Caller identity                            | `AuthorizationContextFactory` resolves only authenticated users and applications, while `PrincipalRef` already supports participants and public links.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Keep `PrincipalRef` canonical and build the no-auth request context at the adapter boundary without changing the global authentication pipeline.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Authorization                              | `Action`, `Capability`, `RoleCapabilities`, `Share`, `ShareConstraints`, `ResourceType`, and `DefaultAuthorizationService` are the central stack. `Action` has 105 values, each mapping to exactly one `Capability`. `ResourceType` names twelve values but only three are Share-bearing: `share_resource_type_check` in the V1 baseline restricts `share.resource_type` to `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`, no later migration widens it, and `ShareService.grant` is only ever called with `ResourceType.EXCHANGE`. Every Share is Exchange-role-typed, capability derivation always calls `forExchangeShareRole`, `share_role_name_check` restricts `role_name` to the seven Exchange roles, and `parentRef` is not enforced. `ShareService` maps any non-Exchange Share audit event to `AuditOwnerScope.Platform`. | Add resource-scoped Share roles, explicit parent-grant inheritance, and a central resource-policy evaluator. Widen `share_resource_type_check` and `share_role_name_check` in the same migration that introduces request resource types and role keys; without the resource-type change every request-party Share insert fails a check constraint. Characterize and regress the three resource types that can actually hold a Share, and treat the other nine as enum-only values that need no Share migration. Correct the non-Exchange Share audit owner before request-party Shares exist. Do not create a second authorization system. |
+| Resource authorization context             | `ResourceAuthorizationContextRegistry.resolve` returns null when a `ResourceType` has no `ResourceKind` mapping or no registered provider, and `DefaultAuthorizationService` treats null as permission to skip the archived and suspended denies. `collectOrgMembershipGrants` then falls back to `AuthorizationContext.activeOrgId`, so an unresolvable resource derives organization-role capabilities from the caller's active organization rather than the resource owner. `ResourceKind` has eleven values against twelve `ResourceType` values: `APPLICATION` and `WORKFLOW_WEBHOOK_ENDPOINT` map to null deliberately, and `DOCUMENT` maps to a kind that has no registered provider.                                                                                                                                         | The existing generic path fails open, so fail-closed is a correction to current behavior rather than a property new types inherit. Add an explicit unresolved-context deny policy, remove the `activeOrgId` fallback for mapped resource kinds, and characterize the present behavior of `DOCUMENT`, `APPLICATION`, and `WORKFLOW_WEBHOOK_ENDPOINT` before changing it. Register the request kinds only after their providers exist.                                                                                                                                                                                                       |
+| Fields port                                | `FieldResourceAdapter` is whole-resource only, `setValues` has no Value Set or expected revision, and Field Value authorship is App User-only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Generalize the Fields command and authorization ports for binding, occurrence, Value Set, canonical principal provenance, and concurrency.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Fields caller reachability                 | Current authenticated Field resources can obtain `USER` or `APPLICATION` principals. An external registered User is reachable now, while `PARTICIPANT` and `PUBLIC_LINK` Field calls require a synthetic service or adapter test until the Phase 4 no-auth surface exists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Test the service and adapter contracts with explicit synthetic participant and public-link principals in Phase 1, identify those tests as pre-exposure contract tests, and add real no-auth endpoint coverage when Phase 4 exposes the path.                                                                                                                                                                                                                                                                                                                                                                                               |
+| Fields scope vocabulary                    | `FieldScopeKind` and three V36 checks use `PLATFORM` and `ORGANIZATION`; other domains use differing persisted vocabularies such as `APP`, `ORG`, and `PERSONAL`. Personal scope is also blocked in code, not only in the schema: `ScopeReference` is `Platform` or `Organization` only while `OwnerContext` already has `Personal`, `ExchangeFieldResourceAdapter.ownerScope` returns null for a personally owned Exchange, `SchemaAssignmentService.assertSchemaVisibleToResource` casts to `ScopeReference.Organization` and rejects anything else, and `BusinessFieldsSubscriptionGuard.requireConfigurationMutation` calls `requireNotNull(organizationId)` for every non-`PLATFORM` scope.                                                                                                                                     | Preserve the existing Fields spelling and extend it exactly to `PLATFORM`, `ORGANIZATION`, and `PERSONAL`. Use the same spelling for Information Request Templates while leaving unrelated existing domain enums unchanged. Rewrite all affected Fields checks explicitly. Extend `ScopeReference` with a personal owner and correct all four code sites in the same task; extending the enum alone yields a scope that throws on first use.                                                                                                                                                                                               |
+| Fields commercial guard                    | `SchemaAssignmentService.setValues` and every assignment mutation call `BusinessFieldsSubscriptionGuard.requireResourceMutation`, which resolves the resource's `SubscriptionContext` and re-checks the owner's live plan for `PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS` on each write.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Route Information Request Field writes through the request's `RequestExecutionGrant` instead of a live owner-plan lookup. Organization-owned Field-bearing requests require both `INFORMATION_REQUESTS` and `BUSINESS_FIELDS_AND_SCHEMAS`; Personal Information Requests include their typed response data.                                                                                                                                                                                                                                                                                                                                |
+| Attribution foreign keys                   | `field_value.updated_by_app_user_id`, `schema_assignment.assigned_by_app_user_id`, and Share grant and revoke App User columns are nullable foreign keys to `app_user`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Add parallel canonical principal kind and ID columns during expand, preserve valid legacy App User foreign keys while dual-writing, and state the later contract decision explicitly. Never place participant or public-link IDs into an App User foreign-key column.                                                                                                                                                                                                                                                                                                                                                                      |
+| Document Versions                          | `DocumentVersion` has no content hash, its creator is nullable App User-shaped, and version bytes use a hardcoded local path with replacement semantics. The mutable Document row owns the current hash.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Add typed provider-neutral write-once locators, version-level hashing, and canonical principal provenance with truthful legacy states.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| End-to-end encryption                      | `DocumentEncryptionMode.END_TO_END` exists even though current frontend upload paths send `INTERNAL`. Server-side inspection and malware scanning cannot establish plaintext safety for opaque end-to-end ciphertext.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Keep end-to-end encrypted Document Versions ineligible to satisfy a file-backed Evidence Requirement until a separately approved inspectable representation and security contract exists. Do not claim ciphertext scanning establishes plaintext safety.                                                                                                                                                                                                                                                                                                                                                                                   |
+| Record preservation                        | `AuditLegalHold` already stores a generic organization plus resource type and resource ID reference and has place and release behavior, but its authorization, subscription guard, owner model, history, and only disposal consumer are audit-specific. It cannot represent a personal owner safely, and no business-record purge pipeline exists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Generalize the existing hold persistence and service behind a neutral record-preservation contract, preserve compatible audit APIs and the physical table during rollout, add personal ownership and append-only lifecycle history, and avoid a second active hold table for the same resource. Build reference-aware disposal before claiming evidence is purge-eligible.                                                                                                                                                                                                                                                                 |
+| Outbound notices                           | Communications are mutable and delivery logs do not retain recipient endpoints, rendered content, or content hashes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Build immutable notice and append-only delivery-attempt records rather than describing them as existing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Variables and Sequences                    | `{{TOKEN}}` and side-effecting `{{SEQ:KEY}}` interpolation are live in Exchange naming and Communication rendering. Sequence interpolation increments persisted state.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Claim each Notice Intent before rendering, render once, consume each configured sequence occurrence under the same idempotent transaction, and persist rendered content and hashes so retries never increment a Sequence again.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Content safety                             | Content-type tooling exists, but malware scanning does not.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Resolved on 2026-09-25: scanning is optional, evidence upload works without it, and the scanner is planned in `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Command safety                             | There is no reusable client-command idempotency receipt or `If-Match` infrastructure.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Add shared command-receipt and HTTP precondition foundations before retryable request mutations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Transactional events                       | `DomainEvent` and `DomainEventPublisher` are already neutral. Their durable implementation, qualifier, mapped entity, repository, dispatcher, scheduler, metrics, and physical table are Workflow-branded. The event outbox has only nullable `organization_id`, so it cannot distinguish platform from personal ownership, and `idempotency_key` is globally unique with no type or owner prefix. A separate `audit_outbox` exists for immutable audit intent.                                                                                                                                                                                                                                                                                                                                                                      | Preserve the neutral public contract, generalize only the durable implementation vocabulary, add explicit event owner kind and ID, and reuse the existing physical event table. Define and test an explicit idempotency-key namespace for Information Request events so a request key can never collide with a Workflow key in the shared global unique index. Keep audit and domain-event intents distinct but correlated and transactional; do not create a request-specific event outbox.                                                                                                                                               |
+| Audit                                      | Audit event keys and categories are a closed catalog at version 14. `AuditRecorder` can accept an explicit actor but otherwise falls back to request authentication, and `AuditOwnerScope` is only platform or organization. `AuditActorKind` already includes `PUBLIC_LINK`. Roughly twenty existing call sites resolve owner as `organizationId?.let(AuditOwnerScope::Organization) ?: AuditOwnerScope.Platform`, so every personally owned Exchange already records its audit events under platform scope.                                                                                                                                                                                                                                                                                                                        | Add Information Request catalog entries and personal owner scope, and always pass explicit canonical actor data for request mutations, including no-auth actions. Enumerate and correct the existing organization-or-platform fallbacks that a request mutation can reach through Exchange, Document, Document Version, access-management, and hold services; otherwise a personal request inherits the same mislabelling through code the plan reuses rather than replaces.                                                                                                                                                               |
+| Entitlement                                | `PlanFeature` has no Information Requests value and persisted feature overrides are organization-only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Add an owner-neutral commercial entitlement override controlled by platform administration. Include Information Requests in Personal and Business without a second rollout gate.                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Subscription trials and enforcement        | User and organization trial grants and requests exist, and subscription enforcement has global `OFF`, `REPORT_ONLY`, and `ENFORCE` modes. A trial may expire after a request is issued.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Resolve issuance through the existing effective-subscription and enforcement services, snapshot trial or paid entitlement provenance in the execution grant, and prove trial expiry does not strand reserved issued work.                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| External participants                      | `ExternalParticipant` and `external_participant` exist with `owner_organization_id`, normalized email, and verification metadata, but no code path ever constructs or persists one. The repository exposes only `findById`, used by three read-only display paths, and `findByOwnerAndEmail` has no caller, so the table is empty in every environment. No production code emits a `PrincipalKind.PARTICIPANT` principal.                                                                                                                                                                                                                                                                                                                                                                                                            | This is greenfield, not an extension. Build the owner-scoped participant identity lifecycle, including creation, contact verification, owner-scoped lookup, collision handling, and registration-upgrade lineage, and add personal ownership to the existing empty table as a forward-only schema change. Do not plan a data backfill, ambiguity report, or legacy-row resolution pass for a table with no rows.                                                                                                                                                                                                                           |
+| Email-only recipient identity today        | The existing email recipient path does invent an App User: `ExchangeRecipientSelectionResolver.resolveExternalEmail` creates `AppUser(isTemporary = true, isActive = false)` for every `EXTERNAL_EMAIL` selection. `ExchangeRecipientService.recordExternalEmailPrimaryDecision` and `ExchangeAccessManagementService.resendNoAuthPrimaryRecipientInvitation` both require `share.principalKind == PrincipalKind.USER`, so acceptance, resend, and `ExternalEmailAcceptancePolicyService` are structurally bound to User-kind Shares.                                                                                                                                                                                                                                                                                                | Never invent an App User for Information Request access. Because the reusable Exchange acceptance, resend, and eligibility paths assume a User-kind Share, record an explicit decision for each one: reuse it only for User-backed request parties, or implement a participant-principal equivalent. A participant-principal request party cannot silently flow through the existing recipient decision paths.                                                                                                                                                                                                                             |
+| Exchange recipient binding                 | `exchange_recipient.direct_share_id` is `NOT NULL UNIQUE`, the V63 trigger `validate_exchange_recipient_share_binding` requires that Share to be a direct, non-owner Share whose `resource_type` is `EXCHANGE` and whose `resource_id` equals the recipient's Exchange, and `uq_exchange_recipient_primary` permits one `PRIMARY` recipient per Exchange.                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | A recipient's single Share is permanently pinned to its Exchange, so a request-party Share cannot be attached through `direct_share_id`. Reference an `ExchangeRecipient` by ID from the request party and bind the bootstrap `ShareLink` to the request-party Share, leaving the existing recipient invariant untouched. Do not model several request contributors as several primary recipients.                                                                                                                                                                                                                                         |
+| Trusted Organizations                      | V59 through V65 implement trust relationships, revisioned party policies, suspension, trusted person and group selection, recipient attestation, validation, and group access reconciliation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Reuse these services for organization-owned request party assignment, replacement, group expansion, acceptance, and registration upgrade. Treat trust suspension as a separate security and eligibility axis and define its effect on new and already-issued work without weakening current reconciliation.                                                                                                                                                                                                                                                                                                                                |
+| Principal Groups and recipient replacement | `ShareService` already materializes and reconciles group inheritance, propagates role and constraints, activates pending Shares, and revokes descendants. `ExchangeAccessManagementService.replacePrimaryRecipient` already replaces an eligible pending trusted recipient transactionally, but it requires a sender organization, an `INITIATED` Exchange, a `PENDING` acceptance status, a trusted-person or trusted-group selection, and an authenticated App User caller.                                                                                                                                                                                                                                                                                                                                                        | Generalize and reuse these methods for Information Request resource roles and party reassignment. Add only request-specific history, completed-work, session, precondition, and policy behavior. Treat the organization-sender, draft-only, pending-only, trusted-only, and authenticated-caller preconditions as five separate explicit policy decisions for request parties rather than inherited defaults.                                                                                                                                                                                                                              |
+| Issued capacity                            | No persisted request-local execution grant or reservation ledger exists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Capture and reserve conservative completion limits atomically at issuance so a later commercial lapse cannot strand assigned work.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Exchange lifecycle                         | Existing Fields and Documents enforce Exchange lifecycle rules, but no parent-child request transition contract exists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Add an explicit Exchange and Information Request transition matrix with transactional race protection.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Workflow trigger registry                  | `WorkflowTriggerEventRegistry` is Flyway-seeded and drives both the Workflow trigger dropdown and `$subject.*` autocomplete through `subject_fields_json`. `WAIT_FOR_COUNTERPARTY_CLEARANCE` is an existing related waiting primitive.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Register Information Request events through an explicit migration with safe subject-field descriptors and evaluate the existing waiting primitive before adding any overlapping Workflow behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Webhooks and connectors                    | `WorkflowWebhookEndpoint`, `WebhookWorkflowActionHandler`, application identity, destination policy, signing, and outbound delivery already provide an integration foundation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Reuse applicable identity, destination-security, signing, delivery, and retry components. Keep structured-evidence or verification connector contracts distinct where they require request, polling, imported-value, or verification semantics that outbound Workflow webhooks do not provide.                                                                                                                                                                                                                                                                                                                                             |
+| Realtime                                   | Authenticated Exchange experiences use `RealtimeEventService`, viewer and presence registries, and a WebSocket tied to User Sessions. There is no request-party no-auth realtime identity.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Keep ETag and precondition conflict handling authoritative for all clients. Reuse authenticated realtime only for optional notifications, do not require a no-auth WebSocket for correctness, and do not imply live collaborative editing unless separately scoped.                                                                                                                                                                                                                                                                                                                                                                        |
+| Model layout                               | Entities and DTOs currently use flat `model/entity` and `model/dto` packages. Dedicated DTO mappers live primarily in flat `model`, with a few in `model/dto` and one in `resource/mapper`; no `model/mapper` package exists.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Keep entities and DTOs in their existing flat packages and place new dedicated pure DTO mappers in flat `model` with domain-qualified names. Use domain subpackages for services, resources, and repositories, and do not create a third mapper convention in this program.                                                                                                                                                                                                                                                                                                                                                                |
+| Help registry                              | `helpDocsRegistry.tsx` is 58 lines and the repository limit is under 60.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Refactor registry composition before registering an Information Requests section.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| REST compatibility                         | Existing Exchange Field updates use sparse `PUT`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Add canonical sparse `PATCH`, retain `PUT` temporarily as a deprecated compatibility alias, and migrate the frontend.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Flyway                                     | The observed migration head is V75 and no initiative range is reserved.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Use the migration allocation rules in this plan and revalidate the head before every migration task.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Website                                    | Existing marketing content includes concrete use-case examples and legacy non-neutral identifiers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Treat marketing examples as explanatory content. Do not use them as product naming precedent or rename unrelated legacy assets in this program.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## Architectural Decisions
 
@@ -455,14 +4832,16 @@ These decisions replace the contradictory or unresolved alternatives in the prop
    `FieldValue` uniqueness includes the Value Set. Existing Exchange values are backfilled into one
    root set, so existing Workflows retain single-value semantics.
 9. `RequestResponse` is the Requirement response envelope for disposition, narrative, provenance,
-   and occurrence. For a Field Requirement it references an exact immutable Field Value Revision
-   within the authoritative Value Set; it never stores a second current-value copy or resolve an
-   older response through a mutable Field Value row.
+   and occurrence. The mutable draft envelope references its authoritative Value Set; every
+   recorded response, being a Submission Package item, an Accepted Fact, or a recertification,
+   pins the exact immutable Field Value Revision it recorded. No envelope stores a second
+   current-value copy, and no recorded response resolves an older value through a mutable Field
+   Value row (amended on 2026-10-05 by GA-120 to match the delivered `P5-T1c` draft design).
 10. Every Information Request pins one exact Template Version. Runtime Requirement snapshots are
-   append-only revisions with a configuration hash and retain the exact policy used when issued or
-   amended.
+    append-only revisions with a configuration hash and retain the exact policy used when issued or
+    amended.
 11. The first UI may present one primary contributor, but the persistence model supports several
-   request parties and requirement-level contributor assignment from the start.
+    request parties and requirement-level contributor assignment from the start.
 12. A request subject may differ from its contributor. The subject identifies what the request
     concerns, while one or more authorized parties provide, attest to, or review responses.
     Recurrence and reuse identify the subject through a durable, tenant-scoped
@@ -574,9 +4953,11 @@ These decisions replace the contradictory or unresolved alternatives in the prop
     `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP`. The remaining nine ResourceType values are
     enum-only and carry no Share rows, so they need no Share migration or capability
     characterization; asserting otherwise both invents work and hides the change that matters. The
-    same migration widens `share_resource_type_check` for the request aggregate and
-    Requirement-occurrence types and widens `share_role_name_check` for the new role keys. Without
-    the resource-type widening every request-party Share insert fails a check constraint. It also
+    same migration widens `share_resource_type_check` for the request aggregate type and widens
+    `share_role_name_check` for the new role keys. Without the resource-type widening every
+    request-party Share insert fails a check constraint. Requirement occurrences hold no Share rows
+    of their own; they are authorized only through one-level parent-grant inheritance from the
+    request aggregate and the central resource-policy evaluator (GA-111, 2026-10-05). It also
     corrects `ShareService`, which currently records any non-Exchange Share audit event under
     `AuditOwnerScope.Platform`.
     Request party creation, reassignment, revocation, group inheritance, and registration upgrade
@@ -712,42 +5093,42 @@ These decisions replace the contradictory or unresolved alternatives in the prop
 
 ## Core Domain Model
 
-| Record | Responsibility |
-|---|---|
-| `InformationRequestTemplateDefinition` | Stable reusable template identity and ownership scope. |
-| `InformationRequestTemplateVersion` | Immutable published configuration and optional exact Schema Version reference required when Field Requirements exist. |
-| `TemplateSection` | Stable ordered section with localized title and help. |
-| `TemplateRequirement` | Stable Field, Document, Response Attestation, or later external-evidence requirement. The persisted type is `RESPONSE_ATTESTATION`. |
-| `InformationRequest` | Runtime request attached to one Exchange and one Template Version. |
-| `SubjectIdentityRef` | Durable tenant-scoped, non-PII identity for a person, organization, asset, record, or other request subject; distinct from `DomainEvent.SubjectRef`. |
-| `InformationRequestParty` | Request-scoped subject, contributor, preparer, attestor, reviewer, or decision-maker role referencing `SubjectIdentityRef` where applicable. |
-| `InformationRequestRequirement` | Append-only runtime Requirement revision with stable ID, occurrence path, effective interval, configuration hash, policy, assignment, and amendment lineage. |
-| `FieldValueSet` | Root or repeatable-group occurrence containing the authoritative typed Field Values for one Schema Assignment. |
-| `FieldValueRevision` | Immutable typed-value revision with exact actor, provenance, value-set, contract, canonical value, and recorded time. |
-| `RequestResponse` | Requirement and occurrence response envelope containing disposition, narrative, provenance, revision, and references to authoritative Field Values where applicable. |
-| `EvidenceArtifact` | Logical evidence item associated with a requirement. |
-| `EvidenceVersion` | Immutable request-specific association to one Document Version or external-reference subtype, plus captured issuer, coverage, and source metadata. |
-| `EvidenceAssessment` | Append-only technical conformance, verification, expiry, quarantine, and policy-evaluation result for an Evidence Version. |
-| `DocumentVersionStorageLocator` | Typed, immutable locator and provider identity for exact version bytes; legacy local paths remain explicitly classified. |
-| `SubmissionPackage` | Immutable package revision containing exact responses, evidence versions, validation, actor, and Submission Attestation records. |
-| `SubmissionAttestation` | Immutable acting-party assertion under a frozen versioned response-attestation policy. |
-| `ReviewFinding` | Item-specific reviewer result, reason codes, narrative, and correction scope. |
-| `RequestTransition` | Immutable state transition with actor, reason, time, and idempotency key. |
-| `RequestClock` | Deadline type, timezone, urgency, pause history, extension, and escalation state. |
-| `PrincipalRef` | Existing canonical authorization identity reused for every acting user, participant, application, service account, or public link. |
-| `ShareLink` bootstrap mode | Existing Share-bound credential extended with recipient-bound verification-bootstrap mode, rotation lineage, enforced constraints, atomic use metadata, and no direct request-content capability. Raw secrets are never stored. |
-| `RequestAccessSession` | Verified no-auth session bound to one bootstrap-mode ShareLink, participant principal, request party, authentication strength, and expiry. |
-| `ParticipantAccountLink` | Verified lineage between an External Participant and a later App User account without rewriting historical principal provenance. |
-| `RequestAccessContext` | Canonical principal, verified authenticated or request-bound no-auth session reference, authentication method and strength, active scope, and request capabilities. A credential ID may appear only as non-secret lineage; bootstrap credential validation alone never creates a content-capable context, and no raw bearer token is stored. |
-| `CommandReceipt` | Transactional client-command deduplication record containing actor or session scope, operation, request fingerprint, and resulting resource reference. |
-| `RequestExecutionGrant` | Immutable issuance-time owner, commercial entitlement, policy reference, and request-local limits that remain valid for completion after a later commercial lapse. |
-| `RequestExecutionUsageReservation` | Idempotent atomic reservation and consumption ledger for request-local recipients, uploads, storage, and other captured limits. |
-| `RecordPreservationHold` | Neutral service and model over the compatibly extended existing hold persistence, with authorized immutable-history lifecycle covering selected records, descendants, and referenced retained objects. |
-| `NoticeIntent` | Append-only authoritative request to produce an immutable party notice, persisted with the originating mutation. |
-| `OutboundNotice` | Immutable rendered notice, protected recipient endpoint snapshot, content or content-addressed object hash, source reference, and event identity. |
-| `NoticeDeliveryAttempt` | Append-only channel attempt and result for one Outbound Notice. |
-| `AcceptedFact` | Optional, explicit promotion of a reviewed response value or evidence assertion for downstream reuse. |
-| `BusinessDecision` | Optional reference to a downstream process outcome, kept separate from request satisfaction. |
+| Record                                 | Responsibility                                                                                                                                                                                                                                                                                                                               |
+|----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `InformationRequestTemplateDefinition` | Stable reusable template identity and ownership scope.                                                                                                                                                                                                                                                                                       |
+| `InformationRequestTemplateVersion`    | Immutable published configuration and optional exact Schema Version reference required when Field Requirements exist.                                                                                                                                                                                                                        |
+| `TemplateSection`                      | Stable ordered section with title and help.                                                                                                                                                                                                                                                                                                  |
+| `TemplateRequirement`                  | Stable Field, Document, Response Attestation, or later external-evidence requirement. The persisted type is `RESPONSE_ATTESTATION`.                                                                                                                                                                                                          |
+| `InformationRequest`                   | Runtime request attached to one Exchange and one Template Version.                                                                                                                                                                                                                                                                           |
+| `SubjectIdentityRef`                   | Durable tenant-scoped, non-PII identity for a person, organization, asset, record, or other request subject; distinct from `DomainEvent.SubjectRef`.                                                                                                                                                                                         |
+| `InformationRequestParty`              | Request-scoped subject, contributor, preparer, attestor, reviewer, or decision-maker role referencing `SubjectIdentityRef` where applicable.                                                                                                                                                                                                 |
+| `InformationRequestRequirement`        | Append-only runtime Requirement revision with stable ID, occurrence path, effective interval, configuration hash, policy, assignment, and amendment lineage.                                                                                                                                                                                 |
+| `FieldValueSet`                        | Root or repeatable-group occurrence containing the authoritative typed Field Values for one Schema Assignment.                                                                                                                                                                                                                               |
+| `FieldValueRevision`                   | Immutable typed-value revision with exact actor, provenance, value-set, contract, canonical value, and recorded time.                                                                                                                                                                                                                        |
+| `RequestResponse`                      | Requirement and occurrence response envelope containing disposition, narrative, provenance, revision, and a reference to its authoritative Value Set where applicable; Submission Package items pin the exact Field Value Revision.                                                                                                          |
+| `EvidenceArtifact`                     | Logical evidence item associated with a requirement.                                                                                                                                                                                                                                                                                         |
+| `EvidenceVersion`                      | Immutable request-specific association to one Document Version or external-reference subtype, plus captured issuer, coverage, and source metadata.                                                                                                                                                                                           |
+| `EvidenceAssessment`                   | Append-only technical conformance, verification, expiry, quarantine, and policy-evaluation result for an Evidence Version.                                                                                                                                                                                                                   |
+| `DocumentVersionStorageLocator`        | Typed, immutable locator and provider identity for exact version bytes; legacy local paths remain explicitly classified.                                                                                                                                                                                                                     |
+| `SubmissionPackage`                    | Immutable package revision containing exact responses, evidence versions, validation, actor, and Submission Attestation records.                                                                                                                                                                                                             |
+| `SubmissionAttestation`                | Immutable acting-party assertion under a frozen versioned response-attestation policy.                                                                                                                                                                                                                                                       |
+| `ReviewFinding`                        | Item-specific reviewer result, reason codes, narrative, and correction scope.                                                                                                                                                                                                                                                                |
+| `RequestTransition`                    | Immutable state transition with actor, reason, time, and idempotency key.                                                                                                                                                                                                                                                                    |
+| `RequestClock`                         | Deadline type, timezone, urgency, pause history, extension, and escalation state.                                                                                                                                                                                                                                                            |
+| `PrincipalRef`                         | Existing canonical authorization identity reused for every acting user, participant, application, service account, or public link.                                                                                                                                                                                                           |
+| `ShareLink` bootstrap mode             | Existing Share-bound credential extended with recipient-bound verification-bootstrap mode, rotation lineage, enforced constraints, atomic use metadata, and no direct request-content capability. Raw secrets are never stored.                                                                                                              |
+| `RequestAccessSession`                 | Verified no-auth session bound to one bootstrap-mode ShareLink, participant principal, request party, authentication strength, and expiry.                                                                                                                                                                                                   |
+| `ParticipantAccountLink`               | Verified lineage between an External Participant and a later App User account without rewriting historical principal provenance.                                                                                                                                                                                                             |
+| `RequestAccessContext`                 | Canonical principal, verified authenticated or request-bound no-auth session reference, authentication method and strength, active scope, and request capabilities. A credential ID may appear only as non-secret lineage; bootstrap credential validation alone never creates a content-capable context, and no raw bearer token is stored. |
+| `CommandReceipt`                       | Transactional client-command deduplication record containing actor or session scope, operation, request fingerprint, and resulting resource reference.                                                                                                                                                                                       |
+| `RequestExecutionGrant`                | Immutable issuance-time owner, commercial entitlement, policy reference, and request-local limits that remain valid for completion after a later commercial lapse.                                                                                                                                                                           |
+| `RequestExecutionUsageReservation`     | Idempotent atomic reservation and consumption ledger for request-local recipients, uploads, storage, and other captured limits.                                                                                                                                                                                                              |
+| `RecordPreservationHold`               | Neutral service and model over the compatibly extended existing hold persistence, with authorized immutable-history lifecycle covering selected records, descendants, and referenced retained objects.                                                                                                                                       |
+| `NoticeIntent`                         | Append-only authoritative request to produce an immutable party notice, persisted with the originating mutation.                                                                                                                                                                                                                             |
+| `OutboundNotice`                       | Immutable rendered notice, protected recipient endpoint snapshot, content or content-addressed object hash, source reference, and event identity.                                                                                                                                                                                            |
+| `NoticeDeliveryAttempt`                | Append-only channel attempt and result for one Outbound Notice.                                                                                                                                                                                                                                                                              |
+| `AcceptedFact`                         | Optional, explicit promotion of a reviewed response value or evidence assertion for downstream reuse.                                                                                                                                                                                                                                        |
+| `BusinessDecision`                     | Optional reference to a downstream process outcome, kept separate from request satisfaction.                                                                                                                                                                                                                                                 |
 
 Entities and DTOs use dedicated classes in the existing flat `model/entity` and `model/dto`
 packages. Pure DTO mapper classes use dedicated, domain-qualified classes in the existing flat
@@ -818,21 +5199,19 @@ reason summary.
 
 - Use plural, resource-based URLs and correct HTTP verbs.
 - Use `PATCH` for sparse response updates. Omitted items are unchanged.
-- Add canonical sparse `PATCH /exchanges/{id}/fields` behavior in Phase 1. Preserve the current
-  sparse `PUT /exchanges/{id}/fields` temporarily as a deprecated compatibility alias that
-  delegates to the same service. The new `PATCH` requires `If-Match`. During the measured migration
-  window the legacy `PUT` enforces `If-Match` when supplied but may accept a missing header with its
-  existing last-write behavior, emits deprecation metadata, and records usage telemetry. Phase 12
-  may require the header or remove the alias only after first-party migration, published notice,
-  and an observed compatibility gate. All new Information Request response APIs use `PATCH`.
+- Exchange Field edits use canonical sparse `PATCH /exchanges/{id}/fields` with required
+  `If-Match`. The deprecated `PUT` alias was removed under the development-stage constraint.
+  Sparse Information Request response edits also use `PATCH`; do not restore compatibility aliases.
 - Submission is creation of a subordinate resource, for example
   `POST /information-requests/{id}/submissions`.
 - Correction is creation of a correction request, not a generic status setter.
 - Cancellation, supersession, review, and amendment operations use explicit subordinate resources.
 - Do not expose generic `PATCH /status` endpoints.
 - Require an idempotency key for submission, issuance, review decisions, and other retryable
-  transitions. Replaying the same key and fingerprint returns the original result; reusing a key
-  with a different fingerprint returns a stable conflict.
+  transitions. Replaying the same key and fingerprint answers what the command changed as it stands
+  now, rechecked against the caller's current access, and every ETag in the answer describes that same
+  state; access link issue, rotation and replacement replays are refused because a raw token is shown
+  only once. Reusing a key with a different fingerprint returns a stable conflict.
 - Require `If-Match` for mutable request drafts, party changes, Value Sets, response cycles, and
   review drafts. Return `428` when the precondition is missing and `412` with a stable machine code
   when it is stale. Return the current ETag after every successful mutation.
@@ -841,27 +5220,37 @@ reason summary.
   same application services, pass an explicit `RequestAccessContext`, and return the same
   recipient-safe runtime projection. Shared services never read a raw credential or implicit global
   authentication state.
+- Authorize every target a command or read names before disclosing anything about it. A signed-in caller who
+  may not view a request, and a caller inside a request who may not see a Requirement, file, group, occurrence,
+  submitted file or reviewed item it names, gets the same `403` with the same body as for an id or key that does
+  not exist, before membership, removal, state, lock or count checks. A caller who may see the target keeps its
+  specific refusal. A read that returns related requests, such as a request's follow-up history or a superseded
+  request's replacement, names each one, and any value derived from it, only to a caller who may view it. Audit
+  history and record exports follow the same rule: a related request id in an audit payload is withheld and counted,
+  an export is frozen with what its creator may view, and reading a stored export applies the reader's view without
+  changing its content or hash. Owner-scope readers (the owner audit search and privacy) act across every request
+  of the owner.
 - Every REST resource method must use the repository-standard `return try { } catch { }` structure
   and log a unique operation-specific error message. Resource contract tests must verify delegation
   and response mapping without moving business logic into the resource.
 
 ## Phase Summary
 
-| Phase | Purpose                                                      | Dependencies                           | Status      | Exit gate                                                                                                                                                        |
-|-------|--------------------------------------------------------------|----------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1     | Business Fields foundation program                           | None                                   | Complete    | Current Fields are safe, principal-aware, version-aware, and deterministic enough to reuse.                                                                      |
-| 2     | Versioned Information Request Templates                      | Phase 1                                | Complete    | Published templates are immutable and referenceable by existing Blueprint Definitions.                                                                           |
-| 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                                | Complete    | Drafts, parties, exact assignments, parent-child lifecycle, audit, transactional events, idempotency, and concurrency are safe; issuance remains executor-gated. |
-| 4     | Authorization and dual access surfaces                       | Phase 3                                | Complete | Recipient workspace and request-detail occurrence and condition-result disclosure verified. |
-| 5     | Structured responses, repeatable groups, and conditions      | Phase 4                                | Complete | P5-R01 through P5-R30 and the repeated P5-R-GATE passed. |
-| 6     | Evidence and secure document handling                        | P5-R-GATE | Complete | Evidence collection works in production without a scanner; scanning is planned separately. |
-| 7     | Submission, response attestation, amendments, and recurrence | Phase 6                                | Complete    | Immutable packages survive staged submission, amendments, supplements, and recurrence.                                                                           |
-| 8     | Review, findings, remediation, and decision separation       | Phase 7                                | Complete    | Item-level and staged review is complete and auditable.                                                                                                          |
-| 9     | Time, Workflow, audit, retention, and export                 | Phase 8                                | Complete    | Events, clocks, immutable notices, preservation holds, disposal, and downstream use are reliable.                                                                |
-| 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9                             | Complete    | All primary journeys are responsive, accessible, and documented (manual width check waived by the user on 2026-09-28).                                          |
-| 11    | Generic capability conformance and extension contracts       | Phases 2-10                            | Complete    | Eight neutral conformance scenarios pass.                                                                                                                        |
-| 12    | Compatibility, packaging, rollout, and final hardening       | Phases 1-11                            | Complete    | Migration, entitlement, quotas, documentation, and release gates pass.                                                                                           |
-| 13    | Exchanges started from Information Request Blueprints        | Phases 2, 3, 10; GA-002                | Not started | Blueprint start creates the pinned draft request atomically, and the document rule no longer blocks it.                                                          |
+| Phase | Purpose                                                      | Dependencies            | Status   | Exit gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+|-------|--------------------------------------------------------------|-------------------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1     | Business Fields foundation program                           | None                    | Complete | Current Fields are safe, principal-aware, version-aware, and deterministic enough to reuse.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 2     | Versioned Information Request Templates                      | Phase 1                 | Complete | FC-03, FC-16, FC-17 and FC-18, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. RC-29 condition literals and Field types and RC-32/RC-33 Template audit failures and Version provenance closed on 2026-10-09. Earlier Template closure scopes are retained.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 3     | Runtime requests, parties, lifecycle, and command safety     | Phase 2                 | Complete | FC-02, FC-06, FC-11 and FC-12, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. DA-03 same-key lifecycle replay under overlapping retries closed on 2026-10-11, with same-key serialization for every receipt-protected command. RC-31 delegate existence and RC-34 one active party per role (V175) closed on 2026-10-09. Earlier RC-03, RC-12, and RC-19 closures are retained.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 4     | Authorization and dual access surfaces                       | Phase 3                 | Complete | FC-02 and FC-14, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. TB-01 access-link session recovery from a refused file read, reopened by the 2026-10-14 [deep audit](information-request-deep-audit-2026-10-14.md), closed the same day. Earlier closure scopes remain.  RC-17 historical fixed-answer/correction policy bypass, reproduced in the second 2026-10-09 recheck, closed the same day; direct Field locking and other scoped closures remain. IR-01 no-auth session cutoff safety, reopened and closed on 2026-10-13. VR-01 protected verification reopened by the 2026-10-13 completeness recheck and closed the same day. VC-01 evidence session cutoff during storage access reopened by the post-remediation recheck and closed the same day. CR-01 reopened the browser confidentiality gate and closed on 2026-10-13: the whole respondent body and its kept files belong to the respondent the workspace names; server authorization and CA-01 draft ownership remain verified. DR-01 from the 2026-10-14 CR remediation recheck (an earlier respondent's late evidence preview/download opened after its view retired) closed on 2026-10-14; CR-01 remains independently verified. Independent DR remediation verification passed on 2026-10-14 within this recorded scope.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 5     | Structured responses, repeatable groups, and conditions      | Phase 4                 | Complete | SB-01, FC-01, FC-07, FC-08 and FC-09, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. EC-01, EC-02, EC-03 and EC-GATE, reopened on 2026-10-20 for the shared respondent editor, final review summary and input identity acceptance, closed the same day; see Independent Implementation Analysis Work. SR-01, SR-02 and SR-GATE, reopened on 2026-10-19 for the shared respondent UI and its acceptance, closed on 2026-10-20; see Shared Response Completeness Review Work. IA-01 conditional Document archiving, reopened on 2026-10-19, closed the same day; earlier scoped closures remain. DG-01 amended group cardinality, reopened on 2026-10-17, closed the same day. AK-01 audit scope, reopened on 2026-10-16, closed on 2026-10-17; earlier closures below retain their scopes. RC-17 hidden-response writes and entry removal respect answers given once since 2026-10-09; RC-15 and RC-16 retain their closure scopes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 6     | Evidence and secure document handling                        | P5-R-GATE               | Complete | FC-05, FC-08, FC-09 and FC-10, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. IA-01 archived file active-collection eligibility, reopened on 2026-10-19, closed the same day; earlier scoped closures remain. HC-01 historical package file reads, reopened by the history completeness audit, closed on 2026-10-19; current collection guards and earlier closures remain. LQ-01 per-respondent evidence allowance across account linking, reopened by the 2026-10-18 [implementation audit](information-request-implementation-audit-2026-10-18.md), closed the same day.  IC-01/IC-02 substitute eligibility and snapshot findings, reopened on 2026-10-17, closed the same day. Earlier closures retain their scopes. TB-01 and TB-02 respondent evidence opening (the reason of a refused file read, and late openings of a file no longer shown), reopened by the 2026-10-14 [deep audit](information-request-deep-audit-2026-10-14.md), closed the same day. Earlier closure scopes remain.  FU-01 reviewer evidence opening, reopened by the 2026-10-14 full feature audit, closed the same day. Earlier closure scopes remain.  RC-17 withdrawal of historically fixed evidence under an unrelated correction and indirect clearing closed on 2026-10-09. RC-16 and RC-25 retain their scopes. Evidence collection works without a scanner; scanning is planned separately. VC-01 evidence session cutoff during storage access reopened by the post-remediation recheck and closed the same day. DR-01 from the 2026-10-14 CR remediation recheck (an earlier respondent's late evidence preview/download opened after its view retired) closed on 2026-10-14; CR-01 remains independently verified. Independent DR remediation verification passed on 2026-10-14 within this recorded scope.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 7     | Submission, response attestation, amendments, and recurrence | Phase 6                 | Complete | SB-01, SB-02, FC-04, FC-05 and FC-06, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. IA-01 reactivation/submission and IA-02 Field-rebinding/import interaction, reopened on 2026-10-19, closed the same day; earlier scoped closures remain. HC-01 retained package file access and HC-02 amendment/external-value interaction, reopened by the history completeness audit, closed on 2026-10-19; immutable membership and earlier closures remain. DGR-01 and DGR-02 amendment Field value-set findings from the independent DG recheck closed on 2026-10-18. DG-01 and DG-02 amendment/completeness gaps, reopened on 2026-10-17, closed the same day. IC-01/IC-02 submission readiness and cross-stage evidence integrity, reopened on 2026-10-17, closed the same day. Earlier closures retain their scopes. AK-01 audit scope, reopened on 2026-10-16, closed on 2026-10-17; earlier closures below retain their scopes. RC-17 historical locks hold under a later hidden package's correction, and confirmations keep their decision unless returned, since 2026-10-09; RC-19, RC-07, RC-06, and earlier follow-up command repairs retain their scopes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 8     | Review, findings, remediation, and decision separation       | Phase 7                 | Complete | FC-06, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. RS-01 numeric response times crashing multi-decision history, reopened by the independent 2026-10-15 recheck, closed the same day. DT-01 remains verified and underlying review-domain closures remain. DT-01 dated reviewer/fact commands and Business Decision UI, reopened by the 2026-10-14 verification audit, closed on 2026-10-15. FU-01 reviewer evidence opening, reopened by the 2026-10-14 full feature audit, closed the same day. Earlier closure scopes remain.  DA-04 review command retry keys closed on 2026-10-11. RC-26 recertification source and evidence lifetime closed on 2026-10-09 with the Phase 9 disposal work (V174). Earlier review and fact closure scopes are retained. VR-03 historical review separation reopened by the 2026-10-13 completeness recheck and closed the same day.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 9     | Time, Workflow, audit, retention, and export                 | Phase 8                 | Complete | FC-11 and FC-13, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. HC-01 authorized reconstruction of retained file contents, reopened by the history completeness audit, closed on 2026-10-19; retention and disposal closures remain. AK-01 audit scope, reopened on 2026-10-16, closed on 2026-10-17; earlier closures below retain their scopes. BC-02 restriction creation concurrency, reopened by the 2026-10-16 boundary audit, closed the same day; earlier closure scopes remain. ND-01 notice/cancellation consistency, reopened by the 2026-10-16 deep audit, closed the same day.  SX-01 subject privacy export snapshot consistency, reopened by the 2026-10-15 independent recheck, closed on 2026-10-16. CAL-01 resolved business-calendar interval and pause/resume correctness, reopened by the 2026-10-15 completeness audit, closed the same day. NS-01 and NS-02 Workflow condition editor null handling, found by the 2026-10-15 null sweep, closed the same day. CE-01 policy editing/round-trip accuracy, reopened by the independent 2026-10-15 RN remediation recheck, closed the same day; underlying clock semantics remain.  RN-02 CSV export accuracy, reopened by the independent 2026-10-15 RS remediation recheck, closed the same day; the server clock/domain closures remain.  DT-01 explicit clock-client receivedAt, reopened by the 2026-10-14 verification audit, closed on 2026-10-15; the Start clock form still omits it. FU-02 record downloads and FU-03 owner export quota, reopened by the 2026-10-14 full feature audit, closed the same day. Earlier closure scopes remain.  RC-27 other-source record holds (V176) closed on 2026-10-10. RC-26 and RC-28 disposal safety (V174) and RC-30 Schema metadata refusal closed on 2026-10-09. Earlier RC-05, RC-09, RC-20, and RC-22 closures are retained. VR-02 notice recipient revalidation reopened by the 2026-10-13 completeness recheck and closed the same day.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 10    | Author, respondent, reviewer, and operations UX              | Phases 2-9              | Complete | SB-01 to SB-04, FC-16 and FC-20 to FC-26, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. EC-01, EC-02, EC-03 and EC-GATE, reopened on 2026-10-20 for the shared respondent editor, final review summary and input identity acceptance, closed the same day; see Independent Implementation Analysis Work. SR-01, SR-02 and SR-GATE, reopened on 2026-10-19 for the shared respondent UI and its acceptance, closed on 2026-10-20; see Shared Response Completeness Review Work. CAL-02 lossless calendar policy editing and CAL-03 valid midnight end boundaries, reopened by the 2026-10-15 completeness audit, closed the same day. NS-03 template draft validation and NS-04 nullable displays, found by the 2026-10-15 null sweep, closed the same day. CE-01 disabled-escalation editor/summary, reopened by the independent 2026-10-15 RN remediation recheck, closed the same day; RN-01/RN-02 and earlier closures remain verified.  RN-01 reusable-answer validity and RN-02 CSV nullable date UX, reopened by the independent 2026-10-15 RS remediation recheck, closed the same day; RS-01, RS-02, DT-01 and PV-01 retain their verified scopes.  RS-01 review history and RS-02 elapsed access-link status/actions, reopened by the independent 2026-10-15 recheck, closed the same day. DT-01 and PV-01 are independently verified; earlier UX closure scopes remain. DT-01 date-bearing form commands and PV-01 nominated-recipient preview, reopened by the 2026-10-14 verification audit, closed on 2026-10-15. TB-01 and TB-02 respondent session recovery and late-opening ownership, reopened by the 2026-10-14 [deep audit](information-request-deep-audit-2026-10-14.md), closed the same day. Earlier closure scopes remain.  FU-01 and FU-02 asynchronous browser ownership, reopened by the 2026-10-14 full feature audit, closed the same day. Earlier closure scopes remain.  All primary journeys are responsive, accessible, and documented (manual width check waived by the user on 2026-09-28). DA-01 and DA-02 author and reviewer route scope closed on 2026-10-11. IR-02 through IR-05 owner scoping and custom-loader refusal handling, reopened and closed on 2026-10-13. VR-04 access-link and session recovery reopened by the 2026-10-13 completeness recheck and closed the same day. VC-02 session ownership after respondent page unmount reopened by the post-remediation recheck and closed the same day. CA-01 and CA-02 from the comprehensive audit closed on 2026-10-13. CR-01 from the CA remediation recheck (respondent projections, pending reads and answers, dialogs, and kept files follow the workspace's respondent) closed on 2026-10-13. DR-01 from the 2026-10-14 CR remediation recheck (an earlier respondent's late evidence preview/download opened after its view retired) closed on 2026-10-14; CR-01 remains independently verified. Independent DR remediation verification passed on 2026-10-14 within this recorded scope.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 11    | Generic capability conformance and extension contracts       | Phases 2-10             | Complete | IA-02 reconciliation of retained imports after Field rebinding, reopened on 2026-10-19, closed the same day; earlier scoped closures remain. HC-02 reconciliation after Requirement removal, reopened by the history completeness audit, closed on 2026-10-19; accepted connector scope and earlier closures remain. IC-03 bundle clock validation parity, reopened on 2026-10-17, closed the same day. Earlier closures retain their scopes. BC-01 asynchronous connector continuation, reopened by the 2026-10-16 boundary audit, closed the same day; earlier closure scopes remain. RC-10 and RC-24 closed on 2026-10-08 (external sources and continuation). Eight neutral conformance scenarios pass.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 12    | Packaging, entitlement, and final hardening                  | Phases 1-11             | Complete | FC-GATE, FC-15 and FC-19, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. EC-01, EC-02, EC-03 and EC-GATE, reopened on 2026-10-20 for the shared respondent editor, final review summary and input identity acceptance, closed the same day; see Independent Implementation Analysis Work. SR-01, SR-02 and SR-GATE, reopened on 2026-10-19 for the shared respondent UI and its acceptance, closed on 2026-10-20; see Shared Response Completeness Review Work. IA-01, IA-02 and IA-GATE acceptance, reopened on 2026-10-19, closed the same day with 25 new permanent regressions (two migrations), the audit's probes 11/11, a mirror causal control, full backend (4,986 tests in 721 classes) and full frontend (1,420 tests in 260 files) passing; earlier scoped closures remain. HC-BUILD compilation and HC-01, HC-02 and HC-GATE acceptance, reopened by the history completeness audit, closed on 2026-10-19; earlier scoped acceptance remains. LQ-01 and LQ-GATE linked-identity quota acceptance, reopened by the 2026-10-18 implementation audit, closed the same day with 9 new permanent PostgreSQL regressions, affected suites (499 tests in 60 classes), full backend (4,917 tests in 715 classes) and full frontend (1,413 tests in 260 files) passing.  DG-01, DG-02 and DG-GATE, reopened on 2026-10-17, closed the same day with 11 new permanent PostgreSQL regressions, affected suites (169 tests in 22 classes), full backend (4,896 tests in 713 classes) and full frontend (1,413 tests in 260 files) passing. IC-01 to IC-03 and IC-GATE, reopened on 2026-10-17, closed the same day. Earlier closures retain their scopes. AK-01 and AK-GATE, reopened on 2026-10-16, closed on 2026-10-17 with 15 permanent regressions, the review's red/green check, full backend (4,839 tests in 709 classes) and full frontend (1,411 tests in 260 files) passing; earlier closures below retain their scopes. BC-GATE, reopened by the 2026-10-16 boundary audit, closed the same day with nine permanent regressions, the audit's causal red/green check, full backend (4,824 tests in 707 classes) and full frontend (1,411 tests in 260 files) passing. ND-GATE, reopened by the 2026-10-16 deep audit, closed the same day with permanent regressions, full backend (4,815 tests in 707 classes) and full frontend (1,411 tests in 260 files with default, four and one worker under concurrent backend load) passing.  SX-GATE, reopened for subject export snapshot consistency by the 2026-10-15 independent recheck, closed on 2026-10-16 with permanent regressions, the original probes, full backend (4,800 tests in 706 classes) and full frontend (1,411 tests in 260 files) passing. CAL-GATE, reopened for the three calendar findings, closed on 2026-10-15 with permanent regressions, full backend (4,791 tests in 705 classes) and full frontend (1,411 tests in 260 files) passing. NS-GATE for the 2026-10-15 null sweep findings closed the same day with full frontend (1,393 tests in 257 files), 90 backend tests in 10 classes, packaging, and the new null-safety typecheck (0 Information Request diagnostics) passing. CE-GATE, reopened for disabled-escalation preservation and acceptance by the independent 2026-10-15 RN remediation recheck, closed the same day with full frontend (1,376 tests in 254 files), 88 backend tests in 10 classes and packaging passing; earlier closure scopes remain.  RN-GATE, reopened for explicit-null response handling and acceptance by the independent 2026-10-15 RS remediation recheck, closed the same day with full frontend (1,369 tests in 252 files) and the applicable backend contract classes passing; backend production code is unchanged since the full 4,776-test run. Prior closure scopes remain.  RS-01, RS-02 and RS-GATE, reopened by the independent 2026-10-15 recheck, closed the same day with full frontend (1,361 tests in 252 files) and full backend (4,776 tests in 705 classes) passing, and packaging passing. DT-01/PV-01 remain independently verified. DT-01, PV-01 and DT-PV-GATE, reopened by the 2026-10-14 verification audit, closed on 2026-10-15 with full frontend (1,351 tests in 250 files) and full backend (4,773 tests in 704 classes) passing. Earlier closure scopes remain. TB-01, TB-02 and TB-GATE, reopened by the 2026-10-14 [deep audit](information-request-deep-audit-2026-10-14.md), closed the same day with full frontend (1,338 tests in 248 files) and full backend (4,744 tests in 701 classes) passing. Earlier closure scopes remain.  FU-01, FU-02, FU-03 and FU-GATE, reopened by the 2026-10-14 full feature audit, closed the same day. Earlier closure scopes remain.  RC-17 correction residual closed on 2026-10-09 with full backend (4,438), frontend (1,009), and packaging passing; RC-09 to RC-25 closed on 2026-10-08. IR-01 through IR-05 reopened final sign-off on 2026-10-13 and were closed the same day. VR-01 through VR-04 reopened final sign-off on 2026-10-13 and were closed the same day. VC-01 and VC-02 reopened final sign-off on 2026-10-13 and were closed the same day. CA-01 and CA-02 reopened final sign-off on 2026-10-13 and were closed the same day. CR-01 from the CA remediation recheck closed on 2026-10-13 with full backend (4,730) and frontend (1,241) passing. DR-01 from the 2026-10-14 CR remediation recheck closed on 2026-10-14 with full frontend (1,252 tests in 241 files) passing and backend inputs unchanged since the recheck's 4,730-test run; CR-01 remains independently verified. Independent DR remediation verification passed on 2026-10-14 within this recorded scope. |
+| 13    | Exchanges started from Information Request Blueprints        | Phases 2, 3, 10; GA-002 | Complete | FC-23, reopened on 2026-10-20 by the full completeness analysis, closed on 2026-10-20; see Full Completeness Analysis Work. Historical 2026-10-01 gate passed; remaining audit gaps are tracked separately above.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Progress rules
 
@@ -890,15 +5279,15 @@ zero Information Request feature diagnostics and no new diagnostics against a re
 unrelated baseline. Record any remaining baseline errors explicitly; never describe that result as
 a clean full application typecheck. This rule supersedes older no-op TypeScript gate substitutions.
 
-| Change type | Required verification |
-|---|---|
-| Backend Kotlin or service behavior | Focused Maven test for the changed class, then `.\mvnw.cmd test` at phase completion. |
-| Flyway migration or persistence invariant | Focused migration or PostgreSQL contract test, affected repository tests, then `.\mvnw.cmd test`. |
-| REST contract | Focused resource contract and authorization tests, then affected service tests. |
-| `web-app` TypeScript or React | Focused `npm test -- <test-file>`, then `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run buildWithTs` at phase completion. |
-| Help documentation | Article-specific review, file-size checks, and `npx tsc --noEmit` from `web-app`. |
-| Website pricing or marketing | `npm run lint` and `npm run build` from `website`. The website currently has no test script. |
-| Cross-surface or release gate | Full backend and `web-app` suites, applicable website commands, migration contracts, and stated manual checks. |
+| Change type                               | Required verification                                                                                                                  |
+|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| Backend Kotlin or service behavior        | Focused Maven test for the changed class, then `.\mvnw.cmd test` at phase completion.                                                  |
+| Flyway migration or persistence invariant | Focused migration or PostgreSQL contract test, affected repository tests, then `.\mvnw.cmd test`.                                      |
+| REST contract                             | Focused resource contract and authorization tests, then affected service tests.                                                        |
+| `web-app` TypeScript or React             | Focused `npm test -- <test-file>`, then `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run buildWithTs` at phase completion. |
+| Help documentation                        | Article-specific review, file-size checks, and `npx tsc --noEmit` from `web-app`.                                                      |
+| Website pricing or marketing              | `npm run lint` and `npm run build` from `website`. The website currently has no test script.                                           |
+| Cross-surface or release gate             | Full backend and `web-app` suites, applicable website commands, migration contracts, and stated manual checks.                         |
 
 If a command is unavailable or fails for an environmental reason, record the exact command, output
 summary, and blocker in the journal. Do not check the task or phase.
@@ -926,20 +5315,20 @@ The neutral conformance scenarios in Phase 11 configure and prove the shared cap
 by the earlier phases. They must not compensate for missing core behavior with scenario-specific
 production branches.
 
-| Configurable process pattern | Shared capability | Owning phases | Neutral proof |
-|---|---|---|---|
-| Different subjects, contributors, delegates, attestors, and reviewers | Request-scoped party roles, delegated authority, and Requirement assignment | 3, 4, 8 | One actor contributes for a distinct subject under time-bounded authority while another actor reviews. |
-| Variable-length or nested collections | Repeatable groups, stable occurrence paths, and cross-occurrence validation | 5 | Two nested occurrences retain independent values, evidence, findings, and completeness. |
-| Conditional and stage-dependent collection | Versioned conditions, amendments, and staged policy | 5, 7, 8 | A changed answer activates one Requirement, deactivates another, and preserves prior revisions. |
-| Multi-file, coverage, freshness, issuer, certification, and expiry constraints | Evidence Artifact, immutable Evidence Versions, Assessments, and generic evidence policy | 6 | Several files with different coverage and conformance states aggregate deterministically. |
-| Partial responses, exception requests, waivers, alternatives, and references | Policy-controlled response dispositions and evidence alternatives | 5, 6 | Each item accepts only configured dispositions and records narrative and provenance independently. |
-| Immutable whole-package or staged submissions and response attestations | Submission Packages, hashes, exact configuration, stage locks, and Submission Attestation | 7 | A submitted stage stays immutable while another stage remains editable. |
-| Supplemental, recurring, amendment, and remediation cycles | Request lineage, carry-forward policy, recurrence, correction, and retest | 7, 8 | A linked follow-up preserves its source package and explicitly carries forward or invalidates items. |
-| Sequential, parallel, and independent review | Review stages, aggregation, separation of duties, findings, correction allowlists, and remediation | 8 | Configured review stages aggregate deterministically and reopen only allowed items. |
-| Urgent, paused, extended, and recurring deadlines | Request Clocks and scheduler policy | 9 | Versioned clock inputs reproduce due times through pause, resume, extension, and retry. |
-| Reconstructable records, preservation holds, privacy controls, and export | Audit, access history, retention, hold, purge, privacy operations, and evidence export | 9 | A complete record is reproducible while held data cannot purge and unauthorized values remain redacted. |
-| Reviewed-value reuse and external verification | Explicit Accepted Facts and generic connector contracts | 8, 11 | Reuse exposes source and freshness, requires configured reconfirmation, and never silently overwrites a response. |
-| Registered and unregistered participation | Shared application services with authenticated and no-auth adapters | 4, 10 | Both access surfaces produce identical authorized projections and validation outcomes. |
+| Configurable process pattern                                                   | Shared capability                                                                                  | Owning phases | Neutral proof                                                                                                     |
+|--------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|---------------|-------------------------------------------------------------------------------------------------------------------|
+| Different subjects, contributors, delegates, attestors, and reviewers          | Request-scoped party roles, delegated authority, and Requirement assignment                        | 3, 4, 8       | One actor contributes for a distinct subject under time-bounded authority while another actor reviews.            |
+| Variable-length or nested collections                                          | Repeatable groups, stable occurrence paths, and cross-occurrence validation                        | 5             | Two nested occurrences retain independent values, evidence, findings, and completeness.                           |
+| Conditional and stage-dependent collection                                     | Versioned conditions, amendments, and staged policy                                                | 5, 7, 8       | A changed answer activates one Requirement, deactivates another, and preserves prior revisions.                   |
+| Multi-file, coverage, freshness, issuer, certification, and expiry constraints | Evidence Artifact, immutable Evidence Versions, Assessments, and generic evidence policy           | 6             | Several files with different coverage and conformance states aggregate deterministically.                         |
+| Partial responses, exception requests, waivers, alternatives, and references   | Policy-controlled response dispositions and evidence alternatives                                  | 5, 6          | Each item accepts only configured dispositions and records narrative and provenance independently.                |
+| Immutable whole-package or staged submissions and response attestations        | Submission Packages, hashes, exact configuration, stage locks, and Submission Attestation          | 7             | A submitted stage stays immutable while another stage remains editable.                                           |
+| Supplemental, recurring, amendment, and remediation cycles                     | Request lineage, carry-forward policy, recurrence, correction, and retest                          | 7, 8          | A linked follow-up preserves its source package and explicitly carries forward or invalidates items.              |
+| Sequential, parallel, and independent review                                   | Review stages, aggregation, separation of duties, findings, correction allowlists, and remediation | 8             | Configured review stages aggregate deterministically and reopen only allowed items.                               |
+| Urgent, paused, extended, and recurring deadlines                              | Request Clocks and scheduler policy                                                                | 9             | Versioned clock inputs reproduce due times through pause, resume, extension, and retry.                           |
+| Reconstructable records, preservation holds, privacy controls, and export      | Audit, access history, retention, hold, purge, privacy operations, and evidence export             | 9             | A complete record is reproducible while held data cannot purge and unauthorized values remain redacted.           |
+| Reviewed-value reuse and external verification                                 | Explicit Accepted Facts and generic connector contracts                                            | 8, 11         | Reuse exposes source and freshness, requires configured reconfirmation, and never silently overwrites a response. |
+| Registered and unregistered participation                                      | Shared application services with authenticated and no-auth adapters                                | 4, 10         | Both access surfaces produce identical authorized projections and validation outcomes.                            |
 
 ## Phase 1: Business Fields Foundation Program
 
@@ -1234,7 +5623,9 @@ Documents, and Response Attestations without placing respondent behavior inside 
       values with organization-administrator grants only, the Information Request audit category and the two
       configuration event types with a catalog version bump, and one owner-scoped guard that requires both the
       commercial entitlement and the rollout grant for the owner the configuration names. Refuse `PLATFORM` ownership,
-      which holds neither gate.
+      which holds neither gate. Writing configuration stays with organization administrators; reading a published
+      configuration is open to organization members, who create requests from it (decision `B01-template-09` of the
+      2026-10-26 gap analysis).
     - [x] `P2-T7b` Publication. Transition the editable Version into a frozen one. Derive the required runtime
       capability set through `request_template_required_capabilities` rather than reimplementing it, record it with the
       contract version of each capability from
@@ -1363,7 +5754,9 @@ exist.
   The same migration must widen `share_resource_type_check`, which the V1 baseline restricts to
   `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP` and which no later migration has touched, to admit
   the request aggregate and Requirement-occurrence types; omitting it makes every request-party
-  Share insert in `P3-T8` fail a check constraint. Widen `share_role_name_check` for the new role
+  Share insert in `P3-T8` fail a check constraint. (Corrected on 2026-10-05 by GA-111: V92 admits
+  only the request aggregate type, which is the accepted design; occurrences hold no Shares and are
+  authorized through parent-grant inheritance.) Widen `share_role_name_check` for the new role
   keys in the same file. Add characterization and migration coverage for the three ResourceTypes
   that can actually hold a Share, being Exchange, Document, and Principal Group, before changing
   capability derivation. Confirm by test that the other nine ResourceType values hold no Share rows
@@ -1840,8 +6233,8 @@ registered recipients, group recipients, and unregistered magic-link respondents
   Persisted `RequestAccessSession` (migration `V104`), bootstrap-issuance
   (`InformationRequestBootstrapShareLinkService`, with `requireRecipientSignIn` refusal and Command
   Receipts), contact-proof verification (`InformationRequestContactProofService`, migration
-  `V105`), bootstrap-link rotation, replacement, and revocation
-  (`InformationRequestBootstrapShareLinkService.rotate`/`replace`/`revoke`, migration `V106`, each
+  `V105`), bootstrap-link rotation, replacement, and revocation (`InformationRequestBootstrapShareLinkService.rotate`/
+  `replace`/`revoke`, migration `V106`, each
   revoking every active `RequestAccessSession` minted from the affected link via
   `RequestAccessSessionService.revokeAllForShareLink`), and the verified-registration upgrade path
   (`InformationRequestParticipantAccountUpgradeService.upgrade`, migration `V107`, persisting a
@@ -1928,56 +6321,56 @@ registered recipients, group recipients, and unregistered magic-link respondents
 
   Too large for one implementation session; split into dependency-ordered subtasks, none of which may
   check the parent box until all are done:
-  - [x] `P4-T7a` Persist the immutable `RequestExecutionGrant` (migration `V108`) once, at issuance,
-    via `InformationRequestExecutionGrantService.issueGrant`, called from
-    `InformationRequestLifecycleService.issue()`. Freezes owner type/id, plan code, subscription
-    status, the enforcement mode observed, trial expiry (when trialing), a mutation-allowance expiry
-    (trial end, grace-period end, or paid-through date depending on status), and the plan's
-    additional-participant limit as the request's local recipient cap. Idempotent by request id.
-    Complete. Deliberately narrower than the full task text: `BUSINESS_FIELDS_AND_SCHEMAS` snapshotting,
-    upload/storage caps, permitted continuation actions, and revocation semantics are out of scope here
-    (`P4-T7c`/`P4-T7d`); upload/storage caps specifically have nothing to size against yet, since no
-    upload or storage capability exists anywhere in the platform before Phase 5-7. Nothing yet reads
-    this grant back.
-  - [x] `P4-T7b` Add the idempotent `RequestExecutionUsageReservation` model: reserve, consume, release,
-    and roll back capacity against a `RequestExecutionGrant` under concurrent operations, with tests for
-    exhaustion and concurrent reservation up to the cap. Complete: `reserve`/`consume`/`release`/`rollback`
-    all implemented and unit-tested against mocked repositories (10 cases); a real-Postgres concurrency
-    contract test proving the exhaustion and release-then-reuse cases under actual concurrent
-    transactions was also written, mirroring `OrganizationSeatConcurrencyPostgresContractTest`'s
-    raw-JDBC lock pattern, but could not be executed in this session's environment (no Docker daemon
-    available, the same pre-existing limitation that already blocks that older test here) -- a
-    Docker-capable session should run it before treating its pass as observed. Nothing yet calls any of
-    the four operations; wiring a caller is `P4-T7c`'s job.
-  - [x] `P4-T7c` Redirect continuation-path subscription checks to the frozen grant instead of the live
-    subscription: request lifecycle mutations driven by a respondent or reviewer on an already-issued
-    request, and `BusinessFieldsSubscriptionGuard`/`InformationRequestFieldResourceAdapter` Field writes.
-    Prove a lapsed owner's respondent can still submit and write Field values within the reserved
-    limits, while new or expanding work (new requests, issuance, adding parties beyond the reserved cap)
-    still answers to the live subscription. Complete: `InformationRequestLifecycleService.mutate()` now
-    consults `InformationRequestExecutionGrantService.findForRequest` before deciding whether to call the
-    live-subscription `entitlementGuard` -- a request with no grant yet (issuance, or any `DRAFT`
-    mutation) still answers to the live subscription, a request that already holds one (today, only
-    `cancel`/`supersede` are wired past issuance) does not. `FieldResourceAdapter` gained a default
-    `mutationEntitlementFrozen` method that `InformationRequestFieldResourceAdapter` overrides to consult
-    the same grant, and `SchemaAssignmentService` skips `BusinessFieldsSubscriptionGuard.requireResourceMutation`
-    when an adapter reports a frozen entitlement. Grant issuance itself now also requires
-    `BUSINESS_FIELDS_AND_SCHEMAS` when the Template binds a Field. `SUBMIT` and the other Phase 5-7
-    response mutations remain unwired and were not exercised; whichever session wires them should route
-    through the same `findForRequest(requestId) == null` gate.
-  - [x] `P4-T7d` Global enforcement-mode and owner-rollout interplay, operational suspension, and
-    explicit grant revocation; the commercial-entitlement and operational-rollout truth-table tests.
-    Complete: `InformationRequestEntitlementGuardTest` now pins all four commercial-entitlement x
-    rollout-grant combinations plus the `REPORT_ONLY` enforcement-mode cases. Emergency operational
-    suspension reuses the existing `SubscriptionStatus.SUSPENDED` value (deliberately not a new global
-    kill-switch configuration) through
-    `InformationRequestEntitlementGuard.requireNotOperationallySuspended`, which the lifecycle service
-    now checks even once a request already holds a frozen grant, since `SUSPENDED` carries no grace
-    window unlike `PAST_DUE`/`CANCELED`. Explicit per-request revocation is
-    `InformationRequestExecutionGrantService.revoke`, writing the grant's existing
-    `revokedAt`/`revokedReason` columns and enforced in `InformationRequestLifecycleService.mutate()`
-    via a new `EXECUTION_GRANT_REVOKED` catalog code. Neither has a REST caller yet; an administrative
-    surface for either was left for a future session to place.
+    - [x] `P4-T7a` Persist the immutable `RequestExecutionGrant` (migration `V108`) once, at issuance,
+      via `InformationRequestExecutionGrantService.issueGrant`, called from
+      `InformationRequestLifecycleService.issue()`. Freezes owner type/id, plan code, subscription
+      status, the enforcement mode observed, trial expiry (when trialing), a mutation-allowance expiry (trial end,
+      grace-period end, or paid-through date depending on status), and the plan's
+      additional-participant limit as the request's local recipient cap. Idempotent by request id.
+      Complete. Deliberately narrower than the full task text: `BUSINESS_FIELDS_AND_SCHEMAS` snapshotting,
+      upload/storage caps, permitted continuation actions, and revocation semantics are out of scope here (`P4-T7c`/
+      `P4-T7d`); upload/storage caps specifically have nothing to size against yet, since no
+      upload or storage capability exists anywhere in the platform before Phase 5-7. Nothing yet reads
+      this grant back.
+    - [x] `P4-T7b` Add the idempotent `RequestExecutionUsageReservation` model: reserve, consume, release,
+      and roll back capacity against a `RequestExecutionGrant` under concurrent operations, with tests for
+      exhaustion and concurrent reservation up to the cap. Complete: `reserve`/`consume`/`release`/`rollback`
+      all implemented and unit-tested against mocked repositories (10 cases); a real-Postgres concurrency
+      contract test proving the exhaustion and release-then-reuse cases under actual concurrent
+      transactions was also written, mirroring `OrganizationSeatConcurrencyPostgresContractTest`'s
+      raw-JDBC lock pattern, but could not be executed in this session's environment (no Docker daemon
+      available, the same pre-existing limitation that already blocks that older test here) -- a
+      Docker-capable session should run it before treating its pass as observed. Nothing yet calls any of
+      the four operations; wiring a caller is `P4-T7c`'s job.
+    - [x] `P4-T7c` Redirect continuation-path subscription checks to the frozen grant instead of the live
+      subscription: request lifecycle mutations driven by a respondent or reviewer on an already-issued
+      request, and `BusinessFieldsSubscriptionGuard`/`InformationRequestFieldResourceAdapter` Field writes.
+      Prove a lapsed owner's respondent can still submit and write Field values within the reserved
+      limits, while new or expanding work (new requests, issuance, adding parties beyond the reserved cap)
+      still answers to the live subscription. Complete: `InformationRequestLifecycleService.mutate()` now
+      consults `InformationRequestExecutionGrantService.findForRequest` before deciding whether to call the
+      live-subscription `entitlementGuard` -- a request with no grant yet (issuance, or any `DRAFT`
+      mutation) still answers to the live subscription, a request that already holds one (today, only
+      `cancel`/`supersede` are wired past issuance) does not. `FieldResourceAdapter` gained a default
+      `mutationEntitlementFrozen` method that `InformationRequestFieldResourceAdapter` overrides to consult
+      the same grant, and `SchemaAssignmentService` skips `BusinessFieldsSubscriptionGuard.requireResourceMutation`
+      when an adapter reports a frozen entitlement. Grant issuance itself now also requires
+      `BUSINESS_FIELDS_AND_SCHEMAS` when the Template binds a Field. `SUBMIT` and the other Phase 5-7
+      response mutations remain unwired and were not exercised; whichever session wires them should route
+      through the same `findForRequest(requestId) == null` gate.
+    - [x] `P4-T7d` Global enforcement-mode and owner-rollout interplay, operational suspension, and
+      explicit grant revocation; the commercial-entitlement and operational-rollout truth-table tests.
+      Complete: `InformationRequestEntitlementGuardTest` now pins all four commercial-entitlement x
+      rollout-grant combinations plus the `REPORT_ONLY` enforcement-mode cases. Emergency operational
+      suspension reuses the existing `SubscriptionStatus.SUSPENDED` value (deliberately not a new global
+      kill-switch configuration) through
+      `InformationRequestEntitlementGuard.requireNotOperationallySuspended`, which the lifecycle service
+      now checks even once a request already holds a frozen grant, since `SUSPENDED` carries no grace
+      window unlike `PAST_DUE`/`CANCELED`. Explicit per-request revocation is
+      `InformationRequestExecutionGrantService.revoke`, writing the grant's existing
+      `revokedAt`/`revokedReason` columns and enforced in `InformationRequestLifecycleService.mutate()`
+      via a new `EXECUTION_GRANT_REVOKED` catalog code. Neither has a REST caller yet; an administrative
+      surface for either was left for a future session to place.
 - [x] `P4-T8` Keep both gates off until authenticated and no-auth access, authorization, audit, and
   safe projection tests all pass. In a controlled scope, add an explicit owner commercial
   entitlement and separately enable owner rollout; prove that either gate alone denies creation or
@@ -2082,107 +6475,107 @@ processes.
   identity, Command Receipt handling, required `If-Match`, and optimistic concurrency. Split into
   dependency-ordered subtasks because persistence, HTTP exposure, and Field Value Set integration
   are each independently testable:
-  - [x] `P5-T1a` Add the first response-draft persistence and service slice: current
-    `InformationRequestResponse` envelopes, request-level response ETag, sparse disposition and
-    narrative patching, explicit narrative clear, canonical principal/session provenance, central
-    Requirement response authorization, Command Receipt replay/conflict handling, parent-state and
-    frozen-grant checks, and `SAVE_RESPONSE` transition/audit routing.
-  - [x] `P5-T1b` Expose authenticated and no-auth sparse response `PATCH` resources that require
-    `If-Match` and an idempotency key, build the same explicit access context on both surfaces,
-    delegate to `InformationRequestResponseDraftService`, return response ETags, and map stable
-    service refusals to HTTP responses without adding resource-layer business logic. Complete:
-    `InformationRequestResponseResource` (`PATCH /information-requests/{id}/responses`) and a new
-    `patchResponses` method on `InformationRequestNoAuthRequestResource` both delegate to the
-    identical service and additionally project only the requirement occurrences the caller's own
-    patch named, since the service's own result carries every current response on the request and
-    echoing it verbatim would leak a co-party's disposition/narrative to a single-occurrence
-    respondent.
-  - [x] `P5-T1c` Wire Field Requirement patches through the existing Fields engine with typed
-    canonicalization, explicit clear operations, canonical provenance, current Value Set identity,
-    and occurrence-scoped writes. Complete: `ResponseFieldValuesPatch`/`writeFieldValues`/
-    `readFieldValues` on `InformationRequestResponseDraftService`, `InformationRequestResponse
+    - [x] `P5-T1a` Add the first response-draft persistence and service slice: current
+      `InformationRequestResponse` envelopes, request-level response ETag, sparse disposition and
+      narrative patching, explicit narrative clear, canonical principal/session provenance, central
+      Requirement response authorization, Command Receipt replay/conflict handling, parent-state and
+      frozen-grant checks, and `SAVE_RESPONSE` transition/audit routing.
+    - [x] `P5-T1b` Expose authenticated and no-auth sparse response `PATCH` resources that require
+      `If-Match` and an idempotency key, build the same explicit access context on both surfaces,
+      delegate to `InformationRequestResponseDraftService`, return response ETags, and map stable
+      service refusals to HTTP responses without adding resource-layer business logic. Complete:
+      `InformationRequestResponseResource` (`PATCH /information-requests/{id}/responses`) and a new
+      `patchResponses` method on `InformationRequestNoAuthRequestResource` both delegate to the
+      identical service and additionally project only the requirement occurrences the caller's own
+      patch named, since the service's own result carries every current response on the request and
+      echoing it verbatim would leak a co-party's disposition/narrative to a single-occurrence
+      respondent.
+    - [x] `P5-T1c` Wire Field Requirement patches through the existing Fields engine with typed
+      canonicalization, explicit clear operations, canonical provenance, current Value Set identity,
+      and occurrence-scoped writes. Complete: `ResponseFieldValuesPatch`/`writeFieldValues`/
+      `readFieldValues` on `InformationRequestResponseDraftService`, `InformationRequestResponse
     .fieldValueSetId`, both `P5-T1b` resources, and `InformationRequestResponseDto`'s
-    `fieldValueSetId`/`fieldValueSetETag`/`fieldValues` all delegate to the Fields engine's existing
-    `FieldValueSetRef`/`FieldValueEntry`/`FieldsPrecondition` machinery.
-  - [x] `P5-T1d` Add optimistic-concurrency and replay coverage for multi-field and multi-occurrence
-    response saves, then run the full affected Phase 5 regression gate. Complete:
-    `InformationRequestResponseDraftServiceTest` covers a two-occurrence patch writing independent
-    Field Value Sets, a field-patch replay that does not re-invoke `SchemaAssignmentService.setValues`,
-    and a stale Field precondition aborting the whole patch with no response/history side effects.
+      `fieldValueSetId`/`fieldValueSetETag`/`fieldValues` all delegate to the Fields engine's existing
+      `FieldValueSetRef`/`FieldValueEntry`/`FieldsPrecondition` machinery.
+    - [x] `P5-T1d` Add optimistic-concurrency and replay coverage for multi-field and multi-occurrence
+      response saves, then run the full affected Phase 5 regression gate. Complete:
+      `InformationRequestResponseDraftServiceTest` covers a two-occurrence patch writing independent
+      Field Value Sets, a field-patch replay that does not re-invoke `SchemaAssignmentService.setValues`,
+      and a stale Field precondition aborting the whole patch with no response/history side effects.
 - [x] `P5-T2` Add arbitrary repeatable and nested group definitions and runtime group instances.
   Give each occurrence a stable path and parent reference that can anchor Field, Document, and
   Response Attestation Requirement instances independently. Split into dependency-ordered subtasks
   because the template-level definition, runtime occurrence provisioning, and runtime add/remove/
   reorder are each independently testable:
-  - [x] `P5-T2a` Add template-level repeatable and nested group definitions: a version-scoped
-    `InformationRequestTemplateRequirementGroup` (stable key within the version, optional parent
-    group for nesting, min/max occurrence cardinality), authored and read through the same
-    configuration document as sections and bindings, with an existing occurrence anchor key now
-    required to resolve to a group the document defines. Complete: entity, repository, `V111`
-    migration, DTOs, validator (distinct keys, parent resolution, cycle detection, occurrence-anchor
-    resolution), writer (parents written before children in topological layers), projection loader,
-    and the lifecycle service's new-version-from-existing round trip all updated and covered by
-    `InformationRequestTemplateConfigurationValidatorTest` (9 new cases) and
-    `InformationRequestTemplateConfigurationWriterContractTest` (whole-document and rewrite cases
-    extended with nested groups). `occurrence_anchor_key` deliberately keeps no new database-level
-    foreign key to the group table: existing persistence-contract tests write it as a bare string to
-    exercise the binding row in isolation, so the resolution rule is enforced only where every other
-    cross-requirement relation in this document already is, at the Kotlin validator.
-  - [x] `P5-T2b` Add runtime group occurrence instances: decide where an occurrence `FieldValueSet`
-    get-or-create belongs relative to Requirement occurrence provisioning (`SchemaAssignmentService
+    - [x] `P5-T2a` Add template-level repeatable and nested group definitions: a version-scoped
+      `InformationRequestTemplateRequirementGroup` (stable key within the version, optional parent
+      group for nesting, min/max occurrence cardinality), authored and read through the same
+      configuration document as sections and bindings, with an existing occurrence anchor key now
+      required to resolve to a group the document defines. Complete: entity, repository, `V111`
+      migration, DTOs, validator (distinct keys, parent resolution, cycle detection, occurrence-anchor
+      resolution), writer (parents written before children in topological layers), projection loader,
+      and the lifecycle service's new-version-from-existing round trip all updated and covered by
+      `InformationRequestTemplateConfigurationValidatorTest` (9 new cases) and
+      `InformationRequestTemplateConfigurationWriterContractTest` (whole-document and rewrite cases
+      extended with nested groups). `occurrence_anchor_key` deliberately keeps no new database-level
+      foreign key to the group table: existing persistence-contract tests write it as a bare string to
+      exercise the binding row in isolation, so the resolution rule is enforced only where every other
+      cross-requirement relation in this document already is, at the Kotlin validator.
+    - [x] `P5-T2b` Add runtime group occurrence instances: decide where an occurrence `FieldValueSet`
+      get-or-create belongs relative to Requirement occurrence provisioning (`SchemaAssignmentService
     .valueSetForWrite` only get-or-creates the root set and throws for a missing occurrence set
-    today), materialize the first occurrence(s) at issuance, and give each occurrence a stable path
-    and parent reference that can anchor Field, Document, and Response Attestation Requirement
-    instances independently. Complete: `InformationRequestGroupOccurrence` (`V112` migration) holds
-    a stable `occurrencePath` and `parentOccurrenceId` per runtime repetition;
-    `InformationRequestTemplateMaterializer` materializes each group's authored `minOccurrences`
-    parent-first at issuance and threads the resolved path into every anchored Requirement instead of
-    a hardcoded `root`; `SchemaAssignmentService.createOccurrenceValueSet` provisions each
-    occurrence's Field Value Set get-or-create, called only from server-side provisioning, never
-    implicitly from a write.
-  - [x] `P5-T2c` Add authenticated and no-auth support to add, remove, and reorder repeatable group
-    occurrences at runtime within the group's authored cardinality, with concurrent-edit coverage.
-    Complete: a shared `InformationRequestGroupOccurrenceService` powers authenticated and no-auth
-    REST adapters, requires response-shape ETags plus Command Receipt idempotency, checks central
-    Requirement response authorization and issued-request continuation gates, provisions occurrence
-    Field Value Sets and new Requirement rows when an occurrence is added, marks occurrences removed
-    with canonical principal provenance while keeping prior Requirement history addressable, and
-    reorders active sibling occurrences without changing their stable paths.
+      today), materialize the first occurrence (s) at issuance, and give each occurrence a stable path
+      and parent reference that can anchor Field, Document, and Response Attestation Requirement
+      instances independently. Complete: `InformationRequestGroupOccurrence` (`V112` migration) holds
+      a stable `occurrencePath` and `parentOccurrenceId` per runtime repetition;
+      `InformationRequestTemplateMaterializer` materializes each group's authored `minOccurrences`
+      parent-first at issuance and threads the resolved path into every anchored Requirement instead of
+      a hardcoded `root`; `SchemaAssignmentService.createOccurrenceValueSet` provisions each
+      occurrence's Field Value Set get-or-create, called only from server-side provisioning, never
+      implicitly from a write.
+    - [x] `P5-T2c` Add authenticated and no-auth support to add, remove, and reorder repeatable group
+      occurrences at runtime within the group's authored cardinality, with concurrent-edit coverage.
+      Complete: a shared `InformationRequestGroupOccurrenceService` powers authenticated and no-auth
+      REST adapters, requires response-shape ETags plus Command Receipt idempotency, checks central
+      Requirement response authorization and issued-request continuation gates, provisions occurrence
+      Field Value Sets and new Requirement rows when an occurrence is added, marks occurrences removed
+      with canonical principal provenance while keeping prior Requirement history addressable, and
+      reorders active sibling occurrences without changing their stable paths.
 - [x] `P5-T3` Add a versioned condition expression model using stable Requirement and Field IDs.
   Define supported operators, null and unknown semantics, cycle detection, server evaluation, and
   a client-safe evaluation projection. Split into dependency-ordered subtasks because persistence,
   server evaluation, and the client-safe projection are each independently testable:
-  - [x] `P5-T3a` Persist the versioned condition rule and predicate definitions a template version
-    authors, instead of validating them and discarding them. Complete:
-    `InformationRequestTemplateConditionRule`/`ConditionPredicate`/`ConditionPredicateLiteral`
-    entities, migration `V114`, repositories, `InformationRequestConditionPredicateLiteralCodec` for
-    the canonical-JSON/typed-column literal conversion (mirroring `FieldValue`'s own typed-column
-    convention), `InformationRequestTemplateConfigurationWriter.writeConditionRules`, and
-    `InformationRequestTemplateProjectionLoader.loadConditionRules` onto the new
-    `InformationRequestTemplateVersionDto.conditionRules`.
-  - [x] `P5-T3b` Wire `InformationRequestConditionEvaluator` against a live runtime request's
-    current Field values and current Requirement dispositions, resolving each rule's predicates from
-    the now-persisted rows rather than an ad hoc in-memory list, so a request's conditional
-    requirements can be evaluated server-side. Complete: `InformationRequestConditionEvaluationService
+    - [x] `P5-T3a` Persist the versioned condition rule and predicate definitions a template version
+      authors, instead of validating them and discarding them. Complete:
+      `InformationRequestTemplateConditionRule`/`ConditionPredicate`/`ConditionPredicateLiteral`
+      entities, migration `V114`, repositories, `InformationRequestConditionPredicateLiteralCodec` for
+      the canonical-JSON/typed-column literal conversion (mirroring `FieldValue`'s own typed-column
+      convention), `InformationRequestTemplateConfigurationWriter.writeConditionRules`, and
+      `InformationRequestTemplateProjectionLoader.loadConditionRules` onto the new
+      `InformationRequestTemplateVersionDto.conditionRules`.
+    - [x] `P5-T3b` Wire `InformationRequestConditionEvaluator` against a live runtime request's
+      current Field values and current Requirement dispositions, resolving each rule's predicates from
+      the now-persisted rows rather than an ad hoc in-memory list, so a request's conditional
+      requirements can be evaluated server-side. Complete: `InformationRequestConditionEvaluationService
     .evaluate(requestId)` loads the request's persisted condition rules via
-    `InformationRequestTemplateProjectionLoader.loadConditionRules`, resolves current Requirement
-    dispositions (defaulting an unanswered Requirement to `NOT_ANSWERED` rather than unknown) and
-    current root Field Value Set values, and delegates to the unchanged `InformationRequestConditionEvaluator`.
-    Occurrence-scoped Field predicates are not yet handled; only root-scoped values resolve.
-  - [x] `P5-T3c` Expose a client-safe evaluation projection (rule key to TRUE/FALSE/UNKNOWN state)
-    on the runtime request read surfaces (`InformationRequestResource`/
-    `InformationRequestNoAuthRequestResource`). Complete: `InformationRequestDto` now carries
-    `conditionEvaluations`, each entry includes only rule key, expression version, and state, and
-    both authenticated and no-auth detail reads populate it from
-    `InformationRequestConditionEvaluationService.evaluate` after the existing read authorization
-    and no-auth request-token checks pass.
+      `InformationRequestTemplateProjectionLoader.loadConditionRules`, resolves current Requirement
+      dispositions (defaulting an unanswered Requirement to `NOT_ANSWERED` rather than unknown) and
+      current root Field Value Set values, and delegates to the unchanged `InformationRequestConditionEvaluator`.
+      Occurrence-scoped Field predicates are not yet handled; only root-scoped values resolve.
+    - [x] `P5-T3c` Expose a client-safe evaluation projection (rule key to TRUE/FALSE/UNKNOWN state)
+      on the runtime request read surfaces (`InformationRequestResource`/
+      `InformationRequestNoAuthRequestResource`). Complete: `InformationRequestDto` now carries
+      `conditionEvaluations`, each entry includes only rule key, expression version, and state, and
+      both authenticated and no-auth detail reads populate it from
+      `InformationRequestConditionEvaluationService.evaluate` after the existing read authorization
+      and no-auth request-token checks pass.
 - [x] `P5-T4` Define hidden-data policy per condition: retain securely, clear with confirmation, or
   archive outside the active response. Re-evaluate completeness when conditions change.
-  - [x] `P5-T4a` Define, persist, copy, and expose the per-condition hidden-response-data policy
-    with `RETAIN_SECURELY` as the omitted and upgrade default.
-  - [x] `P5-T4b` Enforce hidden-response data handling when conditions become false or unknown:
-    retain securely, clear with explicit confirmation, or archive outside the active response, then
-    re-evaluate active response shape and completeness.
+    - [x] `P5-T4a` Define, persist, copy, and expose the per-condition hidden-response-data policy
+      with `RETAIN_SECURELY` as the omitted and upgrade default.
+    - [x] `P5-T4b` Enforce hidden-response data handling when conditions become false or unknown:
+      retain securely, clear with explicit confirmation, or archive outside the active response, then
+      re-evaluate active response shape and completeness.
 - [x] `P5-T5` Implement the neutral platform response dispositions and narratives, including
   partial, not applicable, unavailable, exception requested, satisfied by reference, and waived
   where the Template permits. Customer-authored labels and reason codes remain configuration data
@@ -2432,7 +6825,8 @@ Phase 6 is blocked until every `P5-R01` through `P5-R30` finding is fixed and ve
 including `P6-T1`, not merely before enabling uploads. Scanner approval does not waive remediation.
 
 Historical, superseded on 2026-09-25 by the next paragraph: the remediation gate is complete. On
-2026-09-20 the user explicitly authorized continued work without resolving the scanner decision now. Proceed with scanner-independent tasks, starting with
+2026-09-20 the user explicitly authorized continued work without resolving the scanner decision now. Proceed with
+scanner-independent tasks, starting with
 P6-T1. Keep the real scanner deployment and signature-update implementation deferred. Do not mark
 P6-T6 or the full Phase 6 exit gate complete without its evidence, enable production external
 uploads, or treat unscanned evidence as safe. A task with a genuine scanner dependency must remain
@@ -2446,10 +6840,10 @@ deployment that sets `app.information-request.evidence.malware-scan.required=tru
 Content-type inspection is not malware scanning. Before external evidence upload can be enabled in
 any production scope, select and approve a concrete scanner deployment and signature-update model
 that runs on existing infrastructure. A local or test adapter may exercise contracts, but it cannot
-mark production evidence safe. Every file-backed Evidence Version, including a link to an existing
-or legacy Document Version, requires a malware assessment tied to its exact verified bytes before
-it can satisfy a Requirement. Linking may create a pending Evidence Version, but cannot bypass this
-gate. `DocumentEncryptionMode.END_TO_END` content is opaque ciphertext to the server: hashing or
+mark production evidence safe. Every file-backed Evidence Version requires a malware assessment
+tied to its exact verified bytes before it can satisfy a Requirement. Evidence is always uploaded
+as a new request-owned Document Version; linking an existing Document Version is not part of this
+program (GA-118, 2026-10-05). `DocumentEncryptionMode.END_TO_END` content is opaque ciphertext to the server: hashing or
 scanning that ciphertext does not establish plaintext safety, so such a Document Version is
 ineligible to satisfy a file-backed Evidence Requirement in this program. Supporting it later
 requires a separately approved inspectable representation and security contract. If the selected
@@ -2637,10 +7031,10 @@ design needs a new AWS service or paid resource type, stop for explicit user app
       Document surfaces cannot resolve it.
 - [x] `P6-T4` Implement multi-file aggregation with independent file state. Accepted, rejected,
   quarantined, expired, and replacement versions may coexist without corrupting Requirement status.
-  Done: `InformationRequestEvidencePolicyEvaluator` gives every Evidence Version its own standing
-  (`CURRENT`, `SUPERSEDED`, `WITHDRAWN`, `REMOVED`), conformance (`PENDING`, `CONFORMING`,
-  `DEFICIENT`, `QUARANTINED`, `CORRUPT`, `EXPIRED`), and findings, and derives the Requirement state
-  (`NOT_PROVIDED`, `PENDING_ASSESSMENT`, `INCOMPLETE`, `DEFICIENT`, `REVIEWABLE`, `SATISFIED`, `WAIVED`,
+  Done: `InformationRequestEvidencePolicyEvaluator` gives every Evidence Version its own standing (`CURRENT`,
+  `SUPERSEDED`, `WITHDRAWN`, `REMOVED`), conformance (`PENDING`, `CONFORMING`,
+  `DEFICIENT`, `QUARANTINED`, `CORRUPT`, `EXPIRED`), and findings, and derives the Requirement state (`NOT_PROVIDED`,
+  `PENDING_ASSESSMENT`, `INCOMPLETE`, `DEFICIENT`, `REVIEWABLE`, `SATISFIED`, `WAIVED`,
   `WAIVER_REQUESTED`) from current files only; superseded, withdrawn, and removed versions keep their
   own state and never count, and every current file must conform before the Requirement is satisfied.
   `InformationRequestEvidenceEvaluationService` reads the facts from storage and assessments,
@@ -2664,8 +7058,8 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   unavailable handling, quarantine access rules, rescan policy, observability, and append-only
   Evidence Assessments. Scanner error, timeout, unavailable, stale signatures, skipped execution,
   and indeterminate results fail closed. A no-op or test adapter can never produce a production-safe
-  result. Apply this contract to every exact file-backed Evidence Version regardless of uploader,
-  access surface, or whether the Document Version already existed. Reuse a prior assessment only
+  result. Apply this contract to every exact file-backed Evidence Version regardless of uploader
+  or access surface. Reuse a prior assessment only
   when the exact verified content hash, scanner engine and signature version, and configured
   freshness policy still match.
   The concrete scanner deployment and signature-update decision is deferred by the user; other
@@ -2756,12 +7150,15 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   accepting content. Phase 12 may tune limits by plan but must not introduce the first abuse guard.
   Done: `InformationRequestEvidenceIntake` refuses with `INFORMATION_REQUEST_EVIDENCE_UPLOAD_LIMIT_EXCEEDED`
   before anything is stored: 25 MiB per file, 10 MiB per file without sign-in, 200 files and 500 MiB
-  per request, and 100 files and 250 MiB per uploading party, counting every retained file-backed
-  version (withdrawn and removed bytes are still held). Each limit is configurable.
+  per request, and 100 files and 250 MiB per respondent, counting every retained file-backed
+  version (withdrawn and removed bytes are still held). Each limit is configurable. A respondent's
+  usage spans its verified account links (the participant, its linked account and every participant
+  linked to that account), so linking an account never starts a new allowance; LQ-01 reopened this
+  on 2026-10-18 and closed it the same day.
 - [x] `P6-T10` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through multi-file upload, occurrence-scoped evidence,
   policy validation, ACL, quarantine, and supporting-evidence links.
-  Done: `InformationRequestTemplateWalkingSkeletonPhase6Test` drives each fixture's own authored
+  Done: `InformationRequestTemplateWalkingSkeletonEvidenceTest` drives each fixture's own authored
   evidence policy through the real upload, intake, scan, evaluation, query, and link services. The
   basic fixture collects two independent files, is satisfied only after production-eligible clean
   scans, refuses a non-PDF and a third file by its policy, quarantines detected content, and links
@@ -2804,8 +7201,8 @@ design needs a new AWS service or paid resource type, stop for explicit user app
 - MIME spoofing, size, corrupt, password-protected, quarantine, malware-detected, scanner timeout,
   scanner unavailable, stale-signature, fail-closed, rescan, and no-op-adapter denial tests.
 - Explicit `END_TO_END` Evidence ineligibility and no-ciphertext-safety-claim tests.
-- Existing Document linking, exact-hash assessment reuse, changed-bytes denial, scanner
-  engine or signature change, and assessment-freshness tests.
+- Exact-hash assessment reuse, changed-bytes denial, scanner engine or signature change, and
+  assessment-freshness tests.
 - Cross-recipient list, preview, and download denial tests.
 
 ### Exit criteria
@@ -2815,8 +7212,7 @@ design needs a new AWS service or paid resource type, stop for explicit user app
   a typed write-once storage locator, byte length, and version-level hash.
 - Another Exchange participant cannot access evidence without Requirement-specific authorization.
 - Technically unsafe, unverified, or expired evidence cannot satisfy submission policy, and unscanned
-  evidence cannot satisfy it where a deployment requires malware scanning,
-  including evidence linked from an existing Document Version.
+  evidence cannot satisfy it where a deployment requires malware scanning.
 - Opaque `END_TO_END` ciphertext cannot satisfy a file-backed Evidence Requirement or receive a
   plaintext-safety claim from server-side ciphertext inspection.
 - Evidence policy can express multi-period coverage, expiry, certification, and configured
@@ -2853,8 +7249,8 @@ Recorded before implementation so every subtask below states against one design.
 3. A Submission Attestation binds to the content hash it was given against. A later change to the
    scope changes the hash, so earlier attestations stop counting without being rewritten. The
    package freezes the attestations that satisfied each Response Attestation Requirement's policy.
-4. A Response Attestation Requirement's binding states its attestation policy: required party roles
-   (ordered), ordering (`ANY_ORDER` or `ROLE_SEQUENCE`), minimum assent count, minimum
+4. A Response Attestation Requirement's binding states its attestation policy: required party roles (ordered), ordering
+   (`ANY_ORDER` or `ROLE_SEQUENCE`), minimum assent count, minimum
    authentication strength (`VERIFIED_CONTACT` < `ACCOUNT_SIGN_IN` < `MULTI_FACTOR`), optional
    validity hours, and whether an external signature reference is not accepted, optional, or
    required. An authored Requirement that states none stores the explicit default: its nominated
@@ -2965,7 +7361,7 @@ Recorded before implementation so every subtask below states against one design.
 - [x] `P7-T8` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through multi-party response attestation, immutable package
   submission, compatible and incompatible amendment, supplemental request, and recurrence.
-  Done: `InformationRequestTemplateWalkingSkeletonPhase7Test`; the stress fixture now submits in three
+  Done: `InformationRequestTemplateWalkingSkeletonSubmissionLineageTest`; the stress fixture now submits in three
   sequential stages with a subject-then-attestor assertion policy.
 - [x] `P7-T9` Add the minimal review-before-submit, multi-party response-attestation, submission result,
   amendment change summary with pending-notice state, and supplemental-request UI behind the
@@ -3172,7 +7568,7 @@ vocabulary, corrections, comments, remediation), V138 (Accepted Facts and Busine
 - [x] `P8-T10` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through staged review, correction allowlists, multi-review
   aggregation, Accepted Fact promotion, and an independent Business Decision reference.
-  Done: `InformationRequestTemplateWalkingSkeletonPhase8Test`.
+  Done: `InformationRequestTemplateWalkingSkeletonReviewTest`.
 - [x] `P8-T11` Add the minimal reviewer submission review, finding, correction, remediation, and
   satisfaction UI behind the feature switch.
   Done: `web-app/src/app/information-requests/review/`: the reviewer workspace at
@@ -3280,11 +7676,11 @@ cannot delete.
    block ending forever; its history shows whether it was satisfied. The check runs before an ending
    Workflow starts, and again at confirmation, where a refusal leaves the Exchange unchanged. An
    Exchange with no requests ends exactly as today, including from `INITIATED`.
-7. Clocks. A clock policy is an owner-scoped definition with immutable numbered versions: clock type
-   (`CALENDAR` or `BUSINESS`), business timezone, weekly working periods, holiday dates, standard and
+7. Clocks. A clock policy is an owner-scoped definition with immutable numbered versions: clock type (`CALENDAR` or
+   `BUSINESS`), business timezone, weekly working periods, holiday dates, standard and
    urgent durations, ordered reminder offsets before due, an optional escalation offset after due, and
-   a due effect (`MARK_OVERDUE` or `EXPIRE_REQUEST`), all measured in the clock type. A request clock
-   (one per `clock_key` per request) freezes the policy version, urgency, and received instant and
+   a due effect (`MARK_OVERDUE` or `EXPIRE_REQUEST`), all measured in the clock type. A request clock (one per
+   `clock_key` per request) freezes the policy version, urgency, and received instant and
    records every calculation append-only (`STARTED`, `PAUSED`, `RESUMED`, `EXTENDED`, `REMINDED`,
    `OVERDUE`, `ESCALATED`, `EXPIRED`, `STOPPED`) with its inputs and resulting due instant, so a later
    policy version never rewrites deadline proof. A pure calculator computes due instants across
@@ -3354,8 +7750,8 @@ including the request administrator's; decision 12 applies a correction to a sub
 only, and pointing an open request at a new response revision stays with the respondent workspace.
 
 Migrations (the program range is extended past V139 below): V139 (events, trigger registry,
-ordering, consumption, and transition vocabulary), V140 (clock policies and request clocks), V141
-(notices), V142 (preservation holds, retention, disposal, and record exports), V143 (privacy
+ordering, consumption, and transition vocabulary), V140 (clock policies and request clocks), V141 (notices), V142
+(preservation holds, retention, disposal, and record exports), V143 (privacy
 requests).
 
 ### Tasks
@@ -3386,8 +7782,8 @@ requests).
 - [x] `P9-T4` Add configurable Exchange completion gates based on specified satisfied Information
   Requests rather than generic document-required flags. Ending must atomically reject or explicitly
   cancel any remaining nongating request instead of silently abandoning it.
-  Done: `InformationRequestExchangeCompletionService` under the Exchange lock
-  (`COMPLETION_GATES_UNSATISFIED`, `REMAINING_REQUESTS_REQUIRE_CANCELLATION`,
+  Done: `InformationRequestExchangeCompletionService` under the Exchange lock (`COMPLETION_GATES_UNSATISFIED`,
+  `REMAINING_REQUESTS_REQUIRE_CANCELLATION`,
   `cancelRemainingInformationRequests`) and `PUT /information-requests/{id}/completion-gate`.
 - [x] `P9-T5` Implement Request Clocks for urgency, clock type, received time, business timezone,
   versioned business calendar, working hours and holiday set, pause and resume reasons,
@@ -3462,14 +7858,14 @@ requests).
 - [x] `P9-T12` Extend `basic_field_document_response_attestation_request` and
   `multi_party_staged_evidence_request` through scoped Workflow, versioned clocks, immutable
   notices, audit search, retention, record-preservation holds, privacy requests, and evidence export.
-  Done: `InformationRequestTemplateWalkingSkeletonPhase9Test`, one basic-shaped and one staged
+  Done: `InformationRequestTemplateWalkingSkeletonOperationsTest`, one basic-shaped and one staged
   scenario.
 - [x] `P9-T13` Add the minimal operational queue, clock, notice history, audit history, authorized
   hold placement and release, disposal status, and evidence export UI behind the feature switch.
   Done: the operations queue and request detail pages, the record preservation page, the menu entry,
   the Exchange end refusal handling, and request-trigger applicability in the designer. Privacy
   request, clock policy, clock command, hold scope change, and audit search screens remain for Phase
-  10.
+    10.
 
 ### Tests to write first
 
@@ -3600,8 +7996,8 @@ reconsideration, comment, or evidence preview control.
     numbers and sizes by locale; save status is a polite live region; a refusal moves focus to the
     part it names; every region and control has an accessible name; layouts reflow at phone width.
 12. Help and pricing. A dedicated Information Requests help section replaces the articles filed under
-    Fields; the website pricing table gains an Information Requests row matching the plan catalog
-    (Personal and Business).
+    Fields; the website pricing table gains an Information Requests row matching the plan catalog (Personal and
+    Business).
 
 Refinements recorded while implementing (2026-09-27 and 2026-09-28):
 
@@ -3622,7 +8018,8 @@ Refinements recorded while implementing (2026-09-27 and 2026-09-28):
   spreadsheet formula prefixed. No export endpoint was added.
 - A refusal is announced as an alert; where the refusal names a part, `Show` (Template editor) or
   opening that part (a refused one-off creation) moves focus there, and submission blockers link to
-  their items. A response save refusal names no part.
+  their items. A response save refusal names and links each refused answer, and `Save responses`
+  moves focus to the first (LG-50 F04).
 - No Field type carries a currency or unit, so typed values are shown as entered; times use the
   viewer's time zone and counts the viewer's number format through the shared formatting helpers.
 - Accepted-fact offers are not shown in the respondent workspace yet; reuse and reconfirmation in a
@@ -3779,15 +8176,19 @@ Decisions:
    attempts end in `attempts_exhausted`; a missing connector ends in `connector_unavailable`; a
    result that breaks its declared contract ends in `result_rejected` and records nothing; a request
    that no longer accepts external records ends in `request_not_accepting_values`.
+   Every change the worker commits (each attempt it starts, each retry, each wait the connector asks
+   for, the completion and every failure) goes through `InformationRequestConnectorExchangeRecorder`,
+   which records it in the same transaction as a request transition with its own required audit event,
+   attributed to the platform service account (added on 2026-10-25 for the sixth Codex verification).
 5. Imported values are untrusted and never write a response, Field value, or Accepted Fact. A value
-   for a Requirement that collects a Field is canonicalized by that Field's contract
-   (`FieldValueValidator`), so it compares exactly with an answer; a value for any other Requirement
+   for a Requirement that collects a Field is canonicalized by that Field's contract (`FieldValueValidator`), so it
+   compares exactly with an answer; a value for any other Requirement
    must be a scalar type validated by its type contract. `MATCHED` and `VERIFIED` need a
    verification time that is not in the future, and expiry follows verification.
 6. A decision (`ACCEPTED` or `REJECTED`, with a reason code) is recorded once per value by a
    holder of the request review capability. The principal who proposed a manual value cannot decide it
-   (`REVIEW_SEPARATION_OF_DUTIES`), and an expired value cannot be accepted
-   (`IMPORTED_VALUE_EXPIRED`). Accepting a value changes nothing else.
+   (`REVIEW_SEPARATION_OF_DUTIES`), and an expired value cannot be accepted (`IMPORTED_VALUE_EXPIRED`). Accepting a
+   value changes nothing else.
 7. Reconciliation compares every value not rejected with its Requirement's current response:
    `MATCHES`, `DIFFERS` (a discrepancy is recorded once per value and response revision),
    `NO_ANSWER`, `NOT_COMPARABLE` (the Requirement collects no Field), or `EXPIRED`. A discrepancy is
@@ -3820,6 +8221,12 @@ Decisions:
     decision, external-source management, and external-value decisions) is exempt from the archived
     refusal for the request resource only; the capability check, the parent policy, and the
     transition matrix still decide, so every other write to a terminal request stays refused.
+    The 2026-10-06 conformance pass under central authorization found the same defect for
+    follow-ups: the matrix allows `CREATE_SUCCESSOR` and `SCHEDULE_FOLLOW_UP` from a CLOSED request,
+    but `INFORMATION_REQUEST_SUPERSEDE` and `INFORMATION_REQUEST_REQUEST_SUPPLEMENT` were refused as
+    archived, so supplements, recurrences, next occurrences, and refreshes failed after closure.
+    Both actions joined `closedRecordActions`; a lifecycle supersession of a terminal request stays
+    refused by the matrix.
 14. Registered and unregistered participation is proven inside the scenarios as well as by the
     dual-surface resource tests: the itemized scenario runs its whole flow for a registered and for
     an unregistered (participant) contributor with identical outcomes, and the parallel review
@@ -3836,36 +8243,36 @@ S4 `MultiFileEvidencePolicyRequestConformanceTest`, S5 `ItemizedStagedSubmission
 S6 `MultiStageReviewCorrectionRequestConformanceTest`, S7 `RecurringSupplementalRequestConformanceTest`,
 S8 `TimedRetainedExportRequestConformanceTest`.
 
-| Shared capability | Scenarios | What each proves |
-|---|---|---|
-| Request-scoped party roles, delegated authority, and Requirement assignment | S2, S6, S5 | S2: distinct subject, contributor, attestor, reviewer, delegate, and outsider under real authorization; expiring, scoped, revocable delegation. S6: stage reviewers, separation of duties. S5: the responder recorded per item. |
-| Repeatable groups, stable occurrence paths, and cross-occurrence validation | S3, S6 | S3: nested occurrences, per-occurrence values and evidence, no path reuse, cross-occurrence refusal. S6: two entry occurrences reviewed, only the returned occurrence reopened. |
-| Versioned conditions, amendments, and staged policy | S3, S7, S2, S5 | S3: `UNKNOWN`, `TRUE`, `FALSE` per occurrence. S7: an amendment that requires reconfirmation. S2 and S5: staged submission policy. |
-| Evidence Artifacts, immutable Evidence Versions, assessments, and evidence policy | S4, S3, S1 | S4: coverage, issuer, age, validity, certification, quarantine, replacement. S3: per-occurrence conforming file. S1: the evidence version frozen in the package. |
-| Policy-controlled dispositions and evidence alternatives | S5, S4 | S5: six dispositions and refusal of unconfigured ones. S4: configured alternative and waiver. |
-| Submission Packages, hashes, exact configuration, stage locks, and Submission Attestation | S1, S5, S2 | S1: one package, hash equal to the attested ETag, atomic closure. S5: stage locks and exact manifests. S2: staged packages with a separate confirmation stage. |
-| Request lineage, carry-forward, recurrence, correction, and retest | S7, S6, S3 | S7: supplement, recurrence, supersession, cancellation. S6: correction, resubmission, remediation, retest. S3: occurrence-scoped correction. |
-| Review stages, aggregation, separation of duties, findings, correction allowlists, remediation | S6, S3 | S6: sequential and parallel stages, aggregation, prior-reviewer refusal. S3: a finding that returns one occurrence. |
-| Request Clocks and scheduler policy | S8, S7 | S8: pinned clock version, pause, resume, extension, reminder. S7: a recurrence that refuses an early occurrence. |
-| Audit, access history, retention, hold, purge, privacy, and export | S8, S1, S7 | S8: reproducible export, export read in access history, hold, retention, disposal, subject requests. S1: database refusal to change a package, transition history, replay. S7: cancellation and supersession history kept. |
-| Explicit Accepted Facts and generic connector contracts | S7, S2, S8 | S7: fact freshness and reconfirmation. S2: connector verification of an answer, reconciliation, reviewer decision, respondents denied. S8: manual value on a document Requirement, generated output, export, disposal. |
-| Registered and unregistered participation through shared services | S5, S6 | S5: the same itemized flow and outcomes for a registered and an unregistered contributor. S6: an unregistered respondent's package reviewed in parallel stages. Surface parity is also proven by the dual-surface resource contract tests. |
+| Shared capability                                                                              | Scenarios      | What each proves                                                                                                                                                                                                                           |
+|------------------------------------------------------------------------------------------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Request-scoped party roles, delegated authority, and Requirement assignment                    | S2, S6, S5     | S2: distinct subject, contributor, attestor, reviewer, delegate, and outsider under real authorization; expiring, scoped, revocable delegation. S6: stage reviewers, separation of duties. S5: the responder recorded per item.            |
+| Repeatable groups, stable occurrence paths, and cross-occurrence validation                    | S3, S6         | S3: nested occurrences, per-occurrence values and evidence, no path reuse, cross-occurrence refusal. S6: two entry occurrences reviewed, only the returned occurrence reopened.                                                            |
+| Versioned conditions, amendments, and staged policy                                            | S3, S7, S2, S5 | S3: `UNKNOWN`, `TRUE`, `FALSE` per occurrence. S7: an amendment that requires reconfirmation. S2 and S5: staged submission policy.                                                                                                         |
+| Evidence Artifacts, immutable Evidence Versions, assessments, and evidence policy              | S4, S3, S1     | S4: coverage, issuer, age, validity, certification, quarantine, replacement. S3: per-occurrence conforming file. S1: the evidence version frozen in the package.                                                                           |
+| Policy-controlled dispositions and evidence alternatives                                       | S5, S4         | S5: six dispositions and refusal of unconfigured ones. S4: configured alternative and waiver.                                                                                                                                              |
+| Submission Packages, hashes, exact configuration, stage locks, and Submission Attestation      | S1, S5, S2     | S1: one package, hash equal to the attested ETag, atomic closure. S5: stage locks and exact manifests. S2: staged packages with a separate confirmation stage.                                                                             |
+| Request lineage, carry-forward, recurrence, correction, and retest                             | S7, S6, S3     | S7: supplement, recurrence, supersession, cancellation. S6: correction, resubmission, remediation, retest. S3: occurrence-scoped correction.                                                                                               |
+| Review stages, aggregation, separation of duties, findings, correction allowlists, remediation | S6, S3         | S6: sequential and parallel stages, aggregation, prior-reviewer refusal. S3: a finding that returns one occurrence.                                                                                                                        |
+| Request Clocks and scheduler policy                                                            | S8, S7         | S8: pinned clock version, pause, resume, extension, reminder. S7: a recurrence that refuses an early occurrence.                                                                                                                           |
+| Audit, access history, retention, hold, purge, privacy, and export                             | S8, S1, S7     | S8: reproducible export, export read in access history, hold, retention, disposal, subject requests. S1: database refusal to change a package, transition history, replay. S7: cancellation and supersession history kept.                 |
+| Explicit Accepted Facts and generic connector contracts                                        | S7, S2, S8     | S7: fact freshness and reconfirmation. S2: connector verification of an answer, reconciliation, reviewer decision, respondents denied. S8: manual value on a document Requirement, generated output, export, disposal.                     |
+| Registered and unregistered participation through shared services                              | S5, S6         | S5: the same itemized flow and outcomes for a registered and an unregistered contributor. S6: an unregistered respondent's package reviewed in parallel stages. Surface parity is also proven by the dual-surface resource contract tests. |
 
 ### Tasks
 
 - [x] `P11-T1` Add a purpose-bound reusable information profile for explicitly promoted values and
   evidence references. Reuse must enforce subject and tenant scope, consent or policy basis,
   freshness, expiry, source visibility, and explicit respondent recertification.
-  - [x] `P11-T1a` Correct Accepted Fact offer eligibility before exposing reuse: exclude expired
-    and out-of-period facts, use exclusive end boundaries, preserve current fact history and
-    promotion conflict checks, and prove owner, subject, purpose, and audience isolation.
-  - [x] `P11-T1b` Persist explicit consent or policy basis and promoted evidence references with
-    immutable provenance, owner and subject scope, revocation, and retention reference safety.
-  - [x] `P11-T1c` Add an atomic respondent recertification command that revalidates an offer,
-    requires the target response precondition, records exact source provenance, and never writes
-    a response without explicit assent. Prove authenticated and no-auth parity and refusal races.
-  - [x] `P11-T1d` Expose eligible offers and recertification in the shared respondent workspace,
-    extend promotion controls and help, then run affected suites before closing the parent task.
+    - [x] `P11-T1a` Correct Accepted Fact offer eligibility before exposing reuse: exclude expired
+      and out-of-period facts, use exclusive end boundaries, preserve current fact history and
+      promotion conflict checks, and prove owner, subject, purpose, and audience isolation.
+    - [x] `P11-T1b` Persist explicit consent or policy basis and promoted evidence references with
+      immutable provenance, owner and subject scope, revocation, and retention reference safety.
+    - [x] `P11-T1c` Add an atomic respondent recertification command that revalidates an offer,
+      requires the target response precondition, records exact source provenance, and never writes
+      a response without explicit assent. Prove authenticated and no-auth parity and refusal races.
+    - [x] `P11-T1d` Expose eligible offers and recertification in the shared respondent workspace,
+      extend promotion controls and help, then run affected suites before closing the parent task.
 - [x] `P11-T2` Define a versioned generic configuration-bundle format for Template Versions,
   validation policies, customer-authored reason-code vocabularies, role presets, clocks, retention
   defaults, and optional connector contracts. The format describes generic capability schemas and
@@ -3911,16 +8318,16 @@ S8 `TimedRetainedExportRequestConformanceTest`.
 
 ### Executable capability proofs
 
-| Neutral process pattern | Required proof |
-|---|---|
-| Basic mixed-requirement collection | Field, Document, and Response Attestation Requirements use one versioned configuration, submit one reproducible package, and close atomically when review is not required. |
-| Delegated multi-party execution | A contributor acts for a distinct subject under scoped, unexpired authority; a separate actor attests; another actor reviews; unauthorized parties cannot read or mutate data. |
-| Repeatable conditional collection | Nested occurrences keep independent values, evidence, findings, and completeness while condition changes preserve history and deterministically recalculate applicability. |
-| Versioned multi-file evidence | Several files with distinct coverage and conformance states aggregate by policy; replacement keeps immutable membership and history; unsafe evidence cannot satisfy a Requirement. |
-| Itemized staged submission | Each item accepts only configured dispositions; a submitted stage remains immutable while another stage remains editable; the package manifest is reproducible. |
-| Independent multi-stage review | Sequential and parallel stages aggregate deterministically; separation of duties is enforced; correction reopens only allowed items; remediation and retest preserve prior findings. |
+| Neutral process pattern               | Required proof                                                                                                                                                                             |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Basic mixed-requirement collection    | Field, Document, and Response Attestation Requirements use one versioned configuration, submit one reproducible package, and close atomically when review is not required.                 |
+| Delegated multi-party execution       | A contributor acts for a distinct subject under scoped, unexpired authority; a separate actor attests; another actor reviews; unauthorized parties cannot read or mutate data.             |
+| Repeatable conditional collection     | Nested occurrences keep independent values, evidence, findings, and completeness while condition changes preserve history and deterministically recalculate applicability.                 |
+| Versioned multi-file evidence         | Several files with distinct coverage and conformance states aggregate by policy; replacement keeps immutable membership and history; unsafe evidence cannot satisfy a Requirement.         |
+| Itemized staged submission            | Each item accepts only configured dispositions; a submitted stage remains immutable while another stage remains editable; the package manifest is reproducible.                            |
+| Independent multi-stage review        | Sequential and parallel stages aggregate deterministically; separation of duties is enforced; correction reopens only allowed items; remediation and retest preserve prior findings.       |
 | Recurring and supplemental collection | A linked request preserves its source package, applies explicit carry-forward or invalidation rules, rechecks reusable-value freshness, and retains cancellation and supersession history. |
-| Timed retained export | Versioned clock inputs reproduce due times across pauses and extensions; notices and access history are immutable; held records cannot purge; authorized export is reproducible. |
+| Timed retained export                 | Versioned clock inputs reproduce due times across pauses and extensions; notices and access history are immutable; held records cannot purge; authorized export is reproducible.           |
 
 ### Exit criteria
 
@@ -3964,8 +8371,8 @@ tests on 2026-09-30):
   the Exchange tab disappears when its listing call fails.
 - Party assignment, reassignment, and revocation check no entitlement, suspension, or revocation.
   A trust suspension met at party assignment surfaces as an unhandled 500.
-- The execution grant freezes only a recipient cap taken from the Exchange participant limit
-  ("beyond the primary recipient") while the ledger charges every acting party. Upload and storage
+- The execution grant freezes only a recipient cap taken from the Exchange participant limit ("beyond the primary
+  recipient") while the ledger charges every acting party. Upload and storage
   limits are global configuration never frozen into a grant, and no owner-level request count,
   storage, or export quota exists. Revoking a subject party after issuance throws, because its
   capacity was never reserved.
@@ -4018,8 +8425,8 @@ Decisions:
    behind (requests past draft without an execution grant, reservations above their cap, overdue notice
    intents, exhausted connector exchanges, stalled disposal claims, and the request event backlog). A
    scheduler logs a stable marker per breach kind for log metric filters. No new AWS service.
-9. Quotas are code-owned plan limits resolved for the Exchange owner. Personal: 25 open requests
-   (draft, issued, or in progress), 10 acting parties per request, 100 evidence files and 250 MiB per
+9. Quotas are code-owned plan limits resolved for the Exchange owner. Personal: 25 open requests (draft, issued, or in
+   progress), 10 acting parties per request, 100 evidence files and 250 MiB per
    request, 5 GiB committed evidence per owner. Business: open requests uncapped, 100 acting parties,
    200 files and 500 MiB per request, 100 GiB committed evidence per organization. Free includes no
    Information Requests. Open-request count answers to the live plan at creation; the per-request
@@ -4046,9 +8453,14 @@ Decisions:
     and Schema authoring stays closed. (Revised on 2026-09-30 during `P12-T3`, when the V96 guard was
     found; the first text made platform Versions instantiable.)
 12. Plan catalog, pricing, and Settings: the website pricing table and the in-app billing summary
-    state the Information Request quotas from the plan catalog; the Settings tab stays discoverable
-    for every signed-in user and tells a user without the feature that they can still respond to and
-    review requests shared with them.
+    state the Information Request quotas from the plan catalog. The Settings tab is shown when the
+    caller's plan makes the feature discoverable (included, or not enforced), when the capability
+    check reports it included for the active scope, or when an active organization sponsors the
+    caller's personal Templates; otherwise it is hidden. A caller who sees the tab without being
+    able to create requests is told they can still respond to and review requests shared with them,
+    which every signed-in user can. (Revised on 2026-10-10 to record the user's 2026-09-30 change in
+    commit `9141927d`, which replaced the first text's "discoverable for every signed-in user" and
+    whose tests require the hidden tab; the Template help article already states it.)
 13. Verification uses existing infrastructure only: a PostgreSQL-backed volume test for the queue and
     listing, concurrency tests for the new reservation kinds, the security gates, a responsive and
     accessibility sweep of changed screens, and a recovery runbook checked against
@@ -4097,44 +8509,46 @@ Decisions:
   separate, explicit, auditable states with tested effects visible in the UI. None silently hides
   retained records or permitted exports from authorized readers.
   Split on 2026-09-30; do not check `P12-T4` until every subtask is done:
-  - [x] `P12-T4a` Reads answer to authorization alone; operational suspension refuses draft changes
-    whatever the enforcement mode; every workspace and Exchange listing row states its execution
-    standing (the reason only to a caller who manages the request), and the listing states why
-    creation is unavailable.
-  - [x] `P12-T4b` Party assignment and reassignment answer to the continuation gate (revocation
-    stays possible); a trust suspension met at assignment answers `409
+    - [x] `P12-T4a` Reads answer to authorization alone; operational suspension refuses draft changes
+      whatever the enforcement mode; every workspace and Exchange listing row states its execution
+      standing (the reason only to a caller who manages the request), and the listing states why
+      creation is unavailable.
+    - [x] `P12-T4b` Party assignment and reassignment answer to the continuation gate (revocation
+      stays possible); a trust suspension met at assignment answers `409
     INFORMATION_REQUEST_TRUST_SUSPENDED`; the party projection marks a suspended relationship.
-  - [x] `P12-T4c` `GET /information-request-capabilities` for the caller's active scope.
-  - [x] `P12-T4d` Platform health report and scheduled breach markers.
-  - [x] `P12-T4e` UI: standing notices, the Exchange tab kept on a failed listing, capability-driven
-    Settings, operations, record-preservation, and menu gates, and party trust state.
-    Done: standing notices and badges; the tab kept unless the listing is refused; capability
-    discovery (with `holdsRequests`) drives the pages, menu links, and Settings instead of the
-    viewer's plan; the respond-only notice; the party trust marker.
-  - [x] `P12-T4f` Help for the standings, suspension, revocation, and capability behavior.
-    Done: seven articles updated; follow-up controls hidden unless the request is `ACTIVE`.
+    - [x] `P12-T4c` `GET /information-request-capabilities` for the caller's active scope.
+    - [x] `P12-T4d` Platform health report and scheduled breach markers.
+    - [x] `P12-T4e` UI: standing notices, the Exchange tab kept on a failed listing, capability-driven
+      Settings, operations, record-preservation, and menu gates, and party trust state.
+      Done: standing notices and badges; the tab kept unless the listing is refused; capability
+      discovery (with `holdsRequests`) drives the pages, menu links, and Settings instead of the
+      viewer's plan; the respond-only notice; the party trust marker.
+    - [x] `P12-T4f` Help for the standings, suspension, revocation, and capability behavior.
+      Done: seven articles updated; follow-up controls hidden unless the request is `ACTIVE`.
 - [x] `P12-T5` Finalize plan-tier storage, upload, request-count, recipient, retention, and export
   quotas against the owning Exchange subscription. Configure issuance-time reservation amounts and
   release rules for future `RequestExecutionGrant` records without rewriting an existing grant or
   withdrawing its reserved completion capacity. Include trial-sourced grants and trial-expiry
   continuation in final quota verification. Tune and operationalize the baseline request, upload,
   and retry abuse controls introduced in Phases 4 and 6.
+  Reopened for LQ-01 and LQ-GATE and closed again on 2026-10-18: per-respondent usage survives
+  account linking; the quota catalog, frozen grants and the completed subtasks keep their scope.
   Split on 2026-09-30; do not check `P12-T5` until every subtask is done:
-  - [x] `P12-T5a` Plan quotas in `PlanLimits` (decision 9 values, Free zero) and the session limits
-    DTO; V150 renames the recipient cap to `acting_party_cap`, adds frozen evidence file and byte
-    allowances, renames the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a
-    grant's frozen columns (only a first revocation is written). Grants freeze the plan's allowances
-    only while enforcement refuses; otherwise they are uncapped. Done; V150 created.
-  - [x] `P12-T5b` Open-request cap at every creation path and the committed-evidence reservation at
-    issuance, both serialized on the owner's subscription row. Done.
-  - [x] `P12-T5c` Uploads draw on the grant's allowances beneath the configured platform ceiling. Done.
-  - [x] `P12-T5d` Abuse controls: access-link default expiry and use limit, per-address rate limits
-    on the no-auth challenge and session endpoints (`429` with `Retry-After`), a reminder cooldown,
-    a per-owner daily record-export ceiling, stable `INFORMATION_REQUEST_ABUSE_REFUSED` markers, and
-    a log metric filter and alarm on the existing log group. Done.
-  - [x] `P12-T5e` Trial-sourced grant continuation verified against PostgreSQL, retention checked
-    to be owner-defined, and help for quotas and abuse controls. Done; an ended trial now refuses
-    with `TRIAL_ENDED`.
+    - [x] `P12-T5a` Plan quotas in `PlanLimits` (decision 9 values, Free zero) and the session limits
+      DTO; V150 renames the recipient cap to `acting_party_cap`, adds frozen evidence file and byte
+      allowances, renames the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a
+      grant's frozen columns (only a first revocation is written). Grants freeze the plan's allowances
+      only while enforcement refuses; otherwise they are uncapped. Done; V150 created.
+    - [x] `P12-T5b` Open-request cap at every creation path and the committed-evidence reservation at
+      issuance, both serialized on the owner's subscription row. Done.
+    - [x] `P12-T5c` Uploads draw on the grant's allowances beneath the configured platform ceiling. Done.
+    - [x] `P12-T5d` Abuse controls: access-link default expiry and use limit, per-address rate limits
+      on the no-auth challenge and session endpoints (`429` with `Retry-After`), a reminder cooldown,
+      a per-owner daily record-export ceiling, stable `INFORMATION_REQUEST_ABUSE_REFUSED` markers, and
+      a log metric filter and alarm on the existing log group. Done.
+    - [x] `P12-T5e` Trial-sourced grant continuation verified against PostgreSQL, retention checked
+      to be owner-defined, and help for quotas and abuse controls. Done; an ended trial now refuses
+      with `TRIAL_ENDED`.
 - [x] `P12-T6` Complete Personal Information Request support. Personal owners may create Templates
   from personal or platform Schemas and may create and issue Information Requests. The Personal plan
   includes `INFORMATION_REQUESTS`, while an active organization entitlement may also sponsor the
@@ -4148,6 +8562,9 @@ Decisions:
   product capabilities and explanatory marketing examples; do not add or spread legacy non-neutral
   code identifiers.
   Done: pricing rows and the billing summary state the quotas; website lint and build pass.
+  Settings discoverability follows decision 12 as revised on 2026-10-10 (traced to
+  `useSettingsPlanAvailability` and its tests, the Template help article, and the corrected
+  Phase 12 release note).
 - [x] `P12-T8` Complete performance, load, concurrency, security, accessibility, responsive, audit,
   retention, export, and disaster-recovery verification using existing infrastructure.
   Done: volume and concurrency tests, security and accessibility checks, and the recovery runbook.
@@ -4197,42 +8614,52 @@ found two user-visible defects that no earlier task covered.
 ### Findings that reopened the program (verified 2026-09-30 against commit `23ed5d04`)
 
 1. The "at least one document" rule applies to every Exchange.
-   - Web app: `ExchangeInitiation.tsx:568-573` refuses when `documents.length === 0`. The message
-     says "when requesting documents", but the check reads neither the start mode nor the selected
-     Blueprint.
-   - Server: `ExchangeInitiationService.validateExchangeFields` throws "Session documents cannot be
-     empty" (`ExchangeInitiationService.kt:757-760`, reached from `:133`), with no exception.
-   - Blueprints may be saved with no document slots (`BlueprintDtos.kt:123`). A locked Organization
-     or Platform Blueprint (`ExchangeInitiation.tsx:292`) hides Add Document
-     (`ExchangeInitiationDocumentsTab.tsx:80`). A locked Blueprint whose Information Request collects
-     the documents therefore cannot be started at all.
+    - Web app: `ExchangeInitiation.tsx:568-573` refuses when `documents.length === 0`. The message
+      says "when requesting documents", but the check reads neither the start mode nor the selected
+      Blueprint.
+    - Server: `ExchangeInitiationService.validateExchangeFields` throws "Session documents cannot be
+      empty" (`ExchangeInitiationService.kt:757-760`, reached from `:133`), with no exception.
+    - Blueprints may be saved with no document slots (`BlueprintDtos.kt:123`). A locked Organization
+      or Platform Blueprint (`ExchangeInitiation.tsx:292`) hides Add Document (`ExchangeInitiationDocumentsTab.tsx:80`).
+      A locked Blueprint whose Information Request collects
+      the documents therefore cannot be started at all.
 2. Starting an Exchange from such a Blueprint never creates the Information Request, so the
    Exchange's Information Requests tab is empty.
-   - `handleBlueprintSelect` (`ExchangeInitiation.tsx:262-339`) copies settings, documents,
-     participants, and the Schema, but never reads `blueprint.id` or
-     `informationRequestTemplateVersionId`.
-   - Neither `ExchangeInitiationRequest` (`models.tsx:172-195`) nor `ExchangeInitiationDto`
-     (`RequestsResponses.kt:320-343`) carries a Blueprint id, and `ExchangeInitiationService` has no
-     Information Request dependency.
-   - The only creator from a Blueprint is `InformationRequestBlueprintInstantiationService.createFromBlueprint`,
-     reached only through `POST /information-requests` from the manual New Information Request
-     dialog (`useCreateInformationRequest.ts:56`, `:91`).
-     `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`
-     (`:106-116`) has only test callers.
-   - The Blueprint editor promises the opposite: "Exchanges from this Blueprint start an Information
-     Request from ..." (`BlueprintInformationRequestTab.tsx:38-39`).
-   - The plan never scheduled this: Phase 10 decision 2 defined only explicit creation through
-     `POST /information-requests`. This is a plan gap as well as a broken UI promise.
+    - `handleBlueprintSelect` (`ExchangeInitiation.tsx:262-339`) copies settings, documents,
+      participants, and the Schema, but never reads `blueprint.id` or
+      `informationRequestTemplateVersionId`.
+    - Neither `ExchangeInitiationRequest` (`models.tsx:172-195`) nor `ExchangeInitiationDto`
+      (`RequestsResponses.kt:320-343`) carries a Blueprint id, and `ExchangeInitiationService` has no
+      Information Request dependency.
+    - The only creator from a Blueprint is `InformationRequestBlueprintInstantiationService.createFromBlueprint`,
+      reached only through `POST /information-requests` from the manual New Information Request
+      dialog (`useCreateInformationRequest.ts:56`, `:91`).
+      `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`
+      (`:106-116`) has only test callers.
+    - The Blueprint editor promises the opposite: "Exchanges from this Blueprint start an Information
+      Request from ..." (`BlueprintInformationRequestTab.tsx:38-39`).
+    - The plan never scheduled this: Phase 10 decision 2 defined only explicit creation through
+      `POST /information-requests`. This is a plan gap as well as a broken UI promise.
 3. Gap audit item GA-002 is a hard prerequisite. The placeholder table's `NOT NULL` foreign key to
    `blueprint_document_default` has no `ON DELETE` action (V100), and every Blueprint save deletes
    and re-inserts its document defaults (`BlueprintDefinitionService.kt:531-533`). Once one request
    exists for a Blueprint with document defaults, every later save of that Blueprint fails with a
-   500. Automatic creation would make this happen after the Blueprint's first use.
+    500. Automatic creation would make this happen after the Blueprint's first use.
 
-### Phase 13 design decisions (recommended, pending user confirmation)
+### Phase 13 design decisions (confirmed 2026-10-01)
 
-These are recommended defaults. Record the user's confirmation or change in the completion evidence
-before implementing the task that depends on each one.
+The user's instruction of 2026-10-01 ("implement the rest of the phase 13") was taken as confirmation
+of these recommended defaults and of option (a) of the GA-002 default. Two refinements made during
+implementation are recorded here and in the completion evidence:
+
+- Decision 7 is enforced for any owner mismatch, not only a Personal Blueprint: the pre-flight
+  refuses whenever the pinned Template's owner differs from the Exchange's owner, with
+  `INFORMATION_REQUEST_TEMPLATE_VERSION_OWNER_MISMATCH` on
+  `InformationRequestTemplateVersionUnavailableException`.
+- `P13-T4` said to call the starter after the recipient binding and before the
+  `exchange.draft_submitted` trigger, but the recipient binding runs after that trigger because the
+  recipient Share's status depends on the Workflow result. The request does not depend on the
+  binding, so the starter runs after the owner Share and Field defaults and before the trigger.
 
 1. Automatic creation. When the selected Blueprint pins an instantiable Template Version, Exchange
    initiation creates exactly one `DRAFT` Information Request pinned to that Version, in the same
@@ -4263,7 +8690,7 @@ before implementing the task that depends on each one.
 
 ### Tasks
 
-- [ ] `P13-T1` Close GA-002 as a prerequisite. In a new forward migration allocated from the
+- [x] `P13-T1` Close GA-002 as a prerequisite. In a new forward migration allocated from the
   unallocated range immediately before creating it, drop `information_request_document_placeholder_default_fkey`
   and `source_blueprint_document_default_id`, since the placeholder is already a full snapshot.
   Remove the field from `InformationRequestDocumentPlaceholder` and its assignment in
@@ -4271,70 +8698,94 @@ before implementing the task that depends on each one.
   PostgreSQL test that instantiates a request from a Blueprint with document defaults, then updates
   the Blueprint's documents through `BlueprintDefinitionService.updateBlueprint`, and asserts that
   the update succeeds and the placeholder is unchanged.
-- [ ] `P13-T2` Carry the selected Blueprint into Exchange initiation.
-  - Add `blueprintDefinitionId` to `ExchangeInitiationDto` and to the web-app
-    `ExchangeInitiationRequest`.
-  - Keep the selected Blueprint id and its `informationRequestTemplateVersionId` in a small new hook
-    under `exchange-initiation/hooks/` (`ExchangeInitiation.tsx` is already about 1,200 lines). Set
-    it in `handleBlueprintSelect`, clear it in `resetInitiationForm`, and send the id.
-  - The server resolves the Version only through
-    `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`, which
-    already checks read access and retirement. It never trusts a Version id sent by the client.
-- [ ] `P13-T3` Apply the document rule from decision 5 in `ExchangeInitiationService.validateExchangeFields`
+  Done by `V152__information_request_placeholder_blueprint_source.sql`. GA-002 part 2 (a read path
+  that shows placeholders to the author) is not part of this task and stays open.
+- [x] `P13-T2` Carry the selected Blueprint into Exchange initiation.
+    - Add `blueprintDefinitionId` to `ExchangeInitiationDto` and to the web-app
+      `ExchangeInitiationRequest`.
+    - Keep the selected Blueprint id and its `informationRequestTemplateVersionId` in a small new hook
+      under `exchange-initiation/hooks/` (`ExchangeInitiation.tsx` is already about 1,200 lines). Set
+      it in `handleBlueprintSelect`, clear it in `resetInitiationForm`, and send the id.
+    - The server resolves the Version only through
+      `BlueprintDefinitionService.resolveInformationRequestTemplateVersionForInstantiation`, which
+      already checks read access and retirement. It never trusts a Version id sent by the client.
+    - Done. The resolver now returns the Version reference with its owner, and the hook is
+      `useSelectedBlueprint`.
+- [x] `P13-T3` Apply the document rule from decision 5 in `ExchangeInitiationService.validateExchangeFields`
   and in `ExchangeInitiation.tsx`, with the corrected message. The locked-Blueprint dead end must be
   gone. Tests first: server refusal for no Blueprint and for a Blueprint without a Version, and
   acceptance for a Blueprint with an instantiable Version. Vitest for the same three cases, plus a
   locked Blueprint with no document slots that can be started.
-- [ ] `P13-T4` Create the draft request at Exchange start.
-  - Add an `@ApplicationScoped` collaborator, for example `ExchangeBlueprintInformationRequestStarter`
-    in `service/exchange`, that calls Information Request services only (never their
-    repositories).
-  - Call it from `initiateExchange` after the owner Share (`:259`), Field defaults (`:264`), and
-    recipient binding, and before the `exchange.draft_submitted` Workflow trigger (`:276`), so
-    Workflows can see the request.
-  - Call `entityManager.flush()` first, because `findByIdForUpdate` refreshes from the database.
-  - Call `createFromBlueprint` with the idempotency key `exchange-initiation|<exchangeId>`, then
-    assign the initiator as `DECISION_MAKER` through `InformationRequestPartyService.assign` with the
-    request's current parties ETag.
-  - Run the owner pre-flight from decision 7 before the Exchange row is written.
-  - Audit, transition history, and domain events come from the existing creation and party paths.
-    Do not duplicate them.
-  - Tests first, as a PostgreSQL test modeled on `InformationRequestBlueprintVersionPinningTest`:
-    - An Organization Blueprint with a Version and no documents creates the Exchange and exactly one
-      `DRAFT` request pinned to that Version, with the initiator as `DECISION_MAKER`, Field defaults
-      applied, and the request listed for the owner by `InformationRequestExchangeSummaryService`.
-    - No Blueprint, or a Blueprint without a Version, creates no request.
-    - A retired Version, a missing entitlement, exhausted capacity, and a Personal Blueprint owner
-      mismatch each refuse the start and leave no Exchange and no request row.
-    - The Blueprint stays editable after the start (covers `P13-T1`).
-- [ ] `P13-T5` Map the new refusals in `ExchangeResource.initiateExchange`.
-  - `InformationRequestTemplateVersionUnavailableException` becomes 409 with its code; today it is
-    an `IllegalArgumentException` and would become 400.
-  - `InformationRequestLifecycleException`, `InformationRequestCapabilityNotInstalledException`, and
-    the owner-mismatch refusal become 409 with their codes instead of 500.
-  - `SubscriptionDenialException` keeps its existing 403 mapping.
-  - Each branch keeps the repository's `return try { } catch { }` structure with a unique log
-    message. Add a resource contract test for the mapping.
-- [ ] `P13-T6` Web-app follow-through. Each new component gets its own folder with a co-located
+  Done; the web app shares the rule through `exchangeInitiationDocumentProblem`.
+- [x] `P13-T4` Create the draft request at Exchange start.
+    - Add an `@ApplicationScoped` collaborator, for example `ExchangeBlueprintInformationRequestStarter`
+      in `service/exchange`, that calls Information Request services only (never their
+      repositories).
+    - Call it from `initiateExchange` after the owner Share (`:259`), Field defaults (`:264`), and
+      recipient binding, and before the `exchange.draft_submitted` Workflow trigger (`:276`), so
+      Workflows can see the request.
+    - Call `entityManager.flush()` first, because `findByIdForUpdate` refreshes from the database.
+    - Call `createFromBlueprint` with the idempotency key `exchange-initiation|<exchangeId>`, then
+      assign the initiator as `DECISION_MAKER` through `InformationRequestPartyService.assign` with the
+      request's current parties ETag.
+    - Run the owner pre-flight from decision 7 before the Exchange row is written.
+    - Audit, transition history, and domain events come from the existing creation and party paths.
+      Do not duplicate them.
+    - Tests first, as a PostgreSQL test modeled on `InformationRequestBlueprintVersionPinningTest`:
+        - An Organization Blueprint with a Version and no documents creates the Exchange and exactly one
+          `DRAFT` request pinned to that Version, with the initiator as `DECISION_MAKER`, Field defaults
+          applied, and the request listed for the owner by `InformationRequestExchangeSummaryService`.
+        - No Blueprint, or a Blueprint without a Version, creates no request.
+        - A retired Version, a missing entitlement, exhausted capacity, and a Personal Blueprint owner
+          mismatch each refuse the start and leave no Exchange and no request row.
+        - The Blueprint stays editable after the start (covers `P13-T1`).
+    - Done by `ExchangeBlueprintInformationRequestStarter` and `ExchangeBlueprintInformationRequestStartTest`
+      (8 PostgreSQL cases). The test exposed a defect in `createFromBlueprint`, fixed here: Blueprint
+      field defaults required `INFORMATION_REQUEST_WRITE`, which the Exchange owner does not hold until
+      named Decision Maker, so any Blueprint whose default binds a field of the request's Schema was
+      refused with 403 in the manual path too. Defaults are now applied by
+      `applyBlueprintFieldDefaultsForCreation`, which is authorized by the creation command, like
+      `assignSchemaVersionForCreation`.
+- [x] `P13-T5` Map the new refusals in `ExchangeResource.initiateExchange`.
+    - `InformationRequestTemplateVersionUnavailableException` becomes 409 with its code; today it is
+      an `IllegalArgumentException` and would become 400.
+    - `InformationRequestLifecycleException`, `InformationRequestCapabilityNotInstalledException`, and
+      the owner-mismatch refusal become 409 with their codes instead of 500.
+    - `SubscriptionDenialException` keeps its existing 403 mapping.
+    - Each branch keeps the repository's `return try { } catch { }` structure with a unique log
+      message. Add a resource contract test for the mapping.
+    - Done; covered by `ExchangeInitiationResourceRefusalTest`.
+- [x] `P13-T6` Web-app follow-through. Each new component gets its own folder with a co-located
   `*Styles.tsx` file, ids on every element, circular buttons, and a responsive layout.
-  - The documents tab shows a short note when the Blueprint's Information Request collects the
-    documents, stating that Exchange documents are optional.
-  - The success summary names the created request and links to its management workspace.
-  - The Blueprint picker marks Blueprints that start an Information Request.
-  - Refusals from `P13-T5` show their messages.
-  - `BlueprintInformationRequestTab.tsx` copy matches the implemented behavior.
-- [ ] `P13-T7` Help documentation.
-  - `usingBlueprintsArticle.tsx` "What gets pre-filled": the draft request, the Decision Maker, and
-    optional documents.
-  - `informationRequestManagingArticle.tsx`: automatic creation from a Blueprint versus manual
-    creation.
-  - `managingBlueprintsArticle.tsx`: five editor tabs and an Information Request tab section
-    (GA-092).
-  - Keep article files under 150 lines and run `npx tsc --noEmit` in `web-app`.
-- [ ] `P13-T8` Phase gate: run the full backend suite, the full web-app suite, `npx tsc --noEmit`,
+    - The documents tab shows a short note when the Blueprint's Information Request collects the
+      documents, stating that Exchange documents are optional.
+    - The success summary names the created request and links to its management workspace.
+    - The Blueprint picker marks Blueprints that start an Information Request.
+    - Refusals from `P13-T5` show their messages.
+    - `BlueprintInformationRequestTab.tsx` copy matches the implemented behavior.
+    - Done. Refusal messages had never shown on Exchange start, because the dialog read the server
+      message from the wrong place; `exchangeInitiationRefusalMessage` fixes that.
+- [x] `P13-T7` Help documentation.
+    - `usingBlueprintsArticle.tsx` "What gets pre-filled": the draft request, the Decision Maker, and
+      optional documents.
+    - `informationRequestManagingArticle.tsx`: automatic creation from a Blueprint versus manual
+      creation.
+    - `managingBlueprintsArticle.tsx`: five editor tabs and an Information Request tab section (GA-092).
+    - Keep article files under 150 lines and run `npx tsc --noEmit` in `web-app`.
+    - Done, which also closes GA-092. `orgBlueprintsArticle.tsx` and `blueprintOverviewArticle.tsx`
+      were corrected as well.
+- [x] `P13-T8` Phase gate: run the full backend suite, the full web-app suite, `npx tsc --noEmit`,
   `npm run typecheck:app` (no new Information Request diagnostics), and eslint on changed paths.
   Record every command and result in the completion evidence, and audit the changed artifacts for
   industry-neutral naming.
+  Passed on 2026-10-01:
+    - Backend: 3,471 tests, 0 failures (39:16).
+    - Web app: 190 files and 817 tests green; `tsc --noEmit` and `build` pass; eslint on changed paths
+      is clean.
+    - `typecheck:app`: 0 Information Request diagnostics. It exits 1 only for three diagnostics in
+      another process's new `web-app/src/app/exchanges/Exchanges.test.tsx`; before that file appeared
+      it exited 0.
+    - Neutrality scan clean.
 
 ### Exit criteria
 
@@ -4352,22 +8803,22 @@ before implementing the task that depends on each one.
 
 Every applicable row must be expanded with concrete tests before its owning task is implemented.
 
-| Concern | Minimum coverage |
-|---|---|
-| Lifecycle | Every parent and child state, command, permitted actor, resulting state, transition record, read visibility, external-session effect, owner recovery access, event, and idempotent retry. |
-| Capability | Canonical PrincipalRef, resource-scoped Share roles and unchanged capability behavior for the three Share-bearing ResourceTypes, proof that the other nine hold no Share rows, widened `share_resource_type_check` and `share_role_name_check`, corrected non-Exchange Share audit owner, unresolved-resource-context fail-closed behavior and the removed `activeOrgId` organization-role fallback, parent-grant inheritance, central Requirement policy facts, owner, org admin, author, reviewer, registered contributor, recipient-bound participant, trusted person and group, suspended trust relationship, group member, removed member, replacement recipient, application, unrelated same-org user, and cross-org user. |
-| Field policy | Classification, response mode, correction scope, request state, read projection, write eligibility, and mutation response filtering. |
-| Structured data | Sparse updates, explicit clear, root and occurrence Value Sets, repeatable groups, cross-row rules, condition unknowns, cycles, and hidden-data policy. |
-| Evidence | Occurrence anchoring, supporting-response links, counts, typed write-once locators, byte identity, hashes, every-inspectable-source inspection, malware scanning where a deployment requires it, explicit `END_TO_END` ineligibility, mixed findings, replacement, withdrawal, command replay, preconditions, quarantine, expiry, duplication, and cross-party ACL. |
-| Submission | Completeness, multi-party Submission Attestation, naming separation from Exchange recipient attestation, exact snapshot, concurrency, idempotency, amendment carry-forward, supplement, recurrence, and supersession. |
-| Review | Item findings, all/any/quorum aggregation, stage order, separation of duties, correction allowlist, remediation, retest, appeal, and independent Business Decision. |
-| Command safety | Idempotency key and fingerprint, actor or RequestAccessSession scope, original-result replay, conflict, required If-Match, stale ETag, HTTP-authoritative multi-device recovery, and concurrent request, party, ShareLink bootstrap, response, evidence, submission, and review races. |
-| Entitlement | Organization and personal commercial override under platform-admin control, Personal and Business plan inclusion, global subscription enforcement mode, paid and trial entitlement source, trial expiry continuation, immutable execution grant, capacity reservation, lapse continuation, exhaustion, rollback, release, expiry, operational revocation, organization-owned Field composition at issuance, Personal typed-response inclusion, and grant-governed Field writes that bypass the live `BusinessFieldsSubscriptionGuard` re-check without changing its Exchange behavior. |
-| Workflow | Exact request and package scope, existing trigger-registry migration and subject-field descriptors, counterparty-wait characterization, neutral publisher over the compatible owner-aware outbox, rollback, retry, deduplication, ordering, and Exchange completion gates. |
-| Time | Instant storage, versioned calendar, working hours, holidays, business timezone, urgency, pause, resume, extension, reminder, escalation, and overdue deduplication. |
-| Records | Principal provenance, Notice Intent recovery, source and rendered hashes, exactly-once Sequence allocation, immutable notices, protected endpoints and content, sensitive-data minimization, privacy requests, one generalized hold lifecycle visible through compatible audit APIs, platform and organization and personal hold ownership, retention, live-reference safety, claimed disposal, database and object purge recovery, tombstones, access history, and reproducible export. |
-| No-auth | Existing direct-grant ShareLink behavior, bootstrap-mode recipient binding by recipient ID rather than `direct_share_id`, `requireRecipientSignIn` refusal, `EndpointAuthorizationFilter` allowlist enforcement, stable participant principal, no temporary App User, Exchange-token and Exchange-OTP rejection, bootstrap-only denial in the central authorizer, enforced constraints, atomic use count, contact proof, expiry, revocation, rotation, replay, forwarding, rate limiting, replacement, registration upgrade, and RequestAccessSession expiry. |
-| Migration | Every Exchange state, empty and populated assignments, all classifications, exact `PLATFORM` or `ORGANIZATION` or `PERSONAL` scope checks and their rewritten unique-index expressions, read-only values, personal audit owners, event-outbox owner kind and ID plus request key namespace, owner entitlements and rollout, the widened `share_resource_type_check` and `share_role_name_check`, the three Share-bearing resource roles, canonical-only principal attribution with the replaced shape proven refused, the personal owner column on the empty `external_participant` table, the unchanged `exchange_recipient` binding trigger, mutable Blueprint Definition links and existing defaults, typed Document Version locators, hash and creator states, execution grants, ShareLink bootstrap extension, command receipts, notice intents and notices, generalized existing hold persistence, disposal claims, Document placeholders, Workflow trigger registry descriptors, and Workflow Field references. No mixed or rolling application-version coverage: the development-stage constraint removes it. |
+| Concern         | Minimum coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Lifecycle       | Every parent and child state, command, permitted actor, resulting state, transition record, read visibility, external-session effect, owner recovery access, event, and idempotent retry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Capability      | Canonical PrincipalRef, resource-scoped Share roles and unchanged capability behavior for the three Share-bearing ResourceTypes, proof that the other nine hold no Share rows, widened `share_resource_type_check` and `share_role_name_check`, corrected non-Exchange Share audit owner, unresolved-resource-context fail-closed behavior and the removed `activeOrgId` organization-role fallback, parent-grant inheritance, central Requirement policy facts, owner, org admin, author, reviewer, registered contributor, recipient-bound participant, trusted person and group, suspended trust relationship, group member, removed member, replacement recipient, application, unrelated same-org user, and cross-org user.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Field policy    | Classification, response mode, correction scope, request state, read projection, write eligibility, and mutation response filtering.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Structured data | Sparse updates, explicit clear, root and occurrence Value Sets, repeatable groups, cross-row rules, condition unknowns, cycles, and hidden-data policy.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Evidence        | Occurrence anchoring, supporting-response links, counts, typed write-once locators, byte identity, hashes, every-inspectable-source inspection, malware scanning where a deployment requires it, explicit `END_TO_END` ineligibility, mixed findings, replacement, withdrawal, command replay, preconditions, quarantine, expiry, duplication, and cross-party ACL.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Submission      | Completeness, multi-party Submission Attestation, naming separation from Exchange recipient attestation, exact snapshot, concurrency, idempotency, amendment carry-forward, supplement, recurrence, and supersession.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Review          | Item findings, all/any/quorum aggregation, stage order, separation of duties, correction allowlist, remediation, retest, appeal, and independent Business Decision.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Command safety  | Idempotency key and fingerprint, actor or RequestAccessSession scope, original-result replay, conflict, required If-Match, stale ETag, HTTP-authoritative multi-device recovery, and concurrent request, party, ShareLink bootstrap, response, evidence, submission, and review races.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Entitlement     | Organization and personal commercial override under platform-admin control, Personal and Business plan inclusion, global subscription enforcement mode, paid and trial entitlement source, trial expiry continuation, immutable execution grant, capacity reservation, lapse continuation, exhaustion, rollback, release, expiry, operational revocation, organization-owned Field composition at issuance, Personal typed-response inclusion, and grant-governed Field writes that bypass the live `BusinessFieldsSubscriptionGuard` re-check without changing its Exchange behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Workflow        | Exact request and package scope, existing trigger-registry migration and subject-field descriptors, counterparty-wait characterization, neutral publisher over the compatible owner-aware outbox, rollback, retry, deduplication, ordering, and Exchange completion gates.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Time            | Instant storage, versioned calendar, working hours, holidays, business timezone, urgency, pause, resume, extension, reminder, escalation, and overdue deduplication.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Records         | Principal provenance, Notice Intent recovery, source and rendered hashes, exactly-once Sequence allocation, immutable notices, protected endpoints and content, sensitive-data minimization, privacy requests, one generalized hold lifecycle visible through compatible audit APIs, platform and organization and personal hold ownership, retention, live-reference safety, claimed disposal, database and object purge recovery, tombstones, access history, and reproducible export.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| No-auth         | Existing direct-grant ShareLink behavior, bootstrap-mode recipient binding by recipient ID rather than `direct_share_id`, `requireRecipientSignIn` refusal, `EndpointAuthorizationFilter` allowlist enforcement, stable participant principal, no temporary App User, Exchange-token and Exchange-OTP rejection, bootstrap-only denial in the central authorizer, enforced constraints, atomic use count, contact proof, expiry, revocation, rotation, replay, forwarding, rate limiting, replacement, registration upgrade, and RequestAccessSession expiry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Migration       | Every Exchange state, empty and populated assignments, all classifications, exact `PLATFORM` or `ORGANIZATION` or `PERSONAL` scope checks and their rewritten unique-index expressions, read-only values, personal audit owners, event-outbox owner kind and ID plus request key namespace, owner entitlements and platform feature overrides, the widened `share_resource_type_check` and `share_role_name_check`, the three Share-bearing resource roles, canonical-only principal attribution with the replaced shape proven refused, the personal owner column on the empty `external_participant` table, the unchanged `exchange_recipient` binding trigger, mutable Blueprint Definition links and existing defaults, typed Document Version locators, hash and creator states, execution grants, ShareLink bootstrap extension, command receipts, notice intents and notices, generalized existing hold persistence, disposal claims, Document placeholders, Workflow trigger registry descriptors, and Workflow Field references. No mixed or rolling application-version coverage: the development-stage constraint removes it. |
 
 ## Security and Privacy Gates
 
@@ -4526,7 +8977,9 @@ current-revision pointers, and append-only transition history with owner and Tem
 
 | `P3-T8` | `V97__external_participant_personal_owner.sql` | 2026-09-03 | Created and contract-tested. Adds an explicit
 personal owner App User column to External Participants, enforces exactly one owner kind, and replaces organization-only
-email uniqueness with owner-scoped organization and personal unique indexes. |
+email uniqueness with owner-scoped organization and personal unique indexes. It also carries an owner-derivation and
+ownerless-row pass that the plan did not ask for; it ran against an empty table, so it changed no data, and the file is
+immutable (GA-115, accepted 2026-10-05). |
 
 | `P3-T8` | `V98__information_request_delegated_authority.sql` | 2026-09-04 | Created and contract-tested. Adds the
 minimal delegated-authority fact table, principal-kind check, indexes, and same-request guards for the assigned party
@@ -4551,17 +9004,64 @@ expiry follows the effective date, and an explicit revocation record (`revoked_a
 tying it to the `active` flag. The table has no rows in any environment, so the new `NOT NULL` columns needed no default
 or backfill. |
 
+| `P4-T4` | `V103__share_link_mode.sql` | 2026-09-13 | Created and contract-tested. Adds `share_link.link_mode`
+(`DIRECT_GRANT` or `VERIFICATION_BOOTSTRAP`). Row recorded on 2026-10-05 (GA-154); the allocation date is the date the
+file was first committed. |
+
+| `P4-T4` | `V104__request_access_session.sql` | 2026-09-13 | Created and contract-tested. Adds persisted request access
+sessions bound to a bootstrap link. Row recorded on 2026-10-05 (GA-154). |
+
+| `P4-T4` | `V105__share_link_contact_otp.sql` | 2026-09-13 | Created and contract-tested. Adds the contact
+one-time-code state to bootstrap links. Row recorded on 2026-10-05 (GA-154). |
+
+| `P4-T4` | `V106__share_link_rotation_replacement.sql` | 2026-09-13 | Created and contract-tested. Adds bootstrap link
+rotation and replacement state. Row recorded on 2026-10-05 (GA-154). |
+
+| `P4-T4` | `V107__participant_account_link.sql` | 2026-09-13 | Created and contract-tested. Adds the participant
+account link recorded by the verified-registration upgrade. Row recorded on 2026-10-05 (GA-154). |
+
+| `P4-T7a` | `V108__request_execution_grant.sql` | 2026-09-13 | Created and contract-tested. Adds the immutable request
+execution grant. Row recorded on 2026-10-05 (GA-154). |
+
+| `P4-T7b` | `V109__request_execution_usage_reservation.sql` | 2026-09-13 | Created and contract-tested. Adds idempotent
+execution usage reservations. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-T1a` | `V110__information_request_response_draft.sql` | 2026-09-13 | Created and contract-tested. Adds the mutable
+response draft. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-T2a` | `V111__information_request_template_requirement_group.sql` | 2026-09-13 | Created and contract-tested. Adds
+version-scoped repeatable and nested Requirement groups. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-T2b` | `V112__information_request_group_occurrence.sql` | 2026-09-13 | Created and contract-tested. Adds runtime
+group occurrences. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-T2c` | `V113__information_request_group_occurrence_removal.sql` | 2026-09-13 | Created and contract-tested. Adds
+group occurrence removal state. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-T3a` | `V114__information_request_template_condition_rule.sql` | 2026-09-13 | Created and contract-tested. Adds
+versioned condition rules and predicates. Row recorded on 2026-10-05 (GA-154). |
+
 | `P5-T4a` | `V115__information_request_condition_hidden_data_policy.sql` | 2026-09-08 | Created. Adds the
 per-condition hidden-response-data policy column, defaults existing rows to `RETAIN_SECURELY`, and constrains stored
-values to the three platform policies. Docker was unavailable in this environment, so its Testcontainers contract could
-compile but could not execute. |
+values to the three platform policies. Docker was unavailable in this environment when it was created, so its
+Testcontainers contract could compile but could not execute then; it has since executed and passed in every full
+backend suite (recorded on 2026-10-05, GA-154). |
 
 | `P5-T4b` | `V116__information_request_response_hidden_state.sql` | 2026-09-08 | Created. Adds active or
 hidden state to mutable response drafts so hidden conditional responses can leave active response projections while
 preserving their recorded data or clearing the active reference after explicit confirmation. Docker was unavailable in
-this environment, so the updated Testcontainers runtime-persistence contract could compile but could not execute. |
+this environment when it was created, so the updated Testcontainers runtime-persistence contract could not execute
+then; it has since executed and passed in every full backend suite (recorded on 2026-10-05, GA-154). |
 
-| `P5-R01` | `V117__request_access_session_credential.sql` | 2026-09-09 | Created and PostgreSQL contract-tested. Adds hashed independent session credentials, enforces expiry for credential-bearing sessions, freezes binding identity, and revokes legacy token-only sessions. |
+| `P5-R01` | `V117__request_access_session_credential.sql` | 2026-09-09 | Created and PostgreSQL contract-tested. Adds
+hashed independent session credentials, enforces expiry for credential-bearing sessions, freezes binding identity, and
+revokes legacy token-only sessions. |
+
+| `P5-R12` | `V118__share_link_contact_proof_attempts.sql` | 2026-09-13 | Created and contract-tested. Adds the
+persisted contact-proof attempt count to bootstrap links. Row recorded on 2026-10-05 (GA-154). |
+
+| `P5-R12` | `V119__share_link_contact_proof_challenge_limit.sql` | 2026-09-21 | Created and contract-tested. Adds the
+contact-proof challenge budget to bootstrap links. Row recorded on 2026-10-05 (GA-154). |
 
 | `P6-T1b` | `V120__information_request_evidence_artifact.sql` | 2026-09-24 | Created and PostgreSQL
 contract-tested. Adds the logical evidence Artifact bound by composite foreign key to a runtime
@@ -4614,61 +9114,349 @@ contract-tested. Carries Requirement, Requirement revision, and response rows st
 `$` root occurrence spelling to `root`, holding the append-only guards off only for that
 normalisation, and adds checks that refuse `$` as an occurrence path on all three tables. |
 
-| `P6-T2c` | `V128__document_version_content_identity.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the required
+| `P6-T2c` | `V128__document_version_content_identity.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds
+the required
 content length, hash algorithm, SHA-256 hash, and `VERIFIED` or `UNVERIFIED` state to `document_version`,
 removes every version that never stated them, and refuses any rewrite of a version's storage or content
 identity. |
 
-| `P6-T2d` | `V129__information_request_evidence_record_shape.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+| `P6-T2d` | `V129__information_request_evidence_record_shape.sql` | 2026-09-25 | Created and PostgreSQL
+contract-tested. Adds the
 Artifact creator and collection state with its last change, the Version uploader, declared file name and
 media type, and captured attributes, and guards Artifact identity, revision, and state movement. |
 
-| `P6-T6a` | `V130__information_request_evidence_assessment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+| `P6-T6a` | `V130__information_request_evidence_assessment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested.
+Adds the
 append-only `information_request_evidence_assessment` table for content inspection and malware scan
 results, bound to one file-backed Evidence Version and the exact digest of its bytes, refusing any
 inspection or clean scan of opaque content and any reuse that does not repeat a settled scan of the
 same bytes by the same engine and signatures. |
 
-| `P6-T8` | `V131__information_request_supporting_evidence_link.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Adds the
+| `P6-T8` | `V131__information_request_supporting_evidence_link.sql` | 2026-09-25 | Created and PostgreSQL
+contract-tested. Adds the
 append-only `information_request_supporting_evidence_link` table joining one runtime Requirement
 occurrence to one Document Requirement occurrence of the same request through the Template evidence
 link it follows. |
 
-| `P7-T4a`, `P7-T7a` | `V132__information_request_template_submission_policy.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Version submission mode and stage ordering, section stage keys, binding attestation policy and ordered role set, restated freeze guard, publication rules, and review-routed capability derivation. |
+| `P7-T4a`, `P7-T7a` | `V132__information_request_template_submission_policy.sql` | 2026-09-25 | Created and PostgreSQL
+contract-tested. Version submission mode and stage ordering, section stage keys, binding attestation policy and ordered
+role set, restated freeze guard, publication rules, and review-routed capability derivation. |
 
-| `P7-T1a`, `P7-T4b`, `P7-T7b` | `V133__information_request_submission_package.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Submission Packages with items, evidence and link members, Submission Attestations and package membership, withdrawals, request satisfaction, and the widened transition mutations. |
+| `P7-T1a`, `P7-T4b`, `P7-T7b` | `V133__information_request_submission_package.sql` | 2026-09-25 | Created and
+PostgreSQL contract-tested. Submission Packages with items, evidence and link members, Submission Attestations and
+package membership, withdrawals, request satisfaction, and the widened transition mutations. |
 
-| `P7-T5a`, `P7-T5b` | `V134__information_request_amendment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Runtime Requirement effective binding, relaxed revision key, amendment, change, and Notice Intent records, and response reconfirmation. |
+| `P7-T5a`, `P7-T5b` | `V134__information_request_amendment.sql` | 2026-09-25 | Created and PostgreSQL contract-tested.
+Runtime Requirement effective binding, relaxed revision key, amendment, change, and Notice Intent records, and response
+reconfirmation. |
 
-| `P7-T6`, `P7-T7c` | `V135__information_request_lineage.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Successor lineage, carry-forward decisions, recurrence definitions, and refresh rules. |
+| `P7-T6`, `P7-T7c` | `V135__information_request_lineage.sql` | 2026-09-25 | Created and PostgreSQL contract-tested.
+Successor lineage, carry-forward decisions, recurrence definitions, and refresh rules. |
 
-| `P8-T1a` | `V136__information_request_template_review_plan.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Version review stage ordering and fact-reuse purpose, review stages and their section coverage, default stage at freeze, restated freeze guard, and publication rules. |
+| `P8-T1a` | `V136__information_request_template_review_plan.sql` | 2026-09-25 | Created and PostgreSQL contract-tested.
+Version review stage ordering and fact-reuse purpose, review stages and their section coverage, default stage at freeze,
+restated freeze guard, and publication rules. |
 
-| `P8-T1b` through `P8-T7` | `V137__information_request_review.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Request state vocabulary without package review states, review cycles, assignments, worksheets, decisions, findings, corrections with their allowlists, comments, remediation, and the widened transition mutations. |
+| `P8-T1b` through `P8-T7` | `V137__information_request_review.sql` | 2026-09-25 | Created and PostgreSQL
+contract-tested. Request state vocabulary without package review states, review cycles, assignments, worksheets,
+decisions, findings, corrections with their allowlists, comments, remediation, and the widened transition mutations. |
 
-| `P8-T8`, `P8-T9` | `V138__information_request_accepted_fact_business_decision.sql` | 2026-09-25 | Created and PostgreSQL contract-tested. Accepted Facts with revocation, and Business Decision references. |
+| `P8-T8`, `P8-T9` | `V138__information_request_accepted_fact_business_decision.sql` | 2026-09-25 | Created and
+PostgreSQL contract-tested. Accepted Facts with revocation, and Business Decision references. |
 
-| `P9-T1`, `P9-T2` | `V139__information_request_event_consumption.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Trigger registry subject type, schema version, and request trigger rows; outbox ordering key and sequence; consumption receipts; request view, start, and expiry instants; widened transition mutations. |
+| `P9-T1`, `P9-T2` | `V139__information_request_event_consumption.sql` | 2026-09-26 | Created and PostgreSQL
+contract-tested. Trigger registry subject type, schema version, and request trigger rows; outbox ordering key and
+sequence; consumption receipts; request view, start, and expiry instants; widened transition mutations. |
 
-| `P9-T5` | `V140__information_request_clock.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Clock policies with immutable versions, working periods, holidays, and reminders; request clocks and their append-only calculation history. |
+| `P9-T5` | `V140__information_request_clock.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Clock policies
+with immutable versions, working periods, holidays, and reminders; request clocks and their append-only calculation
+history. |
 
-| `P9-T8` | `V141__information_request_outbound_notice.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Notice intent sources and kinds without the stored delivery state, claims, immutable outbound notices, sequence allocations, and delivery attempts. |
+| `P9-T8` | `V141__information_request_outbound_notice.sql` | 2026-09-26 | Created and PostgreSQL contract-tested.
+Notice intent sources and kinds without the stored delivery state, claims, immutable outbound notices, sequence
+allocations, and delivery attempts. |
 
-| `P9-T7`, `P9-T9` | `V142__record_preservation_disposal.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Generalized hold ownership, scope, attribution, and lifecycle history; retention schedules; disposal claims, objects, and tombstones; record exports; the claimed disposal function. |
+| `P9-T7`, `P9-T9` | `V142__record_preservation_disposal.sql` | 2026-09-26 | Created and PostgreSQL contract-tested.
+Generalized hold ownership, scope, attribution, and lifecycle history; retention schedules; disposal claims, objects,
+and tombstones; record exports; the claimed disposal function. |
 
-| `P9-T10` | `V143__information_request_privacy.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Privacy requests, subject restrictions, and package item corrections. |
+| `P9-T10` | `V143__information_request_privacy.sql` | 2026-09-26 | Created and PostgreSQL contract-tested. Privacy
+requests, subject restrictions, and package item corrections. |
 
-| `P10-T2`, `P10-T6` | `V144__information_request_author_actions.sql` | 2026-09-27 | Created and PostgreSQL contract-tested. Party assignment, party revocation, and sent-reminder transition mutations; a sent-reminder source on notice intents. |
-| `P11-T1b` | `V145__information_request_reusable_fact_profile.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Required reuse policy basis and exact submitted evidence references. |
-| `P11-T1b` | `V146__information_request_fact_evidence_disposal.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Disposal counts promoted evidence references before deleting their parent facts. |
-| `P11-T1c` | `V147__information_request_fact_recertification.sql` | 2026-09-29 | Created and PostgreSQL contract-tested. Append-only respondent recertification records with copied source provenance and evidence, insert guards, the `RECERTIFY_FACT` transition mutation, and disposal of a request's own recertifications. |
-| `P11-T11`, `P11-T12` | `V148__information_request_external_sources.sql` | 2026-09-29 | Created and PostgreSQL contract-tested (3 tests). Connector exchanges with a forward-only state guard and a same-request Requirement guard, append-only imported values, decisions, discrepancies, and resolutions with same-request guards, generated output references, four transition mutations, and disposal of every external source record. Not applied to the local database when created. |
-| `P12-T1` | `V149__audit_explicit_owner_writers.sql` | 2026-09-30 | Created and PostgreSQL contract-tested (`CleanSchemaMigrationContractTest`, `AuditPersonalOwnerContractTest`). Drops the five V84 triggers that filled `owner_type` and `owner_id` for an audit writer naming only an organization, and their function, so such a write is refused. Not applied to the local database when created. |
-| `P12-T5a` | `V150__request_execution_quotas.sql` | 2026-09-30 | Created and PostgreSQL contract-tested (`CleanSchemaMigrationContractTest`, and `RequestExecutionQuotaMigrationUpgradeTest` upgrading populated grants and reservations from V149). Renames the grant's recipient cap to the acting-party cap, adds frozen evidence file and byte allowances, moves the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a grant's frozen columns and writes only a first revocation. Not applied to the local database when created. |
+| `P10-T2`, `P10-T6` | `V144__information_request_author_actions.sql` | 2026-09-27 | Created and PostgreSQL
+contract-tested. Party assignment, party revocation, and sent-reminder transition mutations; a sent-reminder source on
+notice intents. |
+| `P11-T1b` | `V145__information_request_reusable_fact_profile.sql` | 2026-09-29 | Created and PostgreSQL
+contract-tested. Required reuse policy basis and exact submitted evidence references. |
+| `P11-T1b` | `V146__information_request_fact_evidence_disposal.sql` | 2026-09-29 | Created and PostgreSQL
+contract-tested. Disposal counts promoted evidence references before deleting their parent facts. |
+| `P11-T1c` | `V147__information_request_fact_recertification.sql` | 2026-09-29 | Created and PostgreSQL
+contract-tested. Append-only respondent recertification records with copied source provenance and evidence, insert
+guards, the `RECERTIFY_FACT` transition mutation, and disposal of a request's own recertifications. |
+| `P11-T11`, `P11-T12` | `V148__information_request_external_sources.sql` | 2026-09-29 | Created and PostgreSQL
+contract-tested (3 tests). Connector exchanges with a forward-only state guard and a same-request Requirement guard,
+append-only imported values, decisions, discrepancies, and resolutions with same-request guards, generated output
+references, four transition mutations, and disposal of every external source record. Not applied to the local database
+when created. |
+| `P12-T1` | `V149__audit_explicit_owner_writers.sql` | 2026-09-30 | Created and PostgreSQL contract-tested
+(`CleanSchemaMigrationContractTest`, `AuditPersonalOwnerContractTest`). Drops the five V84 triggers that filled
+`owner_type` and `owner_id` for an audit writer naming only an organization, and their function, so such a write is
+refused. Not applied to the local database when created. |
+| `P12-T5a` | `V150__request_execution_quotas.sql` | 2026-09-30 | Created and PostgreSQL contract-tested
+(`CleanSchemaMigrationContractTest`, and `RequestExecutionQuotaMigrationUpgradeTest` upgrading populated grants and
+reservations from V149). Renames the grant's recipient cap to the acting-party cap, adds frozen evidence file and byte
+allowances, moves the usage kind to `ACTING_PARTY`, and adds a guard that refuses rewriting a grant's frozen columns and
+writes only a first revocation. Not applied to the local database when created. |
+| `P13-T1` | `V152__information_request_placeholder_blueprint_source.sql` | 2026-10-01 | Created and PostgreSQL
+contract-tested (`InformationRequestBlueprintDocumentPlaceholderContractTest`, and
+`InformationRequestBlueprintVersionPinningTest` updating a used Blueprint's documents). Drops
+`information_request_document_placeholder_default_fkey` and `source_blueprint_document_default_id`, so a placeholder is
+a snapshot that outlives the Blueprint document default it was copied from (GA-002). The local database was at V151 when
+the file was placed in the checkout; `quarkus:dev` applies V152 on its next reload, after which the file must not be
+edited. |
+| `GA-001-A` | `V153__information_request_delegated_authority_history.sql` | 2026-10-05 | Created after checking the
+V152 head. Clean-schema and populated V152 upgrade tests first failed on the missing mutation vocabulary, then passed
+with grant and revocation history, preserved prior party history, and unchanged append-only guards. Full backend gate:
+3,480 tests passed. Applied by this session to test databases; no development migration command was run. |
+| `GA-001-B1` | `V154__information_request_access_link_history.sql` | 2026-10-05 | Created after listing every migration
+and confirming the V153 head. Clean-schema and populated V153 upgrade contracts first failed on the missing values, then
+passed with all four access-link mutations, retained authority history, and unchanged append-only guards. Full backend
+gate: 3,496 tests passed. Applied by this session to test databases; no development migration command was run. |
+| `GA-001-B2a` | `V155__information_request_access_session_history.sql` | 2026-10-05 | Created after listing every
+migration and confirming the V154 head. Clean-schema and populated V154 upgrade contracts first failed on the missing
+`REVOKE_ACCESS_SESSION` value, then passed with retained history and unchanged append-only guards. Applied by this
+session to test databases; no development migration command was run. |
+| `GA-001-B2b`, `GA-001-B2c` | `V156__information_request_access_credential_history.sql` | 2026-10-05 | Created after
+confirming the V155 head. Clean-schema and populated V155 upgrade contracts first failed on the four missing values,
+then passed with `ISSUE_CONTACT_CHALLENGE`, `REFUSE_CONTACT_CHALLENGE`, `ISSUE_ACCESS_SESSION`, and
+`LINK_PARTICIPANT_ACCOUNT`, retained session cutoff history, and unchanged append-only guards. Full backend gate: 3,542
+tests passed. Applied by this session to test databases; no development migration command was run. |
+| `GA-004` | `V157__information_request_party_linked_user_share.sql` | 2026-10-05 | Created after listing every
+migration and confirming the V156 head. Clean-schema and populated V156 upgrade contracts first failed on the missing
+column, then passed: the nullable `linked_user_share_id` references `share`, only a Participant-held party may carry it,
+a partial index serves lookups by request, and existing parties are unchanged (no backfill). Full backend gate: 3,582
+tests passed. Applied by this session to test databases; no development migration command was run. |
+| `GA-011` | `V158__request_access_session_step_up.sql` | 2026-10-05 | Created after listing every migration and
+confirming the V157 head. Clean-schema and populated V157 upgrade contracts first failed on the missing columns, then
+passed: a pending step-up code needs its expiry, its counts cannot be negative, session identity stays immutable,
+existing sessions and history are unchanged, and `STEP_UP_ACCESS_SESSION` is accepted and append-only. Full backend
+gate: 3,610 tests passed. Applied by this session to test databases; no development migration command was run. |
+| `GA-014-A` | `V159__information_request_template_principal_attribution.sql` | 2026-10-05 | Created after listing all
+migrations and confirming V158. Clean-schema and populated V158 contracts passed with canonical Template actor pairs,
+recorded USER backfill, absent unknown attribution, removed App User-only columns, pair/vocabulary checks, and unchanged
+freeze/publication/disposal behavior. Full backend: 3647 tests, one historical Blueprint fixture error; corrected and
+affected fixture contract rerun: 33 passed. Applied to test databases; no development migration command was run. |
+| `GA-014-B` | `V160__information_request_runtime_principal_attribution.sql` | 2026-10-05 | Created after listing all
+migrations and confirming V159. Replaces the request creator and party assigner App User columns with canonical
+principal pairs, backfilling recorded users and recovering earlier actors from transition history. Clean-schema and
+populated V159 contracts passed. |
+| `GA-014-C` | `V161__share_link_principal_attribution.sql` | 2026-10-05 | Created after confirming V160. Replaces the
+access link creator App User column with a canonical principal pair. Clean-schema and populated V160 contracts passed. |
+| `GA-032`, `GA-033`, `GA-057`, `GA-107`, `GA-148` | `V162__share_link_bootstrap_state.sql` | 2026-10-05 | Created after
+confirming V161. Drops unused link password and domain columns, adds verification strength, last use, and revocation
+time, and refuses a bootstrap link without a verification strength or with account MFA. Clean-schema and populated V161
+contracts passed. |
+| `GA-127`, `GA-070` | `V163__information_request_privacy_target_skipped_open.sql` | 2026-10-05 | Allocated to the
+records gap work and created after confirming V162. Widens the privacy target outcome check with `SKIPPED_OPEN`.
+Clean-schema and populated V162 contracts passed. |
+| Responses gap work (`GA-024`, `GA-027`) | `V164__information_request_response_archive_and_condition_effect.sql` |
+2026-10-06 | Append-only response archive and condition effect records with policy and state consistency checks;
+cascading disposal. Clean-schema, disposal, and populated V162 contracts. |
+| Evidence gap work (`GA-080`, `GA-122`) | `V165__information_request_evidence_source_and_supporting_link_scope.sql` |
+2026-10-06 | Drops the unused external-reference evidence columns, requires an exact Document Version on every evidence
+version, and keys frozen submission supporting links to their own request and exact Requirement pair. Clean-schema and
+populated V162 contracts. |
+| Lifecycle gap work (`GA-019`, `GA-042`, `GA-046`, `GA-058`) | `V166__information_request_lifecycle_records.sql` |
+2026-10-06 | Exchange ending intent, stored reconciliations, preserved follow-up source packages, execution grant policy
+and entitlement columns, and the restated disposal function. Clean-schema and populated V162 contracts. |
+| Fields gap work (`GA-016`) | `V167__field_value_bound_binding_invariant.sql` | 2026-10-06 | Removes Field values
+outside their assignment's Schema Version and requires the bound binding. Clean-schema and populated V163 contracts. |
+| Template gap work (`GA-146`, `GA-164`) |
+`V168__information_request_template_draft_revision_requirement_interval.sql` | 2026-10-06 | Adds the Template Version
+draft revision counter (restating the Version guard), replaces the requirement revision append-only trigger with a
+close-once guard, relaxes the interval check to `effective_to >= effective_from`, and closes superseded revisions where
+their successor begins. Clean-schema and populated V163 contracts. |
+| `GA-035` | `V169__information_request_record_owner_share_role.sql` | 2026-10-06 | Created after listing all migrations
+(head V163; V164 to V168 allocated). Adds the read-only `RECORD_OWNER` request Share role and converts earlier
+owner-read `SUBJECT` request Shares that no party holds. Clean-schema and populated V163 contracts. |
+| `GA-016` | `V170__domain_event_owner_and_access_session_credential.sql` | 2026-10-06 | Created after listing all
+migrations (head V169). Drops the unread `workflow_event_outbox.organization_id` and its index and restates the owner
+check on `owner_kind` and `owner_id`; deletes access sessions without a credential or expiry, makes `credential_hash`
+and `expires_at` required, replaces the partial credential index with a unique constraint, and keeps the identity guard
+on update only. Clean-schema and populated V169 contracts first failed on the column, the accepted null credential, and
+the kept legacy session, then passed. |
+| `GA-015`, `GA-037` | `V171__information_request_transition_idempotency_key.sql` | 2026-10-07 | Adds a required,
+non-blank transition `idempotency_key` (backfilled from the linked receipt, else
+`system|<mutation>|<request id>|<sequence>`, with the append-only guard disabled only around the backfill) and recreates
+the receipt foreign key `DEFERRABLE INITIALLY DEFERRED`. Clean-schema and populated V169 contracts first failed on the
+missing column, then passed. |
+| `GA-146` | `V172__information_request_removed_requirement_revision_close.sql` | 2026-10-06 | Created after confirming
+V170 and the V171 allocation. Closes the open revision of each requirement removed before V168: at the latest amendment
+that removed it when the current Template Version no longer binds it, or when its repeated entry was removed. Populated
+V170 contract first failed with the revisions still open, then passed. |
+| `RC-05` | `V173__information_request_refresh_rule_retry.sql` | 2026-10-07 | Created after listing every migration
+(head V172, no number above it taken). Adds `attempt_count` and `next_attempt_at` to refresh rules with their checks,
+and replaces the rule's append-only trigger with a guard that keeps the definition fixed, lets only the retry state
+change, and allows deletion only during disposal. Clean-schema and populated V172 contracts first failed on the missing
+columns, then passed; the clean-schema, comment-free, and disposal contracts passed with it. |
+| `RC-26`, `RC-28` | `V174__record_disposal_reference_lifetime.sql` | 2026-10-09 | Created after listing every
+migration (head V173). Adds foreign keys from each fact recertification to the fact and every source row it copies and
+from recertified evidence to its evidence version, with indexes; restates the reference guard to lock the referenced
+document, version, or owning request `FOR KEY SHARE` before checking for a claim and to guard recertifications and
+recertified evidence; adds `record_disposal_lock_information_request_objects`. Service reds came first; the contracts
+were proven by two temporary mutations (guards and keys removed: four failures; claim locks removed: two). |
+| `RC-34` | `V175__information_request_party_active_assignment.sql` | 2026-10-09 | Partial unique indexes on active
+`(request, role, principal)` and active subject parties. The two clean-schema contracts first failed with the duplicates
+accepted, then passed; a populated V174 upgrade contract, added with the migration, passed. |
+| `RC-27` | `V176__record_preservation_request_records.sql` | 2026-10-10 | Created after listing every migration in the
+checkout (head V175) and the dev database's Flyway history (head V173). Adds
+`record_preservation_information_request_records`
+(the submission packages, evidence artifacts and versions, outbound notices, and record exports a request owns) and
+restates `audit_legal_hold_guard` and `record_disposal_scope_guard` to refuse a hold on a record of a request an open
+claim names and a claim naming a request with a held record. The contracts first failed against a no-op function shape;
+a temporary mutation keeping only the function failed exactly the five guard cases; a populated V175 upgrade contract,
+added with the migration, passed. |
+| `FA-03` | `V177__document_version_storage_cleanup.sql` | 2026-10-12 | Created after listing every migration in the
+checkout (head V176, no number above it taken); the dev database's history was not read (no client on this machine).
+Adds `document_version_storage_cleanup` (object key unique, `OBJECT_KEY` only, attempt count, next attempt time) so a
+version write records a cleanup in its own transaction before writing bytes and discharges it in the recording
+transaction. Service reds (three stored-byte cases) came first; `DocumentVersionStorageCleanupContractTest` covers the
+constraints, and four temporary service mutations proved the sweeper and discharge tests. |
+| `IA-01` | `V178__information_request_response_archive_evidence.sql` | 2026-10-19 | Created after listing every
+migration in the
+checkout (head V177, no number above it taken); the dev database's history was not read. Adds `evidence_count` to
+`information_request_response_archive`, lets an archive hold files alone, and adds the append-only
+`information_request_response_archive_evidence` (exact evidence version per archived file, scope trigger, cascading
+foreign keys so the disposal function is unchanged). `InformationRequestResponseArchiveContractTest` covers the
+file-only
+archive, the scope trigger, uniqueness, append-only rows and disposal. |
+| `IA-02` | `V179__information_request_imported_value_requirement_revision.sql` | 2026-10-19 | Created right after V178
+in the same
+checkout. Adds the required `requirement_revision_id` to `information_request_imported_value`, backfills each existing
+value
+with the revision in effect when it was recorded (first revision when recorded before it), restates the imported value
+scope trigger to refuse another Requirement's revision, and allows `FIELD_CHANGED` reconciliation items.
+`InformationRequestExternalSourceContractTest` covers the scope trigger and a populated V178 upgrade backfill;
+`InformationRequestLifecycleRecordsContractTest` covers the new outcome. |
+| `CX-01` (sixth Codex verification) | `V180__information_request_connector_exchange_history.sql` | 2026-10-25 | Created
+after listing every migration in the
+checkout (head V179, no number above it taken); the dev database's history was not read. Widens
+`ck_information_request_transition_mutation` with `START_EXTERNAL_SOURCE_ATTEMPT`, `SCHEDULE_EXTERNAL_SOURCE_RETRY`,
+`RECORD_EXTERNAL_SOURCE_PENDING`, `COMPLETE_EXTERNAL_SOURCE` and `FAIL_EXTERNAL_SOURCE` and changes no rows.
+`InformationRequestConnectorExchangeHistoryContractTest` covers a clean schema, every mutation the application records
+and a populated V179 upgrade. |
+| `LG-07` (line-by-line gap analysis) | `V181__information_request_group_notice_recipients.sql` | 2026-10-26 | Created
+after listing every
+migration in the checkout (head V180, no number above it taken). Replaces
+`ux_information_request_outbound_notice_intent` with
+`ux_information_request_outbound_notice_intent_recipient` on the intent and the recipient's principal kind and id
+(`NULLS NOT DISTINCT`), so a group party's notice is recorded once per member; changes no rows.
+`InformationRequestOutboundNoticeContractTest` covers one notice per recipient and a repeated recipient being refused. |
+| `LG-17` (line-by-line gap analysis) | `V182__information_request_notice_render_failures.sql` | 2026-10-26 | Created
+after listing every
+migration in the checkout (head V181, no number above it taken). Adds the append-only (no update) table
+`information_request_notice_render_failure`, numbered per notice intent with a non-blank failure code, removed with its
+intent
+or request by `ON DELETE CASCADE`; changes no rows. `InformationRequestOutboundNoticeContractTest` covers numbering, the
+code
+and the update refusal. |
+| `LG-34` (line-by-line gap analysis) | `V183__record_disposal_superseding_successor.sql` | 2026-10-26 | Created after
+listing every
+migration in the checkout (head V182, no number above it taken). Recreates `information_request_superseded_by_fkey` with
+`ON DELETE SET NULL`, so disposing a superseding follow-up clears the superseded request's pointer; changes no rows.
+`InformationRequestDisposalTransactionTest` covers a superseded pair under retention and under a privacy deletion. |
+| `LG-35` (line-by-line gap analysis) | `V184__participant_account_link_request_disposal.sql` | 2026-10-26 | Created
+after
+listing every migration in the checkout (head V183, no number above it taken). Makes
+`participant_account_link.linked_via_information_request_id` nullable with `ON DELETE SET NULL`, so disposing the
+request keeps
+the account link; changes no rows. `InformationRequestDisposalTransactionTest` covers a linked request being disposed. |
+| `LG-47` (line-by-line gap analysis) | `V185__record_preservation_boundaries.sql` | 2026-10-28 | Created after listing
+every
+migration in the checkout (head V184, no number above it taken); recorded here on 2026-10-29 from the LG-47 closing
+note.
+Links a privacy restriction request to its restriction (`restriction_id`), makes record exports and their sources
+append-only with a guarded delete, gives existing hold keys canonical resource types and UUID spelling, and serializes
+claim
+scope insertion with advancing deletion. `RecordPreservationBoundaryContractTest`,
+`InformationRequestAuditExportTransactionTest` and `InformationRequestRecordExportAllowanceConcurrencyTransactionTest`
+cover
+it. |
+| `LG-48` (line-by-line gap analysis) | `V186__information_request_reconciliation_history.sql` | 2026-10-28 | Created
+after
+listing every migration in the checkout (head V185, no number above it taken). Adds the append-only, backfilled
+`information_request_fact_supersession` link owned by the predecessor fact, which survives the successor's disposal, and
+widens the transition mutation check. `InformationRequestAcceptedFactContractTest` covers capture, the backfill, the
+append-only refusal and survival after the successor is deleted. |
+| `LG-49` (line-by-line gap analysis) | `V187__information_request_storage_boundaries.sql` | 2026-10-28 | Created after
+listing every migration in the checkout (head V186, no number above it taken). Converts the program's stored moments to
+`TIMESTAMP WITH TIME ZONE`, reading historical values as UTC, adds owner, party and retained-record lookup indexes, and
+adds
+a `NOT VALID` check pairing an execution grant's revocation time and reason.
+`InformationRequestStorageBoundaryContractTest`
+covers instant columns and leading-column indexes. |
+| `LG-49` (line-by-line gap analysis) | `V188__information_request_archive_disposal_records.sql` | 2026-10-28 | Created
+after
+listing every migration in the checkout (head V187, no number above it taken). Refuses a response archive row that names
+another request's Requirement, indexes archive evidence by request, and makes request disposal delete and count
+corrections,
+condition effects, archive evidence and archives. `InformationRequestStorageBoundaryContractTest` and the disposal
+contracts cover it. |
+| `LG-49` (line-by-line gap analysis) | `V189__information_request_history_claim_scope.sql` | 2026-10-28 | Created after
+listing every migration in the checkout (head V188, no number above it taken). Makes the append-only history checks
+aware
+of the disposal claim that owns a row (`record_disposal_row_in_progress`) and adds four `NOT VALID` actor and
+verification
+strength checks on delegated authorities and access sessions. `InformationRequestStorageBoundaryContractTest` and
+`RecordPreservationBoundaryContractTest` cover it. |
+| `LG-GATE` (V189 follow-through) | `V190__information_request_disposal_row_scope.sql` | 2026-10-29 | Created after
+listing
+every migration in the checkout (head V189, no number above it taken). Replaces `record_disposal_row_in_progress` so
+review worksheet rows, notice sequence numbers and a follow-up's source packages resolve their request through their
+review, outbound notice or lineage; under V189 their guards refused every disposal of a request with a review
+worksheet. Changes no rows. `RecordDisposalRowScopeContractTest` and
+`InformationRequestTemplateWalkingSkeletonOperationsTest`
+cover it. |
+| Gap analysis follow-ups (`B03-party-access-13`) | `V191__information_request_subject_share_role.sql` | 2026-10-29 |
+Created
+after listing every migration in the checkout (head V190, no number above it taken). Drops `SUBJECT` from the request
+roles the Share role check accepts: a subject party never holds a Share, and V169 converted the owner read Shares that
+used the role. Changes no rows. `InformationRequestSubjectShareRoleContractTest` and
+`ShareResourceScopedRoleContractTest`
+cover it. |
 
 The provisional program range ended at V139. On 2026-09-26, before the second Phase 9 migration, it
 was extended to V139 through V160; the head was V138 and no other initiative had taken a number
-above it. Remaining unallocated program range: V152 through V160. Flyway head is V151.
+above it. V159 is allocated to GA-014-A. On 2026-10-05, before the gap remediation migrations, the range was extended to
+V139 through V170 after listing every migration and confirming no other initiative had taken a number above V159;
+V160 to V169 are allocated as recorded above. On 2026-10-06 the range was extended to V172 after listing every
+migration (head V169, no number above it taken); V170 to V172 are allocated as recorded above.
+On 2026-10-07 the range was extended to V173 after listing every migration (head V172, no number
+above it taken); V173 is allocated to RC-05.
+On 2026-10-09 the range was extended to V175 after listing every migration in the checkout and the
+dev database's Flyway history (head V173, no number above it taken); V174 is allocated to RC-26 and
+RC-28 and V175 to RC-34.
+On 2026-10-10 the range was extended to V176 after listing every migration in the checkout (head
+V175, no number above it taken) and the dev database's Flyway history (head V173, with V174 and V175
+still pending there); V176 is allocated to RC-27.
+On 2026-10-12 the range was extended to V177 after listing every migration in the checkout (head
+V176, no number above it taken); V177 is allocated to FA-03.
+On 2026-10-19 the range was extended to V179 after listing every migration in the checkout (head
+V177, no number above it taken); V178 is allocated to IA-01 and V179 to IA-02.
+On 2026-10-25 the range was extended to V180 after listing every migration in the checkout (head
+V179, no number above it taken); V180 is allocated to CX-01 of the sixth Codex verification.
+On 2026-10-26 the range was extended to V181 after listing every migration in the checkout (head
+V180, no number above it taken); V181 is allocated to LG-07 of the line-by-line gap analysis.
+On 2026-10-26 the range was extended again to V182 (head V181, no number above it taken); V182 is allocated to LG-17.
+On 2026-10-26 the range was extended to V184 (head V182, no number above it taken); V183 is allocated to LG-34 and V184
+to LG-35.
+On 2026-10-28 the range was extended to V189 (head V184, no number above it taken); V185 is allocated to LG-47, V186 to
+LG-48
+and V187 to V189 to LG-49. These rows were written on 2026-10-29.
+On 2026-10-29 the range was extended to V190 (head V189, no number above it taken); V190 is allocated to LG-GATE
+as the V189 follow-through.
+On 2026-10-29 the range was extended to V191 (head V190, no number above it taken); V191 is allocated to the gap
+analysis follow-ups (`B03-party-access-13`). Next free V192.
 V118 and V119 were taken by prior P5 remediation work before this row was written. V151
 (`V151__sign_up_resend_state_removal.sql`) was taken on 2026-10-01 by the signup and sign-in
 security remediation in `plans/AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md`.
@@ -4676,6 +9464,10 @@ security remediation in `plans/AUTH-SIGNUP-SIGNIN-SECURITY-REMEDIATION.md`.
 When verifying that a migration contract test is genuinely red, remove the migration from
 `target/classes/db/migration` as well as from `src/main/resources/db/migration`. Flyway resolves migrations from the
 compiled classpath copy, so deleting only the source file leaves the test green and produces a false red observation.
+
+Migrations V76 to V127 contain SQL comments written before the no-comments rule. Applied migrations are immutable, so
+those comments are grandfathered. V128 onward contain none, and `MigrationCommentFreeContractTest` refuses a comment in
+any later migration (GA-155).
 
 ### Schema and behavior change rules
 
@@ -4709,9 +9501,9 @@ while a shape is replaced, not about tolerating an older reader or writer. See
 - Canonical `(kind, id)` principal provenance is the only attribution any row carries. The
   App User-only foreign keys that `P1-T6` and `P3-T1d` kept beside it are compatibility shims and are
   removed by `DS-T2` and `DS-T3`. Do not add another one.
-- Generalize the organization-only feature-entitlement rows into owner type and ID in one migration.
-  Add operational rollout in a separate owner-scoped table and resolver so no migration or fallback
-  can confuse commercial and operational gates.
+- Generalize the organization-only feature-entitlement rows into owner type and ID. Personal and
+  Business include Information Requests, with platform-admin feature overrides as the per-owner
+  control. The separate operational rollout table and resolver were removed; do not restore them.
 - Extend audit owner persistence from platform or organization to an explicit owner kind and ID,
   including personal users, and test personal tenant filtering, export, and retention. Correct the
   reachable `?: AuditOwnerScope.Platform` writers rather than describing the rows they wrote as
@@ -4721,7 +9513,8 @@ while a shape is replaced, not about tolerating an older reader or writer. See
   existing `DomainEvent.SubjectRef` name for this persisted tenant identity.
 - Widen both Exchange-only Share database checks in one migration. `share_resource_type_check`
   currently admits only `EXCHANGE`, `DOCUMENT`, and `PRINCIPAL_GROUP` and must admit the request
-  aggregate and Requirement-occurrence types; without it every request-party Share insert fails.
+  aggregate type; without it every request-party Share insert fails. Requirement occurrences hold
+  no Share rows and are authorized through parent-grant inheritance.
   `share_role_name_check` currently admits only the seven Exchange role names and must admit the new
   resource-scoped role keys. Replace the Exchange-only enum mapping with resource-scoped role keys
   and a resource-kind capability registry while keeping characterized behavior for the three
@@ -4771,6 +9564,7 @@ while a shape is replaced, not about tolerating an older reader or writer. See
   only new grants and never rewrite issued commitments.
 - Preserve ordinary Exchange Documents that are not linked to Request Requirements.
 - Provide feature disablement through capability and UI gates, not destructive data reversal.
+
 ## Help Documentation Requirements
 
 After every user-visible feature change:
@@ -4845,8 +9639,9 @@ recipient access, no-auth access, Documents, Workflows, audit, subscriptions, an
   cancellation, ending gates, deletion read-only behavior, and concurrent parent-state changes.
 - Paid entitlement lapse or trial expiry blocks new or expanding work without stranding
   already-issued work within persisted, reserved execution limits; operational suspension is a
-  separate explicit control. Commercial entitlement and rollout are separate owner-scoped gates,
-  and owner rollout remains distinct from global subscription enforcement mode.
+  separate explicit control. Personal and Business include Information Requests, and platform-admin
+  feature overrides remain distinct from global subscription enforcement mode. No second owner
+  rollout grant is required.
 - SLA clocks, reminders, explicit-principal audit, immutable notices, retention,
   exactly-once Sequence rendering, record-preservation hold lifecycle generalized from the existing
   hold persistence, live-reference-safe database and object disposal with partial failure recovery,
@@ -4860,69 +9655,1816 @@ recipient access, no-auth access, Documents, Workflows, audit, subscriptions, an
 
 ## Latest Implementation Result
 
-Keep only the newest product implementation result in this section. Full historical results and completion evidence live
-in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`. When a newer implementation session finishes,
-make sure this result is present in the evidence file, then replace it here with the new latest result.
+### 2026-10-31: completeness re-check P3 repairs
 
-### 2026-09-30: Phase 12 packaging, rollout, and final hardening
+`CK-07` to `CK-22` are closed test first, uncommitted; `CK-17` was decided by the owner (add a screen) and closed the
+same day. Three
+workers repaired the backend, the authoring and respondent screens and the review and manage screens in parallel, each
+repair red for its intended reason and then green; outcomes are under Completeness Re-check Work (2026-10-29). Affected
+backend 30 classes, 345 tests, zero failures, errors or skips (`mirror-a/final.log`). Full backend 6,077 tests in 817
+classes (1:21 h, `mirror-a/full.log`) with zero errors or skips and one failure, a unit expectation in
+`InformationRequestLifecycleServiceTest` kept from before CK-04 (cancelling a grantless draft still had to check the
+live plan), corrected to the CK-04 rule and rerun green 30/30. Full frontend 2,124 tests in 331 files (585.9 s under
+load): 2,122 pass and the two that timed out (`RequestOutcomesPanel`, `InformationRequestOperations`) pass when rerun
+alone, 79/79. Root tsc 0, eslint over the changed folders clean, help 97/97 (the three articles the IDE reformat pushed
+past 150 lines were reflowed). No migration (next free V192), dependency, AWS resource, commit or push. `LG-16` was
+decided by the owner on 2026-10-31: an appeal that reopens review keeps the pause.
 
-- `P12-T1` through `P12-T9`, split into journaled subtasks.
-- Compatibility:
-  - Every Field mutation path requires `If-Match`.
-  - The clean-schema contract, and V149 removing the last compatibility triggers.
-  - Exchange metadata stays metadata, and Blueprints pin only later requests.
-- Safe disable:
-  - Reads are never hidden.
-  - Execution standings, capability discovery, and the platform health report with log-marker alarms.
-  - The capability-driven UI and the party trust state.
-- Quotas:
-  - Plan quotas and V150's frozen grant allowances with a freeze trigger.
-  - The open-request cap and committed evidence under the owner lock.
-  - Uploads beneath the platform ceiling.
-- Abuse controls: no-auth rate limits, access link defaults, the reminder cooldown, the export
-  ceiling, and markers.
-- Personal support: platform Templates are copied before use, and personal create and issue are
-  proven.
-- Pricing, billing, verification, and documentation in `docs/information-requests/`.
-- Defects fixed:
-  - Issuing with any acting party failed (a lock on unflushed rows).
-  - An ended trial was refused as a suspension.
-  - Subject revocation after issuance failed.
-  - Trust refusals answered `500`.
-  - Platform Versions were unreadable while enforcement evaluated decisions.
-- Exit gate:
-  - Backend 3,379 tests green (35:14). `verify -DskipITs=false` green (no `*IT` classes).
-  - The V150 upgrade test is proven by mutation.
-  - Frontend 786 tests green. `tsc --noEmit` and `build` pass. `typecheck:app` 0 Information Request.
-  - Lint (109) and `buildWithTs` (345, none added) match their baselines.
-  - Website lint and build pass. Neutrality scan clean. No commit or push.
-- Exact next task at the time: none. Superseded on 2026-09-30: the program was reopened. See
-  `## Status` and `## Phase 13: Exchanges Started from Information Request Blueprints`.
+### 2026-10-29: gap analysis follow-ups
+
+The ten follow-ups confirmed while closing the gap analysis are repaired or decided, uncommitted; outcomes are under
+Line-by-Line Gap Analysis Work (2026-10-26). Each repair was red for its intended reason and then green:
+`followups-red.log`, `followups-green1-5-red6.log`, `followups-green6-red-v191.log` and `followups-red-structure.log`,
+then `followups-green.log` (89 classes, 717 tests). V191 drops `SUBJECT` from the Share role check (next free V192).
+Full backend **6,057 tests in 816 classes (1:00 h)** with zero failures and 3 errors in one test class whose
+`prepareEnding` verifications predated the new parameter; corrected, it passes with the other five classes that call
+`prepareEnding` (51 tests). Packaging passes (03:15); root tsc, the app baseline (310) and strict-null (386) gates with
+0 Information Request diagnostics, eslint, help 97/97 and the rule sweep pass. `LG-16` still waits for the owner.
+
+### 2026-10-29: gap analysis closure (LG-50 to LG-52, LG-GATE)
+
+LG-50, LG-51 and LG-52 are closed and LG-GATE passed, uncommitted; LG-15, LG-23, LG-24 and LG-25 are completed where the
+2026-10-28 status check found them partial, and LG-16 waits for the owner's decision. Outcomes per finding are in
+`lg50-outcomes-f01-f06.md`, `lg50-outcomes-f02-operations.md`, `lg50-outcomes-f04-respondent.md` and `lg51-outcomes.md`.
+The gate exposed a V189 regression: request disposal could not delete review worksheet rows, so V190 replaces the claim
+scope function (`RecordDisposalRowScopeContractTest` red without it, then green). Full backend **6,040 tests in 809
+classes with zero failures, errors or skips (58:31)**; full frontend **2,074 tests in 323 files (304.6 s)**; packaging
+passes (03:27); Vite build passes; type, null and lint gates at their baselines with 0 Information Request diagnostics.
+Next free migration V191. No dependency or infrastructure change, commit or push.
+
+### 2026-10-25: sixth Codex verification remediation
+
+CX-01 from the [sixth Codex verification](information-request-codex-verification-2026-10-25.md) is repaired test first
+and uncommitted; see the report's "Remediation result (2026-10-25)" for the rule and tests. Red before the repair:
+backend 11 of 12 tests in 3 classes (the new history transaction cases at their audit assertions, the migration contract
+at the mutation check, the audit's probe at its missing-audit assertions); help 1 of 85. Green selection **221/221 in 34
+classes**. Full backend **5,722 tests in 761 classes** with zero failures, errors or skips (55:15); full frontend
+**1,750 tests in 290 files** (549 s); packaging passes (03:20); type, null and lint gates at their baselines with 0
+Information Request diagnostics. Migration V180. No dependency or infrastructure change, commit or push.
+
+### 2026-10-25: fifth Codex verification remediation
+
+CX-01 from
+the [fifth Codex verification](evidence/information-request-codex-verification-2026-10-25/report-before-independent-pass.md)
+is repaired test first and uncommitted; see the report's "Remediation result (2026-10-25)" for the rule and tests. Red
+before the repair: backend 14 of 46 tests in 6 classes failed at their disclosure assertions, and the new
+recertification export case, which first stopped in its own setup, failed at its disclosure assertion once that was
+corrected (1 of 13); React 1 of 84 help tests. Full backend **5,705 tests in 758 classes** with zero failures, errors or
+skips (53:58); full frontend **1,749 tests in 290 files**; packaging passes; type, null, lint and build gates at their
+baselines with 0 Information Request diagnostics. Migration head V179; next free V180. No commit or push.
+
+### 2026-10-24: fourth Codex verification remediation
+
+CX-01 from the [fourth Codex verification](information-request-codex-verification-2026-10-24.md) is repaired test first
+and uncommitted; see the report's "Remediation result (2026-10-24)" for the rule and tests. Red before the repair:
+backend 7 of 20 tests in 3 classes; React 1 of 22. Full backend **5,683 tests in 756 classes** with zero failures,
+errors or skips (56:17); full frontend **1,748 tests in 290 files**; packaging passes; type, null, lint and build gates
+at their baselines with 0 Information Request diagnostics. Migration head V179; next free V180. No commit or push.
+
+### 2026-10-24: third Codex verification remediation
+
+CX-01 and CX-02 from the [third Codex verification](information-request-codex-verification-2026-10-24.md) are repaired
+and uncommitted; see the report's "Remediation result (2026-10-24)" for the rules and tests. Red before the CX-01
+repair: React 9 of 96 in 4 files; the new backend contract passes on the unrepaired server, which already permitted both
+actions (16/16 with the existing author action class). Full backend **5,674 tests in 755 classes** with zero failures,
+errors or skips (55:07); full frontend **1,741 tests in 289 files**; packaging passes; type, null, lint and build gates
+at their baselines with 0 Information Request diagnostics. Migration head V179; next free V180. No commit or push.
+
+### 2026-10-23: second Codex verification remediation
+
+CX-01 and CX-02 from the [second Codex verification](information-request-codex-verification-2026-10-23.md) are repaired
+test first and uncommitted, with the same existence check on four sibling route families found while repairing CX-01;
+see the report's "Remediation result (2026-10-23)" for the rules and tests. Red before each repair: backend 30 of 100 in
+6 classes; React 2 of 32 page tests. Full backend **5,668 tests in 754 classes** with zero failures, errors or skips
+(54:54); full frontend **1,728 tests in 289 files**; packaging passes; type, null, lint and build gates at their
+baselines with 0 Information Request diagnostics. Migration head V179; next free V180. No commit or push.
+
+### 2026-10-23: Codex verification remediation
+
+CX-01 to CX-04 from the [Codex verification](information-request-codex-verification-2026-10-22.md) are repaired test
+first and uncommitted, with the two standing gaps found during the repair and the Exchange request listing's existence
+check; see the report's "Remediation result (2026-10-23)" for the rules, decisions and tests. Red before each repair:
+backend 86 of 94, 14 of 126, 4 of 96, 2 of 3 and 2 of 110; React 5 of 48. Full backend **5,621/749** with zero failures,
+errors or skips (58:59 min; a first full run failed one unit test that still expected an unknown request to be reported
+as not found before authorization, and that test now expects the refusal a hidden request gets); full frontend
+**1,700/289** with no failures; packaging passes; type, null, lint and build gates at their baselines with 0 Information
+Request diagnostics. DV-GATE stays open for the non-waived release checks. No migration, dependency, AWS resource,
+commit or push.
+
+### 2026-10-21: deep verification remediation
+
+DV-01 to DV-05 from the [deep verification](information-request-deep-verification-2026-10-21.md) are repaired test-first
+and uncommitted; see the report's "Remediation result (2026-10-21)" for the rules, decisions and tests. Red before each
+repair: backend 3 of 6, 4 of 7 and 5 of 16, React 17 of 44. Affected backend suites **427/56** pass; full backend
+**5,324 tests / 740 classes** with zero failures, errors or skips (54:55 min); full frontend **1,621 / 282** with no
+failures or skips; packaging passes (02:25); type, null, lint and build gates at their baselines with 0 Information
+Request diagnostics. The retained probes pass in their adapted copies (backend 13/13, React 7/7); the unchanged copies'
+remaining failures are by design and explained in the evidence. DV-GATE stays open for the non-waived release checks and
+the remaining DX backlog. No migration, dependency, AWS resource, commit or push.
+
+### 2026-10-21: independent deep verification
+
+Analysis and verification only. The [report](information-request-deep-verification-2026-10-21.md) verifies
+the five CS repairs in their recorded scopes and records three P2 and two P3 findings, with retained
+probes and repair acceptance criteria. Fresh full backend **5,304 tests / 738 classes**, including
+migrations **315 / 82**, eight neutral scenarios **14 / 8**, and full frontend **1,597 / 278** pass.
+Backend packaging and Vite pass. Additional backend probes have four intended failures and eight
+passing controls; frontend probes have four intended failures and three controls. Raw application
+TypeScript retains 334 unrelated diagnostics and full lint 59 errors / 46 warnings; feature/baseline
+gates pass. All 2,591 copied backend/build/infra inputs and paths match the checkout. Existing staged
+deletions, uncommitted implementation, earlier scoped closures, optional scanning scope and manual
+width-sweep waiver were preserved. No production repair, migration, dependency, AWS resource, commit,
+or push. Next: `DV-01 / DX-29`, followed by DV-02, DV-03, the client findings and remaining DX backlog.
+
+### 2026-10-21: current-state audit
+
+Analysis and verification only. The [report](information-request-current-state-audit-2026-10-21.md) records
+five reproduced P2 defects and the repair acceptance criteria. Fresh feature backend, migrations,
+conformance, adjacent foundations, frontend and packaging checks pass within their stated scopes; the
+isolated probes expose the remaining defects. Raw app TypeScript and full lint retain their unrelated
+failures. Existing staged deletions and uncommitted implementation were preserved. No production repair,
+commit or push. Next: `CS-01 / DX-26`.
+
+### 2026-10-21: verification remediation
+
+- **Every finding of the independent verification closed (uncommitted).** IV-01 to IV-09 and the open paths DX-03,
+  DX-04, DX-06, DX-08, DX-11, DX-14, DX-15, DX-17, DX-18, DX-19, DX-24 and DX-25 are repaired, with the undefined
+  `config` in `ExchangeInitiation.tsx`. See the report's "Remediation result (2026-10-21)".
+- Each repair has a test that failed first for its intended reason, or a mutation that removes it and fails its test;
+  the runs are listed in
+  the [evidence](evidence/information-request-verification-2026-10-21/remediation-2026-10-21/README.md). Gates: full
+  backend **5,260/734** with 0 failures and 1 error, a conformance fixture the new Field rule refuses (fixed; the class
+  passes on rerun); full frontend **1,584/276**; packaging passes (03:35); type, null, lint and build gates at baseline
+  with 0 Information Request.
+- Next: DX-07, DX-16, DX-22, DX-23 and DX-26 (P2), then the P3 groups DX-28 to DX-56 and DX-GATE. No commit or push.
+
+### 2026-10-21: independent verification
+
+The [verification report](information-request-independent-verification-2026-10-21.md) confirms nine existing DX defects
+with fresh probes. The feature is not complete. Backend 5,120/728, migration contracts 315/82, all eight neutral
+scenarios (13 tests), frontend 1,553/273 and packaging pass. The 728 XML reports match the Maven log with zero failures,
+errors or skips.
+
+Nine backend behavior probes have five failures and four controls; nine UI probes have seven failures and two controls.
+A 261,068-byte PDF terminates a separate 128 MiB test JVM. The app typecheck still has 339 baseline diagnostics, the
+strict-null gate has 415, and full lint has 59 errors; the reviewed baseline and feature-lint gates pass. The retained
+probes and summaries are in the evidence directory. No production source, migration, configuration or help behavior
+changed. Existing staged deletions, including the companion completion-evidence file, are preserved. Next: DX-57,
+source-fact disclosure and retained-record revocation, then the respondent completion paths and remaining DX backlog. No
+commit or push.
+
+### 2026-10-21: P1 repairs
+
+- **DX-01 and DX-02 closed (uncommitted); DX-57 (P1) open.** Ordinary authors can start requests from Templates and
+  Blueprints again; crafted ZIP64 and compound-document uploads are reported corrupt instead of exhausting memory or
+  answering 500. The PDF path (DX-57) waits for the permission to change PDFBox's filter registry. See the analysis's
+  repair result.
+- Red then green: DX-01 3 of 20 and the retired-Schema case 1 of 2, then 36/36 and 73/73; DX-02 the ZIP64 record killed
+  the forked test JVM and the compound case raised `NegativeArraySizeException`, then 27/27 inspector tests and 90
+  evidence tests in 10 classes. Information Request client folders 870/119; full frontend **1,551/273**; tsc 0; app type
+  339 and strict-null 415 unrelated with 0 Information Request; lint 0 errors. Full backend not rerun (change limited to
+  two inspector classes). No commit or push.
+
+### 2026-10-21: deep analysis
+
+- **Not fully implemented: DX-01 and DX-02 (P1), DX-03 to DX-27 (P2), DX-28 to DX-56 (P3) and DX-GATE are open.** No
+  Template or Blueprint request can be started by an author who is not an App Administrator (FC-20 regression), and a
+  crafted ZIP64 upload stops the JVM. See the [deep analysis](information-request-deep-analysis-2026-10-21.md).
+- Fresh verification on the unchanged tree: full backend **5,116/728**, zero failures, errors or skips (59:12 min, 728
+  XML reports reconciled); full frontend **1,550/273** (613.59 s); packaging passes (03:23); tsc 0 errors; app type gate
+  339 and strict-null 415 unrelated with 0 Information Request; feature lint 0 errors; Vite passes; contract-drift
+  scripts clean.
+- 143 findings from 36 read-only reviews, 127 kept after adversarial verification (16 dropped: 11 duplicates, 5
+  refuted). No production repair, migration, dependency or infrastructure change; existing changes and staged deletions
+  preserved. No commit or push. Next: DX-01, DX-02, then the P2s.
+
+### 2026-10-20: completeness remediation
+
+- **SB-01 to SB-04, FC-01 to FC-26 and FC-GATE closed (uncommitted).** Submitting waits for unsaved answers and files
+  and reviews only the selected stage with labelled choices and injective ids; ten panels state refused reads;
+  conditions never clear, archive or withdraw another party's or a submitted answer; credential commands follow the
+  transition matrix and ended requests revoke their links; database-only Template refusals are service refusals and
+  other stored-rule refusals answer `409`; one rule each for `If-Match`, authorization order, audit capture, scan
+  locking and the export ceiling; the client P3 items. See Status and the analysis's remediation result.
+- Red then green for every item (counts in Status and the remediation evidence); the deep review probe 16/16; full
+  frontend **1,550/273** (614.61 s); full backend **5,116/728** with zero failures, errors or skips (59:12 min, 728 XML
+  reports reconciled); packaging passes (03:23 min, run on 2026-10-21 in the same mirror); type, null, lint and build
+  gates at their baselines with 0 Information Request diagnostics; help, API reference and release notes updated.
+  Decisions are the remediation prompt's defaults. No migration, dependency or infrastructure change; no commit or push.
+
+### 2026-10-20: full completeness analysis
+
+- **Not complete: SB-01, SB-02, FC-01, FC-02 and FC-03 (P2), SB-03, SB-04 and FC-04 to FC-26 (P3) and FC-GATE are
+  open.** The deep review's four client defects are confirmed and reproduced (12 intended failures, 4 controls); three
+  P2s are new: a cross-party condition with a clear or archive policy deadlocks the governing party, the no-auth
+  credential commands bypass the transition matrix and bootstrap links survive parent termination, and database-only
+  Template refusals answer 500. See
+  the [completeness analysis](information-request-completeness-analysis-2026-10-20.md).
+- Fresh verification: full frontend **1,471/266** (518.79 s); full backend **4,986/721** with zero failures, errors or
+  skips (53:49 min, build success, all 721 XML reports reconciled); app type gate 339 and strict-null 415 unrelated
+  diagnostics with 0 Information Request; root tsc, feature lint (0 errors, 3 warnings) and Vite pass. Mechanical route,
+  enum, DTO, resource-test and configuration-key cross-checks found no further defect.
+- Six read-only review agents traced Phases 1 to 13; their unedited reports are retained as evidence and every kept
+  claim was re-verified by the author. No production repair, migration, dependency or infrastructure change is retained;
+  existing changes and staged deletions are preserved. Next: SB-01, then SB-02, FC-01, FC-02, FC-03, the P3 items,
+  FC-GATE. No commit or push.
+
+### 2026-10-20: EC remediation
+
+- **EC-01, EC-02, EC-03 and EC-GATE closed (uncommitted, web client only).** A single choice from a list is clearable to
+  `null`; review before submitting states a partial answer's label, value or files and reason, and a provided answer's
+  note; respondent Field inputs take occurrence-specific ids. See Status and the analysis's remediation result.
+- Red 8 intended failures of 25, then 25/25; causal controls isolate each repair; retained probes pass every EC case
+  (12/16 as retained, the four by-design selector failures pass as selector-only copies, 16/16). Full frontend
+  **1,471/266**; type/null/lint/build at their baselines; backend inputs unchanged since the passing 4,986/721 run. No
+  commit or push.
+
+### 2026-10-20: Provided-answer notes
+
+- **Decided and implemented (uncommitted, web client only).** USER DECISION: a `PROVIDED` answer takes an optional
+  **Note**; an earlier exception reason shows there after switching to `PROVIDED`; a note alone leaves an unanswered
+  item unanswered. See Status.
+- Red 7 intended failures of 101, then 101/101; affected folders 256/28; full frontend **1,454/263**; type/null/lint
+  gates at their baselines with 0 Information Request diagnostics; Vite passes. The EC findings below remain open and
+  are untouched by this change. No commit or push.
+
+### 2026-10-20: independent implementation analysis
+
+- **Not fully complete:** EC-01 and EC-02 (P2), EC-03 (P3), and EC-GATE remain open. All nine earlier SR probes pass;
+  the final unchanged-source probe set has four intended failures and 12 passes in 16 cases. Diagnostic controls
+  establish each cause independently and return to the original four failures after restoration. See
+  the [analysis](information-request-analysis-2026-10-20.md).
+- Fresh verification: backend **4986/721**, migrations **315/82**, original neutral scenarios **13/8**, with zero
+  failures/errors/skips and all XML/log counts reconciled. Full frontend **1,449/263** passes with three workers. The
+  report retains the failed first frontend invocation, the stopped Docker-blocked backend attempt, the test-only retry
+  option, and broader TypeScript/lint and manual/deployed limits.
+- No application repair, migration, dependency or infrastructure change is retained. Evidence and reproduction scripts
+  are under plans/evidence/information-request-analysis-2026-10-20/. Existing changes and staged deletions are
+  preserved. Next: EC-01, EC-02, EC-03, EC-GATE. No commit or push.
+
+### 2026-10-20: SR remediation
+
+- **SR-01, SR-02 and SR-GATE closed (uncommitted, web client only).** The respondent editor and the saved change share
+  `responseAnswerState.currentDisposition`; a partly provided answer asks for the reason the server requires; a save is
+  matched to the `responseETag` of the answers its patch was built from. See the review's "Remediation result
+  (2026-10-20)".
+- Red/green: SR-01 11 intended failures of 20, SR-02 4 of 16, then all pass; 29 new permanent tests. The review's
+  retained probes 9/9. Isolated causal controls: 18, 16 and 4 intended failures of 39 with both, SR-01 only and SR-02
+  only removed; 39/39 restored.
+- Gates: full frontend **1,449/263**; full backend **4,986/721** with zero failures/errors/skips (01:11 h, beside
+  another agent's concurrent backend run on the same database), all 721 XML reports reconciled, migrations 315/82;
+  packaging passes (03:29); type/null/lint/build gates at their baselines with 0 Information Request diagnostics; help
+  69 and release notes updated. Open follow-up awaiting a product decision: no note on a `PROVIDED` answer although the
+  help offers one, and an earlier exception reason stays attached unseen after switching to `PROVIDED`. No live browser
+  check. No migration, server, dependency or infrastructure change, commit or push.
+
+### 2026-10-19: independent shared-response completeness review
+
+- **Not fully complete at the time: SR-01, SR-02 (P2) and SR-GATE were open; closed 2026-10-20 (see above).** Saved
+  exception and partial answers can be silently sent as `PROVIDED`, and a previously saved patch can suppress a new
+  autosave after a newer server response. See
+  the [completeness review](information-request-completeness-review-2026-10-19.md). Next: SR-01, then SR-02, then
+  SR-GATE; Phases 5, 10 and 12 are reopened only for these client defects and their acceptance.
+- Full backend **4,986/721** passes with zero failures/errors/skips (56:34 min), all 721 XML reports reconciled;
+  migrations **315/82** and original scenarios **13/8** pass. Full frontend **1,420/260** passes. Nine independent
+  probes have six intended assertion failures and three controls; isolated combined control **66/66**, separate controls
+  isolate each cause, and control removal restores the failures. Backend packaging, scoped type/null/lint, root tsc,
+  Vite and website gates pass. Existing full-app compiler/lint debt and live/deployed/manual limits remain separate.
+- All **4,245** captured source/configuration inputs are unchanged, none missing or added. Only audit evidence, its
+  report and the active plan are retained. Earlier scoped repairs and all seven staged deletions remain intact. No
+  production repair, migration, dependency/infrastructure change, index edit, commit or push.
+
+### 2026-10-19: IA remediation
+
+- **IA-01, IA-02 and IA-GATE closed (uncommitted).** Archiving a hidden conditional answer now takes its active files
+  out of the answer and records their exact versions in the archive, including a file-only answer; imported values
+  record the Requirement revision they were taken under, and a value recorded for another Field reconciles as
+  `FIELD_CHANGED` instead of aborting reconciliation. See
+  the [deep analysis](information-request-deep-analysis-2026-10-19.md)'s remediation result for design, tests and gates.
+- Full backend **4,986/721** with zero failures/errors/skips (01:04 h), all 721 XML reports reconciled; full frontend
+  **1,420/260** (295 s); the audit's probes 11/11; scoped type/null/lint, root tsc, Vite and packaging pass.
+- Migrations V178 and V179. No dependency or infrastructure change, commit or push. Existing staged deletions remain
+  intact.
+
+### 2026-10-19: independent deep implementation analysis
+
+- **Not fully complete: IA-01, IA-02 (P2) and IA-GATE remain open.** Conditional Document archiving leaves files active
+  through reactivation and a later submission; Field rebinding can make retained source values abort reconciliation and
+  its REST adapter. See the [deep analysis](information-request-deep-analysis-2026-10-19.md) for reproduction, exact
+  source locations, phase traceability and repair boundaries. Prior repairs retain their original scopes.
+- Fresh full backend **4,961/720**, zero failures/errors/skips (01:00 h), every XML suite reconciled with the log and
+  current test source; domain **2,412/318**, migrations **312/82**, neutral scenarios **13/8**. Full frontend
+  **1,419/260** and all 67 help tests pass. Final independent probes **11 run: five intended failures, six controls
+  pass, zero errors/skips**; combined isolated controls **11/11**; exact restoration reproduces the failures. Probe
+  fixture and direct-REST limits are explicit in the report.
+- Scoped type/null/lint, root tsc, Vite and packaging pass. Actual app build compiler retains 339 unrelated diagnostics;
+  whole-app ESLint retains 59 errors and 46 warnings. Root tsc does not compile the app. No new live browser,
+  accessibility, delivery, storage/purge, restore or load sign-off is claimed.
+- Before handoff, 4250 surviving captured inputs are unchanged; 19 earlier audit documents disappeared and were not
+  recreated. Only the active plan and new audit/evidence artifacts change for this handoff; production and the Git index
+  remain unchanged, including all seven staged deletions. No production repair, migration, dependency or infrastructure
+  change, commit or push. Next: IA-01, IA-02, IA-GATE.
+
+### 2026-10-19: reviewer access to submitted files
+
+- USER DECISION: anyone a review shows an item's content to may open that item's submitted files, under the same rules
+  as reading it. Implemented on the package route through `InformationRequestReviewAccess.readsReviewedItem`; the
+  current collection's routes and the evidence authorization matrix are unchanged. See
+  the [history completeness audit](information-request-history-completeness-audit-2026-10-18.md)'s reviewer section.
+- Full backend **4,961/720** with zero failures/errors/skips (55:33), all 720 XML reports reconciled; full frontend
+  **1,419/260**; scoped type/null/lint, root tsc and Vite pass.
+- No migration, dependency, infrastructure change, commit or push. Existing staged deletions remain intact.
+
+### 2026-10-19: HC remediation
+
+- **HC-BUILD, HC-01, HC-02 and HC-GATE closed (uncommitted).** Retained submission files open through their package
+  after withdrawal, occurrence removal or an amendment that removes the Requirement; reconciliation leaves out values
+  whose Requirement left the current Version. See
+  the [history completeness audit](information-request-history-completeness-audit-2026-10-18.md)'s remediation result
+  for design, tests and gates.
+- Full backend **4,951/719** with zero failures/errors/skips (53:03), all 719 XML reports reconciled; packaging passes.
+  Full frontend 1,418 tests in 260 files; scoped gates pass; application-wide debt unchanged.
+- No migration, dependency, infrastructure change, commit or push. Existing staged deletions remain intact.
+
+### 2026-10-19: independent history completeness audit
+
+- **Not fully complete: HC-BUILD (P1), HC-01 and HC-02 (P2) and HC-GATE are open.** All 13 areas have production
+  implementations, but retained file reads and amendment-safe external reconciliation have confirmed interaction
+  defects. See the [history completeness audit](information-request-history-completeness-audit-2026-10-18.md) for source
+  locations, reproduction, phase traceability, verification and limits.
+- Independent real-PostgreSQL probes: seven tests, four passing controls and three intended assertion failures, zero
+  errors/skips. Temporary causal controls in an isolated source copy pass 7/7; restoring the exact production sources
+  reproduces the same three failures. The historical read must be package-authorized, not a blanket relaxation of active
+  occurrence guards.
+- Full frontend 1,413 tests in 260 files passes, including the final continuation rerun (350.41 seconds). Scoped
+  application/null type gates, root tsc, feature/help lint and Vite pass. Earlier isolated-copy packaging passed before
+  continuation; it is not a current-tree build pass. Raw application compilation retains 340 diagnostics; whole-app lint
+  retains 59 errors and 46 warnings. Current-tree `.\mvnw.cmd -B test` exits 1 after 45.454 seconds in production
+  compilation: `DocumentVersionReadHandle.kt` is missing its class-body opening brace, so no tests execute. Original
+  ignored target outputs were absent on resumption; no completed full backend result is claimed.
+- Only audit/handoff documentation and diagnostic sources outside normal test discovery are retained. No production
+  repair, migration, dependency or infrastructure change, commit or push. Existing staged deletions, including the
+  companion evidence journal, remain intact. Next: HC-BUILD, then HC-01, then HC-02, then HC-GATE.
+
+### 2026-10-18: LQ remediation
+
+- LQ-01: `InformationRequestEvidenceIntake` counts the per-respondent allowance over
+  `InformationRequestRequirementAuthorizationContextProvider.linkedIdentitiesOf(uploader)`: the uploader, its linked
+  account and every participant linked to that account (`ParticipantAccountLinkRepository.findForAppUser`).
+  `InformationRequestEvidenceVersionRepository.storedUsageForUploaders` sums them in one grouped query matched on exact
+  principal kind and ID, replacing `storedUsageForUploader`. Initial uploads and replacements share the check; withdrawn
+  and removed versions still count. Each version keeps the identity that uploaded it.
+- Tests: new `InformationRequestEvidenceRespondentAllowanceTransactionTest` (9, PostgreSQL). It covers the five promoted
+  probe cases, a linked replacement beyond the allowance, a replacement counted toward the shared allowance with
+  per-version uploaders, withdrawn files after linking, and a participant linked through an earlier request whose
+  existing link the upgrade reuses. Test-first against the unchanged source: 6 intended failures and 3 passing controls;
+  after the repair 9/9. Intake (+1), authorization context provider (+2) and persistence contract (grouped usage, exact
+  kind, empty set, other request).
+- Gates: targeted 499/60 (07:38); full backend 4,917/715 with zero failures, errors or skips (49:46) and 715 reconciled
+  XML reports; full frontend 1,413/260; root tsc, `typecheck:app` (0 Information Request of 340),
+  `typecheck:null-safety` (0 of 416), scoped ESLint (0 errors), help-docs 66, Vite build and packaging (01:40) pass.
+  Application debt is unchanged: whole-app ESLint has 59 errors and 46 warnings, and `buildWithTs` has 340 diagnostics.
+- Help: evidence article limits paragraph (149 lines). Docs: operator guide limit keys, API reference evidence routes,
+  release notes. Industry vocabulary check clean. No migration, commit or push.
+
+### Previous result, 2026-10-18: linked-identity quota audit
+
+- **Not complete: LQ-01 (P2) and LQ-GATE are open.** The same respondent can exceed configured evidence file/byte
+  allowances after account linking. Request-wide caps still hold. Phase 6 P6-T9 and Phase 12 P12-T5 are reopened only
+  for this quota/abuse scope.
+- Fresh full backend **4,905/714** has one Exchange notification assertion failure and zero errors/skips (56:37 min);
+  that class passes unchanged in isolation. Request services **1,960/259**, migration contracts **312/82**, and neutral
+  scenarios **13/8** pass. Full frontend **1,413/260**, packaging and scoped gates pass; existing application
+  compiler/lint debt remains. All 714 XML reports reconcile to the log.
+- Independent fixed-size PostgreSQL probes reproduce two intended allowance failures with three passing controls; the
+  test-only accounting control passes all five, and the control-off recheck reproduces both failures.
+  The [implementation audit](information-request-implementation-audit-2026-10-18.md) retains the exact diagnostic
+  source, root cause, phase traceability, commands, limits and next repair boundary.
+- Only the audit report, diagnostic source outside normal discovery and this plan handoff are retained review changes.
+  Existing production/test changes, the Git index and staged deletions are preserved. No production fix, migration, new
+  cloud resource, commit or push.
+
+### 2026-10-18: DGR remediation
+
+- DGR-01: `InformationRequestTemplateMaterializer.advance` provisions occurrence value sets from the request's Schema
+  assignment (`FieldsReadFacade.assignmentFor`), as the add command does, for every active occurrence after
+  reconciliation; `createOccurrenceValueSet` is idempotent, so missing sets are repaired.
+- DGR-02: `InformationRequestAmendmentPlan.targetCollectsFields`; `InformationRequestAmendmentGuard` refuses it on a
+  request without a Schema assignment with `AMENDMENT_SCHEMA_CHANGED`. Chosen over assigning during the amendment
+  because a Schema is assignable only in Draft.
+- Tests: `InformationRequestAmendedFieldOccurrenceTest` (6), guard (+2), classifier (+1). Affected suites 285/34, full
+  backend 4,905/714 with zero failures, errors or skips (52:53), full frontend 1,413/260; app typecheck, help-docs and
+  ESLint pass. Help: submission article amendment paragraph, API reference, release notes. Industry vocabulary check
+  clean. No migration, commit or push.
+
+### 2026-10-17: DG remediation
+
+- DG-01, amendment: `InformationRequestTemplateMaterializer.advance` reconciles every target group from the root down
+  after rebinding, adding occurrences under each active parent occurrence (or the root) until the minimum is met, so
+  nested minimums are provisioned in new occurrences. Identity indexes skip every path the request has held
+  (`InformationRequestGroupOccurrenceRepository.findAllForRequest`); existing occurrences, Requirements and answers are
+  untouched; a replay provisions nothing.
+- DG-01, submission: `InformationRequestSubmissionGroupCardinalityEvaluator` checks the scope's anchoring groups and
+  their ancestors against configured bounds under every active parent.
+  `InformationRequestSubmissionReadiness.groupProblems` (DTO `groupProblems` on preview and refusal) is named to a
+  caller who may add an occurrence to the group (`permitsGroupCreation`), otherwise counted as undisclosed; the
+  readiness list names the section and the entries it needs.
+- DG-02: `InformationRequestAmendmentClassifier` puts the anchor's whole ancestor chain into a Requirement's meaning, so
+  the unchanged submitted-scope guard refuses enclosing-group changes that reach a submitted stage and accepts those
+  reaching only open stages.
+- Tests: `InformationRequestAmendedGroupCardinalityTest` (11), classifier (+1), readiness evaluator (+2), readiness list
+  (+1). Affected suites 169/22, full frontend 1,413/260, full backend 4,896/713 with zero failures, errors or skips (51:
+  50; the run also carried the temporary probe class, excluded from that count); feature type/null/lint, help-docs, root
+  tsc and Vite pass. Help: submission article, API reference and release notes. Industry vocabulary check clean.
+- Environment: `target/` was emptied by a process outside this work (about 19:36 to 19:43), including
+  `target/ir-deep-analysis-20261017/`; builds ran from a scratch copy. No migration, commit or push.
+
+### 2026-10-17: Independent deep implementation analysis
+
+- Open P2 findings: DG-01 amended group minimums can be bypassed at submission, and DG-02 ancestor-group changes bypass
+  the submitted-stage amendment guard. Six independent behavioral assertions fail; four controls pass, with zero
+  errors/skips in the final 10-test run.
+- Fresh full backend 4882/712, migrations 312/82, neutral conformance 13/8, frontend 1,412/260 and packaging pass.
+  Feature type/null/lint, root tsc and Vite pass; broader application TypeScript/lint debt remains. Fresh XML and
+  execution logs reconcile.
+- Next: DG-01, DG-02, then DG-GATE. See
+  the [deep implementation analysis](information-request-deep-implementation-analysis-2026-10-17.md) for exact
+  reproduction, scope, environment recovery, and evidence. No application repair, permanent test change, migration,
+  infrastructure change, commit, or push. The source snapshot, Git index, and seven staged deletions are preserved.
+
+### 2026-10-17: IC remediation
+
+- IC-01: `InformationRequestEvidenceEvaluationService` counts a substitute only while it applies; a Conditional
+  substitute whose condition is false, unknown or unevaluated at its occurrence (else the root) completes nothing, and
+  retained files count again with their exact versions once it applies.
+- IC-02: supported boundary, not cross-stage dependency membership. A `STAGED` Template refuses a substitute from
+  another submission stage when written and again at publication, and the editor preflight names the relying
+  Requirement. Cross-stage supporting evidence, which never completes an item and which the walking-skeleton stress
+  fixture uses on purpose, stays allowed. Same-stage alternatives are ordinary stage items, so hash, frozen evidence,
+  attestation, lock, withdrawal and amendment rules already cover them.
+- IC-03: shared `InformationRequestClockPolicyRules`; zero escalation valid, overlaps (`period.overlap`) and repeated
+  reminders (`collection.duplicate`) refused by both, calendar policies take no working periods in either.
+- Tests: new `InformationRequestSubstituteEvidenceScopeTest` (7), `InformationRequestClockPolicyBundleParityTest` (24),
+  `InformationRequestClockPolicyRulesTest` (3); additions to the evaluation (+6), submission-policy validation (+1),
+  publication readiness (+1), bundle validator (+1) and web draft validation (+1) tests. Full gates: backend 4,882/712
+  with zero failures, errors or skips (49:38), migrations 312/82, frontend 1,412/260, feature type/null/lint, root tsc
+  and Vite pass.
+
+### 2026-10-17: Independent completeness analysis
+
+- Three open P2 findings: IC-01 hidden alternative eligibility, IC-02 cross-stage alternative snapshots, IC-03 clock
+  bundle validation parity. Seven new assertions fail through real PostgreSQL submission paths and the public
+  bundle-validation path, with eight new controls passing. The source-restored combined run repeats seven failures and
+  31 passes in 38 executions with no errors/skips; a temporary bundle-only control passes 29/29 and is restored.
+- Full backend 4,839/709, migrations 312/82, neutral conformance 13/8, frontend 1,411/260 and packaging pass, with
+  reconciled fresh reports. Feature type/null/lint and Vite pass; broader raw TypeScript/typed-build and lint debt
+  remains. All starting inputs and the index were preserved before this report/plan handoff; no production repair,
+  permanent test edit, migration or infrastructure change.
+- Next: IC-01, IC-02, IC-03, then IC-GATE. Detailed evidence and limits are in
+  the [completeness analysis](information-request-completeness-analysis-2026-10-17.md). The staged completion-evidence
+  deletion stays intact. No commit or push.
+
+### 2026-10-17: Audit-key remediation
+
+- Result: **AK-01 and AK-GATE are closed (uncommitted).** Audit identity for transitions inside commands now comes from
+  the active receipt and the transition, so different callers, caller kinds, operations and requests sharing a raw key
+  keep separate audit records. Retries and system events behave as before.
+- Architecture: `CommandActorRef`, `CommandReceiptRequest`, `CommandResultReference`, `CommandMutationResult`,
+  `CommandReceiptDecision`, `CommandPrecondition` and `ResourceRevision` moved to `model/command`; services, exceptions,
+  `canonicalForm` and `RevisionETag` stay in `service/command`. Callers changed imports only.
+- Verification: full backend 4,839/709, zero failures/errors/skips (54:57); full frontend 1,411/260; packaging 1:42.
+  Targeted red/green: 7 intended failures of 28 before, 50/50 after. Logs: `target/ak01/`.
+- Docs: API reference and release notes updated; help reviewed and unchanged. Industry-neutral check: new identifiers
+  and fixtures are neutral. No migration, API change, cloud resource, commit or push.
+
+### Previous result, 2026-10-16: Audit-key completeness review
+
+- Result: **not complete: AK-01 (P2) and AK-GATE are open**.
+  The [audit-key completeness review](information-request-audit-key-completeness-review-2026-10-16.md) reproduces lost
+  audit events across callers and operations while both command receipts and transitions commit. Reopen only Phases 5,
+  7, 9 and 12 in those scopes; preserve prior closures and exclusions.
+- Fresh existing regression: backend **4824 tests in 707 classes, zero failures/errors/skips**; migrations 312/82;
+  neutral scenarios 13/8. Frontend **1,411/260**. Packaging, Vite, feature lint and feature type/null-safety gates pass;
+  raw app TypeScript/typed build retain 340 unrelated diagnostics and whole-app lint retains 59 errors/46 warnings.
+- Independent probes: original and byte-identical restored source each have 3 intended failures and 6 passes in 9 tests;
+  receipt-identity control 9/9. The first six cases also pass with the narrower caller control. One added-probe enum
+  compile error is preserved separately and excluded from behavioral evidence.
+- Preservation: 4,386 captured inputs, original probe inputs, packaging inputs and the Git index matched before handoff.
+  Only this plan and the report are retained edits; production, permanent tests, migrations, infrastructure and staged
+  deletions remain. No commit or push. Evidence: `target/ir-completion-review-20261016/`. Next: AK-01, then AK-GATE.
+
+### Previous result, 2026-10-16: Systematic implementation audit
+
+- No new actionable functional defect or missing core capability was confirmed in the reviewed paths.
+  The [systematic audit](information-request-systematic-audit-2026-10-16.md) records plan-to-code traceability, accepted
+  exclusions and the remaining live/deployed verification limits. No production fix or new probe was added.
+- Fresh full backend: **4,824 tests in 707 classes, zero failures/errors/skips**, 55:39; migrations 312/82 and eight
+  neutral scenarios 13/8 included. Each fresh XML suite matches the executed-class log; 13 stale probe reports are
+  excluded and preserved separately. Full frontend: **1,411/260**, 338.47 seconds. Isolated packaging passes with tests
+  explicitly skipped. Feature type/null-safety gates, feature lint and Vite build pass; the raw app compiler/typed build
+  retain 340 unrelated diagnostics and whole-app lint retains 59 errors/46 warnings.
+- Preservation: zero changes among 4,229 covered starting inputs and unchanged staged entries. Only the audit report and
+  this verification handoff are retained edits. The completion-evidence journal remains staged deleted. No migration,
+  cloud resource, commit or push. Evidence: `target/ir-systematic-audit-20261016/`.
+
+### Previous result, 2026-10-16: Boundary completeness audit remediation (BC-01, BC-02, BC-GATE)
+
+- BC-01, BC-02 and BC-GATE were closed test-first at the user's request, uncommitted; see
+  the [report](information-request-boundary-completeness-audit-2026-10-16.md)'s "Remediation result (2026-10-16)".
+  `InformationRequestConnectorWorker.acceptsValues` now also calls `gate.requireContinuation(locked, RESPOND)`, at both
+  the claim and the record boundary. `InformationRequestSubjectRestrictionRepository.lockSubject` takes a
+  transaction-scoped advisory lock on owner and subject, which `restrict` takes before `findActiveForUpdate`.
+- Regressions: six connector worker tests (revocation and suspension before and during the call, active-grant and
+  commercial-lapse controls) and three privacy race tests (different keys, same key, different subjects). Against the
+  original sources: 5 intended failures in 30, matching the audit; repaired: 30/30.
+- Verification: One clean full backend run: **4,824 tests in 707 classes, 0 failures, errors or skips** (54:37; the
+  audit's 4,815 plus the nine new regressions), including 312 migration contract tests in 82 classes. Full frontend
+  1,411/260; packaging, Vite build, `typecheck:app` (340/0) and `typecheck:null-safety` (416/0) pass. Help: the External
+  Sources article's Connectors paragraph, the API reference and the release notes are updated. Evidence:
+  target/bc-remediation-20261016/. No migration, cloud resource, commit or push.
+
+### Previous result, 2026-10-16: Boundary completeness audit (BC-01, BC-02)
+
+- The [boundary completeness audit](information-request-boundary-completeness-audit-2026-10-16.md) confirms BC-01 (P2,
+  connector calls and imported values after grant revocation or operational suspension) and BC-02 (P2, concurrent
+  creation of one subject restriction ends one privacy request in an internal database error). No production repair is
+  retained; reopen only the affected Phase 9, 11 and 12 scopes.
+- Fresh verification: backend 4,815/707, zero failures/errors/skips (53:44); migrations 312/82; conformance 13/8;
+  frontend 1,411/260; packaging passes with tests skipped. Independent baseline and recompiled restored source each
+  reproduce five intended failures with 25 passing controls; temporary worker continuation and owner/subject
+  serialization controls pass all 30. Feature type/lint gates pass; raw app TypeScript and typed build retain 340
+  unrelated diagnostics, and whole-app lint retains 59 errors/46 warnings.
+- Preservation: zero changes among the 4,313 starting inputs covered by the manifest; staged Git entries unchanged. Only
+  audit handoff documentation is retained. Probe source and separate baseline/control/restored evidence are under
+  target/ir-full-audit-20261016/. The completion-evidence journal remains staged deleted. No migration, cloud resource,
+  commit or push.
+
+### Previous result, 2026-10-16: Deep completeness audit remediation (ND-01, ND-GATE)
+
+- ND-01 and ND-GATE were closed test-first at the user's request, uncommitted; see
+  the [report](information-request-deep-completeness-audit-2026-10-16.md)'s "Remediation result (2026-10-16)". Notice
+  delivery and rendering share-lock the parent Exchange and the request (explicit `FOR SHARE`, then refresh) before
+  eligibility and sending; delivery then locks the notice and the party. Disposal finalize locks the Exchange and
+  request first. The policy-dialog gate flake was tabster `aria-hidden` state in isolated jsdom tests; the wire test
+  queries with `hidden: true`.
+- Verification: new 15-test notice serialization class red 9 intended failures, then 15/15; existing notice tests 15/15;
+  full backend 4,815 tests in 707 classes, 0 failures, errors or skips (60:20); packaging passes; full frontend
+  1,411/1,411 with default, four and one worker under a concurrent full backend run; type gates 340/0 and 416/0.
+- Docs: API reference (delivery, render and disposal locks) and release notes updated; help wording unchanged because it
+  already states the restored contract. Evidence: target/nd01-remediation-20261016/. No migration, cloud resource,
+  commit or push; the Git index and its staged deletions are unchanged.
+
+### Previous result, 2026-10-16: Deep completeness audit (ND-01, ND-GATE)
+
+- The [audit](information-request-deep-completeness-audit-2026-10-16.md) confirms ND-01 (P2): queued notice delivery
+  reads its request before waiting on its party and sends after cancellation commits. Two unchanged baseline runs and a
+  restored-source run reproduce 1 intended failure/17 passes; a temporary disposable-copy stale-state control passes
+  18/18 and is restored. No production repair is retained.
+- Fresh verification: backend 4,800/706, migrations 312/82, conformance 13/8; frontend default 1409/1411, four workers
+  1410/1411, serial 1410/1411, isolated failed files 35/35. The policy-dialog gate remains unresolved. Feature type/lint
+  gates, Vite and packaging pass; broader raw app gates fail as recorded.
+- Reopen Phases 9 and 12 only for ND-01/ND-GATE. All starting inputs and the index matched before the documentation
+  handoff. Only the report and plan are retained edits; no migration, cloud change, commit or push. Evidence:
+  target/information-request-audit-20261016/.
+
+### Previous result, 2026-10-16: Independent completeness recheck remediation (SX-01, SX-GATE)
+
+- SX-01 and SX-GATE were closed test-first at the user's request, uncommitted; see
+  the [report](information-request-independent-completeness-recheck-2026-10-15.md)'s "Remediation result (2026-10-16)".
+  Subject ACCESS and EXPORT now take the canonical sorted parent-Exchange then request locks (`gate.lockExisting`)
+  before loading their sources, so the saved subject record shows each request at one moment and a cancellation or
+  submission waits for it. The export service's unused request repository dependency was removed.
+- Verification: new `InformationRequestSubjectExportSnapshotTransactionTest` red 6 failures/3 controls against the
+  original file, then 9/9; the original four probes 4/4; affected classes 161/21; full backend 4,800 tests in 706
+  classes, 0 failures, errors or skips (50:00); full frontend 1,411 tests in 260 files (463 s); packaging passes (1:34,
+  tests skipped).
+- Docs: API reference (access/export lock order) and release notes updated; help wording unchanged because it already
+  states the restored behavior. Evidence: target/sx01-remediation-20261016/. No migration, cloud resource, commit or
+  push; the Git index and its staged deletions are unchanged.
+
+### Previous result, 2026-10-15: Independent completeness recheck (SX-01)
+
+- The [report](information-request-independent-completeness-recheck-2026-10-15.md) confirms SX-01 (P2): both subject
+  privacy export paths can save an earlier ISSUED request beside its later CANCELLED history. Real
+  PostgreSQL/canonical-command probes have two intended assertion failures and two passing controls; the
+  shared-source-lock control passes 4/4, and exact restoration/recompilation returns 2 failures/2 passes. No repair is
+  retained.
+- One clean full backend run passes 4,791 tests in 705 classes (55:23 min), zero failures/errors/skips; migrations
+  312/82, conformance 13/8. Full frontend 1,411/260, retained independent probes 79/9 and clock invariants 26,400 pass.
+  Baseline/null-safety gates have zero feature diagnostics; scoped lint, root tsc, Vite and packaging pass. Whole-app
+  lint and typed-build debt remains explicit.
+- Evidence: target/ir-independent-audit-20261015/. All 4,251 starting inputs and the Git index match before this
+  report/plan handoff; staged completion-evidence deletion is preserved. Reopen Phase 9 records and Phase 12 acceptance
+  for SX-01, then SX-GATE; earlier closures and accepted exclusions remain. No migration, cloud resource, commit or
+  push.
+
+### Previous result, 2026-10-15: RN recheck remediation (CE-01) and null sweep
+
+- CE-01 and CE-GATE were closed test-first at the user's request, uncommitted and client only; see the RN recheck
+  report's "Remediation result (2026-10-15)". The policy version type admits `null` for `escalationAfterMinutes` and the
+  Communication ids; `formFromVersion` and `clockPolicySentence` treat null as disabled and keep 0 and positive delays.
+  The real panel over XHR republishes four versions (null, omitted, 0, 120) with only Urgent hours changed and posts no
+  escalation, no escalation, 0 and 120.
+- Verification: full frontend 1,376/254; backend 88 tests in 10 classes; the recheck's 72 probes pass; red 4/20 then
+  24/24; two guard mutations; `typecheck:app`, lint, Vite and packaging pass. Correction: `strict` is false in
+  `tsconfig.app.json`, so the app typecheck does not check null and the RN record's 0 diagnostics after the retype
+  proved nothing about null safety.
+- Found while testing: a sweep (`--strictNullChecks` type-check diff and undefined-guard scan over 226 nullable response
+  properties) plus differential probes confirmed NS-01..NS-03 (P2) and listed NS-04 (P3); see
+  `## Null Sweep Findings (2026-10-15)`. Not repaired; the approach is the user's to choose. Evidence:
+  `target/20261015-cp-remediation/`. No migration, commit or push.
+
+### Previous result, 2026-10-15: Independent RN remediation recheck (CE-01)
+
+- RN-01, RN-02 and their nullable timestamp scope are independently verified by
+  the [new recheck](information-request-rn-remediation-recheck-2026-10-15.md). All 104 timestamp properties match the
+  server, with 44 nullable across 28 interfaces and request types unchanged. All 64 retained probes, including the
+  original RN failures, pass unchanged. The configured-Json backend contract class and real HTTP no-clock queue case
+  pass freshly.
+- CE-01 remains: disabled escalation is serialized as null; the existing policy form converts it to the string 0, and
+  changing only urgent hours publishes escalationAfterMinutes:0. The summary also claims immediate escalation. Four
+  policy probes fail with four controls; two temporary mirror-only guards make 8/8 pass and were restored exactly. A
+  zero delay is accepted and schedules escalation at the due time for clocks using the new version. These production
+  consumers were unchanged by RN remediation.
+- Fresh verification: frontend 1,369/252, focused backend 54/5 and packaging pass. The full backend was not rerun
+  because production inputs remain unchanged from the previously verified 4,776/705 evidence. App/probe TypeScript 0
+  feature/probe diagnostics and 340 unrelated; feature lint 0 errors/3 existing warnings; whole-app lint 59/46; Vite
+  passes and typed build keeps its baseline failures.
+- Handoff: CE-01 then CE-GATE; Phase 9 policy editing, Phase 10 editor/summary and Phase 12 acceptance reopened.
+  Production inputs, mirrors and Git index preserved before report/plan edits; staged deletions preserved. RN/RS/DT/PV
+  and earlier domain/security closures remain verified. Evidence: target/ir-rn-recheck-20261015/. No migration, commit
+  or push.
+
+### Previous result, 2026-10-15: RS recheck remediation (RN-01 and RN-02)
+
+- The [RS remediation recheck](information-request-rs-remediation-recheck-2026-10-15.md)'s RN-01, RN-02 and RN-GATE were
+  closed test-first at the user's request, uncommitted. The fix changes the web client only, with no migration, server
+  production change, API change, AWS service or backwards-compatibility code; see its "Remediation result (2026-10-15)".
+  The client contract was aligned rather than normalized at the boundary: the 44 response timestamps whose Kotlin
+  property is `Timestamp?` are typed `?: number | null`, changed by script from the same inventory, and request fields
+  stay `?: number`. `ReusableAnswerOffer`, `operationsCsv`, `formatInformationRequestTime`, `formattedTime` and
+  `partyAccessLink` read null as unset and keep zero as the epoch. The typecheck stays at 0 Information Request
+  diagnostics, and a consumer scan found no other undefined-only guard on those fields.
+- Verification: full frontend **1,369 tests in 252 files** (438 s); focused backend **54 tests in 5 classes** (03:30)
+  and packaging pass. The full backend was not rerun: backend production code is unchanged since 4,776/705. Red first: 7
+  intended failures and 30 passes, then 37 of 37. Five guard mutations failed only their intended cases and were
+  restored by SHA-256. `InformationRequestResponseTimestampContractTest` now injects the configured `Json` and reads the
+  real queue over HTTP, which returns `"nearestDueAt": null` for an issued request without a clock. `typecheck:app` 0
+  Information Request diagnostics (340 unrelated); root tsc, feature/help lint and the Vite build pass; whole-app lint
+  keeps its baseline.
+- Evidence: `target/20261015-rn-remediation/`. Next task: none confirmed in the checked scopes. Next migration V178,
+  subject to recheck. No commit or push.
+
+### Previous result, 2026-10-15: Independent RS remediation recheck (RN-01 and RN-02)
+
+- RS-01 and RS-02 pass their original numeric response reproductions.
+  The [new recheck](information-request-rs-remediation-recheck-2026-10-15.md) confirms RN-01 and RN-02: explicit null
+  date bounds become a false 1970 reusable-answer cutoff, and nearestDueAt:null becomes a false 1970 CSV deadline.
+  Production serialization plus real XHR/client/component/export probes reproduce both. The shared formatters and
+  optional numeric model declarations miss the same nullable contract; 44 of the 104 converted server response
+  timestamps are nullable, which is review scope rather than 44 runtime findings.
+- Fresh checks: frontend 1,361/252, focused backend 51/5, retained independent cases 51/51 and packaging pass. Nullable
+  probes give 5 intended failures and 8 controls; mirror-only null guards give 22/22 and were restored exactly. The
+  remediation's recorded backend 4,776/705 is reconciled against log/XML; the full suite was not rerun because backend
+  production inputs match the prior independent 4,774/704 run, with only the new two-case contract class added and
+  freshly tested. App/probe TypeScript 0 feature/probe diagnostics, 340 unrelated; feature lint 0 errors/3 existing
+  warnings, whole lint 59/46; Vite passes, typed build retains the unrelated baseline.
+- Handoff: RN-01/RN-02 then RN-GATE; Phase 9 CSV, Phase 10 nullable-date UX and Phase 12 acceptance reopened. Production
+  files, source mirrors, Git index and staged deletions preserved before this report/plan update. RS-01/RS-02,
+  DT-01/PV-01 and prior security/domain closures remain verified. No migration, commit or push. Evidence:
+  target/ir-rs-recheck-20261015/.
+
+### Previous result, 2026-10-15: DT/PV recheck remediation (RS-01 and RS-02)
+
+- The [recheck](information-request-dt-pv-remediation-recheck-2026-10-15.md)'s RS-01, RS-02 and RS-GATE were closed
+  test-first at the user's request, uncommitted. The fix changes the web client only, with no migration, server
+  production change, API change, AWS service or backwards-compatibility code; see its "Remediation result (2026-10-15)".
+  `models.tsx` types 104 Information Request response time fields in 56 interfaces as `number`, re-derived field by
+  field from each Kotlin DTO's `TimestampSerializer`. `ReviewDecisionHistory` sorts numerically, `partyAccessLink`
+  compares `expiresAt <= now`, and the operations CSV writes UTC ISO-8601. The formatting, reuse validity and reminder
+  helpers take numbers. Recurrence request `firstDueAt` and reminder `cooldownUntil` stay ISO strings.
+- Verification: full frontend **1,361 tests in 252 files** (496 s); full backend **4,776 tests in 705 classes**, zero
+  failures/errors/skips (50:33), including migrations 312/82 and scenarios 13/8; packaging passes. Red first: 11
+  intended failures and 25 passes in 10 focused files on unchanged production code; fixed, 36 of 36. New permanent
+  cases: frontend 10 plus a help assertion, and backend 2 pinning numeric `decidedAt`, `expiresAt` and `createdAt` in
+  the production serializer. `typecheck:app` 0 Information Request diagnostics (340 unrelated); root tsc, feature/help
+  lint and the Vite build pass; whole-app lint keeps its baseline.
+- Provenance: the client repair was the unapplied worktree patch
+  `.claude/worktrees/blissful-einstein-de19be/rt-01-response-timestamps.patch`. It was applied in two steps, tests
+  first, to obtain the red run, with one spacing fix in `operationsCsv.ts`. Its records patch no longer matched this
+  plan, so only its API reference and release note hunks were used.
+- Evidence: `target/20261015-rs-remediation/`. Next task: none confirmed in the checked scopes. Next migration V178,
+  subject to recheck. No commit or push.
+
+### Previous result, 2026-10-15: Independent DT/PV remediation recheck (RS-01 and RS-02)
+
+- DT-01 and PV-01 are independently verified within their repaired scopes.
+  The [recheck](information-request-dt-pv-remediation-recheck-2026-10-15.md) confirms the previously noted
+  response-timestamp defects RS-01 (review history throws with two decisions) and RS-02 (numeric elapsed link expiry is
+  shown as active with Resend). Overall acceptance remains open for these client consumers and their canonical response
+  models. Server link expiry still fails closed.
+- Fresh verification: backend 4,774/704, migration 312/82, conformance 13/8 and the 30 new permanent backend cases pass
+  without retries; frontend 1,351/250 pass; 42 independent retained/preview cases pass. Numeric response probes give 3
+  intended failures/8 controls; temporary consumers make all 11 pass and are exactly restored. Packaging-only verify,
+  feature type/lint and Vite build pass; unrelated whole-app type/lint failures and manual/deployed limits remain.
+- Handoff: only this plan and the new report changed; production inputs, regression mirrors, Git index and staged
+  deletions preserved. Next coordinated RS-01/RS-02 response contract repair, then RS-GATE. No migration, commit or
+  push.
+
+### Previous result, 2026-10-15: Verification audit remediation (DT-01 and PV-01)
+
+- The [verification audit](information-request-verification-audit-2026-10-14.md)'s DT-01, PV-01 and DT-PV-GATE were
+  closed test-first at the user's request, uncommitted, with no migration, new AWS service, or backwards-compatibility
+  code; see its remediation result. DT-01 is client only: the six date-bearing request fields are typed `number` and the
+  Assign reviewer, Promote, and Record decision dialogs send `epochMillisFromLocalInput`, while recurrence `firstDueAt`
+  and the audit search's ISO query times are unchanged. PV-01 adds `GET .../parties/{partyId}/recipient-preview`
+  (`InformationRequestRecipientPreviewService`), which needs party management, accepts an active Contributor, Preparer,
+  or Attestor of the same request, and projects the Template Version through the policy evaluator's new
+  `disclosesToParty` and the recipient-safe projection now shared with the response workspace
+  (`InformationRequestRecipientTemplateProjection`). The author page's preview dialog offers those parties under Preview
+  for.
+- Verification: full frontend **1,351 tests in 250 files** (512 s); full backend **4,773 tests in 704 classes**, zero
+  failures/errors/skips (53:02, scratchpad mirror byte-identical to the checkout), including 312 migration cases in 82
+  classes and the eight neutral scenarios' 13 cases; a later draft-preview case passed with its class (8 of 8). New
+  permanent cases frontend 15 and backend 30; on the original code the wire test failed 3 dated cases with 3 controls
+  passing, the preview PostgreSQL cases failed 7 of 7 against a stub returning the caller's own projection, and the
+  author page failed its 3 new cases. Three backend guard mutations failed exactly their 5 intended cases and were
+  restored by SHA-256; captured real HTTP payloads replayed through the author page pass. `typecheck:app` 0 Information
+  Request diagnostics (340 unrelated); root tsc, feature/help lint and the Vite build pass; whole-app lint keeps its
+  baseline.
+- Found while testing: response timestamps are epoch-millisecond numbers too, but the client's response types say
+  strings; a probe shows the review decision history throws with two decisions and the party row misses a lapsed access
+  link expiry. This is outside DT-01's request fields and was offered as separate work. The audit's own timestamp and
+  captured-preview probes were not rerun unchanged, because they drive the old string contract and the old preview data
+  path; the new tests and the real-payload replay replace them.
+- Evidence: target/20261015-dt-pv-remediation/. Next task: none confirmed in the audited scopes. Next migration V178,
+  subject to recheck. No commit or push.
+
+### Previous result, 2026-10-14 (late evening): Independent verification audit (DT-01 and PV-01)
+
+- Result: **not fully implemented within the accepted scope**. DT-01 prevents required UI Business Decision request
+  parsing and optional dated reviewer/fact commands; it also affects explicit receivedAt on the typed clock client.
+  PV-01 makes a normal non-answering owner's recipient preview empty. Full evidence, reproduction boundaries, source
+  references, rejected hypotheses and next work are in
+  the [audit report](information-request-verification-audit-2026-10-14.md).
+- Verification: frontend 1,338/248 pass; effective backend 4,744/701 pass after the eight-class 44-case startup retry;
+  migration 312/82 and conformance 13/8 pass. Raw full Maven invocation remains exit 1 with 8 startup errors/36 skips;
+  retry exit 0. Retained browser probes 37 pass and parent-lock PostgreSQL probes 4 pass. Independent date and preview
+  probes reproduce the two defects with successful controls. Packaging-only verify and feature gates pass; unrelated
+  whole-app type/lint failures and live/deployed limits remain recorded.
+- Handoff: production sources, infrastructure, help articles, source-identical regression mirrors and Git index
+  preserved. Only this plan and the new report changed. Companion journal/report deletions are preserved. Next DT-01,
+  then PV-01, then DT-PV-GATE; no migration, commit or push.
+
+### Previous result, 2026-10-14 (evening): Deep audit remediation (TB-01 and TB-02)
+
+- The [deep audit](information-request-deep-audit-2026-10-14.md)'s TB-01 and TB-02 were closed test-first at the user's
+  request, uncommitted and frontend only, with no migration, server or API change, AWS service, or
+  backwards-compatibility code; see its remediation result. A refused file request's body is read as JSON by content,
+  not by label (`decodeJsonErrorBody`, first in `apiClient`'s error handler), because the server labels refused
+  `content` and `preview` reads `*/*`; an ended access session now returns the respondent to verification and other
+  refusals show the server's reason. `useRequirementEvidence.open` opens a late file only while the panel still lists
+  that artifact with that version as its latest.
+- Verification: full frontend **1,338 tests in 248 files** (453.17 s); new permanent cases frontend 40 and backend 6; on
+  the original source 25 intended failures and 87 passes; the audit's probes 37 of 37 unchanged on the fix, 9 failures
+  and 5 controls on its untouched copy; 11 frontend mutations and 1 mirror-only backend mutation each fail only their
+  intended cases and were restored exactly. Backend production inputs are byte-identical to the audit's 4,738-test full
+  run; the new class passes 6 of 6 in a mirror. The full backend then passed **4,744 tests in 701 classes, zero
+  failures/errors/skips (51:54, mirror identical to the checkout)**, including 312 migration cases in 82 classes and the
+  eight neutral scenarios' 13 cases. `typecheck:app` 0 Information Request diagnostics (340 unrelated); root tsc,
+  feature/help lint and the Vite build pass; whole-app lint keeps its baseline.
+- Found while testing: the backend contract test's first version asserted `application/json` and failed 6 of 6 on the
+  server's `*/*` label, which the audit's probe server (`application/json`) did not model; the client therefore decodes
+  by content. Declaring `application/json` on those refusals is offered as separate work. The audit's new section had
+  been inserted inside the previous next-task bullet of Status; it now sits before
+  `## Full Feature Audit Follow-Up (2026-10-14)`. The Edit tool rewrote `apiClient.ts`'s mixed line endings, so the file
+  was rebuilt from its original bytes plus the two added lines.
+- Evidence: target/20261014-tb-remediation/. Next task: none confirmed in the checked scopes. Next migration V178,
+  subject to recheck. No commit or push.
+
+Keep only the newest implementation or verification result here. Detailed historical results live
+in `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md`, which is staged for deletion
+in the working tree, so the result below is recorded in full in the latest audit report.
+
+### Previous result, 2026-10-14: Independent deep audit (TB-01 and TB-02)
+
+- Verdict: not complete. The [new report](information-request-deep-audit-2026-10-14.md) records two P2 browser defects
+  with nine intended assertion failures and five passing controls across 14 independent cases. Earlier
+  backend/identity/retirement/quota closures and accepted limits remain intact.
+- Fresh backend: 4,738 tests in 700 classes; zero failures/errors/skips; 55:28 min; migrations 312/82; eight neutral
+  scenarios 13/8. Fresh frontend: 1,297/245, all pass; retained independent browser probes 23/23. Feature/probe
+  typecheck and lint, root tsc, Vite build and packaging-only verification pass within the explicitly recorded
+  baseline/manual limits.
+- Next: TB-01, TB-02, then TB-GATE. No production repair, permanent test change, migration, infrastructure change,
+  commit or push. Raw evidence is in `target/ir-audit-20261014/`; existing staged evidence deletions are preserved.
+
+### Previous result, 2026-10-14 (afternoon): Full feature audit remediation (FU-01 to FU-03)
+
+- The [full feature audit](information-request-full-feature-audit-2026-10-14.md)'s FU-01, FU-02 and FU-03 were closed
+  test-first at the user's request, uncommitted, with no migration, AWS service, or backwards-compatibility code; see
+  its remediation result. Reviewer file openings (`useReviewEvidenceOpening`), request record downloads
+  (`useRecordExports`) and subject record downloads (`usePrivacyRecordDownload`) now act only while the view that asked
+  is still mounted and, where it has one, still shows the same request (for files, also the same item and Evidence
+  Version). `InformationRequestRecordExportService` takes `InformationRequestRecordExportRepository.lockOwnerAllowance`
+  for the request's canonical owner before counting the daily ceiling.
+- Verification: full backend **4,738 tests in 700 classes, zero failures/errors/skips (52:45, mirror)**, including 312
+  migration cases in 82 classes and the eight neutral scenarios' 13 cases; full frontend **1,297 tests in 245 files**
+  (522.59 s). New permanent cases: frontend 45, backend 8; on the original code 26 frontend and 3 PostgreSQL cases, and
+  the unit ordering pin, failed. The audit's probes pass unchanged (browser 15/15, PostgreSQL 5/5). Six frontend guard
+  mutations and a global-key mutation each fail only their intended cases and were restored exactly.
+- Found while testing FU-03: Hibernate follow-on locking (HHH000444) also row-locks the parent Exchange's eager
+  `initiator` user, so exports on Exchanges started by the same person were already serialized as a side effect; the
+  personal-owner race therefore uses Exchanges started by different people. `typecheck:app` has 0 Information Request
+  diagnostics (340 unrelated); root tsc, feature/help lint and the Vite build pass; whole-app lint keeps its unrelated
+  baseline. Help (review 149, operations 147, record preservation 85 lines), the API reference, operator guide and
+  release notes are updated, and the rendered help text changed only in the new sentences.
+- Evidence: target/20261014-fu-remediation/. Next task: none confirmed in the checked scopes. Next migration V178,
+  subject to recheck. No commit or push.
+
+### Previous result, 2026-10-14: Independent DR remediation recheck
+
+- DR-01 is independently verified within its recorded respondent evidence scope.
+  The [new report](information-request-dr-remediation-recheck-2026-10-14.md) records both earlier Preview and Download
+  failures now passing, six extra page-leave/request/Requirement scope cases passing, and no newly confirmed defect. The
+  original 44 frontend probes pass unchanged; the expanded 50 pass again after restoring controls. Removing the mount
+  guard fails four retired-page/respondent cases; removing the scope guard fails four request/Requirement-change cases.
+  All temporary changes restore original bytes.
+- Fresh full frontend: **1,252 tests in 241 files** (522.71 s), all pass. Fresh backend probes: **36 tests in seven
+  classes**, zero failures/errors/skips (05:13). All 2,506 backend inputs are byte-identical to the preceding full
+  backend's **4,730 tests in 699 classes**, including 312 migration cases in 82 classes and the eight neutral scenarios'
+  13 cases; the full backend and packaging-only check were not rerun. The preceding implementation result is retained in
+  the linked CR report's remediation section.
+- Application TypeScript: zero feature/probe diagnostics and 340 accepted unrelated diagnostics. Feature/help lint has
+  zero errors and three existing registry warnings; root tsc and production Vite build (24.76 s) pass. Whole-app
+  lint/typed build were not repeated. The access/evidence articles (109/148 lines), help tests, API/release text,
+  REST/component structure, neutral naming and existing S3 disposal permissions were checked. The extracted fixture is
+  test support used only by two page tests. No live browser/email/AWS or waived width sweep ran.
+- All 4,216 starting inputs and 4,185 full-suite mirrored inputs matched before handoff edits; both probe mirrors'
+  original inputs match too. Only this report and the active plan change; staged journal deletion and Git index
+  retained. Four stale Phase 4, 6, 10 and 12 status cells now agree with their recorded closure. Evidence:
+  target/20261014-dr-remediation-recheck/. Next task: none confirmed in the checked respondent scope; separately
+  recorded reviewer/privacy/export download and token-refresh observations remain unresolved outside this repair. Next
+  migration V178, subject to recheck. No production repair, commit or push.
+
+### Previous result, 2026-10-14: Independent CR remediation recheck (DR-01)
+
+- CR-01 is independently verified within its recorded scope.
+  The [new report](information-request-cr-remediation-recheck-2026-10-14.md) confirms DR-01, P1: a pending evidence
+  preview/download invokes browser actions with the earlier respondent's Blob after the workspace names another
+  respondent and removes the earlier panel. Two genuine rendered-page cases fail behavioral assertions; two
+  same-respondent controls pass. A temporary ownership guard makes all 44 independent frontend cases pass and is
+  restored byte for byte. No production fix was made.
+- Fresh full suites: backend **4,730 tests in 699 classes, zero failures/errors/skips; 54:49 min**, including 312
+  migration cases in 82 classes and all eight neutral conformance scenarios' 13 cases; frontend **1,241 tests in 240
+  files** (647.25 s), all pass. The retained backend 36 and frontend 38 probes pass unchanged; two extra late-upload
+  cases prove actual File objects and original retry keys remain respondent-owned. Removing file/body ownership fails
+  two/three cases; controls restore their original bytes.
+- Application TypeScript: zero feature/probe diagnostics and 340 accepted unrelated diagnostics. Feature/help lint, root
+  tsc, Vite build and packaging-only verify (03:11, tests explicitly skipped) pass. Whole-app lint (59 errors, 46
+  warnings) and typed build retain their unrelated failures. Access and evidence help, API/release edits, REST
+  structure, production component sizes, neutral naming and existing S3 disposal permissions were inspected. No live
+  browser/email/AWS experiment or waived width sweep ran.
+- All 4,213 starting inputs and 4,183 full-suite mirrored inputs matched before handoff edits; both probe mirrors'
+  original inputs match too. Only this plan and the new report change for the handoff; staged journal deletion retained.
+  Evidence: target/20261014-cr-remediation-recheck/. Next task DR-01, then DR-GATE; next migration V178, subject to
+  recheck. The preceding CR-01 implementation result remains in the linked CA recheck report's remediation section.
+
+### Previous result, 2026-10-13: Independent CA remediation recheck (CR-01)
+
+- CA-01 and CA-02 are independently verified within their recorded scopes.
+  The [new report](information-request-ca-remediation-recheck-2026-10-13.md) confirms CR-01, P1: changing the
+  authoritative respondent clears the draft form while retaining private carried answers and submission authority, and a
+  late old read can populate that retained view. Three rendered-page cases reproduce it. The real PostgreSQL observation
+  proves projections differ between respondents with the same response ETag. No production repair was made.
+- Fresh suites: backend 4,725 tests in 698 classes, zero failures/errors/skips (57:37 min), including 312 migration
+  cases in 82 classes and all eight neutral conformance scenarios' 13 cases; frontend 1,232 tests in 239 files (650.01
+  s), all pass. Retained backend probes 35 pass, plus the new database observation; retained frontend probes 35 pass
+  after three respondent-input wiring lines. A temporary full-body ownership control passes all 38 and is restored byte
+  for byte.
+- Application TypeScript: zero feature/probe diagnostics, 340 accepted unrelated diagnostics. Feature/help lint, root
+  tsc, Vite build and packaging-only verify pass. Raw app lint and typed build retain unrelated backlogs. No live
+  browser/email/AWS experiment or waived width sweep ran.
+- All 4,210 starting inputs and 4,181 full-suite mirrored inputs matched before handoff edits; probe production inputs
+  matched too. Only the new report and this plan change; staged journal deletion retained. Evidence:
+  target/20261013-ca-remediation-recheck/. Next task CR-01, then CR-GATE; next migration V178, subject to recheck.
+
+### Previous result, 2026-10-13: Comprehensive audit remediation (CA-01 and CA-02)
+
+- Both findings of the [comprehensive audit](information-request-comprehensive-audit-2026-10-13.md) were closed
+  test-first at the user's request, uncommitted, without a migration, a new AWS service, or
+  backwards-compatibility code; see its remediation result. `InformationRequestRespondentKey` derives the
+  workspace's and the account-link answer's `respondentKey`; `InformationRequestResponseDraftService.patch`
+  refuses a patch naming another respondent before the receipt lookup. In the browser, `useUnsavedResponses`
+  stores drafts under request and respondent, the structured workspace is keyed by both, the account link moves
+  the participant's drafts to the account, and `stableKeyedCommand` with the page-owned `CommandKeysContext`
+  keeps command keys until an answer.
+- Verification: full backend **4,725 tests in 698 classes, zero failures/errors/skips (52:28)**, including 312
+  migration cases in 82 classes and the eight neutral scenarios' 13 cases; packaging-only verify passes (02:38,
+  tests explicitly skipped); full frontend **1,232 tests in 239 files** (408.20 s). New cases: backend 10 and
+  frontend 28; 10 mutations caught and restored. The audit's probes pass: backend 35 of 35 unchanged, frontend
+  35 of 35 with a three-line respondent-key wiring change to the draft probe. `typecheck:app` has 0 Information
+  Request diagnostics (340 unrelated); feature lint, root tsc, and the Vite build pass.
+- Evidence: `target/20261013-ca-remediation/`. Next functional task: none in the checked scopes. Next migration V178.
+
+### Previous result, 2026-10-13: Comprehensive implementation audit (CA-01 and CA-02)
+
+- The [audit](information-request-comprehensive-audit-2026-10-13.md) confirms two P2 client defects. CA-01: unsaved
+  browser
+  answers are keyed only by request and can be shown and autosaved under replacement credentials.
+  CA-02: interrupted collection commands retry with fresh keys and report stale writes; an interrupted
+  confirmation can append a second attestation of the same content. Frontend and final hardening
+  sign-off are reopened. No production source, permanent test, migration, infrastructure, or help
+  article changed. The staged completion-journal deletion was preserved; the report holds the evidence.
+- Fresh full suites: backend 4,715 tests in 696 classes, zero failures/errors/skips (54:47),
+  including 312 migration cases in 82 classes and all eight neutral scenarios' 13 cases; frontend
+  1,204 tests in 237 files (543.30 s). Backend independent checks: 34 probes/controls and one real
+  confirmation observation pass. Frontend independent checks: seven behavioral failures and 28 passes
+  in 35 cases; causal controls pass all 35, then all three test-copy production changes are restored.
+- TypeScript: zero feature/probe diagnostics, 340 unrelated. Feature/help lint, root tsc, Vite build
+  and packaging-only verify pass; raw app lint (59 errors, 46 warnings) and typed build retain their
+  unrelated backlogs. Live email, deployed browser/storage/recovery checks and the waived width sweep
+  were not run. The older lock-order lead is not confirmed: the repository locks the parent first,
+  and corrected PostgreSQL controls show both overlapping transactions commit.
+- All 4,204 starting inputs and 4,176 full-suite mirrored inputs matched before handoff edits.
+  Evidence: `target/20261013-comprehensive-audit/`. Next task CA-01, then CA-02. Next migration V178.
+
+### Previous result, 2026-10-13: Post-remediation recheck remediation (VC-01 and VC-02)
+
+- Both findings of the [post-remediation recheck](information-request-post-remediation-recheck-2026-10-13.md)
+  were closed test-first at the user's request, uncommitted, without a migration, a new AWS service, or
+  backwards-compatibility code; see its remediation result. `InformationRequestEvidenceQueryService.openContent`
+  still authorizes the release through `readCurrent` before the stored file is opened, and after the file has
+  been read and its media type checked it calls `confirmCurrent` again and authorizes the release again with the
+  returned context, before recording the opening or returning the content; the file is opened once and closed on
+  any refusal. On the respondent page, `useRespondentAccessLink.replace` refuses once its page has unmounted (shared
+  `useStillMounted`, StrictMode-safe), so a closed page's late verification or ended-session report
+  changes no storage, and `useParticipantAccountLink` applies a link's answer only while its offer is mounted.
+- Verification: full backend **4,715 tests in 696 classes, zero failures/errors/skips (51:00)**, including 312
+  migration cases in 82 classes and the eight neutral scenarios' 13 cases; full frontend **1,204 tests in 237
+  files** (515.73 s); packaging-only verify passes (01:35, tests explicitly skipped). New cases:
+  backend 19 (3 query-service cases and 16 storage-overlap cases through the real no-auth resource and session
+  service; 15 red before the fix) and frontend 9 (6 hook, 1 page, 2 help; the 6 behavior cases were red before the
+  fix, and the 4 changed help tests before the articles changed). Five mutations
+  were caught and restored. The analysis's probes pass unchanged: backend 31 of 31, frontend 22 of 22.
+  `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature lint, root tsc, and the Vite
+  build pass. Not run: whole-app lint and buildWithTs (unrelated baselines), browser journeys, real email,
+  deployed checks.
+- Help: access and evidence articles, with two help tests reworded and two added; `api-reference.md` and
+  `release-notes.md`. Evidence in `target/20261013-vc-remediation/`. Next free migration V178.
+
+### Previous result, 2026-10-13: Post-remediation recheck (VC-01 and VC-02)
+
+- Analysis-only checkpoint: the original four VR reproductions pass through the repaired
+  paths, but the [new report](information-request-post-remediation-recheck-2026-10-13.md)
+  confirms evidence session cutoff during storage access (P1) and session writes from an
+  unmounted respondent page (P2). Overall completion is reopened.
+- Independent tests: original backend batch 29/30, its one hand-coded obsolete read sequence
+  passing when adapted to the current readCurrent path (30/30); original frontend 18/18.
+  New evidence cases have four failures and two controls, and unmount cases have three failures
+  and one control. Both controlled comparisons remove their corresponding failures, and the
+  test-copy production files were restored byte for byte. Scope and evidence are in the report.
+- Fresh full backend: **4,696 tests in 695 classes, zero failures/errors/skips (58:09 min)**, including 312 migration
+  cases in 82 classes and all 8 neutral conformance classes and 13 cases.
+  Full frontend: **1,195 tests in 237 files** pass (636.01 s). Packaging-only verify passes (01:55),
+  with tests explicitly skipped. Feature/help lint, application diagnostic gate (zero
+  Information Request, 340 unrelated), root tsc, and Vite build pass. No production source,
+  permanent test, migration, infrastructure, or help article was edited by this analysis.
+- Next: VC-01, then VC-02. Preserve prior repairs and approved exclusions. No commit or push.
+  Next free migration V178. Evidence: target/20261013-post-remediation-recheck/.
+
+### Previous result, 2026-10-13: Completeness recheck remediation (VR-01 through VR-04)
+
+- All four findings of the [completeness recheck](information-request-completeness-recheck-2026-10-13.md)
+  were closed test-first at the user's request, uncommitted, without a migration, a new AWS service, or
+  backwards-compatibility code; see its remediation result. `requireCurrent` and `confirmCurrent` return
+  the session's current access context, every access-link command continues with it, and reads go through
+  `readCurrent`, which rebuilds once when verification lapsed. Notice delivery share-locks the party and
+  skips a notice whose party names another holder (`RECIPIENT_REASSIGNED`). Review separation adds each
+  recorded participant's linked account. The respondent page's `useRespondentAccessLink` gives each
+  link a session generation, and late verifications or ended-session reports for an older generation
+  change neither storage nor state.
+- Verification: full backend **4,696 tests in 695 classes, zero failures/errors/skips (48:49)**,
+  including 312 migration cases in 82 classes and the eight neutral scenarios' 13 cases; full frontend **1,195 tests in
+  237 files** (389 s). New cases: backend 33 (each finding red before its fix; the
+  command guard was red for 12 of 14 commands) and frontend 7; five mutations were caught and restored.
+  Analysis probes: frontend 18 of 18 and backend 24 of 25 unchanged, the last passing once adapted to
+  the new read path. `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature lint,
+  root tsc, and the Vite build pass. Not run: whole-app lint and buildWithTs (unrelated baselines),
+  packaging, browser journeys, real email, deployed checks.
+- Help: access, operations, and review articles, with four help tests; `api-reference.md` and
+  `release-notes.md`. Evidence in `target/20261013-vr-remediation/`. Next free migration V178.
+
+### Previous result, 2026-10-13: Completeness recheck (VR-01 through VR-04)
+
+- Analysis-only checkpoint: four additional findings are confirmed, one P1 and three P2; see the
+  [completeness recheck](information-request-completeness-recheck-2026-10-13.md). Protected reads
+  and writes can use an expired verification flag; a frozen notice can reach a reassigned party's
+  former holder; historical linked-principal review separation fails after reassignment; and late
+  work can overwrite or clear a newer respondent session, even during ordinary renewal on the same
+  link. The review finding is reproduced at the policy boundary with real account linking and
+  reassignment; its complete submission/assignment/decision journey remains for permanent coverage.
+- Full backend batch: 4,663 cases in 694 classes, zero assertion failures, one test-port startup
+  error and seven related skips (56:35). The affected eight unchanged cases passed in an isolated
+  rerun with `quarkus.http.test-port=0` (03:42). Combined permanent coverage is 4,663 distinct cases,
+  zero remaining failures/errors/skips; the original full-command failure and XML remain recorded.
+  All 312 migration cases in 82 classes and the eight conformance classes' 13 cases passed.
+  Full frontend: 1,188 cases in 237 files (587.17 s). Independent backend: four intended failures
+  and 25 passes (29 cases, 03:56); frontend: three intended failures and 15 passes (18 cases,
+  5.11 s), with no probe errors/skips or unhandled errors. The failing probes prove defects,
+  not repairs.
+- Feature lint, `typecheck:app` (zero Information Request, 340 unrelated), root tsc, Vite build,
+  and packaging-only verify (01:57, tests explicitly skipped) passed. Raw app lint remains at
+  59 errors and 46 warnings; the typed build and audit-probe typecheck retain the same 340
+  unrelated diagnostics, with zero probe diagnostics. The root tsc project has no application
+  file list and is not a clean app typecheck.
+- All 4,198 initial input hashes and both full-test mirrors matched before the handoff changes.
+  Only this plan and the new report changed among unignored artifacts; probes, logs, XML, inventory,
+  and manifests are retained under `target/20261013-completeness-recheck/`. Help size budgets pass,
+  registry 24 lines, and the inspected feature code/tests have no industry-specific naming leakage.
+  Relevant help and operator guidance were reviewed; no help or production file was edited.
+- Next: VR-01 first, then VR-02, VR-03, and VR-04, test-first and with the prior remediation and
+  approved exclusions preserved. No migration, new AWS service, compatibility mechanism, commit,
+  or push. The staged journal deletion was preserved; the report is the detailed evidence record.
+  Not performed: deployed browser journeys, real email, deployed storage/disposal, remote
+  connectors, a restore drill, or the waived manual width sweep. Next migration candidate V178,
+  subject to rechecking before allocation.
+
+### Previous result, 2026-10-13: Deep analysis remediation (IR-01 through IR-05)
+
+- All five findings of the [2026-10-13 deep analysis](information-request-deep-analysis-2026-10-13.md)
+  were closed test-first at the user's request, uncommitted, without a migration, a new AWS service, or
+  backwards-compatibility code; see its remediation result. Every command reachable through an access
+  link (14 entry points in 9 services) checks its session, link, party, request, and participant again
+  inside its own transaction, right after locking the parent Exchange and the request and before its
+  receipt lookup (`InformationRequestNoAuthReadAccessService.requireCurrent`). Reads through an access
+  link confirm the session before answering (`confirmCurrent`), and the first-view and evidence-open
+  records are gated the same way. The operations page, its request detail, and Record preservation are
+  keyed by the signed-in owner, and an export stops without a file once its queue unmounts. Evidence,
+  privacy, request clocks, and due date policies read through the shared `useServerRead`, withhold a
+  refused reread, and offer Try again.
+- Verification: full backend **4,663 tests in 694
+  classes, zero failures/errors/skips (52:43)**, including 312 migration cases in 82 classes and the
+  eight neutral scenarios' 13 cases; full frontend **1,188 tests in 237 files** (499 s). The
+  analysis's own probes pass unchanged: backend 4 of 4 and frontend 75 of 75. New cases: backend 43 (23 red before the
+  fix, the lock-order case proven by mutation) and frontend 35 (25 red before,
+  10 proven by mutation); 3 backend and 14 frontend mutations were all caught and restored.
+  `typecheck:app` has 0 Information Request diagnostics (340 unrelated); feature lint, root tsc, the
+  Vite build, and the packaging-only verify (01:32) pass; whole-app lint (59 errors, 46 warnings) and
+  buildWithTs keep their unrelated baselines.
+- Help (access, evidence, managing, operations, and record preservation articles, with six help
+  tests), the release notes, and the API reference are updated. A pre-existing lock-order issue (contact-code
+  verification and step-up lock the request before its parent Exchange) was offered as a
+  separate task. Not run: a browser journey, live email, any deployed AWS step. No commit or push. Next
+  migration V178, subject to recheck.
+
+### Previous result, 2026-10-13: Deep analysis checkpoint (IR-01 through IR-05)
+
+- Five findings reopen completion: IR-01, P1, no-auth response save uses a session context
+  validated in an earlier transaction, so session revocation or recipient-sign-in cutoff can
+  finish before the save still commits; IR-02 through IR-05, P2, operations owner changes and
+  refused evidence, privacy, clock, and policy reads retain earlier results on screen.
+- Analysis only: no production source, permanent test, migration, infrastructure, or help
+  article was changed. The [report](information-request-deep-analysis-2026-10-13.md) carries
+  full evidence, exact reproductions, controls, source links, repair criteria, and limits.
+  The staged deletion of the companion completion journal is preserved; no deleted plan is restored.
+- Fresh verification: backend 4,620 tests in 692 classes, zero failures/errors/skips (53:09),
+  including 312 migration cases in 82 classes and all eight neutral scenarios' 13 cases;
+  frontend 1,153 tests in 235 files (503.63 seconds). Backend probes: 2 intended failures and
+  2 passing controls; frontend probes: 5 intended failures and 70 passing controls across two
+  runs. The probes have no runtime errors after the recorded harness correction and no new
+  TypeScript diagnostics. Neither full suite includes new audit probes.
+- Feature lint and the app baseline gate pass (0 Information Request diagnostics, 340 unrelated);
+  root tsc and Vite build pass. Whole-app lint retains 59 errors and 46 warnings; buildWithTs
+  retains unrelated TypeScript errors. Packaging-only verify passes (01:45), with tests explicitly
+  skipped. Help/component budgets and declared S3 version permissions pass. The 4,188 input
+  hashes and both full-test mirrors matched before handoff document changes.
+- No browser journey, live email/connector/AWS disposal, restore drill, or waived width sweep
+  ran. No commit or push. Next task IR-01, then IR-02 and IR-03 through IR-05. Next free migration
+  V178, subject to recheck. The earlier FB-01 remediation result is preserved in the sixth report.
+
+### Previous result, 2026-10-12: Sixth independent analysis checkpoint (FB-01)
+
+- The [sixth analysis](information-request-sixth-reanalysis-2026-10-12.md) verifies the six
+  original FA reproductions: backend 16/16 and frontend 130/130 pass, with only the documented
+  constructor/credential wiring and jsdom observer adaptations. A new page-level probe exposes
+  FB-01: after an account-link reply is lost, a pending summary read can observe the link's own
+  session cutoff, clear the recovery credential and unmount the offer's retry state. Its three
+  cases have one behavioral failure and two passing controls, including identical-command replay
+  through the real page when no background refusal intervenes. Overall completion is reopened.
+- Fresh verification: full backend 4,620 tests in 692 classes, zero failures/errors/skips (53:51),
+  including 312 migration cases in 82 classes and the eight named neutral scenarios' 13 cases;
+  full frontend 1,144 tests in 234 files pass. No temporary probe class ran in either full suite.
+  App baseline has zero Information Request diagnostics and 340 unrelated; feature lint, root
+  tsc and Vite build pass. Raw app lint remains 59 errors and 46 warnings; buildWithTs retains
+  its unrelated application errors. The new page-level probe has zero TypeScript diagnostics.
+- All 4,176 input hashes matched before report/plan updates, and the backend and frontend mirrors
+  matched their 2,494 and 1,658 source/configuration inputs. No production code, permanent test,
+  migration or infrastructure change was made during this analysis. Approved scopes, prior
+  evidence and staged deletions are preserved. No browser journey, deployed AWS disposal or real
+  email/connector experiment ran. No commit or push. Next migration V178, subject to recheck.
+
+### Previous result, 2026-10-12 (late night): Fifth deep analysis remediation (FA-01 through FA-06)
+
+- All six findings of the [fifth deep analysis](information-request-fifth-reanalysis-2026-10-12.md)
+  were closed test-first with one migration (V177) and no new AWS service; see its remediation
+  result. Account linking checks its session token inside the upgrade service's transaction and
+  replays a recorded link after its own cutoff while the ended session starts nothing new; the
+  client resends the lost attempt. Version writes record a cleanup first, discharge it on commit,
+  delete bytes on rollback, and a scheduled sweeper with backoff handles what is left without
+  touching referenced versions. Every receipt fingerprint goes through the canonical
+  `CommandRequestFingerprint.of`. The submission summary withholds refused reads, offers Try
+  again, applies only the latest read, and keeps the chosen part.
+- Verification: full backend 4,620 tests in 692 classes, 0 failures/errors/skips (52:25), with
+  312 migration cases in 82 classes; full web 1,144 tests in 234 files; `typecheck:app` 0
+  Information Request diagnostics; feature lint, root tsc and Vite build pass; whole-app lint
+  baseline unchanged. The analysis's backend probes pass 16 of 16 (two-line constructor diff) and
+  its web probes 129 of 130 unchanged, the last needing only a jsdom `ResizeObserver` stub.
+- Help (submission and access articles), release notes, API reference, operator guide, recovery
+  runbook and migration notes are updated. Not run: a browser journey, a live S3 delete, the dev
+  database's Flyway history. No commit or push. Next migration V178, subject to recheck.
+
+### Previous result, 2026-10-12: Fifth deep analysis checkpoint (FA-01 through FA-06)
+
+- Analysis only: six open findings reproduced with ten failed behavioral assertions; no production
+  code, permanent test, migration or infrastructure changed. The
+  [analysis report](information-request-fifth-reanalysis-2026-10-12.md) records detailed evidence,
+  sources, controls and required repairs. Earlier closures and the 123 retained independent client
+  cases remain green.
+- Fresh backend: 4,589 tests in 689 classes, 0 failures/errors/skips (55:19), source-identical
+  mirror, XML and Maven totals checked. Fresh web: 1,129 tests in 233 files in the checkout and
+  source-identical mirror. Independent backend: 16 cases, 5 intended failures, 11 passes, no
+  errors/skips. Independent web with retained cases: 130 cases, 5 intended failures, 125 passes.
+- App baseline has 0 Information Request diagnostics and 340 unrelated diagnostics; feature lint,
+  root tsc, help budgets, Vite build, declared S3 version permissions and backend packaging pass.
+  Whole-app lint and buildWithTs retain the recorded unrelated failures. Initial sandbox, probe
+  compilation and test-port setup issues were corrected and are separately retained as setup
+  evidence, not counted as functional reds.
+- The companion completion journal remains staged for deletion; no deleted plan was restored.
+  The full checkpoint is preserved in the new report. No browser journey, waived width sweep,
+  deployed AWS disposal check or live connector ran. No commit or push. Next repair: FA-01,
+  then FA-02. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-12 (night): Fourth re-analysis remediation (RY-01)
+
+- The single finding of the [2026-10-12 fourth re-analysis](information-request-fourth-reanalysis-2026-10-12.md)
+  was closed test-first, with no migration, no server change, and no new AWS service; see its
+  remediation result. The queue's learned assignee names moved into `useLearnedAssignees`, which
+  returns none in the render of a refused read and none after it until a read answers, then offers
+  them again. `OperationsQueueFilters` shows a chosen assignee whose name is withheld as Chosen
+  party. Without a refusal, names stay while a page or a filter change loads.
+- The operations help article and the release notes are updated.
+- Verification: full web 1,129 tests in 233 files; `typecheck:app` 0 Information Request diagnostics; root
+  tsc, changed-path eslint, help tests, and Vite bundling pass; whole-app lint baseline unchanged.
+  The fourth re-analysis probes pass unchanged: 24 of 24 assignee cases, 123 of 123 with the
+  retained ones. Backend, infrastructure, and Maven files are unchanged, so the full backend run (4,589 tests, 0
+  failures) was not repeated.
+- Not run: a browser journey, the waived width sweep, and a live role-revocation or HTTP
+  experiment. No commit or push. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-12 (evening): Third re-analysis remediation (RX-01)
+
+- The single finding of the [2026-10-12 third re-analysis](information-request-third-reanalysis-2026-10-12.md)
+  was closed test-first, with no migration, no server change, and no new AWS service; see its
+  remediation result. `useLoadedValue` records only the error when a read fails, so a refused page,
+  repeated search, or reload withholds the earlier rows, counts, and pager, and the next attempt
+  shows the loading state until a read succeeds. Same-scope paging still keeps the shown page and
+  its focused pager while the next page loads. Every consumer follows the rule: the queue and audit
+  search show the refusal alone, `LoadedPanel` panels show the spinner on a retry, and the retention
+  schedule cannot be published after its reread is refused.
+- The operations help article and the release notes are updated.
+- Verification: full web 1,120 tests in 232 files; `typecheck:app` 0 Information Request diagnostics; root
+  tsc, changed-path eslint, help tests, and Vite bundling pass; whole-app lint baseline unchanged.
+  The third re-analysis probes pass unchanged: 30 of 30 refusal cases, 99 of 99 with the retained
+  ones. Backend, infrastructure, and Maven files are unchanged, so that report's full backend run (4,589 tests, 0
+  failures) was not repeated.
+- Not run: a browser journey, the waived width sweep, and a live role-revocation or HTTP
+  experiment. No commit or push. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-12 (later): Second re-analysis remediation (RW-01)
+
+- The single finding of the [2026-10-12 second re-analysis](information-request-second-reanalysis-2026-10-12.md)
+  was closed test-first, with no migration, no server change, and no new AWS service; see its
+  remediation result. `InformationRequestOperationsDetail` renders `OperationsDetailContent` keyed
+  by request, so standing, tab, panels, pagination, the hold dialog draft, and command state start
+  afresh for another request and late answers for the earlier one change nothing.
+  `useOperationsRequestStanding` returns a standing only for its request and none after a refused
+  read. `useLoadedValue` returns a value only while its owner (the load, or an explicit `scope`) is
+  current; audit history, the operations queue, and audit search pass the request, the filters
+  without the offset, and the search criteria, so paging keeps the shown page and its focused pager.
+- The operations help article and the release notes are updated.
+- Verification: full web 1,113 tests in 232 files; `typecheck:app` 0 Information Request diagnostics; root
+  tsc, changed-path eslint, help tests, and Vite bundling pass; whole-app lint baseline unchanged.
+  The second re-analysis probes pass unchanged: 12 of 12 operations cases, 69 of 69 with the
+  retained ones. Backend, infrastructure, and Maven files are byte-identical to that report's
+  starting manifest, so its full backend run (4,589 tests, 0 failures) was not repeated.
+- Not run: a browser journey, the waived width sweep, and a live HTTP experiment. No commit or
+  push. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-12: Re-analysis remediation (RV-01 to RV-03)
+
+- All three findings of the [2026-10-12 re-analysis](information-request-reanalysis-2026-10-12.md)
+  were closed test-first, with no migration, no server behavior change, and no new AWS service; see
+  its remediation result. RV-01: `useRecordExports` sends Create export through
+  `useStableIdempotencyKey` (`record-export|<requestId>`), so a retry after a lost answer replays
+  the first export and the daily ceiling counts one. RV-02: `InformationRequestReviewResults` sends
+  Send appeal keyed by request, review, reason, and review ETag, so a retry returns the recorded
+  appeal instead of `INFORMATION_REQUEST_REVIEW_NOT_REOPENABLE`. RV-03: `useReusableAnswers` keys
+  Use this answer by target request, fact, Requirement, assent, and response ETag, so a retry
+  returns the saved recertification instead of STALE. A new backend test pins the appeal replay (export and
+  recertification replays were already pinned).
+- The operations, review, and submission help articles and the release notes are updated.
+- Verification: full web 1,091 tests in 230 files; `typecheck:app` 0 Information Request
+  diagnostics; root tsc, changed-path eslint, help tests, and Vite bundling pass; whole-app lint
+  baseline unchanged. The re-analysis probes pass unchanged: 10 of 10 new, 57 of 57 with the
+  retained ones. Full backend 4,589 tests in 689 classes, zero failures (52:12, mirror); the
+  storage permission contract's 3 errors came from the mirror lacking `infra/` and pass 3 of 3
+  with it.
+- Not run: a browser journey, the waived width sweep, and a live lost-response HTTP experiment. No
+  commit or push. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-11 (later): Independent recheck remediation (RR-01 to RR-04)
+
+- All four findings of the [independent recheck](information-request-independent-recheck-2026-10-11.md)
+  were closed test-first, with no migration and no new AWS service; see its remediation result.
+  RR-01: `useInformationRequestRespondentWorkspace` withholds the workspace on any refused read (an
+  ended access-link session still returns to verification, any other refusal keeps the session),
+  and the page's error offers Try again; unsaved answers stay in the tab and return. RR-02:
+  `InformationRequestMutationGate.lockExisting` locks the distinct parent Exchanges of the named
+  requests that still exist in identifier order (`lockExchangesInOrder`, shared with `lockAll`),
+  then the requests, and `InformationRequestDisposalService.claimFinished` (privacy deletion) locks
+  through it. RR-03: the respondent's Create supplement keeps its key until an answer (`useStableIdempotencyKey`).
+  RR-04: `review/workableAssignments.ts` picks the assignments a
+  reviewer can work in now (active, undecided, open stage, not decided through another assignment,
+  not excluded as an earlier reviewer); drafts are kept per assignment; the page offers Stage you
+  are deciding; and the finding hint counts the chosen assignment's findings.
+- The review, access, and submission help articles, the API reference, and the release notes are
+  updated.
+- Verification: full backend 4,588 tests in 689 classes, zero failures, errors, or skips (52:25);
+  full web 1,082 tests in 228 files; `typecheck:app` 0 Information Request diagnostics; root tsc,
+  changed-path eslint, help tests, and Vite bundling pass. The recheck's probes pass unchanged:
+  47 of 47 frontend, 3 of 3 backend.
+- Observation left for the user: the record export's Create export and the respondent's Appeal
+  still key each attempt afresh (same class as RR-03, outside the findings).
+- Not run: a browser journey, the waived width sweep, and a live lost-response HTTP experiment. No
+  commit or push. Next migration V177, subject to recheck.
+
+### Previous result, 2026-10-11: Re-analysis remediation (RA-01 to RA-03)
+
+- All three confirmed findings of the [re-analysis](information-request-deep-analysis-2026-10-11.md)
+  and its P3 test-model cleanup were closed test-first, with no migration and no new AWS service;
+  see its remediation result. RA-01: `useAuthorWorkspace` keeps a shown access link inside the
+  loaded workspace value, so a refused read drops it and an issuance or rotation whose refresh was
+  refused shows nothing; the page also renders the dialog only with the workspace. RA-02: the
+  worksheet DTO carries `draftRevision`; `useInformationRequestReview` merges every read and save
+  answer against the shown review and keeps the higher worksheet revision (`newestWorksheets.ts`),
+  `useReviewWorksheet.settle` keeps an item unsaved when it changed after the save was sent, and a
+  save overtaken by a change elsewhere shows the latest saved choices, warns, and stops Record
+  decisions. RA-03: `InformationRequestMutationGate.lockAll` locks every distinct parent Exchange in
+  identifier order before the requests, and `InformationRequestReminderService.send` locks through
+  it. P3: `OverlappingCommandOutcome` and `CommandReceiptOverlap` live in `service/command/model`.
+- The review and managing help articles, the API reference, and the release notes are updated.
+- Verification: full backend 4,582 tests in 687 classes, zero failures, errors, or skips (52:08);
+  full web 1,067 tests in 226 files; `typecheck:app` 0 Information Request diagnostics; root tsc,
+  changed-path eslint, and Vite bundling pass. The analysis's frontend probes pass 21 of 21 once
+  its two worksheet probes carry `draftRevision`; its backend probe stubs the per-request lock the
+  service no longer calls, and the permanent race test reproduces its deadlock before the fix.
+- Not run: a browser journey, the waived width sweep, and a live out-of-order HTTP experiment. No
+  commit or push. Next migration V177, subject to recheck.
+
+### Earlier result, 2026-10-11: Deep analysis remediation (DA-01 to DA-04)
+
+- All four confirmed findings of the [deep analysis](information-request-deep-analysis-2026-10-10.md)
+  were closed test-first, with no migration and no new AWS service; see its remediation result.
+  DA-01: the author route keys `AuthorWorkspaceContent` by request, `useAuthorWorkspace` shows and
+  acts only on a load tagged with the routed request (shared `useScopeGuard`, load tickets, a
+  refused read withholds the page), and the command runner, follow-ups, and outcomes are scoped the
+  same way. DA-02: the reviewer route keys `ReviewWorkspaceContent` by request and review; the
+  review, worksheet drafts (`useReviewWorksheet`), messages, and management commands are scoped to
+  it; unsaved choices survive a reload of the same review; a failed read offers Try again. DA-03:
+  `InformationRequestLifecycleService` locks the parent Exchange and the request before its receipt
+  lookup, and `CommandReceiptService.runOnce` takes a transaction-scoped advisory lock on the
+  command's identity (`CommandReceiptStore.lockCommand`) so every receipt-protected command replays
+  an overlapping same-key retry. DA-04: decision recording and reviewer assignment, assignment
+  change, override, and reconsideration keep their idempotency key until a known result.
+- A related obsolete-load defect in the respondent page (a late refresh of the previous route
+  discarded the current route's load) was also closed test-first. The review help article says what
+  happens on a reload, Try again, and an interrupted recording.
+- Verification: full backend 4,575 tests in 685 classes, zero failures, errors, or skips (54:21);
+  full web 1,057 tests in 226 files; `typecheck:app` 0 Information Request diagnostics; root tsc,
+  changed-path eslint, and Vite bundling pass. The analysis's frontend probes pass 8 of 8; its
+  backend probe cannot run unchanged, because its barrier needs both receipt lookups before either
+  mutation, which the fix forbids.
+- Not run: a browser journey, the waived width sweep, and a live lost-response HTTP experiment. No
+  commit or push. Next migration V177, subject to recheck.
+
+### Earlier result, 2026-10-10: Implementation audit remediation (F01 to F04)
+
+- All four confirmed findings of the [implementation audit](implementation-audit-2026-10-10.md)
+  were closed test-first, with no migration and no new AWS service; see its remediation result.
+  F01: `ECSTaskRole` grants `s3:ListBucketVersions` and `s3:DeleteObjectVersion` on the documents
+  bucket, and `DocumentVersionStoragePermissionContractTest` checks every S3 request the storage
+  adapter sends against the template. F02: new read actions `INFORMATION_REQUEST_VIEW_REVIEWS` and
+  `INFORMATION_REQUEST_REQUIREMENT_VIEW_REVIEW` (review capability, parent read rules) and
+  `INFORMATION_REQUEST_VIEW_OPERATIONS` for the administration let finished reviews and delegated
+  authorities be read while every write stays refused; review command retries re-check reading.
+  F03: the respondent hook scopes the workspace, errors, and loads to the route and access link.
+  F04: every evidence command reports an ended access session to the page's recovery, the unsent
+  file is kept through verification and sent once on Retry, and submission, confirmation, step-up,
+  and account-link commands also return to verification.
+- Decision 12 (Settings discoverability) now records the user's 2026-09-30 change; the Phase 12
+  release note is corrected. `RequirementEvidencePanel` and `StructuredResponseRequirement` are
+  under 150 lines.
+- Verification: full backend 4,562 tests in 682 classes, zero failures, errors, or skips (57:55);
+  full web 1,033 tests in 223 files; `typecheck:app` 0 Information Request diagnostics; root tsc,
+  changed-path eslint, help tests, and Vite bundling pass. The audit's own inventory script now
+  passes its disposal-permission check and finds no TSX component above 150 lines.
+- Not run: a stack deploy and live disposal with the task credentials, a browser journey, and the
+  waived width sweep. No commit or push. Next migration V177, subject to recheck.
+
+### Earlier result, 2026-10-10: Recheck decisions, UI and concurrency follow-ups, and verification limits
+
+Kept here because the completion-evidence journal and the recheck reports are no longer in the
+working tree.
+
+- All nine open decisions of
+  the [second 2026-10-10 recheck](DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-RECHECK-2026-10-10-2.md)
+  were implemented test-first at the user's request, with the recommended, more protective answers
+  and no migration: evidence belongs to the party that provided it; Business Decisions need request
+  administration; review reasons follow item content; email assignment on a sign-in Exchange names
+  only people who already have access to it and answers every other address alike; linking a
+  subject needs privacy management; no access link after account linking; hold and schedule
+  administration takes `If-Match`, locks before its retry lookup, and allocates schedule versions
+  under a lock; reviewers see the protected items awaiting verification and can verify again; a
+  recurrence replay returns its recorded source, and the next due time counts the whole series.
+  See the report's remediation result.
+- Backend: three red batches (12, 10, and 10 intended failures, with three test setup issues
+  corrected), a mutation proof failing exactly its 8 guarded cases, a regression of 1,265 tests in
+  185 classes, and the full suite: 4,553 tests in 680 classes, zero failures, errors, or skips (51:16). Overlapping
+  authenticated HTTP requests cover hold and schedule races.
+- Web: 1,020 tests in 221 files; root tsc, `typecheck:app` (0 Information Request), changed-file
+  eslint, and Vite bundling pass; help articles, the API reference, release notes, and the operator
+  guide are updated. A packaging-only verify (3:46, tests explicitly skipped) passed.
+- Not run: a browser journey and width sweep (the local sign-in code appears only in the IDE
+  console; the sweep was waived on 2026-09-28) and remote infrastructure checks. Operational
+  follow-ups remain. No commit or push. Next migration V177, subject to recheck.
 
 ## Continuation Prompt
 
-Use this instruction in a new implementation session:
+> Current checkpoint (2026-10-31, completeness re-check P3 repairs): `CK-07` to `CK-22` are closed (uncommitted);
+> `CK-17` is closed by the owner's decision to add a screen, and `LG-16` is decided: an appeal that reopens review keeps
+> the pause. Full backend 6,077 tests in 817 classes (1:21 h, `mirror-a/full.log`) with zero errors or skips and one
+> failure, a unit expectation in `InformationRequestLifecycleServiceTest` kept from before CK-04 (cancelling a grantless
+> draft still had to check the live plan), corrected to the CK-04 rule and rerun green 30/30; full frontend 2,124 tests
+> in 331 files (585.9 s under load): 2,122 pass and the two that timed out (`RequestOutcomesPanel`,
+> `InformationRequestOperations`) pass when rerun alone, 79/79. Migration head V191; next free V192. Preserve earlier
+> changes and the staged deletions; no commit or push without the user's permission.
+>
+> Previous checkpoint (2026-10-29, gap analysis follow-ups): the ten follow-ups confirmed while closing the gap analysis
+> are repaired or decided (uncommitted); `LG-16` waits for the owner's decision. Full backend **6,057 tests in 816
+classes** with zero failures and 3 errors in one stale test class, corrected and rerun green; packaging passes.
+> Migration head V191; next free V192. Preserve earlier changes and the staged deletions; no commit or push without the
+> user's permission.
+>
+> Previous checkpoint (2026-10-29, gap analysis closure): `LG-01` to `LG-52` are closed and LG-GATE passed
+> (uncommitted); `LG-16` waits for the owner's decision on whether an appeal that reopens review keeps the pause. Full
+> backend **6,040 tests in 809 classes with zero failures, errors or skips (58:31)**, full frontend **2,074 tests in 323
+files (304.6 s)**. Migration head V190; next free V191. The follow-ups found while closing are listed under Line-by-Line
+> Gap Analysis Work (2026-10-26). Preserve earlier changes and the staged deletions; no commit or push without the
+> user's
+> permission.
+>
+> Previous checkpoint (2026-10-25, sixth Codex verification remediation): CX-01 from
+> the [sixth Codex verification](information-request-codex-verification-2026-10-25.md) is closed (uncommitted); DV-GATE
+> is
+> open only for the non-waived live and manual release checks. Full backend **5,722 tests in 761 classes**, full
+> frontend
+> **1,750 tests in 290 files**. Migration head V180; next free V181. Preserve earlier changes and the seven staged
+> deletions; no commit or push without the user's permission.
+>
+> Previous checkpoint (2026-10-25, fifth Codex verification remediation): CX-01 from
+>
+the [fifth Codex verification](evidence/information-request-codex-verification-2026-10-25/report-before-independent-pass.md)
+> is closed (uncommitted); DV-GATE is open only for the non-waived live and manual release checks. Full backend **5,705
+tests in 758 classes**, full frontend **1,749 tests in 290 files**. Migration head V179; next free V180. Preserve
+> earlier changes and the seven staged deletions; no commit or push without the user's permission.
+>
+> Previous checkpoint (2026-10-24, fourth Codex verification remediation): CX-01 from
+> the [fourth Codex verification](information-request-codex-verification-2026-10-24.md) is closed (uncommitted); DV-GATE
+> is open only for the non-waived live and manual release checks. Full backend **5,683 tests in 756 classes**, full
+> frontend **1,748 tests in 290 files**. Migration head V179; next free V180. Preserve earlier changes and the seven
+> staged deletions; no commit or push without the user's permission.
+>
+> Previous checkpoint (2026-10-24, third Codex verification remediation): CX-01 and CX-02 from
+> the [third Codex verification](information-request-codex-verification-2026-10-24.md) are closed (uncommitted); DV-GATE
+> is open only for the non-waived live and manual release checks. Full backend **5,674 tests in 755 classes**, full
+> frontend **1,741 tests in 289 files**. Migration head V179; next free V180. Preserve earlier changes and the seven
+> staged deletions; no commit or push without the user's permission.
+>
+> Previous checkpoint (2026-10-23, second Codex verification remediation): CX-01 and CX-02 from
+> the [second Codex verification](information-request-codex-verification-2026-10-23.md) are closed (uncommitted), with
+> the
+> same existence check on four sibling route families; DV-GATE is open only for the non-waived live and manual release
+> checks. Full backend **5,668 tests in 754 classes**, full frontend **1,728 tests in 289 files**. Migration head V179;
+> next free V180. Preserve earlier changes and the seven staged deletions; no commit or push without the user's
+> permission.
+>
+> Previous checkpoint (2026-10-23, first Codex verification remediation): CX-01 to CX-04 from
+> the [Codex verification](information-request-codex-verification-2026-10-22.md) are closed (uncommitted), with two
+> standing gaps and the Exchange request listing's existence check; DV-GATE is open only for the non-waived live and
+> manual release checks. Full backend **5,621/749**, full frontend **1,700/289**. Migration head V179; next free V180.
+> Preserve earlier changes and the seven staged deletions; no commit or push without the user's permission.
+
+> Previous checkpoint (2026-10-22, deep analysis backlog): DX-28 to DX-56 and DX-GATE are closed (uncommitted); DV-GATE
+> is open only for the non-waived live and manual release checks. Full backend **5,508/746**, full frontend
+> **1,672/289**.
+> Migration head V179; next free V180. Preserve earlier changes and the seven staged deletions; no commit or push
+> without
+> the user's permission.
+
+> Previous checkpoint (2026-10-21, verification remediation): every finding of
+> the [independent verification](information-request-independent-verification-2026-10-21.md) is closed (uncommitted),
+> including DX-57. Open from the deep analysis: DX-07, DX-16, DX-22, DX-23, DX-26 (P2), DX-28 to DX-56 (P3) and DX-GATE.
+> Start with DX-07 test-first through the real authorizer. full backend **5,260/734** with 0 failures and 1 error, a
+> conformance fixture the new Field rule refuses (fixed; the class passes on rerun) and full frontend **1,584/276** pass
+> on the current tree. Migration head V179; next free V180, subject to recheck. Preserve earlier changes and the seven
+> staged deletions; no commit or push without the user's permission.
+
+> Previous checkpoint (2026-10-21, P1 repairs): DX-01 and DX-02 are closed (uncommitted). DX-57 (P1) is open with a USER
+> DECISION for a decode cap scoped to evidence inspection, waiting for the permission to change PDFBox's filter
+> registry.
+> Then the P2s DX-03 to DX-27 in the analysis's order. Full frontend **1,551/273** passes; backend evidence suites pass.
+> Migration head V179; next free V180. Preserve earlier changes and the seven staged deletions; no commit or push
+> without
+> the user's permission.
+
+> Previous checkpoint (2026-10-21, deep analysis): DX-01 and DX-02 (P1), DX-03 to DX-27 (P2), DX-28 to DX-56 (P3) and
+> DX-GATE from the [deep analysis](information-request-deep-analysis-2026-10-21.md) are open. Read Status, Deep Analysis
+> Work and the analysis. Start with DX-01 test-first (a dialog test where the PLATFORM Schema list answers 403), then
+> DX-02 (an overflowing ZIP64 record), then the P2s in the analysis's order; where authorization is involved, test
+> through
+> the real authorizer, since DX-05, DX-06 and DX-27 hid behind stubs. Full frontend **1,550/273** and full backend
+> **5,116/728** pass on the current tree. Migration head V179; next free V180, subject to recheck. Preserve earlier
+> changes and the seven staged deletions; no commit or push without the user's permission.
+
+> Previous checkpoint (2026-10-20, completeness remediation): SB-01 to SB-04, FC-01 to FC-26 and FC-GATE from
+> the [completeness analysis](information-request-completeness-analysis-2026-10-20.md) are closed (uncommitted); no open
+> finding remains in the recorded scopes. Read the current Status, Full Completeness Analysis Work and the analysis's
+> remediation result; the decisions are the remediation prompt's defaults, recorded in Status. Full frontend
+> **1,550/273**
+> (614.61 s) and full backend **5,116/728** with zero failures, errors or skips (59:12 min, 728 XML reports reconciled)
+> on
+> the current tree. Migration head V179; next free V180, subject to recheck. Preserve earlier scoped closures, accepted
+> exclusions, source changes and staged deletions. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-20, full completeness analysis): SB-01, SB-02, FC-01, FC-02 and FC-03 (P2), SB-03, SB-04
+> and FC-04 to FC-26 (P3) and FC-GATE were open (closed the same day; see the current checkpoint); see Status, Full
+> Completeness Analysis Work and the [completeness analysis](information-request-completeness-analysis-2026-10-20.md).
+> Start with SB-01 test-first by promoting the deep review's retained probes, then SB-02, FC-01, FC-02 and FC-03, then
+> the
+> P3 items and FC-GATE. Decisions are needed for FC-01, FC-06, FC-09, FC-11, FC-13, FC-15 and FC-26. Fresh full frontend
+> 1,471/266 and full backend **4,986/721** with zero failures, errors or skips (53:49 min, build success, all 721 XML
+> reports reconciled) on the current tree. No production repair is retained by the analysis. Migration head V179; next
+> free V180, subject to recheck. Preserve earlier scoped closures, accepted exclusions, source changes and staged
+> deletions. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-20, EC remediation): EC-01, EC-02, EC-03 and EC-GATE from the implementation analysis are
+> closed (uncommitted, web client only). No open functional finding remains in the recorded scopes. Read the current
+> Status and the analysis's remediation result. Migration head V179. Preserve earlier scoped closures, accepted
+> exclusions, source changes and staged deletions. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-20, Provided-answer notes): the user decided that a `PROVIDED` answer takes an optional
+> note, and it is implemented (uncommitted, web client only); see the Provided-answer notes bullet in Status. EC-01,
+> EC-02, EC-03 and EC-GATE from the implementation analysis were then the next work; see the analysis checkpoint below.
+> Migration head V179. No commit or push is authorized.
+
+> Previous analysis checkpoint (2026-10-20): EC-01 and EC-02 (P2), EC-03 (P3), and EC-GATE were open (closed the same
+> day; see the current checkpoint). Read the current Status, Independent Implementation Analysis Work and the analysis
+> report. The earlier SR repairs pass their nine independent probes. No application repair is retained for the new
+> findings. Promote the seven retained cases into permanent tests before the smallest client repairs, then complete
+> EC-GATE. Preserve earlier closures, accepted exclusions, existing changes and staged deletions. Migration head V179;
+> no
+> migration is indicated. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-20, SR remediation): SR-01, SR-02 and SR-GATE from the shared-response completeness
+> review are closed (uncommitted, web client only). No open functional finding remained in the recorded scopes. Read the
+> current Status and the review's remediation result. One follow-up awaited the user's product decision: whether a
+> `PROVIDED` answer offers a note (as the help says) or switching to `PROVIDED` clears an earlier reason; it was decided
+> the same day (optional note). Migration head V179. Preserve earlier scoped closures, accepted exclusions, source
+> changes
+> and staged deletions. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-19, shared-response completeness review): SR-01, SR-02 (P2) and SR-GATE are open. Read
+> the current Status, Shared Response Completeness Review Work and the completeness review report. Fix SR-01, then
+> SR-02,
+> test-first using the retained probes, then complete SR-GATE. Fresh full backend 4,986/721 and frontend 1,420/260 pass,
+> while nine independent probes have six intended failures and three controls. No production repair is retained. Earlier
+> closures, accepted exclusions, source changes and staged deletions remain intact. Migration head V179. No migration is
+> indicated; no commit or push is authorized.
+
+> Previous checkpoint (2026-10-19, IA remediation): IA-01, IA-02 and IA-GATE from the deep implementation analysis are
+> closed (uncommitted). No open functional finding remains in the recorded scopes. Read the current Status and the deep
+> analysis's remediation result. Migration head V179. Preserve earlier scoped closures, accepted exclusions, source
+> changes and staged deletions. No commit or push is authorized.
+
+> Previous checkpoint (2026-10-19, HC remediation): HC-BUILD, HC-01, HC-02 and HC-GATE are closed (uncommitted). No open
+> functional finding remains in the recorded scopes. Read the current Status and the history audit's remediation result.
+> Reviewer access to submitted files was decided and implemented the same day: anyone the review shows an item to may
+> open
+> its files. Preserve earlier scoped closures, accepted exclusions, source changes and staged deletions. No commit or
+> push
+> is authorized.
+
+> Superseded audit checkpoint (2026-10-19): HC-BUILD (P1), HC-01 and HC-02 (P2) and HC-GATE were open; closed by the
+> checkpoint above. Read the current Status and history completeness audit. If implementing remediation, restore
+> compilation first, then begin HC-01 test-first, then HC-02 and HC-GATE. The audit retained no production repair.
+> Preserve earlier closures, accepted exclusions, source changes and all staged deletions. No commit or push is
+> authorized.
+
+> Previous checkpoint (2026-10-18): LQ-01 and LQ-GATE from the implementation audit are closed (uncommitted). No open
+> functional finding remains in the recorded scopes. Read the current Status and the implementation audit's remediation
+> result. Preserve earlier scoped closures, accepted exclusions, source changes and staged deletions. No commit or push
+> is
+> authorized.
+
+> Superseded audit checkpoint (2026-10-18): LQ-01 (P2) and LQ-GATE were open; closed by the checkpoint above. Read the
+> current Status and information-request-implementation-audit-2026-10-18.md. Account linking lets the same respondent
+> exceed configured file/byte allowances; overall request caps still hold. Promote the fixed-size probes and repair
+> linked-identity accounting test-first, then run LQ-GATE. No production repair is retained by the audit. Preserve DGR
+> and
+> all earlier scoped closures, accepted exclusions, source changes and staged deletions. No commit or push is
+> authorized.
+
+> Previous checkpoint: IC-01, IC-02, IC-03 and IC-GATE from the 2026-10-17 completeness analysis are closed (2026-10-17,
+> uncommitted). No open functional finding remained in that scope. Preserve earlier scoped closures, accepted
+> exclusions,
+> source changes and staged deletions. No commit or push is authorized.
+
+> Superseded audit checkpoint (2026-10-17): IC-01, IC-02 and IC-03 (all P2) and IC-GATE were open; closed by the
+> checkpoint above. Read the current Status and information-request-completeness-analysis-2026-10-17.md. The audit
+> retained no production repair. Preserve all earlier scoped closures, accepted exclusions, source changes and staged
+> deletions. Start IC-01 test-first, then IC-02 and IC-03, followed by IC-GATE. No commit or push is authorized.
+
+> Latest checkpoint: AK-01 and AK-GATE from the audit-key completeness review are closed (2026-10-17, uncommitted). No
+> open functional finding remains in the recorded scopes. Preserve earlier scoped closures, accepted exclusions, source
+> changes and staged deletions.
+
+> Previous checkpoint (audit-key review): AK-01 (P2) and AK-GATE were open; see the review's remediation result.
+
+> Previous audit checkpoint: BC-01 and BC-02 from the boundary completeness audit were open, both P2. Read the current
+> Status and information-request-boundary-completeness-audit-2026-10-16.md. Full backend 4,815/707, migrations 312/82,
+> conformance 13/8 and frontend 1,411/260 pass, while independent baseline and restored-source probes have five intended
+> failures and 25 passes; temporary controls pass 30/30. If continuing with remediation, promote the probes and repair
+> BC-01, then BC-02, test-first, followed by BC-GATE. Preserve earlier scoped closures, accepted exclusions, all
+> existing
+> source changes and staged deletions. This audit retained no production repair, migration, cloud resource, commit or
+> push.
+
+> Previous checkpoint (ND remediation): ND-01 and ND-GATE from
+> the [deep completeness audit](information-request-deep-completeness-audit-2026-10-16.md) are closed (2026-10-16,
+> uncommitted). No confirmed functional repair remains in the checked scopes. Preserve earlier scoped closures and
+> accepted exclusions; read the current Status first.
+
+> Previous checkpoint (2026-10-16 deep audit): ND-01 (P2) and ND-GATE were open. Read the current Status and
+> information-request-deep-completeness-audit-2026-10-16.md first. No production repair is retained. Preserve SX-01 and
+> earlier scoped closures, exclusions, source changes and staged deletions. No commit or push is authorized.
+
+> Latest checkpoint: SX-01 and SX-GATE from
+> the [independent completeness recheck](information-request-independent-completeness-recheck-2026-10-15.md) are closed
+> (2026-10-16, uncommitted). No confirmed functional repair remains in the checked scopes. Preserve earlier scoped
+> closures and accepted exclusions; read the current Status first.
+
+> Previous audit handoff: SX-01 (P2), subject privacy export snapshot consistency, was open. Start with SX-01, then
+> SX-GATE, using
+> the [independent completeness recheck](information-request-independent-completeness-recheck-2026-10-15.md). No
+> production repair is retained. Preserve earlier scoped closures and accepted exclusions; read the current Status
+> first.
+
+> Current checkpoint: the independent completeness audit (plans/information-request-completeness-audit-2026-10-15.md)
+> confirms three P2 calendar defects.
+> Start with CAL-01, test-first: normalize resolved working windows so a split Europe/Berlin calendar does not count
+> a spring-gap interval twice during pause/resume. Then CAL-02 (lossless policy calendar editing) and CAL-03 (valid
+> midnight end boundaries), followed by CAL-GATE above. Real PostgreSQL probes fail 2/4 and actual client/dialog
+> probes fail 6/7; temporary mirror controls pass 19/19 backend and 7/7 client and were restored exactly.
+> Fresh backend 4,782/705 reconciled: 4,779 initial passes plus three missing-copy-fixture errors,
+> then 3/3 pass after adding the unchanged CloudFormation fixture. Initial full exit 1, targeted exit 0;
+> this is not one clean full run. Migrations 312/82, neutral scenarios 13/8, frontend 1,393/257 and
+> retained independent probes 72/72 pass. Prior NS/CE/RN/RS/DT/PV and domain/security closures remain intact.
+> Preserve existing changes, staged deletions, recorded exclusions and verification limits. No production repair,
+> migration or new cloud service was made. Next migration V178, subject to recheck. No commit or push is authorized.
+
+> Previous checkpoint (CE remediation): CE-01 (plans/information-request-rn-remediation-recheck-2026-10-15.md) is closed
+> test-first and
+> uncommitted, client only: a due date policy republished with escalation disabled keeps it disabled, and 0 still
+> escalates at the due time. Full frontend 1,376/254, backend 88/10, the recheck's 72 probes pass. Open: the null
+> sweep's
+> NS-01..NS-03 (P2: Workflow condition editor crash on a null schema version, null[0] occurrence paths, false template
+> draft problems for unlimited file limits) and NS-04 (P3 displays). The server sends unset values as explicit null;
+> 226 client properties allow only undefined, and the app typecheck has strict off. The repair approach (guards and
+> accurate types, or removing nulls at the API client) awaits the user. Preserve earlier closures, accepted
+> exclusions, manual/deployed limits and staged deletions. Next migration V178, subject to recheck. No commit or push.
+
+> Previous checkpoint (RN recheck): the independent RN remediation recheck
+> (information-request-rn-remediation-recheck-2026-10-15.md)
+> verifies RN-01/RN-02 but confirms CE-01, P2. A due date policy with escalationAfterMinutes:null opens as 0 hours;
+> changing only urgent hours in the real dialog publishes escalationAfterMinutes:0, enabling immediate escalation
+> for clocks using the new version. Repair the nullable duration response contract and form/summary test-first,
+> preserving omitted/null disabled escalation versus explicit zero and positive delays, then CE-GATE above.
+> Fresh frontend 1,369/252, focused backend 54/5, all 64 retained independent probes and packaging pass. New policy
+> probes have 4 intended failures/4 controls; temporary mirror guards pass 8/8 and were restored. Full backend
+> 4,776/705 is historical verified evidence with unchanged production inputs; it was not rerun in this review.
+> Phase 9 policy editing, Phase 10 editor/summary and Phase 12 acceptance reopened. Preserve RN/RS/DT/PV and earlier
+> closures, accepted exclusions, width-sweep waiver, live/deployed limits and staged evidence/journal deletions.
+> No production repair was retained; no migration, commit or push. Next migration V178, subject to recheck.
+
+> Previous checkpoint (RN remediation): the RS remediation recheck's RN-01 and RN-02
+> (plans/information-request-rs-remediation-recheck-2026-10-15.md)
+> are closed test-first and uncommitted, client only, with no migration; see the report's "Remediation result
+> (2026-10-15)".
+> The 44 nullable Information Request response timestamps are typed number | null, matching the explicit nulls the
+> configured REST serializer writes. A reusable answer without an end says No end date, the operations CSV leaves Due
+> empty without a running clock, and the shared time helpers read null as unset while keeping 0 as the epoch. Full
+> frontend 1,369/252 and focused backend 54/5 pass; backend production is unchanged since the full 4,776/705 run.
+> An independent recheck may verify RN-01 and RN-02. Non-Information Request DTOs with string-typed times are outside
+> this scope. Preserve earlier closures, accepted exclusions, manual/deployed limits and staged evidence/journal
+> deletions. Next migration V178, subject to recheck. No commit or push is authorized.
+
+> Previous checkpoint (RS recheck): the independent RS remediation recheck
+> (information-request-rs-remediation-recheck-2026-10-15.md)
+> verifies RS-01 and RS-02 in their repaired scopes but confirms RN-01/RN-02, both P2. Explicit-null date bounds
+> produce a false 1970 reusable-answer cutoff, and nearestDueAt:null produces a false 1970 CSV Due value.
+> Repair those test-first through configured production serialization and the real client, then RN-GATE above.
+> Preserve numeric zero and intentional ISO string contracts. Nullable client models/shared formatters need review;
+> 44 nullable converted properties are inventory scope, not 44 demonstrated runtime defects.
+> Fresh frontend 1,361/252, backend focused 51/5, retained independent cases 51/51 and packaging pass. New null
+> probes have 5 intended failures/8 controls; temporary mirror guards pass 22/22 and were restored. Recorded full
+> backend 4,776/705 is reconciled; backend production matches the previous independent 4,774/704 run and the new
+> two-case contract class passed freshly. This review did not rerun the full backend suite.
+> Phase 9 CSV, Phase 10 nullable-date UX and Phase 12 acceptance are reopened. Preserve RS-01/RS-02, DT-01/PV-01,
+> earlier security/domain closures, accepted exclusions, manual/deployed limits and staged evidence/journal deletions.
+> No production repair was made by the recheck; no migration, commit or push. Next migration V178, subject to recheck.
+
+> Previous checkpoint (RS remediation): the DT/PV remediation recheck's RS-01 and RS-02
+> (plans/information-request-dt-pv-remediation-recheck-2026-10-15.md)
+> are closed test-first and uncommitted, client only, with no migration; see the report's "Remediation result
+> (2026-10-15)".
+> The web client's Information Request response types state every TimestampSerializer time as the epoch-millisecond
+> number the server sends. Review decision history sorts numerically, an ACTIVE link whose expiry passed shows as
+> expired with only Revoke link, and the operations CSV writes UTC ISO-8601 times. Recurrence firstDueAt (request) and
+> reminder cooldownUntil stay ISO strings. Full frontend 1,361/252 and backend 4,776/705 pass. An independent recheck
+> may verify RS-01 and RS-02. Non-Information Request DTOs with the same mismatch are outside this scope. Preserve
+> earlier closures, accepted exclusions, manual/deployed limits and staged evidence/journal deletions. Next migration
+> V178, subject to recheck. No commit or push is authorized.
+
+> Previous checkpoint (DT/PV recheck): the independent DT/PV remediation recheck
+> (information-request-dt-pv-remediation-recheck-2026-10-15.md) verifies DT-01 and PV-01,
+> but confirms remaining response-timestamp defects RS-01 and RS-02. Exact next work is their coordinated numeric
+> response-contract repair, test-first, followed by RS-GATE. Review history throws with two decisions; an ACTIVE
+> link whose expiry passed is shown active with Resend. Server expiry enforcement remains intact. Fresh backend
+> 4,774/704 and frontend 1,351/250 pass; independent response probes still reproduce both defects.
+> Preserve earlier closures, accepted exclusions, manual/deployed limits and staged evidence/journal deletions.
+> No production fix was made by the recheck; no migration, commit or push is authorized.
+
+> Previous checkpoint (DT/PV remediation): the verification audit's DT-01 and PV-01
+> (plans/information-request-verification-audit-2026-10-14.md)
+> are closed test-first and uncommitted, with no migration; see the report's "Remediation result (2026-10-15)". Dated
+> browser commands send epoch milliseconds (recurrence firstDueAt stays ISO), and Preview as recipient reads
+> GET .../parties/{partyId}/recipient-preview, the nominated answering party's own projection. Full frontend 1,351 tests
+> in 250 files; full backend (4,773 tests in 704 classes). Open, offered as separate work: client response timestamp
+> types
+> say string while the server sends numbers (review decision history with two decisions, party row link expiry). An
+> independent recheck may verify DT-01 and PV-01. Preserve earlier closures, accepted manual/deployed limits, the dirty
+> tree and staged evidence deletions. Next migration V178, subject to recheck. No commit or push is authorized.
+
+> Previous checkpoint: the deep audit's TB-01 and TB-02 (plans/information-request-deep-audit-2026-10-14.md) are closed
+> test-first, frontend only and uncommitted, with no migration; see the report's "Remediation result (2026-10-14,
+> evening)".
+> A refused file request's body is read as JSON by content in apiClient's error handler (the server labels refused
+> content and preview reads */*), and a respondent's late file opens only while its panel still lists that artifact
+> with that version as its latest. Full frontend 1,338 tests in 248 files; full backend 4,744 tests in 701 classes;
+> new cases frontend 40, backend 6; the audit's probes 37 of 37 unchanged. An independent
+> recheck may verify TB-01 and TB-02. Preserve earlier closures, accepted manual/deployed limits, the dirty tree and
+> staged evidence deletions. Next migration V178, subject to recheck. No commit or push is authorized.
+
+Historical continuation context:
+
+> Previous checkpoint: the independent deep audit in plans/information-request-deep-audit-2026-10-14.md confirms TB-01
+> and TB-02, both P2.
+> The feature is not complete at these respondent browser boundaries. First read AGENTS.md, the active plan and the new
+> report, then preserve/promote the independent failing probes and fix TB-01, TB-02 and TB-GATE in that order,
+> test-first.
+> Fresh full backend: 4,738 tests in 700 classes; zero failures/errors/skips; 55:28 min. Full frontend 1,297/245 and
+> retained browser probes 23/23 pass; new probes have nine intended failures and five controls. Test-owned controls pass
+> all 14 and are not production fixes.
+> Preserve earlier closures, accepted scope/manual limits, the existing dirty tree and staged evidence deletions. No
+> migration is indicated. No commit or push is authorized.
+
+> Previous checkpoint: the independent FU remediation recheck in
+> plans/information-request-fu-remediation-recheck-2026-10-14.md
+> verifies FU-01, FU-02, FU-03 and FU-GATE within the recorded scopes. Original browser probes 15/15,
+> expanded browser probes 23/23, fresh backend regressions/probes 24/24 and full frontend 1,297 pass.
+> The isolated 32-case file and complete four-worker rerun resolve an initial timeout without changing deadlines.
+> All 2,509 backend inputs match the full 4,738-test run; it was reconciled, not rerun.
+> No new defect is confirmed in this scope. Preserve earlier closures and accepted manual/deployed limits.
+> Audit workspace download and app-wide token-refresh observations remain separate. Next migration V178,
+> subject to recheck. No commit or push is authorized.
+
+Previous implementation-session instructions (historical context):
 
 > Continue the Document-Driven Information Requests implementation from
-> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`. First read `AGENTS.md`, then the
-> full active plan, including `## Status`, `## Plan and Evidence Update Protocol`,
-> `## Mandatory Protocol for Every Implementation Session`, and `## Latest Implementation Result`. Use
-> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-COMPLETION-EVIDENCE.md` for prior completion results,
-> evidence, and older decisions. Also read the 2026-09-13 recheck at
-> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-PHASES-1-5-RECHECK.md`. Inspect the working tree and
-> preserve unrelated changes. The program was reopened on 2026-09-30: read
-> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-GAP-AUDIT.md` and
-> `## Phase 13: Exchanges Started from Information Request Blueprints`, and treat earlier
-> checkmarks as claims to verify against the code, not as proof. Start with the first unchecked
-> Phase 13 task once the user has confirmed its design decisions.
-> On 2026-09-25 the user made malware scanning optional and moved it to
-> `plans/INFORMATION-REQUEST-EVIDENCE-MALWARE-SCANNING-PLAN.md`; evidence collection works in
-> production without a scanner, and no file is ever described as scanned or safe without a scan.
-> The platform has no production users and is in active development: read
-> `## Development-Stage Constraint` and `## Development-Stage Compatibility Removal`, write no
-> backwards-compatibility code. Do not assume permission for
-> a new AWS service or paid resource type. For implementation,
-> follow TDD: add a focused failing test, confirm the intended
-> failure, implement the smallest complete change, run focused and required regression tests, update
-> affected help documentation, then update the active plan and companion evidence file with the exact
-> next starting point. Do not commit or push without explicit permission.
+> `plans/DOCUMENT-DRIVEN-INFORMATION-REQUESTS-IMPLEMENTATION-PLAN.md`. First read `AGENTS.md`, then
+> the full active plan, including Status, Plan and Evidence Update Protocol, Mandatory Protocol,
+> Recheck Remediation Work, and Latest Implementation Result. Read the companion completion
+> evidence journal only from preserved history if needed, because it is staged deleted; preserve that deletion.
+> Read the full feature audit and its follow-up register for current work. Inspect and preserve the existing dirty tree.
+> The 2026-10-10 implementation audit (`plans/implementation-audit-2026-10-10.md`) found F01 to
+> F04; its remediation result records their closure, the new review read actions, the
+> respondent-page scoping and session recovery, and the revised Settings decision 12. Deploying the
+> stack (for the S3 version permissions) is an operator step that was not run.
+> The 2026-10-10 deep analysis (`plans/information-request-deep-analysis-2026-10-10.md`) found
+> DA-01 to DA-04; its remediation result records their closure: route-scoped author and reviewer
+> pages, same-key serialization in `CommandReceiptService` and lock-first lifecycle commands, and
+> review command keys kept until a known result.
+> The 2026-10-11 re-analysis (`plans/information-request-deep-analysis-2026-10-11.md`) found RA-01
+> to RA-03 and a P3 test-model cleanup; its remediation result records their closure: the raw
+> access link lives inside the loaded author workspace, worksheets carry `draftRevision` and the
+> reviewer page keeps the higher revision, and `InformationRequestMutationGate.lockAll` locks every
+> parent Exchange in identifier order before its requests.
+> The 2026-10-11 independent recheck (`plans/information-request-independent-recheck-2026-10-11.md`)
+> found RR-01 to RR-04; its remediation result records their closure: a refused reread withholds
+> the respondent workspace and offers Try again, privacy deletion locks through
+> `InformationRequestMutationGate.lockExisting` (the same Exchange order as reminders), the
+> respondent supplement keeps its key until an answer, and the reviewer page works in any open
+> assignment (`workableAssignments`, per-assignment drafts, Stage you are deciding).
+> The 2026-10-12 re-analysis (`plans/information-request-reanalysis-2026-10-12.md`) found RV-01 to
+> RV-03; its remediation result records their closure: Create export, Send appeal, and Use this
+> answer keep their keys through `useStableIdempotencyKey` until an answer, so a retry after a lost
+> answer replays the recorded export, appeal, or saved answer.
+> The 2026-10-12 second re-analysis (`plans/information-request-second-reanalysis-2026-10-12.md`)
+> found RW-01; its remediation result records its closure: the operations detail renders its
+> request-owned content keyed by request, and the standing hook and shared `useLoadedValue` loader
+> return values only for their current owner.
+> The 2026-10-12 third re-analysis (`plans/information-request-third-reanalysis-2026-10-12.md`)
+> found RX-01; its remediation result records its closure: `useLoadedValue` keeps no value after a
+> failed read, so a refused reread withholds the earlier list until a read succeeds.
+> The 2026-10-12 fourth re-analysis (`plans/information-request-fourth-reanalysis-2026-10-12.md`)
+> found RY-01; its remediation result records its closure: `useLearnedAssignees` withholds the
+> queue's learned assignee names from a refused read until a read answers.
+> The 2026-10-12 fifth deep analysis (`plans/information-request-fifth-reanalysis-2026-10-12.md`)
+> found FA-01 to FA-06; its remediation result records their closure, including V177 and the
+> canonical command fingerprint encoder.
+> The 2026-10-12 sixth analysis (`plans/information-request-sixth-reanalysis-2026-10-12.md`) found
+> FB-01; its remediation result records its closure: the respondent page keeps an interrupted
+> account-link attempt and its session token after another read ends the session, and Link to my
+> account resends exactly that command.
+> The 2026-10-10 independent recheck verified RC-26 and RC-28 to RC-34 and reopened RC-27 P1;
+> its remediation result closes RC-27 with V176 (each other source's full key set, and hold guards
+> on the records of every request an open claim names), and the second 2026-10-10 recheck verified
+> that closure. Those historical findings remain closed, and IR-01 through IR-05 from the
+> 2026-10-13 analysis are closed too; `plans/information-request-deep-analysis-2026-10-13.md`
+> records their rules in its remediation result (no-auth commands check their session after
+> locking the parent and request, operations pages belong to the signed-in owner, refused
+> rereads are withheld with Try again). The 2026-10-13 completeness recheck's VR-01 to VR-04
+> (`plans/information-request-completeness-recheck-2026-10-13.md`) and the post-remediation
+> recheck's VC-01 and VC-02 (`plans/information-request-post-remediation-recheck-2026-10-13.md`)
+> are closed too; their remediation results record the rules (access-link work uses the session's
+> current verification, evidence content is released only after the session and authorization are
+> confirmed again once the file has been read, and the respondent page applies session results only
+> for their own link generation and only while it is mounted). The comprehensive audit's CA-01 and
+> CA-02 (`plans/information-request-comprehensive-audit-2026-10-13.md`) and the CA remediation
+> recheck's CR-01 (`plans/information-request-ca-remediation-recheck-2026-10-13.md`) are closed too:
+> unsaved answers, kept files, command keys, and the whole respondent body belong to the request and
+> the workspace's `respondentKey`, and interrupted commands keep their `Idempotency-Key` until
+> answered. The CR remediation recheck's DR-01 (`plans/information-request-cr-remediation-recheck-2026-10-14.md`)
+> is closed too: a file preview or download is opened only while the evidence panel that asked for it is still
+> shown. Read the current Status first.
+> The second 2026-10-10 recheck's decisions (co-assigned evidence,
+> Business Decision and review-reason audiences, email-assignment enumeration, subject-link
+> permission, access after account linking, record-administration concurrency, reviewer
+> verification recovery, recurrence replay source identity) were implemented on 2026-10-10 with the
+> recommended answers at the user's request; change one only when the user asks. Earlier
+> RC-17 repairs and C01/C02 remain closed. Keep help articles under the 150-line
+> budget and leave applied migrations byte-for-byte unchanged, including by formatters. The
+> recommended answers implemented on 2026-10-08 remain approved. All registered closures keep their
+> scopes, and their permanent tests must stay green. The fourth report records every old lead's
+> disposition; the second 2026-10-10 report records the remaining follow-ups. Do not treat all
+> source-confirmed behavior as a breach.
+> The latest full backend and frontend results are in the Status section; raw app lint/TypeScript
+> failures outside this feature remain recorded. Preserve earlier positives and approved scope decisions.
+
+> Historical register fixes, Blueprint startup, the no-auth nested identifier fix, and the approved
+> identity-only Subject policy remain implemented. Earlier checkmarks are claims to verify, not
+> proof that untested paths are complete. GA-078 has backend read/cutoff behavior and audit help;
+> the claimed frontend management section is absent and was not required by Phase 10. Preserve
+> staged deletions of the original gap audit and earlier recheck; read their committed copies with
+> `git show 979bd25b:<path>` when needed. Checkout Flyway head is V177 and next free is V178;
+> recheck before allocation and never edit applied migrations.
+> Keep Subject identity separate from acting roles. Malware scanning is optional by the user's
+> 2026-09-25 decision and is planned separately; no unscanned file is claimed safe. Compartments
+> use the approved recent-verification label semantics. Personal and Business entitlements and
+> platform overrides apply without a second owner rollout grant. Personal Field and Schema
+> authoring remains closed. The manual width sweep was waived on 2026-09-28 and was not run.
+> The platform is in active development without production users: follow the development-stage
+> constraint, write no compatibility aliases, and add no new paid cloud service without approval.
+> Follow TDD for each bounded fix: intended behavioral red, smallest complete implementation,
+> focused green, required regressions, applicable help updates, then plan and journal updates as
+> the final action with exact results and next task. Do not commit or push without permission.

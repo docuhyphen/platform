@@ -1,28 +1,27 @@
 package com.docuhyphen.app.api.resource.informationrequest.party
 
+import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.InformationRequestPartyDto
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.RequestExecutionUsageKind
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.party.AssignExternalParticipantInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyAssignmentResult
-import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyListing
-import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
-import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
+import com.docuhyphen.app.api.model.informationrequest.party.*
 import com.docuhyphen.app.api.resource.informationrequest.party.operations.InformationRequestPartyResourceOperations
 import com.docuhyphen.app.api.resource.model.AssignInformationRequestPartyRequest
 import com.docuhyphen.app.api.resource.model.ReassignInformationRequestPartyRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.execution.RequestExecutionUsageExhaustedException
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService
-import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyRevocationService
+import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestSubjectService
 import io.quarkus.security.ForbiddenException
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.POST
@@ -39,9 +38,17 @@ import java.util.*
 class InformationRequestPartyResourceContractTest
 {
     private val partyQueryService = mock<InformationRequestPartyQueryService>()
-    private val partyService = mock<InformationRequestPartyService>()
+    private val partyAssignments = mock<InformationRequestPartyAssignmentService>()
+    private val partyRevocations = mock<InformationRequestPartyRevocationService>()
     private val accessContextFactory = mock<InformationRequestAccessContextFactory>()
-    private val resource = InformationRequestPartyResource(partyQueryService, partyService, accessContextFactory)
+    private val subjects = mock<InformationRequestSubjectService>()
+    private val resource = InformationRequestPartyResource(
+        partyQueryService,
+        partyAssignments,
+        partyRevocations,
+        subjects,
+        accessContextFactory,
+    )
 
     private val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
     private val requestId = UUID.randomUUID()
@@ -105,8 +112,9 @@ class InformationRequestPartyResourceContractTest
         val userId = UUID.randomUUID()
         val groupId = UUID.randomUUID()
         val subjectId = UUID.randomUUID()
-        whenever(partyService.assign(any())).thenReturn(assigned)
-        whenever(partyService.assignExternalParticipant(any())).thenReturn(assigned)
+        whenever(partyAssignments.assign(any())).thenReturn(assigned)
+        whenever(partyAssignments.assignExternalParticipant(any())).thenReturn(assigned)
+        whenever(subjects.assignKnownSubject(any())).thenReturn(assigned)
 
         val byUser = resource.assign(
             requestId.toString(),
@@ -168,7 +176,7 @@ class InformationRequestPartyResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, two.status)
         assertEquals(Response.Status.BAD_REQUEST.statusCode, unkeyed.status)
         val precondition = CommandPrecondition.ExpectedRevision(setOf("\"parties-1\""))
-        verify(partyService).assign(
+        verify(partyAssignments).assign(
             AssignInformationRequestPartyCommand(
                 requestId = requestId,
                 roleKey = InformationRequestShareRoleKey.DECISION_MAKER,
@@ -178,7 +186,7 @@ class InformationRequestPartyResourceContractTest
                 idempotencyKey = "assign-user",
             ),
         )
-        verify(partyService).assign(
+        verify(partyAssignments).assign(
             AssignInformationRequestPartyCommand(
                 requestId = requestId,
                 roleKey = InformationRequestShareRoleKey.REVIEWER,
@@ -188,7 +196,7 @@ class InformationRequestPartyResourceContractTest
                 idempotencyKey = "assign-group",
             ),
         )
-        verify(partyService).assign(
+        verify(subjects).assignKnownSubject(
             AssignInformationRequestPartyCommand(
                 requestId = requestId,
                 roleKey = InformationRequestShareRoleKey.SUBJECT,
@@ -198,7 +206,7 @@ class InformationRequestPartyResourceContractTest
                 idempotencyKey = "assign-subject",
             ),
         )
-        verify(partyService).assignExternalParticipant(
+        verify(partyAssignments).assignExternalParticipant(
             AssignExternalParticipantInformationRequestPartyCommand(
                 requestId = requestId,
                 roleKey = InformationRequestShareRoleKey.CONTRIBUTOR,
@@ -212,12 +220,53 @@ class InformationRequestPartyResourceContractTest
     }
 
     @Test
+    fun `a wildcard If-Match never stands in for the parties ETag`() {
+        val partyId = UUID.randomUUID()
+        whenever(partyAssignments.assign(any())).thenReturn(assigned)
+        whenever(partyRevocations.reassign(any())).thenReturn(assigned)
+        whenever(partyRevocations.revoke(any())).thenReturn(assigned)
+
+        resource.assign(
+            requestId.toString(),
+            AssignInformationRequestPartyRequest(
+                InformationRequestShareRoleKey.CONTRIBUTOR,
+                userId = UUID.randomUUID()
+            ),
+            "*",
+            "assign-any",
+        )
+        resource.reassign(
+            requestId.toString(),
+            partyId.toString(),
+            ReassignInformationRequestPartyRequest(userId = UUID.randomUUID()),
+            "*",
+            "reassign-any"
+        )
+        resource.revoke(requestId.toString(), partyId.toString(), "*", "revoke-any")
+
+        val assignedCommand = argumentCaptor<AssignInformationRequestPartyCommand>()
+        verify(partyAssignments).assign(assignedCommand.capture())
+        val reassignedCommand = argumentCaptor<ReassignInformationRequestPartyCommand>()
+        verify(partyRevocations).reassign(reassignedCommand.capture())
+        val revokedCommand = argumentCaptor<RevokeInformationRequestPartyCommand>()
+        verify(partyRevocations).revoke(revokedCommand.capture())
+        assertEquals(
+            listOf(CommandPrecondition.Absent, CommandPrecondition.Absent, CommandPrecondition.Absent),
+            listOf(
+                assignedCommand.firstValue.precondition,
+                reassignedCommand.firstValue.precondition,
+                revokedCommand.firstValue.precondition
+            ),
+        )
+    }
+
+    @Test
     fun `reassignment and revocation act on one party under the parties precondition`()
     {
         val partyId = UUID.randomUUID()
         val userId = UUID.randomUUID()
-        whenever(partyService.reassign(any())).thenReturn(assigned)
-        whenever(partyService.revoke(any())).thenReturn(assigned)
+        whenever(partyRevocations.reassign(any())).thenReturn(assigned)
+        whenever(partyRevocations.revoke(any())).thenReturn(assigned)
 
         val reassigned = resource.reassign(
             requestId.toString(),
@@ -239,7 +288,7 @@ class InformationRequestPartyResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, nobody.status)
         assertEquals(Response.Status.OK.statusCode, revoked.status)
         assertEquals("\"parties-2\"", revoked.getHeaderString("ETag"))
-        verify(partyService).reassign(
+        verify(partyRevocations).reassign(
             ReassignInformationRequestPartyCommand(
                 requestId = requestId,
                 partyId = partyId,
@@ -249,7 +298,7 @@ class InformationRequestPartyResourceContractTest
                 idempotencyKey = "reassign-party",
             ),
         )
-        verify(partyService).revoke(
+        verify(partyRevocations).revoke(
             RevokeInformationRequestPartyCommand(
                 requestId = requestId,
                 partyId = partyId,
@@ -261,9 +310,69 @@ class InformationRequestPartyResourceContractTest
     }
 
     @Test
+    fun `a malformed assignment is a bad request and a party that cannot change is a conflict, each with its own reason`() {
+        whenever(partyAssignments.assign(any())).thenThrow(
+            InformationRequestCommandRequestException(
+                "An acting party cannot name a Subject Identity",
+                InformationRequestErrorCatalog.PARTY_ASSIGNMENT_INVALID,
+            ),
+        )
+        whenever(partyRevocations.reassign(any())).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARTY_NOT_REASSIGNABLE,
+                "A subject party cannot be reassigned to an acting principal",
+            ),
+        )
+        whenever(partyRevocations.revoke(any())).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.PARTY_ALREADY_REVOKED,
+                "Information Request party is already revoked",
+            ),
+        )
+        val partyId = UUID.randomUUID().toString()
+
+        val responses = listOf(
+            resource.assign(
+                requestId.toString(),
+                AssignInformationRequestPartyRequest(
+                    InformationRequestShareRoleKey.CONTRIBUTOR,
+                    userId = UUID.randomUUID()
+                ),
+                "\"parties-1\"",
+                "assign-malformed",
+            ),
+            resource.reassign(
+                requestId.toString(),
+                partyId,
+                ReassignInformationRequestPartyRequest(userId = UUID.randomUUID()),
+                "\"parties-1\"",
+                "reassign-subject",
+            ),
+            resource.revoke(requestId.toString(), partyId, "\"parties-1\"", "revoke-again"),
+        )
+
+        assertEquals(
+            listOf(
+                Response.Status.BAD_REQUEST.statusCode,
+                Response.Status.CONFLICT.statusCode,
+                Response.Status.CONFLICT.statusCode,
+            ),
+            responses.map { it.status },
+        )
+        assertEquals(
+            listOf(
+                InformationRequestErrorCatalog.PARTY_ASSIGNMENT_INVALID,
+                InformationRequestErrorCatalog.PARTY_NOT_REASSIGNABLE,
+                InformationRequestErrorCatalog.PARTY_ALREADY_REVOKED,
+            ),
+            responses.map { (it.entity as ResponseError).reasonCode },
+        )
+    }
+
+    @Test
     fun `an absent precondition reaches the service, and exhausted capacity and a denial answer stable statuses`()
     {
-        whenever(partyService.assign(any())).thenThrow(
+        whenever(partyAssignments.assign(any())).thenThrow(
             RequestExecutionUsageExhaustedException(
                 UUID.randomUUID(),
                 RequestExecutionUsageKind.ACTING_PARTY,
@@ -296,11 +405,12 @@ class InformationRequestPartyResourceContractTest
 
         assertEquals(Response.Status.CONFLICT.statusCode, unconditioned.status)
         val sent = argumentCaptor<AssignInformationRequestPartyCommand>()
-        verify(partyService, times(2)).assign(sent.capture())
+        verify(partyAssignments, times(2)).assign(sent.capture())
         assertEquals(CommandPrecondition.Absent, sent.firstValue.precondition)
         assertEquals(Response.Status.CONFLICT.statusCode, exhausted.status)
         assertEquals(InformationRequestErrorCatalog.CAPACITY_EXHAUSTED, (exhausted.entity as ResponseError).reasonCode)
         assertEquals(Response.Status.FORBIDDEN.statusCode, denied.status)
-        verify(partyService, never()).assignExternalParticipant(any())
+        assertEquals(InformationRequestErrorCatalog.FORBIDDEN, (denied.entity as ResponseError).reasonCode)
+        verify(partyAssignments, never()).assignExternalParticipant(any())
     }
 }

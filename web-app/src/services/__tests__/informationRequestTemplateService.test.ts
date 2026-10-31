@@ -27,8 +27,8 @@ const template = {
     templateKey: "collection-pattern",
     displayName: "Collection pattern",
     status: InformationRequestTemplateStatus.DRAFT,
-    createdAt: "2026-09-01T00:00:00Z",
-    updatedAt: "2026-09-01T00:00:00Z",
+    createdAt: Date.parse("2026-09-01T00:00:00Z"),
+    updatedAt: Date.parse("2026-09-01T00:00:00Z"),
 };
 
 const createRequest = {
@@ -92,20 +92,26 @@ describe("informationRequestTemplateService", () =>
             publishInformationRequestTemplateDraft,
         } = await import("../informationRequestTemplateService.ts");
 
-        await createInformationRequestTemplate(createRequest);
+        await createInformationRequestTemplate(createRequest, "create-key");
         await getInformationRequestTemplate("template-1");
-        await replaceInformationRequestTemplateDraftConfiguration("template-1", configuration);
-        await publishInformationRequestTemplateDraft("template-1");
+        await replaceInformationRequestTemplateDraftConfiguration("template-1", configuration, "\"draft-1:3\"");
+        await publishInformationRequestTemplateDraft("template-1", "\"draft-1:4\"", "publish-key");
 
-        expect(post).toHaveBeenCalledWith("/information-request-templates", createRequest);
+        expect(post).toHaveBeenCalledWith(
+            "/information-request-templates",
+            createRequest,
+            {headers: {"Idempotency-Key": "create-key"}},
+        );
         expect(get).toHaveBeenCalledWith("/information-request-templates/template-1");
         expect(put).toHaveBeenCalledWith(
             "/information-request-templates/template-1/draft/configuration",
             configuration,
+            {headers: {"If-Match": "\"draft-1:3\""}},
         );
         expect(post).toHaveBeenCalledWith(
             "/information-request-templates/template-1/draft/publication",
             {},
+            {headers: {"If-Match": "\"draft-1:4\"", "Idempotency-Key": "publish-key"}},
         );
     });
 
@@ -118,25 +124,28 @@ describe("informationRequestTemplateService", () =>
             cloneInformationRequestTemplate,
         } = await import("../informationRequestTemplateService.ts");
 
-        await createInformationRequestTemplateDraftVersion("template-1", {sourceVersionNumber: 2});
-        await retireInformationRequestTemplateVersion("template-1", 2);
+        await createInformationRequestTemplateDraftVersion("template-1", {sourceVersionNumber: 2}, "version-key");
+        await retireInformationRequestTemplateVersion("template-1", 2, "retire-key");
         await cloneInformationRequestTemplate("template-1", {
             sourceVersionNumber: 2,
             target: createRequest,
-        });
+        }, "clone-key");
 
         expect(post).toHaveBeenCalledWith(
             "/information-request-templates/template-1/versions",
             {sourceVersionNumber: 2},
+            {headers: {"Idempotency-Key": "version-key"}},
         );
         expect(post).toHaveBeenCalledWith(
             "/information-request-templates/template-1/versions/2/retirement",
             {},
+            {headers: {"Idempotency-Key": "retire-key"}},
         );
         expect(patch).not.toHaveBeenCalled();
         expect(post).toHaveBeenCalledWith(
             "/information-request-templates/template-1/clones",
             {sourceVersionNumber: 2, target: createRequest},
+            {headers: {"Idempotency-Key": "clone-key"}},
         );
     });
 

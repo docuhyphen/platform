@@ -11,7 +11,7 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class ShareRolePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<ShareRolePostgreSQLContainer>(imageName)
@@ -54,7 +54,6 @@ class ShareResourceScopedRoleContractTest
                 insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "ATTESTOR")
                 insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "REVIEWER")
                 insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "DECISION_MAKER")
-                insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "SUBJECT")
             }
         }
     }
@@ -92,6 +91,9 @@ class ShareResourceScopedRoleContractTest
                 }
                 refused(connection, "share_role_name_check") {
                     insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "VIEWER")
+                }
+                refused(connection, "share_role_name_check") {
+                    insertShare(connection, UUID.randomUUID(), ResourceType.INFORMATION_REQUEST.name, "SUBJECT")
                 }
             }
         }

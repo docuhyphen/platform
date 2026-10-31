@@ -20,14 +20,18 @@ class InformationRequestExternalSourceRecordAssembler @Inject constructor(
     private val outputRepository: InformationRequestGeneratedOutputRepository,
 )
 {
-    fun assemble(requestId: UUID): JsonObject = buildJsonObject {
-        put("connectorExchanges", exchangesOf(requestId))
-        put("importedValues", valuesOf(requestId))
+    fun assemble(requestId: UUID, disclosesRequirement: (UUID) -> Boolean): JsonObject = buildJsonObject {
+        put("connectorExchanges", exchangesOf(requestId, disclosesRequirement))
+        put("importedValues", valuesOf(requestId, disclosesRequirement))
         put("generatedOutputs", outputsOf(requestId))
     }
 
-    private fun exchangesOf(requestId: UUID): JsonArray = buildJsonArray {
+    private fun exchangesOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray = buildJsonArray {
         exchangeRepository.findForRequest(requestId).forEach { exchange ->
+            if (!discloses(exchange.informationRequestRequirementId)) {
+                add(withheld("connectorExchangeId", exchange.id, exchange.informationRequestRequirementId))
+                return@forEach
+            }
             add(
                 buildJsonObject {
                     put("connectorExchangeId", exchange.id.toString())
@@ -49,17 +53,22 @@ class InformationRequestExternalSourceRecordAssembler @Inject constructor(
         }
     }
 
-    private fun valuesOf(requestId: UUID): JsonArray
+    private fun valuesOf(requestId: UUID, discloses: (UUID) -> Boolean): JsonArray
     {
         val decisions = decisionRepository.findForRequest(requestId).associateBy { it.importedValueId }
         val discrepancies = discrepancyRepository.findForRequest(requestId).groupBy { it.importedValueId }
         val resolutions = resolutionRepository.findForRequest(requestId).associateBy { it.discrepancyId }
         return buildJsonArray {
             valueRepository.findForRequest(requestId).forEach { value ->
+                if (!discloses(value.informationRequestRequirementId)) {
+                    add(withheld("importedValueId", value.id, value.informationRequestRequirementId))
+                    return@forEach
+                }
                 add(
                     buildJsonObject {
                         put("importedValueId", value.id.toString())
                         put("requirementId", value.informationRequestRequirementId.toString())
+                        put("requirementRevisionId", value.requirementRevisionId.toString())
                         put("sourceKind", value.sourceKind.name)
                         put("connectorExchangeId", value.connectorExchangeId?.toString())
                         put("sourceReference", value.sourceReference)
@@ -84,6 +93,12 @@ class InformationRequestExternalSourceRecordAssembler @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun withheld(idKey: String, id: UUID, requirementId: UUID): JsonObject = buildJsonObject {
+        put(idKey, id.toString())
+        put("requirementId", requirementId.toString())
+        put("redacted", true)
     }
 
     private fun decisionOf(decision: InformationRequestImportedValueDecision): JsonObject = buildJsonObject {

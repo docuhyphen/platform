@@ -26,7 +26,8 @@ const ClockChangeDialog = ({clock, path, busy, onConfirm, onDismiss}: Props) =>
     const [reason, setReason] = useState("");
     const [minutes, setMinutes] = useState<number | undefined>(undefined);
     const extending = path === "extensions";
-    const ready = Boolean(reason.trim()) && (!extending || (minutes !== undefined && minutes > 0));
+    const reasonValid = /^[a-z0-9][a-z0-9._-]{0,127}$/.test(reason.trim());
+    const ready = reasonValid && (!extending || (minutes !== undefined && minutes > 0 && minutes <= 5_256_000));
 
     return (
         <EditorDialog id={"information-request-clock-change-dialog"}
@@ -38,15 +39,17 @@ const ClockChangeDialog = ({clock, path, busy, onConfirm, onDismiss}: Props) =>
                       onDismiss={onDismiss}>
             <TextField id={"information-request-clock-change-reason"}
                        label={"Reason"}
-                       hint={"Recorded in the clock history."}
+                       hint={"A lowercase reason code, using letters, digits, dots, dashes or underscores. Recorded in the clock history."}
                        value={reason}
-                       maxLength={120}
+                       maxLength={128}
+                       validationMessage={reason.trim() && !reasonValid ? "Enter a lowercase reason code without spaces." : undefined}
                        onChange={setReason}/>
             {extending && (
                 <NumberField id={"information-request-clock-change-minutes"}
                              label={"Minutes to add"}
                              value={minutes}
                              min={1}
+                             max={5_256_000}
                              step={1}
                              onChange={setMinutes}/>
             )}

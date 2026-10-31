@@ -1,10 +1,12 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.archive.StreamCoverageReport
+import com.docuhyphen.app.api.model.audit.export.OrganizationIntegrityReport
+import com.docuhyphen.app.api.model.audit.export.StreamIntegrityReport
 import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier
-import com.docuhyphen.app.api.service.audit.archive.StreamCoverageReport
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
@@ -15,33 +17,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Per-stream integrity result surfaced by [AuditIntegrityService.checkOrganization]. */
-data class StreamIntegrityReport(
-    val streamId: String,
-    val chainValid: Boolean,
-    val chainNote: String,
-    val segmentsChecked: Int,
-    val segmentsValid: Int,
-    val segmentFailureNotes: List<String>,
-)
-
-data class OrganizationIntegrityReport(
-    val organizationId: UUID?,
-    val platformOnly: Boolean,
-    val streams: List<StreamIntegrityReport>,
-)
-{
-    val allValid: Boolean get() = streams.all { it.chainValid && it.segmentFailureNotes.isEmpty() }
-}
-
-/**
- * Read-only integrity report over every stream belonging to an organization (or the platform),
- * combining [AuditArchiveVerifier]'s segment-chain boundary checkpoint with a full re-verification
- * of every archived segment for that stream. The `GET
- * /organizations/{organizationId}/audit-integrity`"); this is the online counterpart the endpoint
- * serves, while [AuditExportBuilder] embeds the same verification logic plus a public-key/README
- * so an export bundle can be checked without calling this endpoint at all ("offline").
- */
 @ApplicationScoped
 class AuditIntegrityService @Inject constructor(
     private val auditLedgerEventRepository: AuditLedgerEventRepository,
@@ -78,6 +53,10 @@ class AuditIntegrityService @Inject constructor(
         val archiveCoversLedgerHead = ledgerHeadSequence != null &&
                 segments.lastOrNull()?.lastSequence == ledgerHeadSequence
         val failureNotes = mutableListOf<String>()
+        val ownersValid = auditLedgerEventRepository.findByStreamOrderBySequence(streamId).all {
+            it.streamId == streamId && AuditStreamOwnership.matches(it.streamId, it.ownerType, it.ownerId)
+        }
+        if (!ownersValid) failureNotes += "ledger owner does not match its protected stream"
         var validCount = 0
         for (segment in segments)
         {
@@ -87,7 +66,7 @@ class AuditIntegrityService @Inject constructor(
 
         return StreamIntegrityReport(
             streamId = streamId,
-            chainValid = chain.valid && archiveCoversLedgerHead,
+            chainValid = chain.valid && archiveCoversLedgerHead && ownersValid,
             chainNote = if (chain.valid && !archiveCoversLedgerHead)
             {
                 "archive ends at ${segments.lastOrNull()?.lastSequence ?: 0}, ledger ends at ${ledgerHeadSequence ?: 0}"
@@ -102,12 +81,6 @@ class AuditIntegrityService @Inject constructor(
         )
     }
 
-    /**
-     * Whether every ledger event in [streamId] between [fromSequence] and [toSequence] (both
-     * inclusive) is covered by a contiguous run of independently-verified archive segments. Used
-     * by [AuditExportBuilder] to require complete verified coverage of the requested range before
-     * a full-fidelity export bundle is built.
-     */
     fun checkCoverage(streamId: String, fromSequence: Long, toSequence: Long): StreamCoverageReport =
         auditArchiveVerifier.checkRangeCoverage(streamId, fromSequence, toSequence)
 

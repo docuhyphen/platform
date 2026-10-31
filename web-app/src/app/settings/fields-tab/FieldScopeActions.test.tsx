@@ -12,7 +12,7 @@ const definition = (scopeKind: FieldScopeKind): FieldDefinitionDto => ({
     fieldKey: "reference",
     status: FieldLifecycleStatus.PUBLISHED,
     contractCount: 0,
-    createdAt: "2026-07-28T00:00:00Z",
+    createdAt: Date.parse("2026-07-28T00:00:00Z"),
 });
 
 const schema = (scopeKind: FieldScopeKind): SchemaDefinitionDto => ({
@@ -23,7 +23,7 @@ const schema = (scopeKind: FieldScopeKind): SchemaDefinitionDto => ({
     displayName: "Case",
     targetResourceType: "EXCHANGE",
     status: FieldLifecycleStatus.PUBLISHED,
-    createdAt: "2026-07-28T00:00:00Z",
+    createdAt: Date.parse("2026-07-28T00:00:00Z"),
 });
 
 afterEach(cleanup);
@@ -47,7 +47,6 @@ describe("Settings field scope actions", () =>
 
         expect(document.querySelector(`#field-def-menu-${platform.id}`)).toBeNull();
         expect(document.querySelector(`#field-def-menu-${organization.id}`)).toBeTruthy();
-        // A personally owned record renders, but the organization manage rule does not reach it.
         expect(document.querySelector(`#field-def-menu-${personal.id}`)).toBeNull();
     });
 

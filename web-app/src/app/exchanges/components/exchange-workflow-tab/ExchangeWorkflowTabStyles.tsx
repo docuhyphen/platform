@@ -1,4 +1,4 @@
-import { makeStyles, tokens } from "@fluentui/react-components";
+import {makeStyles, tokens} from "@fluentui/react-components";
 
 export const useExchangeWorkflowTabStyles = makeStyles({
     root: {
@@ -12,7 +12,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         alignItems: "center",
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalM,
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
         flexShrink: 0,
     },
@@ -35,15 +35,11 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         gap: tokens.spacingVerticalM,
         // padding: `0 ${tokens.spacingHorizontalL}`,
     },
-    // Side-by-side "Both" view: detail/actions on the left, diagram preview
-    // on the right at 60% width. Stacks to a single column on narrow
-    // viewports so the diagram never gets squeezed unreadably thin.
     instanceSectionSplit: {
         display: "flex",
         flexDirection: "row",
         alignItems: "flex-start",
         gap: tokens.spacingHorizontalL,
-        // padding: `0 ${tokens.spacingHorizontalL}`,
         "@media (max-width: 900px)": {
             flexDirection: "column",
         },
@@ -69,10 +65,9 @@ export const useExchangeWorkflowTabStyles = makeStyles({
     },
     sectionHeading: {
         paddingBottom: tokens.spacingVerticalXS,
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderBottom: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         marginBottom: tokens.spacingVerticalXS,
     },
-    // WorkflowSummaryCard
     summaryCard: {
         padding: tokens.spacingHorizontalM,
         display: "flex",
@@ -96,9 +91,6 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         marginTop: tokens.spacingVerticalXS,
     },
-    metaText: {
-        border: "5px solid red"
-    },
     progressBar: {
         flexGrow: 1,
     },
@@ -108,10 +100,9 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         gap: tokens.spacingHorizontalS,
         marginTop: tokens.spacingVerticalXS,
     },
-    // ActionRequiredCard
     actionCard: {
         padding: tokens.spacingHorizontalM,
-        borderLeft: `3px solid ${tokens.colorBrandBackground}`,
+        borderLeft: `${tokens.strokeWidthThicker} solid ${tokens.colorBrandBackground}`,
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalXS,
@@ -134,11 +125,9 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         gap: tokens.spacingHorizontalS,
     },
-    // RejectionBanner (MessageBar handles most styles; used for wrapper margin)
     rejectionBanner: {
         marginBottom: tokens.spacingVerticalXS,
     },
-    // WorkflowTimeline / WorkflowTimelineItem
     timeline: {
         display: "flex",
         flexDirection: "column",
@@ -189,7 +178,7 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingHorizontalXXS,
         padding: tokens.spacingHorizontalS,
-        borderLeft: `4px solid ${tokens.colorNeutralStroke2}`,
+        borderLeft: `${tokens.strokeWidthThickest} solid ${tokens.colorNeutralStroke2}`,
         marginBottom: tokens.spacingVerticalXS,
     },
     metaText: {

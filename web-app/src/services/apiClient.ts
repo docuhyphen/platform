@@ -3,6 +3,7 @@ import {attachDpopToAxiosConfig} from './dpop';
 import {requestStepUp} from './stepUpBroker';
 import {getApiBaseUrl} from './apiBaseUrl.ts';
 import {csrfHeaderName, readCsrfToken, requiresCsrfHeader} from './csrfToken.ts';
+import {decodeJsonErrorBody} from './jsonErrorBody.ts';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -58,8 +59,6 @@ apiClient.interceptors.request.use(async (config) =>
             config.headers['X-Active-Organization-Id'] = activeOrganizationId;
         }
 
-        // Echo the readable CSRF cookie back on every state-changing request. Cookie-authenticated
-        // endpoints such as token refresh and sign-out reject requests without the matching header.
         if (requiresCsrfHeader(config.method))
         {
             const csrfToken = readCsrfToken();
@@ -69,7 +68,6 @@ apiClient.interceptors.request.use(async (config) =>
             }
         }
 
-        // DPoP: attach a fresh per-request proof when enabled. No-op when disabled.
         await attachDpopToAxiosConfig(config);
 
         return config;
@@ -80,11 +78,11 @@ apiClient.interceptors.request.use(async (config) =>
     }
 );
 
-// Response interceptor: on 401, attempt token refresh and retry
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) =>
     {
+        await decodeJsonErrorBody(error);
         const originalRequest = error.config;
 
         if (
@@ -99,7 +97,6 @@ apiClient.interceptors.response.use(
 
             try
             {
-                // Deduplicate concurrent refresh requests
                 if (!refreshPromise)
                 {
                     refreshPromise = apiClient.post('/auth/token/refresh').finally(() =>
@@ -116,7 +113,6 @@ apiClient.interceptors.response.use(
                     setApiClientAuthToken(accessToken);
                     originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
 
-                    // Notify AuthContext of new tokens via custom event
                     window.dispatchEvent(new CustomEvent('tokens-refreshed', {
                         detail: refreshResponse.data
                     }));
@@ -134,7 +130,6 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // 401 with STEP_UP_REQUIRED  to  drive the global step-up modal, then retry the original request.
         if (
             error.response?.status === 401 &&
             error.response?.data?.reasonCode === 'STEP_UP_REQUIRED' &&
@@ -157,7 +152,6 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // 403 with a deprovisioning or security reason code  to  treat as forced session end
         if (error.response?.status === 403)
         {
             const reasonCode: string = error.response?.data?.reasonCode ?? '';

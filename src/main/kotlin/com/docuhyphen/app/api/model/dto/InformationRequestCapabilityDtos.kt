@@ -21,4 +21,16 @@ data class InformationRequestCapabilitiesDto(
     val personalTemplatesAvailable: Boolean,
     val assignedWork: Boolean,
     val holdsRequests: Boolean,
+    val quotas: InformationRequestPlanQuotasDto,
+)
+
+@Serializable
+data class InformationRequestPlanQuotasDto(
+    val maxOpenRequests: Long? = null,
+    val openRequests: Long,
+    val maxActingPartiesPerRequest: Long? = null,
+    val maxEvidenceFilesPerRequest: Long? = null,
+    val maxEvidenceBytesPerRequest: Long? = null,
+    val maxCommittedEvidenceBytes: Long? = null,
+    val committedEvidenceBytes: Long,
 )

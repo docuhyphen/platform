@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.Grant
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind

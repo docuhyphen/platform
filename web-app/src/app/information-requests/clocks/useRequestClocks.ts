@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useRef, useState} from "react";
 import {
     changeInformationRequestClock,
     getInformationRequestClockPolicies,
@@ -11,7 +11,13 @@ import {
     InformationRequestClockPolicyDto,
     InformationRequestClockUrgency,
 } from "../../models/models.tsx";
-import {informationRequestRefusalMessage, isStaleInformationRequestCommand} from "../shared/informationRequestRefusal.ts";
+import {
+    informationRequestRefusalMessage,
+    isStaleInformationRequestCommand
+} from "../shared/informationRequestRefusal.ts";
+import {InformationRequestOwnerFields, useOwnerWorkspace, workspaceScopeOf} from "../shared/ownerWorkspace.ts";
+import {Scoped, valueInScope} from "../shared/useScopeGuard.ts";
+import {useServerRead} from "../shared/useServerRead.ts";
 
 export interface ClockPolicyChoice
 {
@@ -21,6 +27,11 @@ export interface ClockPolicyChoice
 
 const STALE_CLOCK = "This clock changed while you were working. The latest clocks are shown; try again.";
 
+const clockRefusal = (refusal: unknown) => informationRequestRefusalMessage(refusal, "The clocks could not be loaded.");
+
+const policyRefusal = (refusal: unknown) =>
+    informationRequestRefusalMessage(refusal, "The due date policies could not be loaded.");
+
 export const policyChoices = (policies: InformationRequestClockPolicyDto[]): ClockPolicyChoice[] =>
     policies.flatMap(policy =>
     {
@@ -28,36 +39,19 @@ export const policyChoices = (policies: InformationRequestClockPolicyDto[]): Clo
         return latest ? [{versionId: latest.id, label: `${policy.displayName} (version ${latest.versionNumber})`}] : [];
     });
 
-export const useRequestClocks = (requestId: string) =>
+export const useRequestClocks = (requestId: string, owner: InformationRequestOwnerFields) =>
 {
-    const [clocks, setClocks] = useState<InformationRequestClockDto[]>([]);
-    const [policies, setPolicies] = useState<InformationRequestClockPolicyDto[]>([]);
-    const [loaded, setLoaded] = useState(false);
+    const workspace = useOwnerWorkspace(owner);
+    const ownerWorkspace = workspace.kind === "current";
+    const clocks = useServerRead(requestId, () => getInformationRequestClocks(requestId), clockRefusal);
+    const policies = useServerRead(
+        `${requestId}|${workspaceScopeOf(workspace)}`,
+        () => ownerWorkspace ? getInformationRequestClockPolicies() : Promise.resolve([]),
+        policyRefusal,
+    );
     const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<Scoped<string> | null>(null);
     const keys = useRef(new Map<string, string>());
-
-    const load = useCallback(async () =>
-    {
-        try
-        {
-            setClocks(await getInformationRequestClocks(requestId));
-        }
-        catch (caught: unknown)
-        {
-            setError(informationRequestRefusalMessage(caught, "The clocks could not be loaded."));
-        }
-        finally
-        {
-            setLoaded(true);
-        }
-    }, [requestId]);
-
-    useEffect(() =>
-    {
-        void load();
-        getInformationRequestClockPolicies().then(setPolicies).catch(() => setPolicies([]));
-    }, [load]);
 
     const run = async (signature: string, command: (key: string) => Promise<InformationRequestClockDto>) =>
     {
@@ -73,23 +67,30 @@ export const useRequestClocks = (requestId: string) =>
         catch (caught: unknown)
         {
             if (isStaleInformationRequestCommand(caught)) keys.current.delete(signature);
-            setError(isStaleInformationRequestCommand(caught)
-                ? STALE_CLOCK
-                : informationRequestRefusalMessage(caught, "The clock could not be changed."));
+            setError({
+                scope: requestId,
+                value: isStaleInformationRequestCommand(caught)
+                    ? STALE_CLOCK
+                    : informationRequestRefusalMessage(caught, "The clock could not be changed."),
+            });
         }
         finally
         {
             setBusy(false);
-            await load();
+            await clocks.reload();
         }
     };
 
     return {
-        clocks,
-        choices: policyChoices(policies),
-        loaded,
+        clocks: clocks.value,
+        choices: ownerWorkspace && policies.value ? policyChoices(policies.value) : null,
+        policiesInOtherWorkspace: workspace.kind === "other",
+        loadError: clocks.error ?? (ownerWorkspace ? policies.error : null),
+        reload: async () => {
+            await Promise.all([clocks.reload(), policies.reload()]);
+        },
         busy,
-        error,
+        error: valueInScope(error, requestId),
         start: (policyVersionId: string, urgency: InformationRequestClockUrgency, clockKey: string) =>
             run(`start:${clockKey}:${policyVersionId}:${urgency}`, key =>
                 startInformationRequestClock(requestId, {clockKey, policyVersionId, urgency}, key)),

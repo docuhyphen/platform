@@ -1,12 +1,13 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
 import com.docuhyphen.app.api.model.entity.AuditExportStatus
 import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
 import com.docuhyphen.app.api.repository.audit.AuditExportRepository
 import com.docuhyphen.app.api.service.audit.*
-import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
 import com.docuhyphen.app.api.service.audit.archive.MerkleTree
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -32,13 +33,6 @@ class AuditExportNotFoundException(message: String) : RuntimeException(message)
 
 class AuditExportAccessException(message: String) : RuntimeException(message)
 
-/**
- * State-machine and lifecycle-audit service for [AuditExport]: `REQUESTED` -> (`APPROVAL_PENDING` if dual control is
- * required) -> `BUILDING` -> `READY`, with `FAILED`/`EXPIRED`/`REVOKED` off-ramps. The actual
- * bundle construction is [AuditExportBuilder]'s concern; this service only owns the request/
- * approve/build-transition/download/revoke/expire lifecycle and its own audit trail - every
- * lifecycle transition is itself an audit event.
- */
 @ApplicationScoped
 class AuditExportService @Inject constructor(
     private val auditExportRepository: AuditExportRepository,
@@ -54,25 +48,13 @@ class AuditExportService @Inject constructor(
     private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
-    data class ExportRequest(
-        val organizationId: UUID?,
-        val ownerUserId: UUID? = null,
-        val categories: Set<AuditCategory>,
-        val occurredAfter: Instant,
-        val occurredBefore: Instant,
-        val purpose: String,
-        val caseReference: String? = null,
-        val legalBasis: String? = null,
-        val downloadLimit: Int? = null,
-    )
-
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditExportService::class.java)
     }
 
     @Transactional
-    fun requestExport(request: ExportRequest, actor: AuditAccessActor): AuditExport
+    fun requestExport(request: AuditExportRequest, actor: AuditAccessActor): AuditExport
     {
         validateRequest(request)
         val requestedByUserId = actor.principal.id
@@ -127,13 +109,6 @@ class AuditExportService @Inject constructor(
         return saved
     }
 
-    /**
-     * Locks the export row (`SELECT ... FOR UPDATE`) before checking and advancing its state, so
-     * two concurrent approvals cannot race on the `APPROVAL_PENDING -> BUILDING` transition. The
-     * approval count itself is recomputed from the append-only [AuditExportApproval] table rather
-     * than incremented in memory, so it reflects every approval already committed under the lock -
-     * not just the one this call is adding - and cannot regress from a stale in-memory read.
-     */
     @Transactional
     fun approveExport(exportId: UUID, approvedByUserId: UUID, note: String? = null): AuditExport
     {
@@ -195,15 +170,6 @@ class AuditExportService @Inject constructor(
         return saved
     }
 
-    /**
-     * Attempts to claim exclusive ownership of one `BUILDING` export's archive-build work for
-     * [leaseDuration], under the identity [workerId]. Locks the row, then re-checks under the lock
-     * that it is still `BUILDING` and that any existing lease has already expired (or never
-     * existed) before writing a new lease - so two application nodes racing the same export never
-     * both proceed, and a node that dies mid-build does not block the export forever once its
-     * lease expires. Returns null, with no state change, when the export is no longer `BUILDING` or
-     * another worker's lease is still live.
-     */
     @Transactional
     fun claimForBuilding(exportId: UUID, workerId: String, leaseDuration: Duration): AuditExport?
     {
@@ -224,7 +190,6 @@ class AuditExportService @Inject constructor(
         return auditExportRepository.update(export)
     }
 
-    /** Processes exactly one `BUILDING` export: builds the bundle, or transitions to `FAILED` without throwing on integrity/storage failure. Called by [AuditExportScheduler]. */
     fun processBuilding(export: AuditExport)
     {
         val workerId = export.buildWorkerId
@@ -299,11 +264,6 @@ class AuditExportService @Inject constructor(
         return due.size
     }
 
-    /**
-     * Authorizes and records one bundle download, or throws if the export is not downloadable
-     * right now. Locks the export row before checking the download limit so two concurrent
-     * downloads of the same export cannot both pass a stale limit check and exceed it.
-     */
     @Transactional
     fun recordDownload(exportId: UUID, actor: AuditAccessActor): AuditExport
     {
@@ -341,16 +301,6 @@ class AuditExportService @Inject constructor(
         return saved
     }
 
-    /**
-     * Validates + records the download ([recordDownload]) then returns the bundle bytes, refusing
-     * to serve an object whose current digest no longer matches the digest recorded when the
-     * bundle was built - the last check before evidence leaves the system. Never caches bytes on
-     * the entity - the object lives only in [AuditArchiveStorage]. Deliberately not itself
-     * `@Transactional`: [recordDownload] and [recordDownloadIntegrityFailure] each commit their own
-     * audit trail row in an independent transaction, so a rejected download still leaves a durable
-     * record of the rejection rather than rolling it back along with the (already-recorded) download
-     * count increment.
-     */
     fun downloadBundle(exportId: UUID, actor: AuditAccessActor): ByteArray
     {
         val export = recordDownload(exportId, actor)
@@ -381,6 +331,10 @@ class AuditExportService @Inject constructor(
 
     fun getExport(exportId: UUID): AuditExport = requireExport(exportId)
 
+    fun getPlatformExport(exportId: UUID): AuditExport = requireExport(exportId).takeIf {
+        it.ownerType == "PLATFORM" && it.ownerId == null && it.organizationId == null
+    } ?: throw AuditExportNotFoundException("Audit export not found")
+
     fun listForOrganization(organizationId: UUID?, platformOnly: Boolean): List<AuditExport> =
         auditExportRepository.listForOrganization(organizationId, platformOnly)
 
@@ -402,14 +356,6 @@ class AuditExportService @Inject constructor(
         auditExportRepository.findByIdForUpdate(exportId)
             ?: throw AuditExportNotFoundException("Audit export not found")
 
-    /**
-     * Every export is built at full fidelity ([AuditExportBuilder] applies no redaction), so
-     * every export request or download requires either a sensitive-level export-permitted
-     * engagement, or a fresh step-up when the caller's capabilities already bypass the engagement
-     * requirement through direct organizational governance or platform scope
-     * ([requiresEngagementAccess]). Re-run at both request time and download time because an
-     * engagement can expire or be revoked, and a step-up session can go stale, between the two.
-     */
     private fun requireEngagementPermitsExport(
         actor: AuditAccessActor,
         organizationId: UUID?,
@@ -468,14 +414,6 @@ class AuditExportService @Inject constructor(
         }
     }
 
-    /**
-     * A download is requester-only by default: the original requester always may download their
-     * own export. An organization export additionally allows an organization governance principal
-     * ([Capability.ORG_POLICY_MANAGE]) to download on behalf of the organization; a platform export
-     * additionally allows [Capability.APP_ADMIN]. This is revalidated on every download, not just
-     * at request time, so a capability revoked between request and download takes effect
-     * immediately.
-     */
     private fun requireDownloadAuthorized(export: AuditExport, actor: AuditAccessActor)
     {
         if (actor.principal.id == export.requestedByUserId)
@@ -518,7 +456,7 @@ class AuditExportService @Inject constructor(
             .mapNotNull { raw -> raw.trim().takeIf { it.isNotBlank() }?.let(AuditCategory::valueOf) }
             .toSet()
 
-    private fun validateRequest(request: ExportRequest)
+    private fun validateRequest(request: AuditExportRequest)
     {
         require(request.organizationId == null || request.ownerUserId == null) {
             "An audit export must name one owner"

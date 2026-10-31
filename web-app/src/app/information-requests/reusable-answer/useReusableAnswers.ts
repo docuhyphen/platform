@@ -1,10 +1,15 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
-import {InformationRequestAcceptedFactOfferDto} from "../../models/models.tsx";
+import {useCallback, useMemo} from "react";
 import {
     getInformationRequestAcceptedFactOffers,
     recertifyInformationRequestAcceptedFact,
 } from "../../../services/informationRequestReuseService.ts";
+import {informationRequestRefusalMessage} from "../shared/informationRequestRefusal.ts";
+import {useReloadWhenChanged} from "../shared/useReloadWhenChanged.ts";
+import {useServerRead} from "../shared/useServerRead.ts";
+import {useStableIdempotencyKey} from "../shared/useStableIdempotencyKey.ts";
 import {RecertifyReusableAnswer, ReusableAnswerSettings} from "./ReusableAnswerContext.ts";
+
+const LOAD_FAILURE = "Answers accepted earlier could not be loaded for reuse.";
 
 export const useReusableAnswers = (
     requestId: string,
@@ -12,30 +17,35 @@ export const useReusableAnswers = (
     accessLinkToken?: string,
 ): ReusableAnswerSettings =>
 {
-    const [offers, setOffers] = useState<InformationRequestAcceptedFactOfferDto[]>([]);
+    const read = useServerRead(
+        `${requestId}|${accessLinkToken ?? ""}`,
+        () => getInformationRequestAcceptedFactOffers(requestId, accessLinkToken),
+        refusal => informationRequestRefusalMessage(refusal, LOAD_FAILURE),
+    );
+    const keyed = useStableIdempotencyKey();
 
-    useEffect(() =>
+    useReloadWhenChanged(responseETag, read.reload);
+
+    const recertify = useCallback<RecertifyReusableAnswer>(async (targetRequestId, factId, requirementId, expectedETag, confirmedHiddenResponseClearRequirementIds) =>
     {
-        let current = true;
-        getInformationRequestAcceptedFactOffers(requestId, accessLinkToken)
-            .then(loaded => current && setOffers(loaded))
-            .catch(() => current && setOffers([]));
-        return () =>
-        {
-            current = false;
+        const confirmation = {
+            requirementId, assented: true,
+            ...(confirmedHiddenResponseClearRequirementIds?.length ? {confirmedHiddenResponseClearRequirementIds} : {})
         };
-    }, [accessLinkToken, requestId, responseETag]);
-
-    const recertify = useCallback<RecertifyReusableAnswer>(async (targetRequestId, factId, requirementId, expectedETag) =>
-    {
-        const result = await recertifyInformationRequestAcceptedFact(
-            targetRequestId,
-            factId,
-            {requirementId, assented: true},
-            {expectedETag, idempotencyKey: crypto.randomUUID(), accessLinkToken},
-        );
+        const result = await keyed(`recertify|${targetRequestId}|${factId}`, {
+            confirmation,
+            expectedETag
+        }, idempotencyKey =>
+            recertifyInformationRequestAcceptedFact(targetRequestId, factId, confirmation, {
+                expectedETag,
+                idempotencyKey,
+                accessLinkToken
+            }));
         return result.outcome === "STALE" ? result : {outcome: "SAVED", responseETag: result.responseETag};
-    }, [accessLinkToken]);
+    }, [accessLinkToken, keyed]);
 
-    return useMemo(() => ({offers, recertify}), [offers, recertify]);
+    return useMemo(
+        () => ({offers: read.value ?? [], error: read.error, reload: read.reload, recertify}),
+        [read.error, read.reload, read.value, recertify],
+    );
 };

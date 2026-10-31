@@ -4,18 +4,9 @@ import com.docuhyphen.app.api.exception.InformationRequestCommandRequestExceptio
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryInt
 import com.docuhyphen.app.api.migration.queryString
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchangeState
-import com.docuhyphen.app.api.model.entity.InformationRequestConnectorKind
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueSource
-import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
-import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorCall
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorContract
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorOutcome
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorResult
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorValue
-import com.docuhyphen.app.api.model.informationrequest.externalsource.RequestInformationRequestConnectorExchangeCommand
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
+import com.docuhyphen.app.api.model.informationrequest.externalsource.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.externalsource.InformationRequestConnectorExchangeRepository
@@ -23,40 +14,108 @@ import com.docuhyphen.app.api.repository.informationrequest.lifecycle.Informatio
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequest
 import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequestSupport
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.ConformanceRequest
+import com.docuhyphen.app.api.service.informationrequest.externalsource.model.ConnectorSetup
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.security.ForbiddenException
-import io.quarkus.test.junit.QuarkusTest
 import io.quarkus.test.common.QuarkusTestResource
+import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
+import jakarta.persistence.EntityManager
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.sql.DataSource
+import kotlin.collections.ArrayDeque
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestConnectorTransactionTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
-    @Inject lateinit var exchangeRepository: InformationRequestConnectorExchangeRepository
-    @Inject lateinit var authorizationService: AuthorizationService
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Inject
+    lateinit var exchangeRepository: InformationRequestConnectorExchangeRepository
+
+    @Inject
+    lateinit var authorizationService: AuthorizationService
+
+    @Inject
+    lateinit var gate: InformationRequestMutationGate
+
+    @Inject
+    lateinit var importedValueIntake: InformationRequestImportedValueIntakeService
+
+    @Inject
+    lateinit var exchangeRecorder: InformationRequestConnectorExchangeRecorder
+
+    @Inject
+    lateinit var entityManager: EntityManager
 
     private val support by lazy { ConformanceRequestSupport(dataSource, runtime, requestRepository) }
+
+    @Test
+    fun `a queued connector stops before calling a Requirement whose occurrence revision closed`() {
+        val connector = ScriptedConnector(VERIFICATION)
+        val setup = setup(connector)
+        val exchange = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "closed-occurrence-connector")) }
+        dataSource.connection.use { connection ->
+            execute(
+                connection, """
+                UPDATE information_request_requirement_revision SET effective_to = effective_from + interval '1 second'
+                WHERE id = (SELECT current_revision_id FROM information_request_requirement_current WHERE information_request_requirement_id = ?)
+            """.trimIndent(), setup.request.answers.requirementId
+            )
+        }
+        connector.next { InformationRequestConnectorOutcome.Pending("external-wait", Duration.ofSeconds(30)) }
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            setup.services.connectorWorker.process(exchange.id)
+        )
+        assertEquals(0, connector.calls.size)
+    }
+
+    @Test
+    fun `an exhausted connector lease records failure without another external call`() {
+        val connector = ScriptedConnector(VERIFICATION)
+        val setup = setup(connector)
+        val exchange = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "exhausted-recording-lease")) }
+        repeat(10) {
+            QuarkusTransaction.requiringNew().run {
+                val locked = gate.lock(setup.request.requestId)
+                val stored = requireNotNull(exchangeRepository.findByIdForUpdate(exchange.id))
+                exchangeRecorder.startAttempt(locked.request, stored, setup.clock.instant().minusSeconds(1))
+            }
+        }
+        connector.next { InformationRequestConnectorOutcome.Pending("external-wait", Duration.ofSeconds(30)) }
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            setup.services.connectorWorker.process(exchange.id)
+        )
+        assertEquals(0, connector.calls.size)
+        assertEquals(10, stored(exchange.id).attemptCount)
+        assertEquals("attempts_exhausted", stored(exchange.id).failureCode)
+    }
 
     @Test
     fun `a requested verification is polled until it completes and its values arrive untrusted with full provenance`()
@@ -77,20 +136,32 @@ class InformationRequestConnectorTransactionTest
                     expiresAt = verifiedAt.plus(Duration.ofDays(90)),
                     provenanceReference = "verification-2026-09",
                     values = listOf(
-                        InformationRequestConnectorValue("recorded-value", FieldValueType.SHORT_TEXT, JsonPrimitive("Recorded answer")),
-                        InformationRequestConnectorValue("verified-status", FieldValueType.SHORT_TEXT, JsonPrimitive("current")),
+                        InformationRequestConnectorValue(
+                            "recorded-value",
+                            FieldValueType.SHORT_TEXT,
+                            JsonPrimitive("Recorded answer")
+                        ),
+                        InformationRequestConnectorValue(
+                            "verified-status",
+                            FieldValueType.SHORT_TEXT,
+                            JsonPrimitive("current")
+                        ),
                     ),
                 ),
             )
         }
 
-        val exchange = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "verify", lookup = " record-1 ")) }
+        val exchange = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "verify", lookup = " record-1 ")) }
         assertEquals(InformationRequestConnectorExchangeState.REQUESTED, exchange.state)
         assertEquals("record-1", exchange.lookupReference)
         assertEquals(InformationRequestConnectorKind.EXTERNAL_VERIFICATION, exchange.connectorKind)
         assertEquals(1, exchange.contractVersion)
 
-        assertEquals(InformationRequestConnectorExchangeState.PENDING, setup.services.connectorWorker.process(exchange.id))
+        assertEquals(
+            InformationRequestConnectorExchangeState.PENDING,
+            setup.services.connectorWorker.process(exchange.id)
+        )
         val first = connector.calls.single()
         assertEquals("record-1", first.lookupReference)
         assertNull(first.externalReference)
@@ -100,13 +171,20 @@ class InformationRequestConnectorTransactionTest
         assertEquals("external-1", pending.externalReference)
         assertEquals(setup.clock.instant().plusSeconds(30), pending.nextAttemptAt?.toInstant())
 
-        assertNull(setup.services.connectorWorker.process(exchange.id), "an exchange is not called again before it is due")
+        assertNull(
+            setup.services.connectorWorker.process(exchange.id),
+            "an exchange is not called again before it is due"
+        )
         setup.clock.instant = setup.clock.instant().plusSeconds(31)
-        assertEquals(InformationRequestConnectorExchangeState.COMPLETED, setup.services.connectorWorker.process(exchange.id))
+        assertEquals(
+            InformationRequestConnectorExchangeState.COMPLETED,
+            setup.services.connectorWorker.process(exchange.id)
+        )
         assertEquals("external-1", connector.calls.last().externalReference)
         assertEquals(2, connector.calls.size)
 
-        val values = QuarkusTransaction.requiringNew().call { setup.services.importedValues.values(setup.request.requestId, setup.owner) }
+        val values = QuarkusTransaction.requiringNew()
+            .call { setup.services.importedValueRecords.values(setup.request.requestId, setup.owner) }
         assertEquals(setOf("recorded-value", "verified-status"), values.map { it.value.resultKey }.toSet())
         values.forEach { view ->
             val value = view.value
@@ -145,15 +223,32 @@ class InformationRequestConnectorTransactionTest
         val setup = setup(connector)
         val now = setup.clock.instant()
         listOf(
-            result(now, InformationRequestConnectorValue("undeclared-key", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))),
-            result(now.minus(Duration.ofDays(2)), InformationRequestConnectorValue("recorded-value", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))),
-            result(now, InformationRequestConnectorValue("recorded-value", FieldValueType.DECIMAL, JsonPrimitive("12.5"))),
-            result(now.plus(Duration.ofDays(1)), InformationRequestConnectorValue("recorded-value", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))),
+            result(
+                now,
+                InformationRequestConnectorValue("undeclared-key", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))
+            ),
+            result(
+                now.minus(Duration.ofDays(2)),
+                InformationRequestConnectorValue("recorded-value", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))
+            ),
+            result(
+                now,
+                InformationRequestConnectorValue("recorded-value", FieldValueType.DECIMAL, JsonPrimitive("12.5"))
+            ),
+            result(
+                now.plus(Duration.ofDays(1)),
+                InformationRequestConnectorValue("recorded-value", FieldValueType.SHORT_TEXT, JsonPrimitive("value"))
+            ),
             result(now),
         ).forEachIndexed { index, outcome ->
             connector.next { outcome }
-            val exchange = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "rejected-$index")) }
-            assertEquals(InformationRequestConnectorExchangeState.FAILED, setup.services.connectorWorker.process(exchange.id), "result $index")
+            val exchange = QuarkusTransaction.requiringNew()
+                .call { setup.services.connectorExchanges.request(request(setup, "rejected-$index")) }
+            assertEquals(
+                InformationRequestConnectorExchangeState.FAILED,
+                setup.services.connectorWorker.process(exchange.id),
+                "result $index"
+            )
             assertEquals("result_rejected", stored(exchange.id).failureCode, "result $index")
         }
         assertEquals(0, importedValues(setup.request))
@@ -164,22 +259,36 @@ class InformationRequestConnectorTransactionTest
     {
         val connector = ScriptedConnector(VERIFICATION)
         val setup = setup(connector)
-        val exchange = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "retried")) }
+        val exchange = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "retried")) }
         repeat(InformationRequestConnectorWorker.MAXIMUM_ATTEMPTS - 1) { attempt ->
             connector.next { throw IllegalStateException("remote unavailable") }
-            assertEquals(InformationRequestConnectorExchangeState.REQUESTED, setup.services.connectorWorker.process(exchange.id))
+            assertEquals(
+                InformationRequestConnectorExchangeState.REQUESTED,
+                setup.services.connectorWorker.process(exchange.id)
+            )
             val stored = stored(exchange.id)
             assertEquals(attempt + 1, stored.attemptCount)
-            assertEquals(setup.clock.instant().plus(Duration.ofMinutes(attempt + 1L)), stored.nextAttemptAt?.toInstant())
+            assertEquals(
+                setup.clock.instant().plus(Duration.ofMinutes(attempt + 1L)),
+                stored.nextAttemptAt?.toInstant()
+            )
             setup.clock.instant = stored.nextAttemptAt!!.toInstant()
         }
         connector.next { throw IllegalStateException("remote unavailable") }
-        assertEquals(InformationRequestConnectorExchangeState.FAILED, setup.services.connectorWorker.process(exchange.id))
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            setup.services.connectorWorker.process(exchange.id)
+        )
         assertEquals("attempts_exhausted", stored(exchange.id).failureCode)
 
-        val refused = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "refused")) }
+        val refused = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "refused")) }
         connector.next { InformationRequestConnectorOutcome.Failed("record.not_found") }
-        assertEquals(InformationRequestConnectorExchangeState.FAILED, setup.services.connectorWorker.process(refused.id))
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            setup.services.connectorWorker.process(refused.id)
+        )
         assertEquals("record.not_found", stored(refused.id).failureCode)
     }
 
@@ -188,11 +297,24 @@ class InformationRequestConnectorTransactionTest
     {
         val connector = ScriptedConnector(VERIFICATION)
         val setup = setup(connector)
-        val missing = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "missing")) }
-        val changed = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "changed", requirement = setup.request.runtime.documentRequirementId)) }
+        val missing = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "missing")) }
+        val changed = QuarkusTransaction.requiringNew().call {
+            setup.services.connectorExchanges.request(
+                request(
+                    setup,
+                    "changed",
+                    requirement = setup.request.runtime.documentRequirementId
+                )
+            )
+        }
         assertEquals(
             InformationRequestConnectorExchangeState.FAILED,
-            runtime.build(setup.request.requestId, centralAuthorization = authorizationService, externalClock = setup.clock).connectorWorker.process(missing.id),
+            runtime.build(
+                setup.request.requestId,
+                centralAuthorization = authorizationService,
+                externalClock = setup.clock
+            ).connectorWorker.process(missing.id),
         )
         assertEquals("connector_unavailable", stored(missing.id).failureCode)
         val upgraded = runtime.build(
@@ -204,12 +326,20 @@ class InformationRequestConnectorTransactionTest
         assertEquals(InformationRequestConnectorExchangeState.FAILED, upgraded.connectorWorker.process(changed.id))
         assertEquals("contract_version_changed", stored(changed.id).failureCode)
 
-        val cancelled = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "cancelled")) }
+        val cancelled = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "cancelled")) }
         dataSource.connection.use { connection ->
-            execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", setup.request.requestId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                setup.request.requestId
+            )
         }
         connector.next { result(setup.clock.instant()) }
-        assertEquals(InformationRequestConnectorExchangeState.FAILED, setup.services.connectorWorker.process(cancelled.id))
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            setup.services.connectorWorker.process(cancelled.id)
+        )
         assertEquals("request_not_accepting_values", stored(cancelled.id).failureCode)
         assertEquals(0, connector.calls.size)
     }
@@ -219,35 +349,228 @@ class InformationRequestConnectorTransactionTest
     {
         val setup = setup(ScriptedConnector(VERIFICATION))
         val unknown = assertThrows(InformationRequestLifecycleException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "unknown", connectorKey = "other-connector")) }
+            QuarkusTransaction.requiringNew().call {
+                setup.services.connectorExchanges.request(
+                    request(
+                        setup,
+                        "unknown",
+                        connectorKey = "other-connector"
+                    )
+                )
+            }
         }
         assertEquals(InformationRequestErrorCatalog.CONNECTOR_UNAVAILABLE, unknown.reasonCode)
         assertThrows(InformationRequestCommandRequestException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "bad-key", connectorKey = "Other Connector")) }
+            QuarkusTransaction.requiringNew().call {
+                setup.services.connectorExchanges.request(
+                    request(
+                        setup,
+                        "bad-key",
+                        connectorKey = "Other Connector"
+                    )
+                )
+            }
         }
         assertThrows(InformationRequestCommandRequestException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "blank-lookup", lookup = " ")) }
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.connectorExchanges.request(request(setup, "blank-lookup", lookup = " ")) }
         }
-        val foreign = assertThrows(InformationRequestLifecycleException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "foreign", requirement = UUID.randomUUID())) }
+        val foreign = assertThrows(ForbiddenException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                setup.services.connectorExchanges.request(
+                    request(
+                        setup,
+                        "foreign",
+                        requirement = UUID.randomUUID()
+                    )
+                )
+            }
         }
-        assertEquals(InformationRequestErrorCatalog.NOT_FOUND, foreign.reasonCode)
+        assertEquals("Access denied to this Information Request Requirement", foreign.message)
         assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.connectorExchanges.request(request(setup, "contributor").copy(access = support.contributor(setup.request)))
+                setup.services.connectorExchanges.request(
+                    request(
+                        setup,
+                        "contributor"
+                    ).copy(access = support.contributor(setup.request))
+                )
             }
         }
 
-        val first = QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "first")) }
-        assertEquals(first.id, QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "first")) }.id)
+        val first = QuarkusTransaction.requiringNew()
+            .call { setup.services.connectorExchanges.request(request(setup, "first")) }
+        assertEquals(
+            first.id,
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.connectorExchanges.request(request(setup, "first")) }.id
+        )
         val open = assertThrows(InformationRequestLifecycleException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.request(request(setup, "second")) }
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.connectorExchanges.request(request(setup, "second")) }
         }
         assertEquals(InformationRequestErrorCatalog.CONNECTOR_EXCHANGE_OPEN, open.reasonCode)
         assertThrows(ForbiddenException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.exchanges(setup.request.requestId, support.contributor(setup.request)) }
+            QuarkusTransaction.requiringNew().call {
+                setup.services.connectorExchanges.exchanges(
+                    setup.request.requestId,
+                    support.contributor(setup.request)
+                )
+            }
         }
-        assertEquals(listOf(first.id), QuarkusTransaction.requiringNew().call { setup.services.connectorExchanges.exchanges(setup.request.requestId, setup.owner) }.map { it.id })
+        assertEquals(
+            listOf(first.id),
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.connectorExchanges.exchanges(setup.request.requestId, setup.owner) }
+                .map { it.id })
+    }
+
+    @Test
+    fun `a revoked execution grant ends a queued exchange without calling its connector`() {
+        assertStoppedBeforeCall(REVOKED)
+    }
+
+    @Test
+    fun `an operationally suspended owner ends a queued exchange without calling its connector`() {
+        assertStoppedBeforeCall(SUSPENDED)
+    }
+
+    @Test
+    fun `a grant revoked while the connector answers ends the exchange without recording its result`() {
+        assertStoppedDuringCall(REVOKED)
+    }
+
+    @Test
+    fun `an owner suspended while the connector answers ends the exchange without recording its result`() {
+        assertStoppedDuringCall(SUSPENDED)
+    }
+
+    @Test
+    fun `an active issued grant lets the worker record its connector result`() {
+        assertPermittedCall(ACTIVE)
+    }
+
+    @Test
+    fun `a commercial lapse lets issued connector work complete`() {
+        assertPermittedCall(CANCELED)
+    }
+
+    private fun assertStoppedBeforeCall(stop: String) {
+        val connector = ScriptedConnector(VERIFICATION)
+        val setup = setup(connector)
+        connector.next { stoppableResult(setup) }
+        val exchange = QuarkusTransaction.requiringNew().call {
+            setup.services.connectorExchanges.request(request(setup, "stopped-before-$stop"))
+        }
+        stopExecution(setup, stop)
+        assertContinuationRefused(setup)
+
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            enforcedWorker(setup, connector).process(exchange.id)
+        )
+        assertEquals(0, connector.calls.size, "A stopped request must not call a connector")
+        assertEquals("request_not_accepting_values", stored(exchange.id).failureCode)
+        assertEquals(0, importedValues(setup.request))
+    }
+
+    private fun assertStoppedDuringCall(stop: String) {
+        val connector = ScriptedConnector(VERIFICATION)
+        val setup = setup(connector)
+        val exchange = QuarkusTransaction.requiringNew().call {
+            setup.services.connectorExchanges.request(request(setup, "stopped-during-$stop"))
+        }
+        connector.next {
+            stopExecution(setup, stop)
+            assertContinuationRefused(setup)
+            stoppableResult(setup)
+        }
+
+        assertEquals(
+            InformationRequestConnectorExchangeState.FAILED,
+            enforcedWorker(setup, connector).process(exchange.id)
+        )
+        assertEquals(1, connector.calls.size)
+        assertEquals("request_not_accepting_values", stored(exchange.id).failureCode)
+        assertEquals(0, importedValues(setup.request), "A stopped request must not import a late connector result")
+    }
+
+    private fun assertPermittedCall(status: String) {
+        val connector = ScriptedConnector(VERIFICATION)
+        val setup = setup(connector)
+        val exchange = QuarkusTransaction.requiringNew().call {
+            setup.services.connectorExchanges.request(request(setup, "permitted-$status"))
+        }
+        stopExecution(setup, status)
+        connector.next { stoppableResult(setup) }
+
+        assertEquals(
+            InformationRequestConnectorExchangeState.COMPLETED,
+            enforcedWorker(setup, connector).process(exchange.id)
+        )
+        assertEquals(1, connector.calls.size)
+        assertEquals(1, importedValues(setup.request))
+    }
+
+    private fun stoppableResult(setup: ConnectorSetup) =
+        result(
+            setup.clock.instant(),
+            InformationRequestConnectorValue(
+                "recorded-value",
+                FieldValueType.SHORT_TEXT,
+                JsonPrimitive("External answer")
+            ),
+        )
+
+    private fun enforcedWorker(setup: ConnectorSetup, connector: ScriptedConnector) =
+        InformationRequestConnectorWorker(
+            InformationRequestConnectorRegistry(listOf(connector)),
+            exchangeRepository,
+            gate,
+            importedValueIntake,
+            exchangeRecorder,
+            entityManager,
+            setup.clock,
+        )
+
+    private fun assertContinuationRefused(setup: ConnectorSetup) {
+        assertThrows(RuntimeException::class.java) {
+            QuarkusTransaction.requiringNew().run {
+                gate.requireContinuation(
+                    gate.lock(setup.request.requestId),
+                    InformationRequestContinuationAction.RESPOND
+                )
+            }
+        }
+    }
+
+    private fun stopExecution(setup: ConnectorSetup, status: String) {
+        dataSource.connection.use { connection ->
+            if (status == REVOKED) {
+                execute(
+                    connection,
+                    "UPDATE request_execution_grant SET revoked_at = now(), revoked_reason = 'process.stopped' WHERE request_id = ?",
+                    setup.request.requestId,
+                )
+            } else {
+                execute(
+                    connection,
+                    "DELETE FROM organization_subscription_policy WHERE organization_id = ?",
+                    setup.request.runtime.template.organizationId,
+                )
+                execute(
+                    connection,
+                    """
+                    INSERT INTO organization_subscription_policy
+                        (id, organization_id, tier_code, subscription_status, max_users, current_period_end, created_date, updated_date)
+                    VALUES (?, ?, 'BUSINESS', ?, 5, now() - interval '1 day', now(), now())
+                    """.trimIndent(),
+                    UUID.randomUUID(),
+                    setup.request.runtime.template.organizationId,
+                    status,
+                )
+            }
+        }
     }
 
     private fun setup(connector: ScriptedConnector): ConnectorSetup
@@ -265,7 +588,12 @@ class InformationRequestConnectorTransactionTest
             )
         })
         val clock = MutableClock(Instant.now().truncatedTo(ChronoUnit.MICROS))
-        val services = runtime.build(request.requestId, centralAuthorization = authorizationService, connectors = listOf(connector), externalClock = clock)
+        val services = runtime.build(
+            request.requestId,
+            centralAuthorization = authorizationService,
+            connectors = listOf(connector),
+            externalClock = clock
+        )
         return ConnectorSetup(request, services, clock, support.owner(request))
     }
 
@@ -275,9 +603,19 @@ class InformationRequestConnectorTransactionTest
         connectorKey: String = VERIFICATION.key,
         requirement: UUID = setup.request.answers.requirementId,
         lookup: String? = null,
-    ) = RequestInformationRequestConnectorExchangeCommand(setup.request.requestId, requirement, connectorKey, lookup, setup.owner, key)
+    ) = RequestInformationRequestConnectorExchangeCommand(
+        setup.request.requestId,
+        requirement,
+        connectorKey,
+        lookup,
+        setup.owner,
+        key
+    )
 
-    private fun result(verifiedAt: Instant, vararg values: InformationRequestConnectorValue): InformationRequestConnectorOutcome =
+    private fun result(
+        verifiedAt: Instant,
+        vararg values: InformationRequestConnectorValue
+    ): InformationRequestConnectorOutcome =
         InformationRequestConnectorOutcome.Completed(
             "external",
             InformationRequestConnectorResult(
@@ -290,26 +628,29 @@ class InformationRequestConnectorTransactionTest
             ),
         )
 
-    private fun stored(exchangeId: UUID) = QuarkusTransaction.requiringNew().call { requireNotNull(exchangeRepository.findById(exchangeId)) }
+    private fun stored(exchangeId: UUID) =
+        QuarkusTransaction.requiringNew().call { requireNotNull(exchangeRepository.findById(exchangeId)) }
 
     private fun answer(request: ConformanceRequest): String? =
         dataSource.connection.use { connection ->
-            queryString(connection, "SELECT text_value FROM field_value WHERE resource_type = 'INFORMATION_REQUEST' AND resource_id = ?", request.requestId)
+            queryString(
+                connection,
+                "SELECT text_value FROM field_value WHERE resource_type = 'INFORMATION_REQUEST' AND resource_id = ?",
+                request.requestId
+            )
         }
 
     private fun importedValues(request: ConformanceRequest): Int =
         dataSource.connection.use { connection ->
-            queryInt(connection, "SELECT COUNT(*) FROM information_request_imported_value WHERE information_request_id = ?", request.requestId)
+            queryInt(
+                connection,
+                "SELECT COUNT(*) FROM information_request_imported_value WHERE information_request_id = ?",
+                request.requestId
+            )
         }
 
-    private data class ConnectorSetup(
-        val request: ConformanceRequest,
-        val services: InformationRequestRuntimeServices,
-        val clock: MutableClock,
-        val owner: RequestAccessContext,
-    )
-
-    private class ScriptedConnector(override val contract: InformationRequestConnectorContract) : InformationRequestConnector
+    private class ScriptedConnector(override val contract: InformationRequestConnectorContract) :
+        InformationRequestConnector
     {
         private val script = ArrayDeque<(InformationRequestConnectorCall) -> InformationRequestConnectorOutcome>()
         val calls = mutableListOf<InformationRequestConnectorCall>()
@@ -338,5 +679,9 @@ class InformationRequestConnectorTransactionTest
             contractVersion = 1,
             resultKeys = setOf("recorded-value", "verified-status"),
         )
+        const val REVOKED = "REVOKED"
+        const val SUSPENDED = "SUSPENDED"
+        const val ACTIVE = "ACTIVE"
+        const val CANCELED = "CANCELED"
     }
 }

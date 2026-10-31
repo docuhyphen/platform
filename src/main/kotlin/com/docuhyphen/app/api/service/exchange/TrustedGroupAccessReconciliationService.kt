@@ -15,7 +15,10 @@ class TrustedGroupAccessReconciliationService @Inject constructor(
     {
         attestationService.findForRelationship(relationshipId)
             .filter { it.subjectType == ExchangeRecipientAttestationSubjectType.GROUP }
-            .mapNotNull(attestationService::directShareId)
-            .forEach(shareService::reconcileGroupShare)
+            .forEach { attestation ->
+                attestationService.directShareId(attestation)?.let(shareService::reconcileGroupShare)
+                attestationService.scopedGroupShareIdsFor(attestation.exchangeRecipientId)
+                    .forEach(shareService::reconcileGroupShare)
+            }
     }
 }

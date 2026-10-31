@@ -1,6 +1,10 @@
-import {FieldOperator, FieldValueType, SchemaFieldBindingDto, WorkflowFieldConditionDraft} from "../../../../models/models.tsx";
+import {
+    FieldOperator,
+    FieldValueType,
+    SchemaFieldBindingDto,
+    WorkflowFieldConditionDraft
+} from "../../../../models/models.tsx";
 
-/** Operators each field type supports, mirroring the backend FieldTypeContract sets. */
 const OPERATORS_BY_TYPE: Record<FieldValueType, FieldOperator[]> = {
     [FieldValueType.SHORT_TEXT]: [
         FieldOperator.EQUALS, FieldOperator.NOT_EQUALS, FieldOperator.CONTAINS,
@@ -64,15 +68,18 @@ export const operatorsForType = (type: FieldValueType): FieldOperator[] =>
 
 export const operatorLabel = (op: FieldOperator): string => OPERATOR_LABELS[op] ?? op;
 
-/** IS_EMPTY / IS_NOT_EMPTY take no literal value. */
 export const operatorNeedsValue = (op: FieldOperator): boolean =>
     op !== FieldOperator.IS_EMPTY && op !== FieldOperator.IS_NOT_EMPTY;
 
-/** IN / NOT_IN accept a list of option codes. */
 export const operatorIsMultiValue = (op: FieldOperator): boolean =>
     op === FieldOperator.IN || op === FieldOperator.NOT_IN;
 
-/** Builds a fresh condition for a schema field binding, defaulting to its first supported operator. */
+export const literalForOperator = (op: FieldOperator, value: unknown): unknown => {
+    if (!operatorNeedsValue(op)) return undefined;
+    if (!operatorIsMultiValue(op)) return value;
+    return Array.isArray(value) ? value.map(item => String(item)) : [];
+};
+
 export const defaultConditionFor = (binding: SchemaFieldBindingDto): WorkflowFieldConditionDraft => ({
     fieldDefinitionId: binding.fieldDefinitionId,
     fieldKey: binding.fieldKey,

@@ -1,10 +1,12 @@
 package com.docuhyphen.app.api.resource.informationrequest.noauth
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.InformationRequestParticipantAccountUpgradeDtoMapper
-import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.noauth.UpgradeInformationRequestParticipantAccountCommand
+import com.docuhyphen.app.api.resource.command.CommandIdempotencyKeyHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.noauth.operations.InformationRequestParticipantAccountLinkResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpgradeInformationRequestParticipantAccountRequest
@@ -17,19 +19,12 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.WebApplicationException
+import jakarta.ws.rs.core.HttpHeaders
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Authenticated resource completing a Participant's verified registration upgrade to their own App
- * User account on one Information Request. The caller's App User identity comes only from the
- * authenticated access token; [UpgradeInformationRequestParticipantAccountRequest.sessionId] is the
- * no-auth [com.docuhyphen.app.api.model.entity.RequestAccessSession] proving contact with the request
- * party being upgraded. A caller authenticated as anything other than an App User is refused before
- * the upgrade service is invoked.
- */
 class InformationRequestParticipantAccountLinkResource @Inject constructor(
     private val upgradeService: InformationRequestParticipantAccountUpgradeService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
@@ -48,22 +43,19 @@ class InformationRequestParticipantAccountLinkResource @Inject constructor(
             val requestId = parseUuid(id) ?: return badRequest("Invalid information request id")
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
-            val access = accessContextFactory.currentAuthenticated()
-            val appUserId = access.principal.takeIf { it.kind == PrincipalKind.USER }?.id
-                ?: return forbidden("Only an authenticated App User may complete a registration upgrade")
-
             val upgrade = upgradeService.upgrade(
                 UpgradeInformationRequestParticipantAccountCommand(
                     requestId = requestId,
                     sessionId = request.sessionId,
-                    appUserId = appUserId,
-                    precondition = CommandPreconditionHeader.required(ifMatch),
+                    sessionCredential = sessionToken,
+                    access = accessContextFactory.currentAuthenticated(),
+                    precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                     idempotencyKey = commandKey,
-                    sessionToken = sessionToken,
                 ),
             )
             Response.status(CREATED)
                 .entity(InformationRequestParticipantAccountUpgradeDtoMapper.toDto(upgrade))
+                .header(HttpHeaders.ETAG, upgrade.partyETag)
                 .build()
         }
         catch (exception: Exception)
@@ -73,19 +65,17 @@ class InformationRequestParticipantAccountLinkResource @Inject constructor(
     }
 
     private fun requiredIdempotencyKey(raw: String?): String? =
-        raw?.trim()?.takeIf { it.isNotEmpty() }
+        CommandIdempotencyKeyHeader.stated(raw)?.let(InformationRequestCommandHttp::idempotencyKey)
 
     private fun parseUuid(raw: String): UUID? = runCatching { UUID.fromString(raw) }.getOrNull()
 
     private fun badRequest(message: String): Response =
         Response.status(BAD_REQUEST).entity(ResponseError(message)).build()
 
-    private fun forbidden(message: String): Response =
-        Response.status(FORBIDDEN).entity(ResponseError(message)).build()
-
     private fun handleException(message: String, exception: Exception): Response
     {
         if (exception is WebApplicationException) throw exception
+        if (exception is SubscriptionDenialException) throw exception
 
         return when (exception)
         {
@@ -93,23 +83,29 @@ class InformationRequestParticipantAccountLinkResource @Inject constructor(
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
-            is InformationRequestLifecycleException -> Response.status(CONFLICT)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
 
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
 
             is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                .entity(
+                    ResponseError(
+                        exception.message,
+                        com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog.FORBIDDEN
+                    )
+                ).build()
 
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
 
-            else ->
-            {
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
             }

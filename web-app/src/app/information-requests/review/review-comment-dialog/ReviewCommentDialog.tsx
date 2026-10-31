@@ -1,3 +1,5 @@
+import ReviewDialogFeedback from "../review-dialog-feedback/ReviewDialogFeedback.tsx";
+import {ReviewMessage} from "../useReviewFeedback.ts";
 import {useState} from "react";
 import {InformationRequestReviewVisibility} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
@@ -10,11 +12,12 @@ interface Props
 {
     label: string;
     busy: boolean;
+    message?: ReviewMessage | null;
     onConfirm: (body: string, visibility: InformationRequestReviewVisibility) => void;
     onDismiss: () => void;
 }
 
-const ReviewCommentDialog = ({label, busy, onConfirm, onDismiss}: Props) =>
+const ReviewCommentDialog = ({label, busy, message, onConfirm, onDismiss}: Props) =>
 {
     const [body, setBody] = useState("");
     const [visibility, setVisibility] = useState(InformationRequestReviewVisibility.RESPONDENT_VISIBLE);
@@ -38,6 +41,8 @@ const ReviewCommentDialog = ({label, busy, onConfirm, onDismiss}: Props) =>
                                                               value={visibility}
                                                               options={optionsFrom<InformationRequestReviewVisibility>(visibilityLabels)}
                                                               onChange={setVisibility}/>
+            <ReviewDialogFeedback id={"information-request-review-comment-dialog-feedback"}
+                                  message={message}/>
         </EditorDialog>
     );
 };

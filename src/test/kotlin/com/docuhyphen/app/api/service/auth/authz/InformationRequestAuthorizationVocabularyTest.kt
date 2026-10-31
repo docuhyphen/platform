@@ -3,25 +3,11 @@ package com.docuhyphen.app.api.service.auth.authz
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry.Companion.toResourceKind
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateVersionUnavailableException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.util.*
 
-/**
- * The runtime Information Request vocabulary in the central authorization stack.
- *
- * Rules verified:
- *  - The request aggregate and its Requirement occurrences are named resource types with
- *    matching resource kinds, so authorization can address them without a second model.
- *  - Every runtime request Action maps to a runtime request Capability.
- *  - None of those capabilities is granted by any existing role, so the vocabulary is
- *    default-deny until a resource-scoped role grant is added.
- *  - Owner-scope request administration, which spans an owner's requests rather than acting on
- *    one, requires its own capabilities that only organization owners and administrators hold,
- *    and no request-scoped Action requires them.
- *  - Existing Exchange and Document capability grants are untouched.
- *  - Every stable refusal code is uniquely named within one prefix.
- */
 class InformationRequestAuthorizationVocabularyTest
 {
     private val runtimeCapabilities = setOf(
@@ -52,8 +38,6 @@ class InformationRequestAuthorizationVocabularyTest
         .filterNot { it.name.startsWith("INFORMATION_REQUEST_TEMPLATE_") }
         .filterNot { it in ownerScopeActions }
 
-    // --- resource vocabulary ---
-
     @Test
     fun `request aggregate and requirement occurrence are addressable resource types`()
     {
@@ -80,8 +64,6 @@ class InformationRequestAuthorizationVocabularyTest
         )
     }
 
-    // --- action to capability ---
-
     @Test
     fun `every runtime request action requires a runtime request capability`()
     {
@@ -107,12 +89,13 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_MANAGE_PARTIES,
             Action.INFORMATION_REQUEST_MANAGE_EXTERNAL_SOURCES,
             Action.INFORMATION_REQUEST_DECIDE_EXTERNAL_VALUES,
-            Action.INFORMATION_REQUEST_REASSIGN_PARTY,
             Action.INFORMATION_REQUEST_EXPORT,
             Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
             Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
             Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST,
             Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW,
+            Action.INFORMATION_REQUEST_REQUIREMENT_VIEW_REVIEW,
+            Action.INFORMATION_REQUEST_REQUIREMENT_EXPORT,
             Action.INFORMATION_REQUEST_SUBMIT,
             Action.INFORMATION_REQUEST_EVIDENCE_VIEW,
             Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD,
@@ -120,10 +103,12 @@ class InformationRequestAuthorizationVocabularyTest
             Action.INFORMATION_REQUEST_EVIDENCE_MANAGE,
             Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT,
             Action.INFORMATION_REQUEST_REVIEW,
+            Action.INFORMATION_REQUEST_VIEW_REVIEWS,
             Action.INFORMATION_REQUEST_MANAGE_REVIEWS,
             Action.INFORMATION_REQUEST_APPEAL_REVIEW,
             Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW,
             Action.INFORMATION_REQUEST_PROMOTE_FACT,
+            Action.INFORMATION_REQUEST_REVOKE_FACT,
             Action.INFORMATION_REQUEST_RECORD_DECISION,
             Action.INFORMATION_REQUEST_CONFIGURE_COMPLETION,
             Action.INFORMATION_REQUEST_MANAGE_CLOCKS,
@@ -139,10 +124,13 @@ class InformationRequestAuthorizationVocabularyTest
         assertEquals(Capability.INFORMATION_REQUEST_RESPOND, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND.required)
         assertEquals(Capability.INFORMATION_REQUEST_ATTEST, Action.INFORMATION_REQUEST_REQUIREMENT_ATTEST.required)
         assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUIREMENT_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_EXPORT, Action.INFORMATION_REQUEST_REQUIREMENT_EXPORT.required)
         assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_WRITE, Action.INFORMATION_REQUEST_EVIDENCE_UPLOAD.required)
         assertEquals(Capability.INFORMATION_REQUEST_EVIDENCE_ADMIN, Action.INFORMATION_REQUEST_EVIDENCE_MANAGE.required)
         assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REVIEW.required)
+        assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_VIEW_REVIEWS.required)
+        assertEquals(Capability.INFORMATION_REQUEST_REVIEW, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW_REVIEW.required)
         assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_MANAGE_REVIEWS.required)
         assertEquals(Capability.INFORMATION_REQUEST_SUBMIT, Action.INFORMATION_REQUEST_APPEAL_REVIEW.required)
         assertEquals(Capability.INFORMATION_REQUEST_RESPOND, Action.INFORMATION_REQUEST_COMMENT_ON_REVIEW.required)
@@ -153,12 +141,13 @@ class InformationRequestAuthorizationVocabularyTest
         assertEquals(Capability.INFORMATION_REQUEST_ADMIN, Action.INFORMATION_REQUEST_VIEW_OPERATIONS.required)
     }
 
-    // --- owner-scope request administration ---
-
     @Test
     fun `owner scope request administration requires capabilities only organization owners and administrators hold`()
     {
-        assertEquals(Capability.INFORMATION_REQUEST_OPERATIONS_READ, Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE.required)
+        assertEquals(
+            Capability.INFORMATION_REQUEST_OPERATIONS_READ,
+            Action.INFORMATION_REQUEST_VIEW_OPERATIONS_QUEUE.required
+        )
         assertEquals(Capability.INFORMATION_REQUEST_PRIVACY_MANAGE, Action.INFORMATION_REQUEST_MANAGE_PRIVACY.required)
         assertEquals(
             Capability.INFORMATION_REQUEST_OPERATIONS_MANAGE,
@@ -168,7 +157,10 @@ class InformationRequestAuthorizationVocabularyTest
 
         OrganizationRoleName.entries.forEach { role ->
             val granted = RoleCapabilities.forOrganizationRole(role).intersect(ownerScope)
-            if (role == OrganizationRoleName.ORG_OWNER || role == OrganizationRoleName.ORG_ADMIN) assertEquals(ownerScope, granted)
+            if (role == OrganizationRoleName.ORG_OWNER || role == OrganizationRoleName.ORG_ADMIN) assertEquals(
+                ownerScope,
+                granted
+            )
             else assertTrue(granted.isEmpty()) { "$role must not administer an owner's requests" }
         }
         val elsewhere = mutableSetOf<Capability>()
@@ -182,16 +174,6 @@ class InformationRequestAuthorizationVocabularyTest
         }
     }
 
-    // --- default deny, narrowed to the Exchange owner's authoring grant ---
-
-    /**
-     * The Exchange OWNER Share role is the one deliberate, resource-scoped exception to default
-     * deny: it is the only grant path that can authorize creating the very first runtime request
-     * against an Exchange, since no Share can exist yet on a request that does not exist yet.
-     * Every other runtime request capability, including issuance, editing, export, and every
-     * respondent, attestor, or reviewer capability, is still granted by a request-scoped Share
-     * only.
-     */
     private val ownerAuthoredCapabilities = setOf(
         Capability.INFORMATION_REQUEST_CREATE,
         Capability.INFORMATION_REQUEST_READ,
@@ -214,7 +196,7 @@ class InformationRequestAuthorizationVocabularyTest
         val leaked = assigned.intersect(runtimeCapabilities)
         assertTrue(leaked.isEmpty()) {
             "runtime request capabilities must be granted by a request role or the Exchange owner only, " +
-                "but found $leaked"
+                    "but found $leaked"
         }
 
         val ownerGrant = RoleCapabilities.forExchangeShareRole(ExchangeShareRoleName.OWNER)
@@ -240,7 +222,28 @@ class InformationRequestAuthorizationVocabularyTest
         )
     }
 
-    // --- stable refusal codes ---
+    @Test
+    fun `the refusal catalog names the Template refusals routes emit and no code nothing emits`() {
+        val codes = InformationRequestErrorCatalog.allCodes().toSet()
+
+        listOf(
+            InformationRequestErrorCatalog.TEMPLATE_INVALID,
+            InformationRequestTemplateVersionUnavailableException.NOT_FOUND,
+            InformationRequestTemplateVersionUnavailableException.NOT_PUBLISHED,
+            InformationRequestTemplateVersionUnavailableException.RETIRED,
+            InformationRequestTemplateVersionUnavailableException.PLATFORM_COPY_REQUIRED,
+            InformationRequestTemplateVersionUnavailableException.OWNER_MISMATCH,
+            InformationRequestTemplateVersionUnavailableException.SCHEMA_UNAVAILABLE,
+            InformationRequestTemplateVersionUnavailableException.BLUEPRINT_UNAVAILABLE,
+        ).forEach { assertTrue(it in codes) { "$it is emitted, so the catalog lists it" } }
+        listOf(
+            "INFORMATION_REQUEST_AUTHORIZATION_UNAVAILABLE",
+            "INFORMATION_REQUEST_PRECONDITION_REQUIRED",
+            "INFORMATION_REQUEST_PRECONDITION_FAILED",
+            "INFORMATION_REQUEST_IDEMPOTENCY_CONFLICT",
+            "INFORMATION_REQUEST_ENTITLEMENT_REQUIRED",
+        ).forEach { assertFalse(it in codes) { "$it is never emitted" } }
+    }
 
     @Test
     fun `every refusal code is unique and carries the request prefix`()

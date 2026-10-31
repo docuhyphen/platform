@@ -1,34 +1,18 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.model.fields.PublishedSchemaAssignmentCommand
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.fields.model.ExactVersionAssignmentFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class SchemaAssignmentExactVersionTest
 {
@@ -45,7 +29,7 @@ class SchemaAssignmentExactVersionTest
     {
         val fixture = fixture()
 
-        val assigned = fixture.service.assignPublishedSchemaVersion(
+        val assigned = fixture.service.assignSchemaVersionForCreation(
             PublishedSchemaAssignmentCommand(
                 resource = FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, requestId),
                 access = access,
@@ -67,15 +51,7 @@ class SchemaAssignmentExactVersionTest
         verify(fixture.subscriptionGuard, never()).requireResourceMutation(any())
     }
 
-    private data class Fixture(
-        val service: SchemaAssignmentService,
-        val savedAssignments: MutableList<SchemaAssignment>,
-        val savedValueSets: MutableList<FieldValueSet>,
-        val schemaVersionRepository: SchemaVersionRepository,
-        val subscriptionGuard: BusinessFieldsSubscriptionGuard,
-    )
-
-    private fun fixture(): Fixture
+    private fun fixture(): ExactVersionAssignmentFixture
     {
         val adapter = mock<FieldResourceAdapter>()
         whenever(adapter.exists(requestId)).thenReturn(true)
@@ -141,7 +117,7 @@ class SchemaAssignmentExactVersionTest
         val definitionFieldRepository = mock<FieldDefinitionRepository>()
         val subscriptionGuard = mock<BusinessFieldsSubscriptionGuard>()
 
-        return Fixture(
+        return ExactVersionAssignmentFixture(
             service = SchemaAssignmentService(
                 adapterRegistry = adapterRegistry,
                 assignmentRepository = assignmentRepository,

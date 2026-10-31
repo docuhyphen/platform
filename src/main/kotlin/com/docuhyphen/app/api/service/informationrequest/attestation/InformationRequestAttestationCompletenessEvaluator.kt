@@ -1,12 +1,14 @@
 package com.docuhyphen.app.api.service.informationrequest.attestation
 
 import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
+import com.docuhyphen.app.api.model.entity.InformationRequestResponse
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationState
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessProgressContext
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCompletenessContributionEvaluator
 import jakarta.enterprise.context.ApplicationScoped
@@ -28,10 +30,10 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
         return context.requirements.mapNotNull { requirement ->
             val evaluation = evaluations[requirement.id] ?: return@mapNotNull null
             val binding = bindingsById[requirement.sourceTemplateBindingId] ?: return@mapNotNull null
-            val disposition = responsesByRequirement[requirement.id]?.disposition
+            val response = responsesByRequirement[requirement.id]
             val complete = evaluation.evaluation.state == InformationRequestAttestationState.SATISFIED ||
-                    disposition.isCompletingException()
-            val conditionState = binding.conditionalRuleKey?.let { ruleKey ->
+                    response.isCompletingException()
+            val conditionState = InformationRequestGoverningCondition.ruleKeyOf(binding)?.let { ruleKey ->
                 (conditionByScope[ruleKey to requirement.occurrencePath]
                     ?: conditionByScope[ruleKey to InformationRequestOccurrencePath.ROOT])?.state
             }
@@ -59,8 +61,15 @@ class InformationRequestAttestationCompletenessEvaluator @Inject constructor(
         }
     }
 
-    private fun InformationRequestResponseDisposition?.isCompletingException(): Boolean =
-        this != null &&
-                this != InformationRequestResponseDisposition.NOT_ANSWERED &&
-                this != InformationRequestResponseDisposition.PROVIDED
+    private fun InformationRequestResponse?.isCompletingException(): Boolean {
+        return !(this == null || narrative.isNullOrBlank()) && when (disposition) {
+            InformationRequestResponseDisposition.NOT_APPLICABLE,
+            InformationRequestResponseDisposition.UNAVAILABLE,
+            InformationRequestResponseDisposition.EXCEPTION_REQUESTED,
+            InformationRequestResponseDisposition.SATISFIED_BY_REFERENCE,
+            InformationRequestResponseDisposition.WAIVED -> true
+
+            else -> false
+        }
+    }
 }

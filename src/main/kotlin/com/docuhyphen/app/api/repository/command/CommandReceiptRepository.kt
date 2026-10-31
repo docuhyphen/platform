@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.repository.command
 
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
 import com.docuhyphen.app.api.model.entity.CommandReceipt
 import com.docuhyphen.app.api.repository.BaseRepository
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.NoResultException
@@ -12,6 +12,23 @@ class CommandReceiptRepository :
     BaseRepository<CommandReceipt>(CommandReceipt::class.java),
     CommandReceiptStore
 {
+    override fun lockCommand(request: CommandReceiptRequest) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:commandKey, 0))")
+            .setParameter(
+                "commandKey",
+                listOf(
+                    "command_receipt",
+                    request.resource.type.name,
+                    request.resource.id,
+                    request.operation,
+                    request.actor.kind,
+                    request.actor.id,
+                    request.idempotencyKey,
+                ).joinToString(":"),
+            )
+            .singleResult
+    }
+
     override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
         try
         {

@@ -1,36 +1,34 @@
-import {Badge, Text, Title3} from "@fluentui/react-components";
-import {
-    InformationRequestRequiredness,
-    InformationRequestRequirementType,
-    InformationRequestTemplateRequirementDto,
-    InformationRequestTemplateSectionDto,
-} from "../../../models/models.tsx";
+import {useState} from "react";
+import {Text} from "@fluentui/react-components";
+import {InformationRequestPartyDto, InformationRequestShareRoleKey} from "../../../models/models.tsx";
+import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import EditorDialog from "../../shared/editor-dialog/EditorDialog.tsx";
-import {dispositionLabels} from "../../shared/informationRequestLabels.ts";
+import {shareRoleLabels} from "../../shared/informationRequestLabels.ts";
+import RecipientPreviewContent from "../recipient-preview-content/RecipientPreviewContent.tsx";
 import {useRecipientPreviewDialogStyles} from "./RecipientPreviewDialogStyles.tsx";
 
 interface Props
 {
-    sections: InformationRequestTemplateSectionDto[];
+    requestId: string;
+    parties: InformationRequestPartyDto[];
     onDismiss: () => void;
 }
 
-const REQUIREDNESS_LABELS: Record<InformationRequestRequiredness, string> = {
-    [InformationRequestRequiredness.REQUIRED]: "Required",
-    [InformationRequestRequiredness.OPTIONAL]: "Optional",
-    [InformationRequestRequiredness.CONDITIONAL]: "Required when it applies",
-};
+const ANSWERING_ROLES = new Set([
+    InformationRequestShareRoleKey.CONTRIBUTOR,
+    InformationRequestShareRoleKey.PREPARER,
+    InformationRequestShareRoleKey.ATTESTOR,
+]);
 
-const answerKind = (requirement: InformationRequestTemplateRequirementDto): string =>
-{
-    if (requirement.requirementType === InformationRequestRequirementType.DOCUMENT) return "Answered by uploading files";
-    if (requirement.requirementType === InformationRequestRequirementType.RESPONSE_ATTESTATION) return "Answered by confirming the response";
-    return `Answers accepted: ${requirement.permittedDispositions.map(disposition => dispositionLabels[disposition]).join(", ")}`;
-};
+const choiceLabel = (party: InformationRequestPartyDto): string =>
+    `${shareRoleLabels[party.roleKey]}: ${party.label ?? "Unnamed party"}`;
 
-const RecipientPreviewDialog = ({sections, onDismiss}: Props) =>
+const RecipientPreviewDialog = ({requestId, parties, onDismiss}: Props) =>
 {
     const styles = useRecipientPreviewDialogStyles();
+    const answering = parties.filter(party => party.active && ANSWERING_ROLES.has(party.roleKey));
+    const [chosen, setChosen] = useState(answering[0]?.id ?? "");
+    const partyId = answering.some(party => party.id === chosen) ? chosen : answering[0]?.id ?? "";
 
     return (
         <EditorDialog id={"information-request-recipient-preview"}
@@ -39,40 +37,23 @@ const RecipientPreviewDialog = ({sections, onDismiss}: Props) =>
                       wide={true}
                       onConfirm={onDismiss}
                       onDismiss={onDismiss}>
-            {sections.map(section => (
-                <section key={section.id}
-                         id={`information-request-preview-section-${section.id}`}
-                         aria-labelledby={`information-request-preview-section-${section.id}-title`}
-                         className={styles.section}>
-                    <Title3 id={`information-request-preview-section-${section.id}-title`}
-                            as={"h2"}>
-                        {section.title}
-                    </Title3>
-                    {section.helpText && <Text className={styles.muted}>{section.helpText}</Text>}
-                    <ul id={`information-request-preview-section-${section.id}-items`}
-                        className={styles.list}>
-                        {section.requirements.map(requirement => (
-                            <li key={requirement.id}
-                                id={`information-request-preview-requirement-${requirement.id}`}
-                                className={styles.requirement}>
-                                <div id={`information-request-preview-requirement-${requirement.id}-prompt`}
-                                     className={styles.promptLine}>
-                                    <Text weight={"semibold"}>{requirement.prompt}</Text>
-                                    <Badge appearance={"outline"}
-                                           shape={"circular"}>
-                                        {REQUIREDNESS_LABELS[requirement.requiredness]}
-                                    </Badge>
-                                </div>
-                                {requirement.helpText && <Text className={styles.muted}>{requirement.helpText}</Text>}
-                                <Text size={200}
-                                      className={styles.muted}>
-                                    {answerKind(requirement)}
-                                </Text>
-                            </li>
-                        ))}
-                    </ul>
-                </section>
-            ))}
+            {partyId === "" ? (
+                <Text id={"information-request-recipient-preview-no-party"}>
+                    Add a party who answers this request to preview what they will be asked.
+                </Text>
+            ) : (
+                <div id={"information-request-recipient-preview-body"}
+                     className={styles.body}>
+                    <ChoiceSelect id={"information-request-recipient-preview-party"}
+                                  label={"Preview for"}
+                                  value={partyId}
+                                  hint={"Each party sees only the questions they answer."}
+                                  options={answering.map(party => ({value: party.id, label: choiceLabel(party)}))}
+                                  onChange={setChosen}/>
+                    <RecipientPreviewContent requestId={requestId}
+                                             partyId={partyId}/>
+                </div>
+            )}
         </EditorDialog>
     );
 };

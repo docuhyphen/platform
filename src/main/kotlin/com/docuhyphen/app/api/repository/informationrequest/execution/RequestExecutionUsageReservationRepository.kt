@@ -39,11 +39,6 @@ class RequestExecutionUsageReservationRepository :
             .resultList
             .firstOrNull()
 
-    /**
-     * Capacity currently spoken for: reservations that are either still provisional (`RESERVED`)
-     * or already finalized (`CONSUMED`). `RELEASED` and `ROLLED_BACK` rows have given their
-     * capacity back and are excluded.
-     */
     fun sumActiveQuantity(grantId: UUID, usageKind: RequestExecutionUsageKind): Long =
         entityManager.createQuery(
             """

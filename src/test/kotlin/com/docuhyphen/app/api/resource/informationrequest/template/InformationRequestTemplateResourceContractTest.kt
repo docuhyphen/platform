@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.template
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
@@ -8,16 +9,17 @@ import com.docuhyphen.app.api.resource.informationrequest.template.operations.In
 import com.docuhyphen.app.api.resource.model.CloneInformationRequestTemplateRequest
 import com.docuhyphen.app.api.resource.model.InformationRequestTemplateNewVersionRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.command.CommandPreconditionException
+import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateAuthoringService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateLifecycleService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplatePublicationService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateValidationException
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
-import jakarta.ws.rs.GET
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.PUT
-import jakarta.ws.rs.Path
+import jakarta.ws.rs.*
+import jakarta.ws.rs.core.HttpHeaders
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -26,11 +28,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The Template administration resource exposes the service boundary without owning lifecycle or
- * authorization decisions. These tests pin only the HTTP shape, request parsing, service delegation,
- * and stable error mapping that clients can rely on.
- */
 class InformationRequestTemplateResourceContractTest
 {
     private val authoringService = mock<InformationRequestTemplateAuthoringService>()
@@ -74,11 +71,6 @@ class InformationRequestTemplateResourceContractTest
         assertEquals("/{id}/clones", methods.getValue("clone").getAnnotation(Path::class.java).value)
     }
 
-    /**
-     * Retirement is the creation of a subordinate lifecycle record, not the setting of a status
-     * value. A status setter would let a client name any target state and would make the resource,
-     * rather than the lifecycle service, the place where permitted transitions are decided.
-     */
     @Test
     fun `no lifecycle operation is exposed as a generic status setter`()
     {
@@ -112,63 +104,161 @@ class InformationRequestTemplateResourceContractTest
     }
 
     @Test
-    fun `create and get delegate to the authoring service`()
+    fun `commands state their preconditions and idempotency keys as headers`() {
+        val methods = InformationRequestTemplateResourceOperations::class.java.declaredMethods.associateBy { it.name }
+        fun headers(name: String) = methods.getValue(name).parameterAnnotations
+            .flatMap { it.toList() }
+            .filterIsInstance<HeaderParam>()
+            .map { it.value }
+
+        assertEquals(listOf("Idempotency-Key"), headers("create"))
+        assertEquals(listOf("If-Match"), headers("replaceDraftConfiguration"))
+        assertEquals(listOf("If-Match", "Idempotency-Key"), headers("publishDraft"))
+        assertEquals(listOf("Idempotency-Key"), headers("createDraftVersion"))
+        assertEquals(listOf("Idempotency-Key"), headers("retireVersion"))
+        assertEquals(listOf("Idempotency-Key"), headers("clone"))
+        assertEquals(emptyList<String>(), headers("get"))
+    }
+
+    @Test
+    fun `create and get delegate to the authoring service and answer with the draft tag`()
     {
         val request = createRequest()
-        whenever(authoringService.createTemplate(request)).thenReturn(template)
+        whenever(authoringService.createTemplate(request, "create-key")).thenReturn(template)
         whenever(authoringService.getTemplate(templateId)).thenReturn(template)
 
-        val created = resource.create(request)
+        val created = resource.create(request, "create-key")
         val fetched = resource.get(templateId.toString())
 
         assertEquals(Response.Status.CREATED.statusCode, created.status)
         assertSame(template, created.entity)
+        assertEquals(DRAFT_TAG, created.getHeaderString(HttpHeaders.ETAG))
         assertEquals(Response.Status.OK.statusCode, fetched.status)
         assertSame(template, fetched.entity)
+        assertEquals(DRAFT_TAG, fetched.getHeaderString(HttpHeaders.ETAG))
     }
 
     @Test
-    fun `draft configuration and publication delegate to the owning services`()
+    fun `a Template with no draft is answered without a tag`() {
+        whenever(authoringService.getTemplate(templateId)).thenReturn(template.copy(draftETag = null))
+
+        assertNull(resource.get(templateId.toString()).getHeaderString(HttpHeaders.ETAG))
+    }
+
+    @Test
+    fun `draft configuration and publication pass the stated tag to the owning services`()
     {
         val configuration = configurationRequest()
-        whenever(authoringService.replaceDraftConfiguration(templateId, configuration)).thenReturn(template)
-        whenever(publicationService.publishTemplate(templateId)).thenReturn(template)
+        whenever(authoringService.replaceDraftConfiguration(any(), any(), any())).thenReturn(template)
+        whenever(publicationService.publishTemplate(any(), any(), any())).thenReturn(template)
 
-        val configured = resource.replaceDraftConfiguration(templateId.toString(), configuration)
-        val published = resource.publishDraft(templateId.toString())
+        val configured = resource.replaceDraftConfiguration(templateId.toString(), configuration, DRAFT_TAG)
+        val published = resource.publishDraft(templateId.toString(), DRAFT_TAG, "publish-key")
 
         assertEquals(Response.Status.OK.statusCode, configured.status)
         assertSame(template, configured.entity)
+        assertEquals(DRAFT_TAG, configured.getHeaderString(HttpHeaders.ETAG))
         assertEquals(Response.Status.OK.statusCode, published.status)
         assertSame(template, published.entity)
+        verify(authoringService).replaceDraftConfiguration(
+            templateId,
+            configuration,
+            CommandPrecondition.ExpectedRevision(DRAFT_TAG),
+        )
+        verify(publicationService).publishTemplate(
+            templateId,
+            CommandPrecondition.ExpectedRevision(DRAFT_TAG),
+            "publish-key"
+        )
+    }
+
+    @Test
+    fun `a wildcard If-Match never stands in for the draft tag`() {
+        whenever(authoringService.replaceDraftConfiguration(any(), any(), any())).thenReturn(template)
+        whenever(publicationService.publishTemplate(any(), any(), any())).thenReturn(template)
+        val configuration = configurationRequest()
+
+        resource.replaceDraftConfiguration(templateId.toString(), configuration, "*")
+        resource.publishDraft(templateId.toString(), " * ", "publish-key")
+
+        verify(authoringService).replaceDraftConfiguration(templateId, configuration, CommandPrecondition.Absent)
+        verify(publicationService).publishTemplate(templateId, CommandPrecondition.Absent, "publish-key")
+    }
+
+    @Test
+    fun `a change that states no tag is refused as needing one and a stale one as out of date`() {
+        whenever(authoringService.replaceDraftConfiguration(any(), any(), eq(CommandPrecondition.Absent)))
+            .thenThrow(CommandPreconditionException.required(DRAFT_TAG))
+        whenever(publicationService.publishTemplate(any(), any(), any()))
+            .thenThrow(CommandPreconditionException.stale(DRAFT_TAG))
+
+        val unstated = resource.replaceDraftConfiguration(templateId.toString(), configurationRequest(), null)
+        val stale = resource.publishDraft(templateId.toString(), "\"${UUID.randomUUID()}:1\"", "publish-key")
+
+        assertEquals(428, unstated.status)
+        assertEquals(DRAFT_TAG, unstated.getHeaderString(HttpHeaders.ETAG))
+        assertEquals("COMMAND_PRECONDITION_REQUIRED", (unstated.entity as ResponseError).reasonCode)
+        assertEquals(Response.Status.PRECONDITION_FAILED.statusCode, stale.status)
+        assertEquals(DRAFT_TAG, stale.getHeaderString(HttpHeaders.ETAG))
+        assertEquals("COMMAND_PRECONDITION_STALE", (stale.entity as ResponseError).reasonCode)
+    }
+
+    @Test
+    fun `a command without its idempotency key is refused before any service is asked`() {
+        val responses = listOf(
+            resource.create(createRequest(), null),
+            resource.publishDraft(templateId.toString(), DRAFT_TAG, " "),
+            resource.createDraftVersion(templateId.toString(), InformationRequestTemplateNewVersionRequest(1), null),
+            resource.retireVersion(templateId.toString(), "1", null),
+            resource.clone(templateId.toString(), CloneInformationRequestTemplateRequest(1, createRequest()), ""),
+        )
+
+        responses.forEach { response ->
+            assertEquals(Response.Status.BAD_REQUEST.statusCode, response.status)
+            assertEquals("Idempotency-Key is required", (response.entity as ResponseError).errorMessage)
+        }
+        verifyNoInteractions(authoringService, publicationService, lifecycleService)
+    }
+
+    @Test
+    fun `a reused idempotency key with a different command is a conflict`() {
+        whenever(authoringService.createTemplate(any(), any())).thenThrow(CommandReceiptConflictException())
+
+        val response = resource.create(createRequest(), "create-key")
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        assertEquals("COMMAND_RECEIPT_FINGERPRINT_CONFLICT", (response.entity as ResponseError).reasonCode)
     }
 
     @Test
     fun `version lifecycle operations require exact source and target version numbers`()
     {
-        whenever(lifecycleService.createDraftVersion(templateId, 2)).thenReturn(template)
-        whenever(lifecycleService.retireVersion(templateId, 2)).thenReturn(template)
-        whenever(lifecycleService.cloneTemplate(eq(templateId), eq(2), any())).thenReturn(template)
+        whenever(lifecycleService.createDraftVersion(templateId, 2, "version-key")).thenReturn(template)
+        whenever(lifecycleService.retireVersion(templateId, 2, "retire-key")).thenReturn(template)
+        whenever(lifecycleService.cloneTemplate(eq(templateId), eq(2), any(), eq("clone-key"))).thenReturn(template)
 
         val newVersion = resource.createDraftVersion(
             templateId.toString(),
             InformationRequestTemplateNewVersionRequest(2),
+            "version-key",
         )
-        val retired = resource.retireVersion(templateId.toString(), "2")
+        val retired = resource.retireVersion(templateId.toString(), "2", "retire-key")
         val cloned = resource.clone(
             templateId.toString(),
             CloneInformationRequestTemplateRequest(2, createRequest()),
+            "clone-key",
         )
 
         assertEquals(Response.Status.CREATED.statusCode, newVersion.status)
         assertSame(template, newVersion.entity)
+        assertEquals(DRAFT_TAG, newVersion.getHeaderString(HttpHeaders.ETAG))
         assertEquals(Response.Status.OK.statusCode, retired.status)
         assertSame(template, retired.entity)
         assertEquals(Response.Status.CREATED.statusCode, cloned.status)
         assertSame(template, cloned.entity)
-        verify(lifecycleService).createDraftVersion(templateId, 2)
-        verify(lifecycleService).retireVersion(templateId, 2)
-        verify(lifecycleService).cloneTemplate(templateId, 2, createRequest())
+        verify(lifecycleService).createDraftVersion(templateId, 2, "version-key")
+        verify(lifecycleService).retireVersion(templateId, 2, "retire-key")
+        verify(lifecycleService).cloneTemplate(templateId, 2, createRequest(), "clone-key")
     }
 
     @Test
@@ -178,15 +268,19 @@ class InformationRequestTemplateResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, resource.list("unknown").status)
         assertEquals(
             Response.Status.BAD_REQUEST.statusCode,
-            resource.createDraftVersion(templateId.toString(), InformationRequestTemplateNewVersionRequest(0)).status,
+            resource.createDraftVersion(
+                templateId.toString(),
+                InformationRequestTemplateNewVersionRequest(0),
+                "version-key"
+            ).status,
         )
         assertEquals(
             Response.Status.BAD_REQUEST.statusCode,
-            resource.retireVersion(templateId.toString(), "0").status,
+            resource.retireVersion(templateId.toString(), "0", "retire-key").status,
         )
         assertEquals(
             Response.Status.BAD_REQUEST.statusCode,
-            resource.retireVersion(templateId.toString(), "latest").status,
+            resource.retireVersion(templateId.toString(), "latest", "retire-key").status,
         )
     }
 
@@ -212,7 +306,7 @@ class InformationRequestTemplateResourceContractTest
     @Test
     fun `a validation refusal names the part of the document it refuses`()
     {
-        whenever(publicationService.publishTemplate(templateId))
+        whenever(publicationService.publishTemplate(eq(templateId), any(), any()))
             .thenThrow(
                 InformationRequestTemplateValidationException(
                     "Requirement recorded-note states no prompt",
@@ -220,7 +314,7 @@ class InformationRequestTemplateResourceContractTest
                     requirementKey = "recorded-note",
                 ),
             )
-        whenever(authoringService.replaceDraftConfiguration(eq(templateId), any()))
+        whenever(authoringService.replaceDraftConfiguration(eq(templateId), any(), any()))
             .thenThrow(
                 InformationRequestTemplateValidationException(
                     "Repeatable group entries names itself as its own parent",
@@ -228,8 +322,8 @@ class InformationRequestTemplateResourceContractTest
                 ),
             )
 
-        val published = resource.publishDraft(templateId.toString())
-        val configured = resource.replaceDraftConfiguration(templateId.toString(), configurationRequest())
+        val published = resource.publishDraft(templateId.toString(), DRAFT_TAG, "publish-key")
+        val configured = resource.replaceDraftConfiguration(templateId.toString(), configurationRequest(), DRAFT_TAG)
 
         assertEquals(Response.Status.BAD_REQUEST.statusCode, published.status)
         val publicationRefusal = published.entity as InformationRequestTemplateRefusalDto
@@ -243,6 +337,53 @@ class InformationRequestTemplateResourceContractTest
         assertEquals(Response.Status.BAD_REQUEST.statusCode, configured.status)
         assertEquals("entries", configurationRefusal.groupKey)
         assertEquals(null, configurationRefusal.requirementKey)
+    }
+
+    @Test
+    fun `a condition rule refusal names the rule apart from any group`() {
+        whenever(publicationService.publishTemplate(eq(templateId), any(), any()))
+            .thenThrow(
+                InformationRequestTemplateValidationException(
+                    "Condition rule shared-key compares nothing",
+                    conditionRuleKey = "shared-key",
+                ),
+            )
+
+        val response = resource.publishDraft(templateId.toString(), DRAFT_TAG, "publish-key")
+
+        val refusal = response.entity as InformationRequestTemplateRefusalDto
+        assertEquals("shared-key", refusal.conditionRuleKey)
+        assertNull(refusal.groupKey)
+    }
+
+    @Test
+    fun `a storage rule the services did not anticipate answers 409 with a stable code instead of 500`() {
+        whenever(authoringService.replaceDraftConfiguration(eq(templateId), any(), any())).thenThrow(
+            jakarta.persistence.PersistenceException(
+                "could not execute statement",
+                java.sql.SQLException("check constraint refused the row", "23514"),
+            ),
+        )
+        whenever(publicationService.publishTemplate(eq(templateId), any(), any())).thenThrow(
+            RuntimeException(
+                "transaction rolled back",
+                jakarta.persistence.PersistenceException(
+                    "could not execute statement",
+                    java.sql.SQLException("trigger refused the row", "P0001"),
+                ),
+            ),
+        )
+
+        val configured = resource.replaceDraftConfiguration(templateId.toString(), configurationRequest(), DRAFT_TAG)
+        val published = resource.publishDraft(templateId.toString(), DRAFT_TAG, "publish-key")
+
+        listOf(configured, published).forEach { response ->
+            assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+            assertEquals(
+                InformationRequestErrorCatalog.CONSTRAINT_CONFLICT,
+                (response.entity as ResponseError).reasonCode
+            )
+        }
     }
 
     private fun assertMapped(status: Response.Status, message: String)
@@ -289,7 +430,12 @@ class InformationRequestTemplateResourceContractTest
         templateKey = "collection-pattern",
         displayName = "Collection pattern",
         status = InformationRequestTemplateStatus.DRAFT,
+        draftETag = DRAFT_TAG,
         createdAt = Timestamp.from(Instant.now()),
         updatedAt = Timestamp.from(Instant.now()),
     )
+
+    private companion object {
+        val DRAFT_TAG = "\"${UUID.randomUUID()}:4\""
+    }
 }

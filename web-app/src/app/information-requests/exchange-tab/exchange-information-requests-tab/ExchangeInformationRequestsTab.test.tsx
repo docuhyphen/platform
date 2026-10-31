@@ -1,35 +1,41 @@
 /** @vitest-environment jsdom */
 import {cleanup, fireEvent, render, screen} from "@testing-library/react";
-import {MemoryRouter, Route, Routes} from "react-router-dom";
+import {MemoryRouter, Route, Routes, useParams} from "react-router-dom";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import * as reviews from "../../../../services/informationRequestReviewService.ts";
 import {
     InformationRequestExchangeListingDto,
     InformationRequestExecutionStandingKind,
-    InformationRequestStandingReason,
     InformationRequestNextAction,
     InformationRequestReviewState,
     InformationRequestShareRoleKey,
+    InformationRequestStandingReason,
     InformationRequestState,
     InformationRequestSummaryDto,
 } from "../../../models/models.tsx";
 import {ExchangeInformationRequestsState} from "../useExchangeInformationRequests.ts";
 import ExchangeInformationRequestsTab from "./ExchangeInformationRequestsTab.tsx";
 import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
+import {duplicateIds} from "../../shared/testing/duplicateIds.ts";
 import {unnamedControls} from "../../shared/testing/unnamedControls.ts";
 
-vi.mock("../../../../services/informationRequestReviewService.ts", () => ({getInformationRequestReviewQueue: vi.fn()}));
+vi.mock("../../../../services/informationRequestReviewService.ts", () => ({
+    getInformationRequestReviewQueue: vi.fn(),
+    listInformationRequestReviews: vi.fn(),
+}));
 vi.mock("../../authoring/create-information-request-dialog/CreateInformationRequestDialog.tsx", () => ({
     default: ({open}: {open: boolean}) => open ? <p>Creation opened</p> : null,
 }));
+
+const ReviewerWorkspaceProbe = () => <p>{`Reviewer workspace ${useParams().reviewId}`}</p>;
 
 const summary = (overrides: Partial<InformationRequestSummaryDto> = {}): InformationRequestSummaryDto => ({
     id: "request-a",
     exchangeId: "exchange-a",
     title: "Periodic records request",
     state: InformationRequestState.IN_PROGRESS,
-    issuedAt: "2026-09-20T08:00:00Z",
-    nextDueAt: "2026-10-01T12:00:00Z",
+    issuedAt: Date.parse("2026-09-20T08:00:00Z"),
+    nextDueAt: Date.parse("2026-10-01T12:00:00Z"),
     completedCount: 2,
     requiredCount: 5,
     callerRoles: [InformationRequestShareRoleKey.CONTRIBUTOR],
@@ -58,7 +64,7 @@ const renderTab = (tabState: ExchangeInformationRequestsState) => render(
             <Route path={"/information-requests/:requestId/manage"}
                    element={<p>Author workspace</p>}/>
             <Route path={"/information-requests/:requestId/reviews/:reviewId"}
-                   element={<p>Reviewer workspace</p>}/>
+                   element={<ReviewerWorkspaceProbe/>}/>
         </Routes>
     </MemoryRouter>,
 );
@@ -85,7 +91,7 @@ describe("ExchangeInformationRequestsTab", () =>
 
         expect(screen.getByText("Periodic records request")).toBeTruthy();
         expect(screen.getByText("In progress")).toBeTruthy();
-        expect(screen.getByText("2 of 5 required answers")).toBeTruthy();
+        expect(screen.getByText("2 of 5 answers complete")).toBeTruthy();
         expect(screen.getByText("Your role: Contributor")).toBeTruthy();
         expect(screen.getByText(/^Due /)).toBeTruthy();
         expect(screen.getAllByRole("listitem")).toHaveLength(1);
@@ -97,13 +103,15 @@ describe("ExchangeInformationRequestsTab", () =>
         renderTab(state({requests: [summary()], canCreate: true}));
 
         expect(unnamedControls(document.body)).toEqual([]);
+
+        expect(duplicateIds(document.body)).toEqual([]);
     });
 
     it("states progress counts in the viewer's number format", () =>
     {
         renderTab(state({requests: [summary({completedCount: 1000, requiredCount: 1200})], canCreate: false}));
 
-        expect(screen.getByText(`${formatInformationRequestCount(1000)} of ${formatInformationRequestCount(1200)} required answers`)).toBeTruthy();
+        expect(screen.getByText(`${formatInformationRequestCount(1000)} of ${formatInformationRequestCount(1200)} answers complete`)).toBeTruthy();
         expect(formatInformationRequestCount(1000)).not.toBe("1000");
     });
 
@@ -115,10 +123,13 @@ describe("ExchangeInformationRequestsTab", () =>
             informationRequestId: "request-c",
             exchangeId: "exchange-a",
             reviewStageKey: "content-review",
+            requestTitle: "Record collection",
+            reviewStageTitle: "Content review",
             packageNumber: 1,
             reviewState: InformationRequestReviewState.IN_REVIEW,
             itemCount: 2,
-            assignedAt: "2026-09-26T08:00:00Z",
+            assignedAt: Date.parse("2026-09-26T08:00:00Z"),
+            executionStanding: {kind: InformationRequestExecutionStandingKind.ACTIVE},
         }]);
         const listing = {
             requests: [
@@ -141,7 +152,47 @@ describe("ExchangeInformationRequestsTab", () =>
 
         renderTab(state(listing));
         fireEvent.click(screen.getByRole("button", {name: "Review: Reviewed collection"}));
-        expect(await screen.findByText("Reviewer workspace")).toBeTruthy();
+        expect(await screen.findByText("Reviewer workspace review-c")).toBeTruthy();
+    });
+
+    it("opens a reviewer-only party's latest review from View once the request or its review has finished", async () => {
+        vi.mocked(reviews.listInformationRequestReviews).mockResolvedValue([
+            {review: {id: "review-1", openedAt: Date.parse("2026-09-21T08:00:00Z")}},
+            {review: {id: "review-2", openedAt: Date.parse("2026-09-25T08:00:00Z")}},
+        ] as never);
+        renderTab(state({
+            requests: [summary({
+                state: InformationRequestState.CLOSED,
+                nextAction: InformationRequestNextAction.VIEW,
+                callerRoles: [InformationRequestShareRoleKey.REVIEWER],
+                permissions: {canManage: false, canRespond: false, canReview: true},
+            })],
+            canCreate: false,
+        }));
+
+        fireEvent.click(screen.getByRole("button", {name: "View: Periodic records request"}));
+
+        expect(await screen.findByText("Reviewer workspace review-2")).toBeTruthy();
+        expect(reviews.listInformationRequestReviews).toHaveBeenCalledWith("request-a");
+    });
+
+    it("offers Manage beside Respond or Review to a caller who also manages the request", async () => {
+        renderTab(state({
+            requests: [
+                summary({permissions: {canManage: true, canRespond: true, canReview: false}}),
+                summary({
+                    id: "request-b",
+                    title: "Draft collection",
+                    permissions: {canManage: false, canRespond: true, canReview: false}
+                }),
+            ],
+            canCreate: false,
+        }));
+
+        expect(screen.queryByRole("button", {name: "Manage: Draft collection"})).toBeNull();
+        fireEvent.click(screen.getByRole("button", {name: "Manage: Periodic records request"}));
+
+        expect(await screen.findByText("Author workspace")).toBeTruthy();
     });
 
     it("offers creation only when the server allows it and keeps retained requests listed without it", () =>
@@ -156,6 +207,25 @@ describe("ExchangeInformationRequestsTab", () =>
         expect(screen.queryByRole("button", {name: "New Information Request"})).toBeNull();
         expect(screen.getByText("Periodic records request")).toBeTruthy();
         expect(screen.getByRole("button", {name: "View: Periodic records request"})).toBeTruthy();
+    });
+
+    it("opens a finished request its owner still manages on the manage page and a respondent's on the response page", async () => {
+        const owned = summary({
+            state: InformationRequestState.CLOSED,
+            nextAction: InformationRequestNextAction.VIEW,
+            permissions: {canManage: true, canRespond: false, canReview: false},
+        });
+        const managed = renderTab(state({requests: [owned], canCreate: false}));
+        fireEvent.click(screen.getByRole("button", {name: "View: Periodic records request"}));
+        expect(await screen.findByText("Author workspace")).toBeTruthy();
+        managed.unmount();
+
+        renderTab(state({
+            requests: [{...owned, permissions: {canManage: false, canRespond: true, canReview: false}}],
+            canCreate: false,
+        }));
+        fireEvent.click(screen.getByRole("button", {name: "View: Periodic records request"}));
+        expect(await screen.findByText("Respondent workspace")).toBeTruthy();
     });
 
     it("tells an owner why a new request cannot be created", () =>
@@ -189,5 +259,14 @@ describe("ExchangeInformationRequestsTab", () =>
 
         renderTab(state(null, "Access denied to list Information Requests"));
         expect(screen.getByText("Access denied to list Information Requests")).toBeTruthy();
+    });
+
+    it("states a failed listing with Try again, which reads it again", () => {
+        const failed = state(null, "The Information Requests could not be loaded.");
+        renderTab(failed);
+
+        fireEvent.click(screen.getByRole("button", {name: "Try again"}));
+
+        expect(failed.reload).toHaveBeenCalledTimes(1);
     });
 });

@@ -27,9 +27,9 @@ const schema = (over: Partial<SchemaDefinitionDto>): SchemaDefinitionDto => ({
         versionNumber: 1,
         status: FieldLifecycleStatus.PUBLISHED,
         bindings: [],
-        createdAt: '2026-01-01',
+        createdAt: Date.parse('2026-01-01'),
     },
-    createdAt: '2026-01-01',
+    createdAt: Date.parse('2026-01-01'),
     ...over,
 });
 

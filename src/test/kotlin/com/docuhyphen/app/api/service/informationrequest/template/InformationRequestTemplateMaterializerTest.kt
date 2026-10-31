@@ -1,62 +1,29 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementGroup
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.SchemaAssignmentSource
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
+import com.docuhyphen.app.api.model.fields.PublishedSchemaAssignmentCommand
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementCurrentRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidenceAcceptedValueRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateEvidencePolicyRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementGroupRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.*
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
-import com.docuhyphen.app.api.service.fields.FieldsResourceRef
-import com.docuhyphen.app.api.service.fields.PublishedSchemaAssignmentCommand
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityExecutorRegistry
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityNotInstalledException
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.informationrequest.template.model.TemplateMaterializerFixture
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestTemplateMaterializerTest
 {
@@ -167,24 +134,13 @@ class InformationRequestTemplateMaterializerTest
         verify(fixture.schemaAssignmentService, never()).assignSchemaVersionForCreation(any())
     }
 
-    private data class Fixture(
-        val service: InformationRequestTemplateMaterializer,
-        val schemaAssignmentService: SchemaAssignmentService,
-        val requirementRepository: InformationRequestRequirementRepository,
-        val savedRequirements: MutableList<InformationRequestRequirement>,
-        val savedRevisions: MutableList<com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision>,
-        val savedCurrents: MutableList<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>,
-        val savedGroupOccurrences: MutableList<InformationRequestGroupOccurrence>,
-        val supportingEvidenceLinkService: InformationRequestSupportingEvidenceLinkService,
-    )
-
     private fun fixture(
         unserved: List<InformationRequestCapabilityRequirement> = emptyList(),
         fieldBearing: Boolean = true,
         groups: List<InformationRequestTemplateRequirementGroup> = emptyList(),
         anchoredBindings: List<Pair<InformationRequestTemplateRequirement, InformationRequestTemplateRequirementBinding>> =
             emptyList(),
-    ): Fixture
+    ): TemplateMaterializerFixture
     {
         val version = InformationRequestTemplateVersion().apply {
             id = templateVersionId
@@ -201,18 +157,22 @@ class InformationRequestTemplateMaterializerTest
             templateKey = "request-pattern"
             displayName = "Request pattern"
         }
-        val fieldRequirement = requirement(fieldRequirementId, "requested-data", InformationRequestRequirementType.FIELD)
-        val documentRequirement = requirement(documentRequirementId, "supporting-document", InformationRequestRequirementType.DOCUMENT)
+        val fieldRequirement =
+            requirement(fieldRequirementId, "requested-data", InformationRequestRequirementType.FIELD)
+        val documentRequirement =
+            requirement(documentRequirementId, "supporting-document", InformationRequestRequirementType.DOCUMENT)
         val fieldBinding = binding(fieldBindingId, fieldRequirementId, "Provide the requested data").apply {
             collectedFieldDefinitionId = collectedFieldId
         }
         val documentBinding = binding(documentBindingId, documentRequirementId, "Provide the supporting document")
         val templateRequirements = (if (fieldBearing)
-            listOf(fieldRequirement, documentRequirement) else listOf(documentRequirement)) +
-            anchoredBindings.map { it.first }
+            listOf(fieldRequirement, documentRequirement)
+        else listOf(documentRequirement)) +
+                anchoredBindings.map { it.first }
         val templateBindings = (if (fieldBearing)
-            listOf(fieldBinding, documentBinding) else listOf(documentBinding)) +
-            anchoredBindings.map { it.second }
+            listOf(fieldBinding, documentBinding)
+        else listOf(documentBinding)) +
+                anchoredBindings.map { it.second }
         val capability = InformationRequestTemplateVersionCapability().apply {
             templateVersionId = this@InformationRequestTemplateMaterializerTest.templateVersionId
             capabilityKey = InformationRequestCapability.STRUCTURED_RESPONSE
@@ -256,18 +216,18 @@ class InformationRequestTemplateMaterializerTest
         }
 
         val savedRevisions =
-            mutableListOf<com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision>()
+            mutableListOf<InformationRequestRequirementRevision>()
         val revisionRepository = mock<InformationRequestRequirementRevisionRepository>()
         whenever(revisionRepository.save(any())).thenAnswer { invocation ->
-            invocation.getArgument<com.docuhyphen.app.api.model.entity.InformationRequestRequirementRevision>(0)
+            invocation.getArgument<InformationRequestRequirementRevision>(0)
                 .also { savedRevisions += it }
         }
 
         val savedCurrents =
-            mutableListOf<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>()
+            mutableListOf<InformationRequestRequirementCurrent>()
         val currentRepository = mock<InformationRequestRequirementCurrentRepository>()
         whenever(currentRepository.save(any())).thenAnswer { invocation ->
-            invocation.getArgument<com.docuhyphen.app.api.model.entity.InformationRequestRequirementCurrent>(0)
+            invocation.getArgument<InformationRequestRequirementCurrent>(0)
                 .also { savedCurrents += it }
         }
 
@@ -280,7 +240,7 @@ class InformationRequestTemplateMaterializerTest
             invocation.getArgument<InformationRequestGroupOccurrence>(0).also { savedGroupOccurrences += it }
         }
 
-        return Fixture(
+        return TemplateMaterializerFixture(
             service = InformationRequestTemplateMaterializer(
                 templateVersionRepository = versionRepository,
                 templateDefinitionRepository = definitionRepository,
@@ -299,6 +259,7 @@ class InformationRequestTemplateMaterializerTest
                 revisionRepository = revisionRepository,
                 currentRepository = currentRepository,
                 schemaAssignmentService = schemaAssignmentService,
+                fieldsReader = mock<FieldsReadFacade>(),
                 supportingEvidenceLinkService = supportingEvidenceLinkService,
             ),
             schemaAssignmentService = schemaAssignmentService,
@@ -317,7 +278,8 @@ class InformationRequestTemplateMaterializerTest
         this.templateVersionId = this@InformationRequestTemplateMaterializerTest.templateVersionId
         ownerType = InformationRequestOwnerType.ORGANIZATION
         ownerOrganizationId = organizationId
-        createdByAppUserId = actorId
+        createdByPrincipalKind = PrincipalKind.USER
+        createdByPrincipalId = actorId
     }
 
     private fun requirement(
@@ -376,26 +338,24 @@ class InformationRequestTemplateMaterializerTest
     {
         val requirementId = UUID.randomUUID()
         return requirement(requirementId, "anchored-$anchorKey-$id", type) to
-            binding(id, requirementId, prompt).apply { occurrenceAnchorKey = anchorKey }
+                binding(id, requirementId, prompt).apply { occurrenceAnchorKey = anchorKey }
     }
-
-    // ── Repeatable group occurrences ────────────────────────────────────────────
 
     @Test
     fun `an anchored binding materializes one Requirement per group occurrence`()
     {
         val groupId = UUID.randomUUID()
-        val (invoiceRequirement, invoiceBinding) =
+        val (itemRequirement, itemBinding) =
             anchoredBinding(UUID.randomUUID(), "Provide the item", "items")
         val fixture = fixture(
             groups = listOf(group(groupId, "items", minOccurrences = 2)),
-            anchoredBindings = listOf(invoiceRequirement to invoiceBinding),
+            anchoredBindings = listOf(itemRequirement to itemBinding),
         )
 
         val result = fixture.service.materialize(request(), access)
 
         assertEquals(4, result.requirementCount, "Two root bindings plus one Requirement per each of two occurrences")
-        val anchoredRequirements = fixture.savedRequirements.filter { it.sourceTemplateBindingId == invoiceBinding.id }
+        val anchoredRequirements = fixture.savedRequirements.filter { it.sourceTemplateBindingId == itemBinding.id }
         assertEquals(listOf("items[0]", "items[1]"), anchoredRequirements.map { it.occurrencePath })
 
         assertEquals(2, fixture.savedGroupOccurrences.size)
@@ -469,11 +429,11 @@ class InformationRequestTemplateMaterializerTest
     fun `provisioning a group occurrence also provisions its Field Value Set when the request bears Fields`()
     {
         val groupId = UUID.randomUUID()
-        val (invoiceRequirement, invoiceBinding) =
+        val (itemRequirement, itemBinding) =
             anchoredBinding(UUID.randomUUID(), "Provide the item", "items")
         val fixture = fixture(
             groups = listOf(group(groupId, "items", minOccurrences = 1)),
-            anchoredBindings = listOf(invoiceRequirement to invoiceBinding),
+            anchoredBindings = listOf(itemRequirement to itemBinding),
         )
 
         fixture.service.materialize(request(), access)

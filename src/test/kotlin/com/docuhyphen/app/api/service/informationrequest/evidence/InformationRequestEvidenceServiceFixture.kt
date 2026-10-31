@@ -1,27 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.document.DocumentVersionContent
-import com.docuhyphen.app.api.model.document.DocumentVersionContentIdentityMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.document.DocumentVersionCreatorMapper
-import com.docuhyphen.app.api.model.document.DocumentVersionUpload
-import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
-import com.docuhyphen.app.api.model.document.StoredDocumentVersionContent
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.Document
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentVersion
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessment
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
+import com.docuhyphen.app.api.model.document.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
@@ -29,7 +12,6 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceUploadLimits
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
@@ -38,33 +20,36 @@ import com.docuhyphen.app.api.repository.informationrequest.evidence.Information
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingSubstituteRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
+import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
+import com.docuhyphen.app.api.service.informationrequest.audit.InformationRequestAuditActorLabelResolver
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStore
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.atLeast
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewAccess
+import org.mockito.kotlin.*
 import java.nio.file.Files
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 internal class InformationRequestEvidenceServiceFixture
 {
@@ -84,14 +69,15 @@ internal class InformationRequestEvidenceServiceFixture
 
     val requirements = mutableListOf<InformationRequestRequirement>()
 
-    val documentTemplateRequirement = templateRequirement("supporting-record", InformationRequestRequirementType.DOCUMENT)
+    val documentTemplateRequirement =
+        templateRequirement("supporting-record", InformationRequestRequirementType.DOCUMENT)
     val fieldTemplateRequirement = templateRequirement("recorded-summary", InformationRequestRequirementType.FIELD)
 
     val documentRequirement = requirement(documentTemplateRequirement, "root")
     val fieldRequirement = requirement(fieldTemplateRequirement, "root")
     val groupRequirement = requirement(documentTemplateRequirement, "reported-item[1]")
 
-    val grant = RequestExecutionGrant().apply {
+    val grant = issuedExecutionGrant().apply {
         requestId = request.id
         ownerType = "ORGANIZATION"
         planCode = "BUSINESS"
@@ -104,11 +90,12 @@ internal class InformationRequestEvidenceServiceFixture
     val access = RequestAccessContext(respondent, AuthorizationContext(sessionRef = "verified-session"))
 
     val requestRepository: InformationRequestRepository = mock()
-    val exchangeRepository: ExchangeRepository = mock()
+    val exchangeLookup: ExchangeLookupService = mock()
     val requirementRepository: InformationRequestRequirementRepository = mock()
     val occurrenceRepository: InformationRequestGroupOccurrenceRepository = mock()
     val templateRequirementRepository: InformationRequestTemplateRequirementRepository = mock()
     val authorizationService: AuthorizationService = mock()
+    val requirementContext: InformationRequestRequirementAuthorizationContextProvider = mock()
     val entitlementGuard: InformationRequestEntitlementGuard = mock()
     val executionGrantService: InformationRequestExecutionGrantService = mock()
     val artifactRepository: InformationRequestEvidenceArtifactRepository = mock()
@@ -117,7 +104,7 @@ internal class InformationRequestEvidenceServiceFixture
     val transitionHistory: InformationRequestTransitionHistoryService = mock()
     val assessmentRepository: InformationRequestEvidenceAssessmentRepository = mock()
     val receipts = InMemoryEvidenceReceiptStore()
-    val commandReceiptService = CommandReceiptService(receipts)
+    val commandReceiptService = CommandReceiptService(receipts, CommandReceiptScope())
 
     val artifacts = mutableListOf<InformationRequestEvidenceArtifact>()
     val versions = mutableListOf<InformationRequestEvidenceVersion>()
@@ -141,21 +128,22 @@ internal class InformationRequestEvidenceServiceFixture
 
     val gate = InformationRequestEvidenceGate(
         requestRepository = requestRepository,
-        exchangeRepository = exchangeRepository,
+        exchangeLookup = exchangeLookup,
         requirementRepository = requirementRepository,
         occurrenceRepository = occurrenceRepository,
         templateRequirementRepository = templateRequirementRepository,
         authorizationService = authorizationService,
-        entitlementGuard = entitlementGuard,
-        executionGrantService = executionGrantService,
+        continuationGuard = InformationRequestContinuationGuard(executionGrantService, entitlementGuard),
         lockService = mock(),
+        requirementContext = requirementContext,
+        conditionVisibility = InformationRequestConditionVisibility(mock(), mock()),
     )
 
     init
     {
         whenever(requestRepository.findById(request.id)).thenReturn(request)
         whenever(requestRepository.findRequestByIdForUpdate(request.id)).thenReturn(request)
-        whenever(exchangeRepository.findByIdForUpdate(exchange.id)).thenReturn(exchange)
+        whenever(exchangeLookup.lockExchangeForUpdate(exchange.id)).thenReturn(exchange)
         listOf(documentRequirement, fieldRequirement, groupRequirement).forEach { requirement ->
             whenever(requirementRepository.findById(requirement.id)).thenReturn(requirement)
         }
@@ -163,7 +151,7 @@ internal class InformationRequestEvidenceServiceFixture
         whenever(documentVersionRecordingService.open(any())).thenAnswer { invocation ->
             val version = invocation.arguments[0] as DocumentVersion
             val upload = recordedUploads.first { it.expectedDigest.value == version.contentHash }
-            DocumentVersionContent(upload.file, upload.fileName)
+            DocumentVersionContent(DocumentVersionReadHandle.storedFile(upload.file), upload.fileName)
         }
         listOf(documentTemplateRequirement, fieldTemplateRequirement).forEach { templateRequirement ->
             whenever(templateRequirementRepository.findById(templateRequirement.id)).thenReturn(templateRequirement)
@@ -208,7 +196,7 @@ internal class InformationRequestEvidenceServiceFixture
             recorded(
                 document,
                 invocation.arguments[1] as DocumentVersionUpload,
-                documentVersions.values.count { it.document.id == document.id } + 1,
+                documentVersions.values.count { requireNotNull(it.document).id == document.id } + 1,
             )
         }
         whenever(documentVersionRecordingService.findVersion(any())).thenAnswer { invocation ->
@@ -225,24 +213,29 @@ internal class InformationRequestEvidenceServiceFixture
         whenever(versionRepository.storedUsageForRequest(any())).thenAnswer { invocation ->
             storedUsage(versions.filter { it.informationRequestId == invocation.arguments[0] })
         }
-        whenever(versionRepository.storedUsageForUploader(any(), any())).thenAnswer { invocation ->
-            val uploader = invocation.arguments[1] as PrincipalRef
+        whenever(versionRepository.storedUsageForUploaders(any(), any())).thenAnswer { invocation ->
+            val uploaders = invocation.arguments[1] as Set<*>
             storedUsage(
                 versions.filter {
                     it.informationRequestId == invocation.arguments[0] &&
-                        it.createdByPrincipalKind == uploader.kind &&
-                        it.createdByPrincipalId == uploader.id
+                            PrincipalRef(it.createdByPrincipalKind, it.createdByPrincipalId) in uploaders
                 },
             )
         }
+        whenever(requirementContext.linkedIdentitiesOf(any())).thenAnswer { invocation ->
+            setOf(invocation.arguments[0] as PrincipalRef)
+        }
     }
+
+    val inspector: InformationRequestEvidenceContentInspector = spy(InformationRequestEvidenceContentInspector())
 
     val intake = InformationRequestEvidenceIntake(
         deploymentPolicy = deploymentPolicy,
         limits = uploadLimits,
         executionGrantService = executionGrantService,
+        requirementContext = requirementContext,
         policyLoader = policyLoader,
-        inspector = InformationRequestEvidenceContentInspector(),
+        inspector = inspector,
         artifactRepository = artifactRepository,
         versionRepository = versionRepository,
         assessmentRepository = assessmentRepository,
@@ -250,9 +243,15 @@ internal class InformationRequestEvidenceServiceFixture
         clock = Clock.systemUTC(),
     )
 
-    val contentRelease = InformationRequestEvidenceContentRelease(assessmentRepository, deploymentPolicy)
+    val contentRelease =
+        InformationRequestEvidenceContentRelease(assessmentRepository, deploymentPolicy, requirementContext)
     val scanAuditRecorder: AuditRecorder = mock()
-    val scanAudit = InformationRequestEvidenceScanAudit(scanAuditRecorder, requestRepository)
+    val actorDisplays = mock<PrincipalDisplayService>()
+    val scanAudit = InformationRequestEvidenceScanAudit(
+        scanAuditRecorder,
+        InformationRequestAuditActorLabelResolver(actorDisplays),
+        requestRepository
+    )
     val substituteRepository: InformationRequestTemplateBindingSubstituteRepository = mock()
     val responseStore: InformationRequestResponseStore = mock()
 
@@ -265,7 +264,15 @@ internal class InformationRequestEvidenceServiceFixture
         assessmentRepository = assessmentRepository,
         documentVersionRecordingService = documentVersionRecordingService,
         deploymentPolicy = deploymentPolicy,
+        bindingRepository = mock(),
+        conditionEvaluationService = mock(),
         clock = Clock.systemUTC(),
+        factsReader = InformationRequestEvidenceFactsReader(
+            artifactRepository,
+            versionRepository,
+            assessmentRepository,
+            documentVersionRecordingService,
+        ),
     )
 
     fun uploadService() = InformationRequestEvidenceUploadService(
@@ -277,6 +284,7 @@ internal class InformationRequestEvidenceServiceFixture
         transitionHistory = transitionHistory,
         viewLoader = viewLoader,
         intake = intake,
+        noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
     )
 
     fun collectionService() = InformationRequestEvidenceCollectionService(
@@ -285,20 +293,51 @@ internal class InformationRequestEvidenceServiceFixture
         commandReceiptService = commandReceiptService,
         transitionHistory = transitionHistory,
         viewLoader = viewLoader,
+        noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
     )
 
-    fun queryService(requestQueries: InformationRequestQueryService, auditRecorder: AuditRecorder) =
+    fun queryService(
+        requestQueries: InformationRequestQueryService,
+        auditRecorder: AuditRecorder,
+        noAuthAccess: InformationRequestNoAuthReadAccessService = InformationRequestNoAuthAccessDoubles.current(),
+    ) =
         InformationRequestEvidenceQueryService(
             queryService = requestQueries,
             gate = gate,
             artifactRepository = artifactRepository,
             versionRepository = versionRepository,
-            documentVersionRecordingService = documentVersionRecordingService,
             viewLoader = viewLoader,
-            accessAudit = InformationRequestEvidenceAccessAudit(auditRecorder),
             contentRelease = contentRelease,
             evaluationService = evaluationService,
             responseStore = responseStore,
+            contentOpener = contentOpener(auditRecorder, noAuthAccess),
+        )
+
+    fun retainedQueryService(
+        requestQueries: InformationRequestQueryService,
+        auditRecorder: AuditRecorder,
+        noAuthAccess: InformationRequestNoAuthReadAccessService = InformationRequestNoAuthAccessDoubles.current(),
+        reviewAccess: InformationRequestReviewAccess = mock(),
+    ) =
+        InformationRequestRetainedEvidenceQueryService(
+            queryService = requestQueries,
+            gate = gate,
+            artifactRepository = artifactRepository,
+            versionRepository = versionRepository,
+            documentVersionRecordingService = documentVersionRecordingService,
+            contentRelease = contentRelease,
+            contentOpener = contentOpener(auditRecorder, noAuthAccess),
+            reviewAccess = reviewAccess,
+        )
+
+    private fun contentOpener(auditRecorder: AuditRecorder, noAuthAccess: InformationRequestNoAuthReadAccessService) =
+        InformationRequestEvidenceContentOpener(
+            documentVersionRecordingService = documentVersionRecordingService,
+            accessAudit = InformationRequestEvidenceAccessAudit(
+                auditRecorder,
+                InformationRequestAuditActorLabelResolver(actorDisplays)
+            ),
+            noAuthAccess = noAuthAccess,
         )
 
     fun evidenceFile(
@@ -344,7 +383,7 @@ internal class InformationRequestEvidenceServiceFixture
 
     private fun storedUsage(stored: List<InformationRequestEvidenceVersion>): InformationRequestEvidenceStoredUsage
     {
-        val contents = stored.mapNotNull { version -> version.documentVersionId?.let(documentVersions::get) }
+        val contents = stored.mapNotNull { version -> documentVersions[version.documentVersionId] }
         return InformationRequestEvidenceStoredUsage(contents.size.toLong(), contents.sumOf { it.contentLength })
     }
 
@@ -396,14 +435,16 @@ internal class InMemoryEvidenceReceiptStore : CommandReceiptStore
 {
     val receipts = mutableListOf<CommandReceipt>()
 
+    override fun lockCommand(request: CommandReceiptRequest) = Unit
+
     override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
         receipts.firstOrNull {
             it.resourceType == request.resource.type &&
-                it.resourceId == request.resource.id &&
-                it.operationName == request.operation &&
-                it.actorKind == request.actor.kind &&
-                it.actorId == request.actor.id &&
-                it.idempotencyKey == request.idempotencyKey
+                    it.resourceId == request.resource.id &&
+                    it.operationName == request.operation &&
+                    it.actorKind == request.actor.kind &&
+                    it.actorId == request.actor.id &&
+                    it.idempotencyKey == request.idempotencyKey
         }
 
     override fun insert(receipt: CommandReceipt): CommandReceipt

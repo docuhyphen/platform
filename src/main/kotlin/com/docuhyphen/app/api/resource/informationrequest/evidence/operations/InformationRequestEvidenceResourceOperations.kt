@@ -78,13 +78,14 @@ interface InformationRequestEvidenceResourceOperations
         @HeaderParam(InformationRequestEvidenceHttp.IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response
 
-    @DELETE
-    @Path("/{artifactId}")
+    @POST
+    @Path("/{artifactId}/removals")
+    @Consumes(APPLICATION_JSON)
     fun remove(
         @PathParam("id") id: String,
         @PathParam("requirementId") requirementId: String,
         @PathParam("artifactId") artifactId: String,
-        @QueryParam("reason") reason: String?,
+        request: InformationRequestEvidenceStateChangeRequest?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(InformationRequestEvidenceHttp.IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response

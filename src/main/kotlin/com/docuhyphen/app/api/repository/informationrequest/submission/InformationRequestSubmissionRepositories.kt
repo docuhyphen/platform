@@ -78,6 +78,23 @@ class InformationRequestSubmissionEvidenceRepository :
             .setParameter("packageIds", packageIds)
             .resultList
     }
+
+    fun findMember(requestId: UUID, packageId: UUID, evidenceVersionId: UUID): InformationRequestSubmissionEvidence? =
+        entityManager.createQuery(
+            """
+            SELECT member
+            FROM InformationRequestSubmissionEvidence member
+            WHERE member.informationRequestId = :requestId
+              AND member.packageId = :packageId
+              AND member.evidenceVersionId = :evidenceVersionId
+            """.trimIndent(),
+            InformationRequestSubmissionEvidence::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .setParameter("packageId", packageId)
+            .setParameter("evidenceVersionId", evidenceVersionId)
+            .resultList
+            .singleOrNull()
 }
 
 @ApplicationScoped

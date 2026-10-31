@@ -4,8 +4,10 @@ import com.docuhyphen.app.api.model.dto.InformationRequestGroupOccurrenceDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestItemProblem
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
+import com.docuhyphen.app.api.resource.informationrequest.occurrence.handler.InformationRequestGroupOccurrenceRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.occurrence.operations.InformationRequestGroupOccurrenceResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
@@ -14,6 +16,7 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
@@ -26,12 +29,8 @@ import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestGroupOccurrenceResourceContractTest
 {
@@ -58,6 +57,29 @@ class InformationRequestGroupOccurrenceResourceContractTest
         assertEquals("/{occurrenceId}", methods.getValue("remove").getAnnotation(Path::class.java).value)
         assertTrue(methods.getValue("reorder").isAnnotationPresent(PATCH::class.java))
         assertEquals("/order", methods.getValue("reorder").getAnnotation(Path::class.java).value)
+        assertEquals(emptyList<String>(), jaxRsAnnotationsOn(InformationRequestGroupOccurrenceResource::class.java))
+        assertEquals(
+            emptyList<String>(),
+            jaxRsAnnotationsOn(InformationRequestGroupOccurrenceRequestHandler::class.java)
+        )
+    }
+
+    @Test
+    fun `a wildcard If-Match is sent to the service as a missing precondition`() {
+        whenever(occurrenceService.add(any()))
+            .thenThrow(CommandPreconditionException.required("\"responses-etag\""))
+
+        val response = resource.add(
+            requestId.toString(),
+            CreateInformationRequestGroupOccurrenceRequest(groupKey = "items"),
+            "*",
+            "key-1",
+        )
+
+        assertEquals(428, response.status)
+        verify(occurrenceService).add(
+            org.mockito.kotlin.argThat { precondition == com.docuhyphen.app.api.model.command.CommandPrecondition.Absent },
+        )
     }
 
     @Test
@@ -136,6 +158,54 @@ class InformationRequestGroupOccurrenceResourceContractTest
     }
 
     @Test
+    fun `a request the service cannot find maps to 404 with its reason code`() {
+        whenever(occurrenceService.remove(any()))
+            .thenThrow(
+                InformationRequestLifecycleException(
+                    InformationRequestErrorCatalog.NOT_FOUND,
+                    "Information Request not found"
+                )
+            )
+
+        val response = resource.remove(requestId.toString(), UUID.randomUUID().toString(), "\"etag\"", "remove-key")
+
+        assertEquals(Response.Status.NOT_FOUND.statusCode, response.status)
+        assertEquals(InformationRequestErrorCatalog.NOT_FOUND, (response.entity as ResponseError).reasonCode)
+    }
+
+    @Test
+    fun `an item refusal from an occurrence change maps to 409 naming each problem`() {
+        whenever(occurrenceService.add(any())).thenThrow(
+            InformationRequestItemRefusalException(
+                InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+                "The response did not pass structured validation",
+                listOf(
+                    InformationRequestItemProblem(
+                        code = InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED,
+                        message = "The entries no longer cover every period",
+                        occurrencePath = "items[0]",
+                    ),
+                ),
+            ),
+        )
+
+        val response = resource.add(
+            requestId.toString(),
+            CreateInformationRequestGroupOccurrenceRequest(groupKey = "items"),
+            "\"etag\"",
+            "key-1",
+        )
+
+        assertEquals(Response.Status.CONFLICT.statusCode, response.status)
+        val body = org.junit.jupiter.api.Assertions.assertInstanceOf(
+            com.docuhyphen.app.api.model.dto.InformationRequestItemRefusalDto::class.java,
+            response.entity,
+        )
+        assertEquals(InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED, body.reasonCode)
+        assertEquals(listOf("items[0]"), body.problems.map { it.occurrencePath })
+    }
+
+    @Test
     fun `a denial from the occurrence service maps to 403`()
     {
         whenever(occurrenceService.add(any()))
@@ -164,4 +234,11 @@ class InformationRequestGroupOccurrenceResourceContractTest
         occurrenceIndex = 0
         occurrencePath = path
     }
+
+    private fun jaxRsAnnotationsOn(type: Class<*>): List<String> =
+        (type.annotations.toList() + type.declaredMethods.flatMap { method ->
+            method.annotations.toList() + method.parameterAnnotations.flatMap { it.toList() }
+        })
+            .map { it.annotationClass.java.name }
+            .filter { it.startsWith("jakarta.ws.rs.") }
 }

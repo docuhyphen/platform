@@ -27,6 +27,7 @@ enum class InformationRequestPrivacyTargetOutcome
     CORRECTED,
     RESTRICTED,
     DISPOSAL_CLAIMED,
+    SKIPPED_OPEN,
     REFUSED,
 }
 
@@ -69,6 +70,9 @@ class InformationRequestPrivacyRequest
 
     @Column(name = "record_export_id")
     var recordExportId: UUID? = null
+
+    @Column(name = "restriction_id")
+    var restrictionId: UUID? = null
 
     @Enumerated(EnumType.STRING)
     @Column(name = "recorded_by_principal_kind", nullable = false, length = 32)

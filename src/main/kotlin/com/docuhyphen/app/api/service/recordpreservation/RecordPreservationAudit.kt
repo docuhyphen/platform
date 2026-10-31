@@ -19,7 +19,7 @@ class RecordPreservationAudit @Inject constructor(
     private val auditRecorder: AuditRecorder,
 )
 {
-    fun hold(eventType: AuditEventType, hold: RecordPreservationHold, principal: PrincipalRef)
+    fun hold(eventType: AuditEventType, hold: RecordPreservationHold, principal: PrincipalRef, reason: String? = null)
     {
         auditRecorder.record(
             AuditEventDraft(
@@ -28,15 +28,19 @@ class RecordPreservationAudit @Inject constructor(
                 outcome = AuditOutcome.SUCCESS,
                 actorId = principal.id,
                 actorKind = AuditActorKind.forPrincipal(principal.kind),
+                actorLabel = labelOf(principal),
                 actorRole = "RECORD_PRESERVATION",
                 targetType = "AUDIT_LEGAL_HOLD",
                 targetId = hold.id.toString(),
+                reason = reason ?: hold.releaseReason ?: hold.reason,
+                businessTransactionId = hold.id.toString(),
                 payload = buildMap {
                     put("resource_type", hold.resourceType)
                     put("resource_id", hold.resourceId)
                     put("status", hold.status.name)
                     put("scope", hold.scope.name)
                     put("holdRevision", hold.holdRevision.toString())
+                    put("effectiveFrom", hold.effectiveFrom.toInstant().toString())
                     hold.caseReference?.let { put("case_reference", it) }
                 },
                 idempotencyKey = "${eventType.key}|${hold.id}|${hold.holdRevision}",
@@ -53,6 +57,7 @@ class RecordPreservationAudit @Inject constructor(
                 outcome = AuditOutcome.SUCCESS,
                 actorId = principal.id,
                 actorKind = AuditActorKind.forPrincipal(principal.kind),
+                actorLabel = labelOf(principal),
                 actorRole = "RECORD_PRESERVATION",
                 targetType = "RECORD_RETENTION_SCHEDULE",
                 targetId = schedule.id.toString(),
@@ -77,6 +82,7 @@ class RecordPreservationAudit @Inject constructor(
         payload: Map<String, String>,
         idempotencyKey: String,
         outcome: AuditOutcome = AuditOutcome.SUCCESS,
+        sessionRef: String? = null,
     )
     {
         auditRecorder.record(
@@ -86,14 +92,20 @@ class RecordPreservationAudit @Inject constructor(
                 outcome = outcome,
                 actorId = principal.id,
                 actorKind = AuditActorKind.forPrincipal(principal.kind),
+                actorLabel = labelOf(principal),
                 actorRole = "RECORD_PRESERVATION",
                 targetType = resourceType,
                 targetId = resourceId,
+                sessionId = sessionRef,
+                businessTransactionId = payload["claimId"] ?: resourceId,
                 payload = payload,
                 idempotencyKey = idempotencyKey,
             ),
         )
     }
+
+    private fun labelOf(principal: PrincipalRef): String =
+        "${principal.kind.name.lowercase().replace('_', '-')}:${principal.id}"
 
     private fun scopeOf(owner: RecordOwnerRef): AuditOwnerScope = when (owner.kind)
     {

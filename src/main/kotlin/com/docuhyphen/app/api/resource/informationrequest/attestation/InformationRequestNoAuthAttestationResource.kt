@@ -29,6 +29,7 @@ class InformationRequestNoAuthAttestationResource @Inject constructor(
     {
         return try
         {
+            val requirement = InformationRequestCommandHttp.uuid(requirementId, "requirement id")
             InformationRequestCommandHttp.withNoAuthAccess(
                 readAccessService,
                 id,
@@ -37,7 +38,7 @@ class InformationRequestNoAuthAttestationResource @Inject constructor(
             ) { requestId, access ->
                 handler.record(
                     requestId,
-                    InformationRequestCommandHttp.uuid(requirementId, "requirement id"),
+                    requirement,
                     request,
                     access,
                     ifMatch,

@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.service.notification
 
-import com.docuhyphen.app.api.model.notification.DomainEventConsumptionOutcome
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionResult
 import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -21,7 +20,4 @@ class DomainEventConsumptionService @Inject constructor(
         repository.record(consumer.consumerKey, eventId, result.outcome, result.detail)
         return result
     }
-
-    fun outcomeOf(consumerKey: String, event: DomainEvent): DomainEventConsumptionOutcome? =
-        repository.outcomeOf(consumerKey, event.eventUuid())
 }

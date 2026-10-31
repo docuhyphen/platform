@@ -26,7 +26,7 @@ class InformationRequestNoAuthAmendmentResource @Inject constructor(
     {
         return try
         {
-            InformationRequestCommandHttp.withNoAuthAccess(
+            InformationRequestCommandHttp.withNoAuthRead(
                 readAccessService,
                 id,
                 accessLinkToken,

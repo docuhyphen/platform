@@ -1,31 +1,18 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import org.mockito.kotlin.inOrder
+import java.util.*
 
-/**
- * A change says which state of the data it is changing, and the engine refuses it when the data has
- * moved on since.
- *
- * Two people editing the same answers is the ordinary case, not the exotic one: one screen left open
- * while another is used, one save arriving after a phone lost signal. Without a stated expectation
- * the later save simply overwrites the earlier one and nobody is told. With it, the later caller is
- * turned away holding the state that is now current, which is what they need to look again.
- *
- * The two refusals are kept apart on purpose. A caller that named nothing has a client that must
- * start naming it; a caller whose state moved on has to read again. Telling them apart by machine
- * code means a client can act on the difference rather than parse a sentence.
- */
 class FieldsPreconditionTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())
-
-    // ── Saving answers ────────────────────────────────────────────────────────
 
     @Test
     fun `a save that names the state it read is accepted`()
@@ -121,7 +108,7 @@ class FieldsPreconditionTest
             principal = author,
             rootAnswers = mapOf(
                 SchemaAssignmentFieldsFixture.Question.NOTE to
-                    SchemaAssignmentFieldsFixture.StoredAnswer("Unchanged answer", author),
+                        StoredAnswer("Unchanged answer", author),
             ),
             rootSetRevision = 4,
         )
@@ -148,8 +135,6 @@ class FieldsPreconditionTest
             "A save that decided against an unlocked read could be overtaken between deciding and storing",
         )
     }
-
-    // ── Choosing and removing a Schema ────────────────────────────────────────
 
     @Test
     fun `removing a Schema while naming the answers that were read is accepted`()
@@ -215,5 +200,79 @@ class FieldsPreconditionTest
 
         assertEquals(FieldsPreconditionException.Kind.STALE, failure.kind)
         assertTrue(fixture.savedAssignments.isEmpty(), "A refused choice assigns nothing")
+    }
+
+    @Test
+    fun `choosing a Schema while stating that none is assigned yet is accepted`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, assigned = false, rootSetExists = false)
+
+        val assigned = fixture.assign(precondition = FieldsPrecondition.ExpectedAbsent)
+
+        assertEquals(1, fixture.savedAssignments.size)
+        assertEquals("\"${fixture.savedSets.single().id}:1\"", assigned.etag)
+    }
+
+    @Test
+    fun `choosing a Schema while stating that none is assigned is refused as stale once one is`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, rootSetRevision = 3)
+
+        val failure = assertThrows<FieldsPreconditionException> {
+            fixture.assign(precondition = FieldsPrecondition.ExpectedAbsent)
+        }
+
+        assertEquals(FieldsPreconditionException.Kind.STALE, failure.kind)
+        assertEquals(
+            "\"${fixture.rootValueSetId}:3\"", failure.currentETag,
+            "The refusal names the assignment that now stands, so the caller can read it",
+        )
+        assertTrue(fixture.savedAssignments.isEmpty(), "A refused choice assigns nothing")
+    }
+
+    @Test
+    fun `choosing a Schema for a resource that already has one is refused with a stable conflict code`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author)
+
+        val failure = assertThrows<SchemaAssignmentConflictException> {
+            fixture.assign(precondition = FieldsPrecondition.Unconditioned)
+        }
+
+        assertEquals("FIELDS_SCHEMA_ALREADY_ASSIGNED", failure.reasonCode)
+        assertTrue(fixture.savedAssignments.isEmpty(), "A refused choice assigns nothing")
+    }
+
+    @Test
+    fun `choosing a Schema takes the resource's lock before reading which Schema it has`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, assigned = false, rootSetExists = false)
+
+        fixture.assign(precondition = FieldsPrecondition.ExpectedAbsent)
+
+        inOrder(fixture.assignmentRepository) {
+            verify(fixture.assignmentRepository).lockResource(fixture.resourceType, fixture.resourceId)
+            verify(fixture.assignmentRepository).findByResource(fixture.resourceType, fixture.resourceId)
+        }
+    }
+
+    @Test
+    fun `removing a Schema takes the resource's lock before reading which Schema it has`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author)
+
+        fixture.unassign(precondition = FieldsPrecondition.Unconditioned)
+
+        inOrder(fixture.assignmentRepository) {
+            verify(fixture.assignmentRepository).lockResource(fixture.resourceType, fixture.resourceId)
+            verify(fixture.assignmentRepository).findByResource(fixture.resourceType, fixture.resourceId)
+        }
+    }
+
+    @Test
+    fun `assigning the version a resource is created with takes the same lock`() {
+        val fixture = SchemaAssignmentFieldsFixture(principal = author, assigned = false, rootSetExists = false)
+
+        fixture.assignForCreation()
+
+        inOrder(fixture.assignmentRepository) {
+            verify(fixture.assignmentRepository).lockResource(fixture.resourceType, fixture.resourceId)
+            verify(fixture.assignmentRepository).findByResource(fixture.resourceType, fixture.resourceId)
+        }
     }
 }

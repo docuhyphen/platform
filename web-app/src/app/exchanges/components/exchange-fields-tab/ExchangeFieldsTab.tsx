@@ -1,10 +1,9 @@
 import {useEffect, useState} from 'react';
-import {Badge, Spinner, Text} from '@fluentui/react-components';
+import {Spinner, Text} from '@fluentui/react-components';
 import {
     ExchangeDetailedDto,
-    ExchangeStatus,
     FieldLifecycleStatus,
-    SchemaAssignmentDto,
+    SchemaAssignmentStateDto,
     SchemaDefinitionDto,
 } from '../../../models/models';
 import {getExchangeSchema, listSchemas} from '../../../../services/fieldsService';
@@ -12,38 +11,30 @@ import {useExchangeFieldsTabStyles} from './ExchangeFieldsTabStyles';
 import SchemaAssignPanel from './SchemaAssignPanel';
 import FieldValuesForm from './FieldValuesForm';
 import FieldValuesReadOnly from './FieldValuesReadOnly';
+import SchemaSummaryCard from './schema-summary-card/SchemaSummaryCard';
 
 interface Props
 {
     exchange: ExchangeDetailedDto;
 }
 
-/** A schema is written for one kind of resource, and only one kind can be given to an Exchange. */
 const EXCHANGE_RESOURCE = 'EXCHANGE';
 
 const ExchangeFieldsTab = ({exchange}: Props) =>
 {
     const styles = useExchangeFieldsTabStyles();
-    const editable = exchange.status === ExchangeStatus.INITIATED;
 
-    const [assignment, setAssignment] = useState<SchemaAssignmentDto | null>(null);
+    const [state, setState] = useState<SchemaAssignmentStateDto | null>(null);
     const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    /**
-     * The questions asked of this reader, and the answers held for them. Both come from the same
-     * reading of the Exchange, so a question this reader was not shown is neither described nor
-     * answered and the form cannot offer an editor for one it may not save.
-     */
+    const assignment = state?.assignment;
+    const canManageSchema = state?.canManageSchema ?? false;
+    const canEditValues = state?.canEditValues ?? false;
     const bindings = assignment?.bindings ?? [];
     const fieldCount = bindings.length;
 
-    /**
-     * Reads the assignment, the questions it asks, and the answers it holds. A refresh the form asks
-     * for leaves the spinner alone: replacing the form with one would discard entries the responder
-     * has not saved yet and the message telling them why their last save was not applied.
-     */
     const load = (spinner = true) =>
     {
         if (spinner) setLoading(true);
@@ -51,8 +42,8 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
         getExchangeSchema(exchange.id)
             .then(async current =>
             {
-                setAssignment(current);
-                if (!current && editable)
+                setState(current);
+                if (!current.assignment && current.canManageSchema)
                 {
                     const all = await listSchemas().catch(() => []);
                     setSchemas(all.filter(s => !!s.latestPublishedVersion
@@ -67,20 +58,32 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
             });
     };
 
-    useEffect(() => { load(); }, [exchange.id, exchange.status]);
+    useEffect(() => {
+        load();
+    }, [exchange.id, exchange.status]);
 
-    if (loading) return <Spinner size="small" label="Loading fields..."/>;
+    if (loading) return <Spinner id="exchange-fields-loading"
+                                 size="small"
+                                 label="Loading fields..."/>;
 
     return (
         <div id="exchange-fields-tab-content"
              className={styles.container}>
-            {error && <span className={styles.errorText}>{error}</span>}
-
-            {!assignment && !editable && (
-                <Text className={styles.subText}>No business schema is assigned to this exchange.</Text>
+            {error && (
+                <span id="exchange-fields-load-error"
+                      className={styles.errorText}>
+                    {error}
+                </span>
             )}
 
-            {!assignment && editable && (
+            {state && !assignment && !canManageSchema && (
+                <Text id="exchange-fields-no-schema"
+                      className={styles.subText}>
+                    No business schema is assigned to this Exchange.
+                </Text>
+            )}
+
+            {state && !assignment && canManageSchema && (
                 <SchemaAssignPanel exchangeId={exchange.id}
                                    schemas={schemas}
                                    onAssigned={load}/>
@@ -95,33 +98,15 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
 
             {assignment && fieldCount > 0 && (
                 <>
-                    <div id="exchange-fields-schema-summary"
-                         className={styles.schemaSummaryCard}>
-                        <div className={styles.headerTitleBlock}>
-                            <Text className={styles.schemaTitle}>
-                                {assignment.displayName}
-                            </Text>
-                        </div>
-                        <div className={styles.schemaBadgeRow}>
-                            <Badge appearance="tint"
-                                   color="informative"
-                                   size="small">
-                                v{assignment.versionNumber}
-                            </Badge>
-                            <Badge appearance="outline"
-                                   color="brand"
-                                   size="small">
-                                {fieldCount} {fieldCount === 1 ? 'field' : 'fields'}
-                            </Badge>
-                            <Badge appearance="outline"
-                                   color={editable ? 'success' : 'warning'}
-                                   size="small">
-                                {editable ? 'Editable' : 'Read only'}
-                            </Badge>
-                        </div>
-                    </div>
+                    <SchemaSummaryCard exchangeId={exchange.id}
+                                       assignment={assignment}
+                                       fieldCount={fieldCount}
+                                       editable={canEditValues}
+                                       removable={canManageSchema}
+                                       onRemoved={() => load()}
+                                       onValuesMovedOn={() => load(false)}/>
 
-                    {editable
+                    {canEditValues && assignment.etag
                         ? <FieldValuesForm exchangeId={exchange.id}
                                            bindings={bindings}
                                            values={assignment.fields}

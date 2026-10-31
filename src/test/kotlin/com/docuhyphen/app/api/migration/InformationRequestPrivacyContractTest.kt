@@ -3,10 +3,53 @@ package com.docuhyphen.app.api.migration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestPrivacyContractTest
 {
+    @Test
+    fun `a disposal claim cannot delete another request's append-only correction`() {
+        withPrivacy { connection, privacy ->
+            val other = PrivacySqlFixture(connection, SubmissionRuntimeSqlFixture(connection))
+            val packageId = UUID.randomUUID()
+            val itemId = UUID.randomUUID()
+            other.runtime.insertPackage(packageId, 1)
+            other.runtime.insertItem(
+                itemId, packageId, other.runtime.documentRequirementId,
+                other.runtime.documentRevisionId, other.runtime.documentBindingId, "DOCUMENT"
+            )
+            val correctionId = UUID.randomUUID()
+            other.insertCorrection(correctionId, packageId, itemId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                privacy.runtime.requestId
+            )
+            val preservation = PreservationSqlFixture(connection, privacy.runtime)
+            val scheduleId = UUID.randomUUID()
+            preservation.insertSchedule(scheduleId, 1, minimumDays = 0, disposalDays = 0)
+            val claimId = UUID.randomUUID()
+            preservation.insertClaim(claimId, scheduleId)
+            preservation.advance(claimId)
+            refusedBy(connection, "information request history is append-only") {
+                queryString(
+                    connection,
+                    "SELECT set_config('docuhyphen.record_disposal_claim', ?, true)",
+                    claimId.toString()
+                )
+                execute(connection, "DELETE FROM information_request_item_correction WHERE id = ?", correctionId)
+            }
+            assertEquals(
+                1,
+                queryInt(
+                    connection,
+                    "SELECT count(*) FROM information_request_item_correction WHERE id = ?",
+                    correctionId
+                )
+            )
+        }
+    }
+
     @Test
     fun `a privacy request states its kind, keys, and outcome and is immutable once finished`()
     {
@@ -117,6 +160,13 @@ class InformationRequestPrivacyContractTest
             preservation.advance(claimId)
             queryString(connection, "SELECT record_dispose_information_request(?)", claimId)
             assertEquals(0, queryInt(connection, "SELECT count(*) FROM information_request_item_correction WHERE id = ?", correctionId))
+            assertEquals(
+                1, queryInt(
+                    connection,
+                    "SELECT (removed_rows_json::jsonb ->> 'information_request_item_correction')::integer FROM record_disposal_tombstone WHERE claim_id = ?",
+                    claimId,
+                )
+            )
         }
     }
 

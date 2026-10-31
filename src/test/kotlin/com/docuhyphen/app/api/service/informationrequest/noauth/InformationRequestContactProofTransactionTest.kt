@@ -1,30 +1,22 @@
 package com.docuhyphen.app.api.service.informationrequest.noauth
 
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.Share
+import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
+import com.docuhyphen.app.api.migration.queryString
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
-import com.docuhyphen.app.api.repository.exchange.ShareRepository
-import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.RequestTemplatePostgreSQLResource
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
-import com.docuhyphen.app.api.service.user.AppUserService
+import io.quarkus.arc.Arc
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusMock
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -34,10 +26,11 @@ import org.mockito.kotlin.whenever
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(RequestTemplatePostgreSQLResource::class)
@@ -47,7 +40,7 @@ class InformationRequestContactProofTransactionTest
     lateinit var contactProofService: InformationRequestContactProofService
 
     @Inject
-    lateinit var shareRepository: ShareRepository
+    lateinit var dataSource: DataSource
 
     @Inject
     lateinit var shareLinkRepository: ShareLinkRepository
@@ -84,19 +77,23 @@ class InformationRequestContactProofTransactionTest
             val calls = (1..5).map {
                 pool.submit<String> {
                     start.await()
-                    try
-                    {
-                        contactProofService.verifyChallenge(rawToken, "000000")
-                        "accepted"
-                    }
-                    catch (refusal: InformationRequestLifecycleException)
-                    {
-                        refusal.reasonCode
+                    withRequestContext {
+                        try {
+                            contactProofService.verifyChallenge(rawToken, "000000")
+                            "accepted"
+                        } catch (refusal: InformationRequestLifecycleException) {
+                            refusal.reasonCode
+                        }
                     }
                 }
             }
             start.countDown()
-            assertTrue(calls.all { it.get(30, TimeUnit.SECONDS) == InformationRequestErrorCatalog.CONTACT_PROOF_INVALID })
+            assertTrue(calls.all {
+                it.get(
+                    30,
+                    TimeUnit.SECONDS
+                ) == InformationRequestErrorCatalog.CONTACT_PROOF_INVALID
+            })
         }
         finally
         {
@@ -113,11 +110,6 @@ class InformationRequestContactProofTransactionTest
         val link = createLink(rawToken)
         val emailService = mock<EmailService>()
         QuarkusMock.installMockForType(emailService, EmailService::class.java)
-        val appUserService = mock<AppUserService>()
-        whenever(appUserService.getById(any())).thenAnswer {
-            AppUser().apply { id = it.getArgument(0); email = "respondent@example.com" }
-        }
-        QuarkusMock.installMockForType(appUserService, AppUserService::class.java)
         val pool = Executors.newFixedThreadPool(5)
         val start = CountDownLatch(1)
         try
@@ -125,14 +117,13 @@ class InformationRequestContactProofTransactionTest
             val calls = (1..5).map {
                 pool.submit<String> {
                     start.await()
-                    try
-                    {
-                        contactProofService.issueChallenge(rawToken)
-                        "issued"
-                    }
-                    catch (refusal: InformationRequestLifecycleException)
-                    {
-                        refusal.reasonCode
+                    withRequestContext {
+                        try {
+                            contactProofService.issueChallenge(rawToken)
+                            "issued"
+                        } catch (refusal: InformationRequestLifecycleException) {
+                            refusal.reasonCode
+                        }
                     }
                 }
             }
@@ -155,7 +146,14 @@ class InformationRequestContactProofTransactionTest
         val rawToken = UUID.randomUUID().toString()
         val link = createLink(rawToken)
         val sessionService = mock<RequestAccessSessionService>()
-        whenever(sessionService.issue(any(), any(), any(), anyOrNull())).thenThrow(IllegalStateException("Session unavailable"))
+        whenever(
+            sessionService.issue(
+                any(),
+                any(),
+                any(),
+                anyOrNull()
+            )
+        ).thenThrow(IllegalStateException("Session unavailable"))
         QuarkusMock.installMockForType(sessionService, RequestAccessSessionService::class.java)
 
         assertThrows<IllegalStateException> {
@@ -171,29 +169,40 @@ class InformationRequestContactProofTransactionTest
 
     private fun createLink(rawToken: String): ShareLink
     {
-        val link = QuarkusTransaction.requiringNew().call {
-            val share = shareRepository.save(Share().apply {
-                resourceId = UUID.randomUUID()
-                principalId = UUID.randomUUID()
-            })
+        val partyShareId = dataSource.connection.use { connection ->
+            val runtime = SubmissionRuntimeSqlFixture(connection)
+            contributorAsParticipant(connection, runtime)
+            UUID.fromString(
+                requireNotNull(
+                    queryString(
+                        connection,
+                        "SELECT share_id::text FROM information_request_party WHERE id = ?",
+                        runtime.contributorPartyId
+                    )
+                )
+            )
+        }
+        return QuarkusTransaction.requiringNew().call {
             shareLinkRepository.save(ShareLink().apply {
-                shareId = share.id
+                shareId = partyShareId
                 tokenHash = sha256Hex(rawToken)
                 linkMode = ShareLinkMode.VERIFICATION_BOOTSTRAP
+                verificationStrength =
+                    com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStrength.EMAIL_OTP
                 contactOtpHash = otpService.hashOtp("654321")
                 contactOtpExpiresAt = Timestamp.from(Instant.now().plusSeconds(600))
             })
         }
-        val partyRepository = mock<InformationRequestPartyRepository>()
-        whenever(partyRepository.findByShareId(any())).thenReturn(InformationRequestParty().apply {
-            informationRequestId = UUID.randomUUID()
-            roleKey = InformationRequestShareRoleKey.CONTRIBUTOR
-            principalKind = PrincipalKind.USER
-            principalId = UUID.randomUUID()
-            shareId = link.shareId
-        })
-        QuarkusMock.installMockForType(partyRepository, InformationRequestPartyRepository::class.java)
-        return link
+    }
+
+    private fun <T> withRequestContext(block: () -> T): T {
+        val context = Arc.container().requestContext()
+        context.activate()
+        try {
+            return block()
+        } finally {
+            context.terminate()
+        }
     }
 
     private fun sha256Hex(value: String): String = MessageDigest.getInstance("SHA-256")

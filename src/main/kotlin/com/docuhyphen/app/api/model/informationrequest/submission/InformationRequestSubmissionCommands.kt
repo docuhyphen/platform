@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.informationrequest.submission
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.attestation.InformationRequestAttestationRequirementEvaluation
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.util.*
 
 data class RecordInformationRequestSubmissionAttestationCommand(
@@ -71,12 +71,32 @@ enum class InformationRequestSubmissionProblemCode
     ATTESTATION_MISSING,
     ATTESTATION_REFUSED,
     RECONFIRMATION_REQUIRED,
+    STRUCTURED_VALIDATION_FAILED,
 }
+
+data class InformationRequestStructuredSubmissionProblems(
+    val itemProblems: List<InformationRequestSubmissionItemProblem> = emptyList(),
+    val packageProblemCount: Int = 0,
+)
+
+data class InformationRequestSubmissionGroupProblem(
+    val groupKey: String,
+    val parentOccurrencePath: String?,
+    val minOccurrences: Int,
+    val maxOccurrences: Int?,
+    val occurrenceCount: Int,
+)
+
+data class InformationRequestSubmissionGroupProblems(
+    val disclosed: List<InformationRequestSubmissionGroupProblem> = emptyList(),
+    val undisclosedCount: Int = 0,
+)
 
 data class InformationRequestSubmissionReadiness(
     val problems: List<InformationRequestSubmissionItemProblem>,
     val undisclosedProblemCount: Int,
+    val groupProblems: List<InformationRequestSubmissionGroupProblem> = emptyList(),
 )
 {
-    val ready: Boolean get() = problems.isEmpty() && undisclosedProblemCount == 0
+    val ready: Boolean get() = problems.isEmpty() && groupProblems.isEmpty() && undisclosedProblemCount == 0
 }

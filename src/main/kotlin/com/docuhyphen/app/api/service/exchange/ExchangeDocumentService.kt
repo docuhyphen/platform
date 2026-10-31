@@ -3,6 +3,7 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.realtime.RealtimeEventService

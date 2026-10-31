@@ -6,21 +6,12 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
-import java.util.UUID
+import java.util.*
 
-/**
- * Locks in the single active-status definition and proves the engine's cancellation guard treats
- * an escalated (still pending) instance as cancellable while leaving terminal instances untouched.
- */
 class WorkflowActiveStatusTest
 {
     private val instanceRepository: WorkflowInstanceRepository = mock()
@@ -76,6 +67,29 @@ class WorkflowActiveStatusTest
 
         assertEquals(WorkflowInstanceStatus.COMPLETED, instance.status)
         verify(instanceRepository, never()).update(instance)
+    }
+
+    @Test
+    fun `cancelling the active workflows of a subject cancels each one`() {
+        val subjectId = UUID.randomUUID()
+        val running = instanceWith(WorkflowInstanceStatus.RUNNING)
+        val escalated = instanceWith(WorkflowInstanceStatus.ESCALATED)
+        whenever(
+            instanceRepository.findAllActiveForSubject(
+                "INFORMATION_REQUEST",
+                subjectId
+            )
+        ).thenReturn(listOf(running, escalated))
+        whenever(instanceRepository.findByIdForUpdate(running.id)).thenReturn(running)
+        whenever(instanceRepository.findByIdForUpdate(escalated.id)).thenReturn(escalated)
+        whenever(stepRepository.findByInstance(any())).thenReturn(emptyList())
+
+        val cancelled =
+            newEngine().cancelActiveForSubject("INFORMATION_REQUEST", subjectId, "information_request.request.cancel")
+
+        assertEquals(2, cancelled)
+        assertEquals(WorkflowInstanceStatus.CANCELLED, running.status)
+        assertEquals(WorkflowInstanceStatus.CANCELLED, escalated.status)
     }
 
     private fun instanceWith(status: WorkflowInstanceStatus) = WorkflowInstance().apply {

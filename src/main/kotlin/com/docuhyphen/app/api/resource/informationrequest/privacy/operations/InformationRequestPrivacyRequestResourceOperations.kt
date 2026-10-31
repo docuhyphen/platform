@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.informationrequest.privacy.operations
 
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestPrivacyRequestRequest
 import jakarta.ws.rs.*
 import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
@@ -11,7 +12,10 @@ import jakarta.ws.rs.core.Response
 interface InformationRequestPrivacyRequestResourceOperations
 {
     @POST
-    fun record(request: RecordInformationRequestPrivacyRequestRequest?): Response
+    fun record(
+        request: RecordInformationRequestPrivacyRequestRequest?,
+        @HeaderParam(InformationRequestCommandHttp.IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
+    ): Response
 
     @GET
     fun list(@QueryParam("subjectIdentityRefId") subjectIdentityRefId: String?): Response
@@ -19,4 +23,8 @@ interface InformationRequestPrivacyRequestResourceOperations
     @GET
     @Path("/{privacyRequestId}")
     fun get(@PathParam("privacyRequestId") privacyRequestId: String): Response
+
+    @GET
+    @Path("/{privacyRequestId}/record-export")
+    fun recordExport(@PathParam("privacyRequestId") privacyRequestId: String): Response
 }

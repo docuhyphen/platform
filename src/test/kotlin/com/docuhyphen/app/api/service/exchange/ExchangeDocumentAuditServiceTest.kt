@@ -11,13 +11,22 @@ import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.util.*
 
-/**
- * [ExchangeDocumentAuditService.logAction] writes onto [AuditRecorder], and
- * [ExchangeDocumentAuditService.getExchangeAuditEvents] backs the Exchange audit tab with one
- * ledger query across every document.
- */
 class ExchangeDocumentAuditServiceTest
 {
+    @Test
+    fun `a document without an Exchange still resolves its true audit owner`() {
+        val document = Document().apply { title = "Recorded evidence.txt" }
+        val user = UUID.randomUUID()
+        val resolver = mock<AuditOwnerScopeResolver>()
+        whenever(resolver.resolve(ResourceType.DOCUMENT, document.id)).thenReturn(AuditOwnerScope.Personal(user))
+        val recorder = mock<AuditRecorder>()
+        service(auditRecorder = recorder, auditOwnerScopeResolver = resolver)
+            .logAction(document, DocumentAuditAction.VIEW, "recipient@process.test")
+        val drafts = argumentCaptor<AuditEventDraft>()
+        verify(recorder).record(drafts.capture())
+        assertEquals(AuditOwnerScope.Personal(user), drafts.firstValue.owner)
+    }
+
     private fun service(
         auditRecorder: AuditRecorder = mock(),
         auditLedgerEventRepository: AuditLedgerEventRepository = mock(),

@@ -34,6 +34,12 @@ class RecordPreservationHoldRepository : BaseRepository<RecordPreservationHold>(
     fun findForUpdate(holdId: UUID): RecordPreservationHold? =
         entityManager.find(RecordPreservationHold::class.java, holdId, LockModeType.PESSIMISTIC_WRITE)
 
+    fun lockPlacements(owner: RecordOwnerRef) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:ownerKey, 0))")
+            .setParameter("ownerKey", "record_preservation_hold_placement:${owner.kind}:${owner.id}")
+            .singleResult
+    }
+
     fun findActiveCovering(owner: RecordOwnerRef, keys: Collection<RecordPreservationKey>): List<RecordPreservationHold>
     {
         if (keys.isEmpty()) return emptyList()
@@ -89,6 +95,12 @@ class RecordPreservationHoldEventRepository :
 @ApplicationScoped
 class RecordRetentionScheduleRepository : BaseRepository<RecordRetentionSchedule>(RecordRetentionSchedule::class.java)
 {
+    fun lockSeries(owner: RecordOwnerRef, resourceType: String) {
+        entityManager.createNativeQuery("SELECT pg_advisory_xact_lock(hashtextextended(:seriesKey, 0))")
+            .setParameter("seriesKey", "record_retention_schedule:${owner.kind}:${owner.id}:$resourceType")
+            .singleResult
+    }
+
     fun findVersions(owner: RecordOwnerRef, resourceType: String): List<RecordRetentionSchedule> =
         entityManager.createQuery(
             """
@@ -142,12 +154,29 @@ class RecordDisposalClaimRepository : BaseRepository<RecordDisposalClaim>(Record
             .resultList
             .firstOrNull()
 
+    fun findUnfinalizedResourceIds(resourceType: String, resourceIds: Collection<UUID>): Set<UUID> =
+        entityManager.createQuery(
+            """
+            SELECT claim.resourceId
+            FROM RecordDisposalClaim claim
+            WHERE claim.resourceType = :resourceType
+              AND claim.resourceId IN :resourceIds
+              AND claim.state <> :finalized
+            """.trimIndent(),
+            UUID::class.java,
+        )
+            .setParameter("resourceType", resourceType)
+            .setParameter("resourceIds", resourceIds)
+            .setParameter("finalized", RecordDisposalState.FINALIZED)
+            .resultList
+            .toSet()
+
     fun findForUpdate(claimId: UUID): RecordDisposalClaim? =
         entityManager.find(RecordDisposalClaim::class.java, claimId, LockModeType.PESSIMISTIC_WRITE)
 
     fun findOpenIds(limit: Int): List<UUID> =
         entityManager.createQuery(
-            "SELECT claim.id FROM RecordDisposalClaim claim WHERE claim.state <> :finalized ORDER BY claim.claimedAt, claim.id",
+            "SELECT claim.id FROM RecordDisposalClaim claim WHERE claim.state <> :finalized ORDER BY claim.attemptCount, claim.claimedAt, claim.id",
             UUID::class.java,
         )
             .setParameter("finalized", RecordDisposalState.FINALIZED)
@@ -170,10 +199,16 @@ class RecordDisposalClaimRepository : BaseRepository<RecordDisposalClaim>(Record
             FROM record_disposal_claim_scope scope_key
                      JOIN record_disposal_claim claim ON claim.id = scope_key.claim_id
             WHERE claim.state <> 'FINALIZED'
-              AND scope_key.resource_type = :resourceType
-              AND scope_key.resource_id = :resourceId
-              AND (scope_key.direct OR :descendants)
               AND (:platform OR (claim.owner_kind = :ownerKind AND claim.owner_id = :ownerId))
+              AND ((scope_key.resource_type = :resourceType
+                        AND scope_key.resource_id = :resourceId
+                        AND (scope_key.direct OR :descendants))
+                OR (scope_key.resource_type = 'INFORMATION_REQUEST'
+                        AND scope_key.direct
+                        AND EXISTS (SELECT 1
+                                    FROM record_preservation_information_request_records(CAST(scope_key.resource_id AS uuid)) owned
+                                    WHERE owned.resource_type = :resourceType
+                                      AND owned.resource_id = :resourceId)))
             """.trimIndent(),
         )
             .setParameter("resourceType", hold.resourceType)

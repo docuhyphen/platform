@@ -29,6 +29,7 @@ class InformationRequestNoAuthFactRecertificationResource @Inject constructor(
     {
         return try
         {
+            val acceptedFact = InformationRequestCommandHttp.uuid(factId, "accepted fact id")
             InformationRequestCommandHttp.withNoAuthAccess(
                 readAccessService,
                 id,
@@ -37,7 +38,7 @@ class InformationRequestNoAuthFactRecertificationResource @Inject constructor(
             ) { requestId, access ->
                 handler.recertify(
                     requestId,
-                    InformationRequestCommandHttp.uuid(factId, "accepted fact id"),
+                    acceptedFact,
                     request,
                     access,
                     ifMatch,

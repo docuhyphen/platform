@@ -1,26 +1,22 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
-import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class AuditExportResourceTest
 {
@@ -61,7 +57,7 @@ class AuditExportResourceTest
             approvedAt = Timestamp.from(Instant.parse("2026-07-01T00:00:00Z"))
             note = "looks good"
         }
-        whenever(exportService.getExport(exportId)).thenReturn(export)
+        whenever(exportService.getPlatformExport(exportId)).thenReturn(export)
         whenever(exportService.listApprovals(exportId)).thenReturn(listOf(approval))
         val resource = AuditExportResource(
             authorizationService = allowingAuthorizationService(),
@@ -86,8 +82,11 @@ class AuditExportResourceTest
         val exportId = UUID.randomUUID()
         val principal = PrincipalRef.user(UUID.randomUUID())
         val exportService = mock<AuditExportService>()
-        val export = AuditExport().apply { organizationId = UUID.randomUUID() }
-        whenever(exportService.getExport(exportId)).thenReturn(export)
+        whenever(exportService.getPlatformExport(exportId)).thenThrow(
+            com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException(
+                "Audit export not found"
+            )
+        )
         val resource = AuditExportResource(
             authorizationService = allowingAuthorizationService(),
             authorizationContextFactory = authorizedContextFactory(principal),

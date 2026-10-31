@@ -1,9 +1,10 @@
 import {useCallback, useMemo, useState} from "react";
-import {InformationRequestTemplateVersionDto, SchemaDefinitionDto} from "../../models/models.tsx";
-import {bindingsForVersion, TemplateDocumentState} from "./TemplateDocumentContext.ts";
+import {FieldLifecycleStatus, InformationRequestTemplateVersionDto, SchemaDefinitionDto} from "../../models/models.tsx";
+import {TemplateDocumentState} from "./TemplateDocumentContext.ts";
 import {draftDocumentFromVersion, TemplateDraftDocument} from "./templateDraftDocument.ts";
-import {TemplateDraftTarget} from "./templateDraftRules.ts";
+import {TemplateDraftTarget, TemplateSchemaFacts} from "./templateDraftRules.ts";
 import {templateDraftProblems} from "./templateDraftValidation.ts";
+import {useNamedSchemaVersion} from "./useNamedSchemaVersion.ts";
 
 export type TemplateDocumentPanel = "sections" | "groups" | "conditions" | "review" | "settings" | "extra";
 
@@ -14,6 +15,7 @@ export interface TemplateDocumentEditor extends TemplateDocumentState
     setPanel: (panel: TemplateDocumentPanel) => void;
     goTo: (target: TemplateDraftTarget) => void;
     markSaved: () => void;
+    reloadFieldBindings: () => void;
 }
 
 interface Tracked
@@ -42,18 +44,27 @@ export const useTemplateDocumentEditor = (
         : {sourceKey, document: draftDocumentFromVersion(source), dirty: false};
     if (current !== tracked) setTracked(current);
 
-    const fieldBindings = useMemo(
-        () => bindingsForVersion(schemas, current.document.schemaVersionId),
-        [schemas, current.document.schemaVersionId],
+    const named = useNamedSchemaVersion(schemas, current.document.schemaVersionId);
+    const fieldBindings = named.bindings;
+    const collectableFieldIds = useMemo(
+        () => named.known ? new Set(fieldBindings.map(binding => binding.fieldDefinitionId)) : undefined,
+        [fieldBindings, named.known],
     );
-    const collectableFieldIds = useMemo(() =>
-    {
-        const knownVersion = schemas.some(schema => schema.latestPublishedVersion?.id === current.document.schemaVersionId);
-        return knownVersion ? new Set(fieldBindings.map(binding => binding.fieldDefinitionId)) : undefined;
-    }, [current.document.schemaVersionId, fieldBindings, schemas]);
+    const readOnlyFieldIds = useMemo(
+        () => new Set(fieldBindings.filter(binding => binding.isReadOnly).map(binding => binding.fieldDefinitionId)),
+        [fieldBindings],
+    );
+    const schemaVersionId = current.document.schemaVersionId;
+    const facts = useMemo<TemplateSchemaFacts>(() => ({
+        retired: schemas.some(schema => schema.status === FieldLifecycleStatus.RETIRED
+            && schema.latestPublishedVersion?.id === schemaVersionId),
+        optionCodes: new Map(fieldBindings
+            .filter(binding => binding.options.length > 0)
+            .map(binding => [binding.fieldDefinitionId, new Set(binding.options.map(option => option.code))])),
+    }), [fieldBindings, schemaVersionId, schemas]);
     const problems = useMemo(
-        () => templateDraftProblems(current.document, collectableFieldIds),
-        [collectableFieldIds, current.document],
+        () => templateDraftProblems(current.document, collectableFieldIds, readOnlyFieldIds, facts),
+        [collectableFieldIds, current.document, facts, readOnlyFieldIds],
     );
 
     const update = useCallback((change: (document: TemplateDraftDocument) => TemplateDraftDocument) =>
@@ -74,6 +85,7 @@ export const useTemplateDocumentEditor = (
         readOnly,
         schemas,
         fieldBindings,
+        fieldBindingsError: named.error,
         problems,
         focus,
         update,
@@ -82,5 +94,6 @@ export const useTemplateDocumentEditor = (
         setPanel,
         goTo,
         markSaved: () => setTracked(previous => ({...previous, dirty: false})),
+        reloadFieldBindings: named.reload,
     };
 };

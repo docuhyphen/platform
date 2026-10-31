@@ -4,13 +4,11 @@ import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRe
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import io.restassured.RestAssured.given
-import java.util.stream.Stream
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import java.util.stream.Stream
 
 @QuarkusTest
 @QuarkusTestResource(InformationRequestOperationsPostgreSQLResource::class)
@@ -42,6 +40,7 @@ class InformationRequestNoAuthRequestBodyTest
             "POST" to "/no-auth/information-requests/$ID/accepted-fact-offers/$ID/recertifications",
             "POST" to "/no-auth/information-requests/$ID/requirements/$ID/attestations",
             "POST" to "/no-auth/information-requests/$ID/requirements/$ID/evidence-artifacts/$ID/withdrawals",
+            "POST" to "/no-auth/information-requests/$ID/requirements/$ID/evidence-artifacts/$ID/removals",
             "POST" to "/no-auth/information-request-access-links/sessions",
             "POST" to "/no-auth/information-requests/$ID/reviews/$ID/comments",
             "POST" to "/no-auth/information-requests/$ID/reviews/$ID/appeals",

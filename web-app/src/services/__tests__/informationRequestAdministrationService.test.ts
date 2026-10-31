@@ -43,17 +43,26 @@ describe("Information Request administration transport", () =>
         vi.mocked(apiClient.post).mockResolvedValue({data: {}, headers: {}});
     });
 
-    it("reads and defines clock policies and publishes their versions", async () =>
+    it("reads clock policies and defines them and publishes their versions under an Idempotency-Key", async () =>
     {
         await getInformationRequestClockPolicies();
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-request-clock-policies");
-        await defineInformationRequestClockPolicy({policyKey: "standard", displayName: "Standard", definition});
+        await defineInformationRequestClockPolicy({
+            policyKey: "standard",
+            displayName: "Standard",
+            definition
+        }, "define-a");
         expect(apiClient.post).toHaveBeenLastCalledWith(
             "/information-request-clock-policies",
             {policyKey: "standard", displayName: "Standard", definition},
+            {headers: {"Idempotency-Key": "define-a"}},
         );
-        await publishInformationRequestClockPolicyVersion("policy-a", definition);
-        expect(apiClient.post).toHaveBeenLastCalledWith("/information-request-clock-policies/policy-a/versions", definition);
+        await publishInformationRequestClockPolicyVersion("policy-a", definition, "publish-a");
+        expect(apiClient.post).toHaveBeenLastCalledWith(
+            "/information-request-clock-policies/policy-a/versions",
+            definition,
+            {headers: {"Idempotency-Key": "publish-a"}},
+        );
     });
 
     it("starts a clock under its Idempotency-Key and changes one under its clock ETag", async () =>
@@ -95,19 +104,23 @@ describe("Information Request administration transport", () =>
             requestKind: InformationRequestPrivacyRequestKind.ACCESS,
             purposeKey: "subject-access",
             policyBasisKey: "consent",
-        });
+        }, "privacy-key");
         expect(apiClient.post).toHaveBeenLastCalledWith("/information-request-privacy-requests", {
             subjectIdentityRefId: "subject-a",
             requestKind: InformationRequestPrivacyRequestKind.ACCESS,
             purposeKey: "subject-access",
             policyBasisKey: "consent",
-        });
+        }, {headers: {"Idempotency-Key": "privacy-key"}});
         await getInformationRequestPrivacyRequests("subject-a");
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-request-privacy-requests", {params: {subjectIdentityRefId: "subject-a"}});
         await getInformationRequestSubjectRestrictions();
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-request-subject-restrictions");
-        await liftInformationRequestSubjectRestriction("restriction-a", "RESOLVED");
-        expect(apiClient.post).toHaveBeenLastCalledWith("/information-request-subject-restrictions/restriction-a/lift", {reasonCode: "RESOLVED"});
+        await liftInformationRequestSubjectRestriction("restriction-a", "resolved", "lift-key");
+        expect(apiClient.post).toHaveBeenLastCalledWith(
+            "/information-request-subject-restrictions/restriction-a/lift",
+            {reasonCode: "resolved"},
+            {headers: {"Idempotency-Key": "lift-key"}},
+        );
         await searchInformationRequestAuditEvents({eventType: "information_request.request.remind", limit: 25, offset: 0});
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-request-audit-events", {
             params: {eventType: "information_request.request.remind", limit: 25, offset: 0},

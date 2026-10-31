@@ -262,9 +262,6 @@ class OrganizationAppUserService @Inject constructor(
             throw IllegalArgumentException("isActive cannot be null")
         }
 
-        // Min-admins invariant: an org must always retain at least one usable administrator.
-        // Block this update if the target is the org's last enabled admin and the change would
-        // demote them (to a non-admin role) or deactivate their account.
         val previousIsAdmin = previousRoles.hasAdminRole()
         if (previousIsAdmin && organizationMembershipService.isLastActiveAdmin(appUser.id, organization.id))
         {
@@ -292,8 +289,6 @@ class OrganizationAppUserService @Inject constructor(
             }
 
             appUser.email = normalizedEmail
-
-            //ToDo: send email reset link
         }
 
         appUser.person?.let {
@@ -386,16 +381,12 @@ class OrganizationAppUserService @Inject constructor(
 
         val appUserUuid = UUID.fromString(appUserId)
 
-        // First remove the app user from all organization groups (new principal_group model).
         organizationGroupService.removeUserFromOrganizationGroups(organization.id, appUserUuid)
 
-        // Then remove the app user's membership of the organization (replaces the retired
-        // organization-to-users join). The membership row must go before the user is hard-deleted below.
         organizationMembershipService.removeMember(appUserUuid, organization.id)
 
         sendOrganizationMemberRemovedEmail(appUser, organization.name)
 
-        // Now it's safe to delete the app user
         appUserService.delete(appUser.id.toString())
 
         authAuditService.emit(
@@ -428,9 +419,9 @@ class OrganizationAppUserService @Inject constructor(
             ?: throw AppUserNotFoundException("App user not found for id: $appUserId")
 
         return organizationMembershipService.isMember(appUser.id, organization.id)
-                // Cannot delete the org's last enabled administrator (min-admins invariant).
                 && !organizationMembershipService.isLastActiveAdmin(appUser.id, organization.id)
                 && appUserService.hasLinkedExchanges(appUser.id) == false
+                && !appUserService.hasRetainedAccountRecords(appUser.id)
     }
 
     private fun appUserSnapshot(appUser: AppUser): String

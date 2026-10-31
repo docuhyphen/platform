@@ -14,18 +14,14 @@ class InformationRequestEvidenceViewLoader @Inject constructor(
     private val documentVersionRecordingService: DocumentVersionRecordingService,
 )
 {
-    fun view(
-        artifact: InformationRequestEvidenceArtifact,
-        throughVersionNumber: Int? = null,
-    ): InformationRequestEvidenceArtifactView =
+    fun view(artifact: InformationRequestEvidenceArtifact): InformationRequestEvidenceArtifactView =
         InformationRequestEvidenceArtifactView(
             artifact,
             versionRepository.findForArtifact(artifact.id)
-                .filter { throughVersionNumber == null || it.versionNumber <= throughVersionNumber }
                 .map { version ->
                     InformationRequestEvidenceVersionView(
                         version,
-                        version.documentVersionId?.let(documentVersionRecordingService::findVersion),
+                        documentVersionRecordingService.findVersion(version.documentVersionId),
                     )
                 },
         )

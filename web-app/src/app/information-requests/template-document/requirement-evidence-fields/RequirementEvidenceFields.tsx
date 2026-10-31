@@ -50,14 +50,14 @@ const RequirementEvidenceFields = ({id, draft, readOnly, onChange}: RequirementF
             {number("Minimum files", "minimumFileCount", 1)}
             {number("Maximum files", "maximumFileCount", 1)}
             <NumberField id={`${id}-file-size-input`}
-                         label={"Maximum file size (MB)"}
+                         label={"Maximum file size (MiB)"}
                          value={megabytes(policy.maximumFileSizeBytes)}
                          min={0}
                          step={0.5}
                          disabled={readOnly}
                          onChange={value => set({maximumFileSizeBytes: bytes(value)})}/>
             <NumberField id={`${id}-total-size-input`}
-                         label={"Maximum total size (MB)"}
+                         label={"Maximum total size (MiB)"}
                          value={megabytes(policy.maximumTotalSizeBytes)}
                          min={0}
                          step={0.5}

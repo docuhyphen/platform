@@ -6,10 +6,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-/**
- * The result of a Participant's verified registration upgrade: the durable link recording the
- * identity fact, and the equivalent Share granted to the App User on the same Information Request.
- */
 @Serializable
 data class InformationRequestParticipantAccountUpgradeDto(
     @Serializable(with = UUIDSerializer::class) val participantAccountLinkId: UUID,
@@ -18,4 +14,5 @@ data class InformationRequestParticipantAccountUpgradeDto(
     @Serializable(with = TimestampSerializer::class) val linkedAt: Timestamp,
     @Serializable(with = UUIDSerializer::class) val grantedShareId: UUID,
     val grantedRoleName: String,
+    val respondentKey: String,
 )

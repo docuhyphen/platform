@@ -10,7 +10,6 @@ import java.time.temporal.ChronoUnit
 object InformationRequestEvidencePolicyEvaluator
 {
     private val PENDING_CODES = setOf(NOT_INSPECTED, NOT_SCANNED, SCAN_INCOMPLETE, SCAN_NOT_PRODUCTION_ELIGIBLE)
-    private const val UNDECLARED_MEDIA_TYPE = "application/octet-stream"
 
     fun evaluateVersion(
         policy: InformationRequestEvidencePolicy,
@@ -20,10 +19,7 @@ object InformationRequestEvidencePolicyEvaluator
     ): InformationRequestEvidenceVersionEvaluation
     {
         val findings = mutableListOf<InformationRequestEvidenceFinding>()
-        if (facts.fileBacked)
-        {
-            findings += contentFindings(policy, facts, malwareScanRequired)
-        }
+        findings += contentFindings(policy, facts, malwareScanRequired)
         findings += attributeFindings(policy, facts.attributes, asOf)
 
         return InformationRequestEvidenceVersionEvaluation(
@@ -48,22 +44,24 @@ object InformationRequestEvidencePolicyEvaluator
         val current = evaluations.filter { it.standing == InformationRequestEvidenceStanding.CURRENT }
         val currentFacts = versions.filter { it.standing == InformationRequestEvidenceStanding.CURRENT }
         val conforming = current.filter { it.conformance == InformationRequestEvidenceConformance.CONFORMING }
+        val pending = current.filter { it.conformance == InformationRequestEvidenceConformance.PENDING }
         val findings = mutableListOf<InformationRequestEvidenceFinding>()
 
         policy.maximumFileCount?.let { maximum ->
             if (current.size > maximum) findings += finding(FILE_COUNT_ABOVE_MAXIMUM, "$maximum")
         }
         policy.maximumTotalSizeBytes?.let { maximum ->
-            if (currentFacts.filter { it.fileBacked }.sumOf { it.contentLength ?: 0 } > maximum)
+            if (currentFacts.sumOf { it.contentLength ?: 0 } > maximum)
             {
                 findings += finding(TOTAL_SIZE_ABOVE_MAXIMUM, "$maximum")
             }
         }
-        if (conforming.isNotEmpty())
+        val counted = conforming + pending
+        if (counted.isNotEmpty())
         {
             findings += coverageFindings(
                 policy,
-                currentFacts.filter { facts -> conforming.any { it.versionId == facts.versionId } })
+                currentFacts.filter { facts -> counted.any { it.versionId == facts.versionId } })
         }
         if (current.isNotEmpty() && conforming.size < policy.minimumFileCount)
         {
@@ -111,7 +109,6 @@ object InformationRequestEvidencePolicyEvaluator
             it.conformance != InformationRequestEvidenceConformance.CONFORMING &&
                     it.conformance != InformationRequestEvidenceConformance.PENDING
         }
-        val pending = current.filter { it.conformance == InformationRequestEvidenceConformance.PENDING }
         if (pending.isNotEmpty() && deficient.isEmpty() && requirementDeficiencies.isEmpty())
         {
             return result(InformationRequestEvidenceRequirementState.PENDING_ASSESSMENT, findings, evaluations)
@@ -174,19 +171,37 @@ object InformationRequestEvidencePolicyEvaluator
         if (inspection.corrupt) findings += finding(CONTENT_CORRUPT)
         if (inspection.encrypted) findings += finding(CONTENT_ENCRYPTED)
 
-        val detected = inspection.detectedMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)
+        val detected = inspection.detectedMediaType
         val accepted = policy.acceptedValues[InformationRequestEvidenceAttribute.CONTENT_TYPE].orEmpty()
-            .map(InformationRequestEvidenceMediaTypes::canonical)
-            .toSet()
-        if (accepted.isNotEmpty() && (detected == null || detected !in accepted))
+        if (accepted.isNotEmpty() &&
+            !InformationRequestEvidenceMediaTypes.accepts(
+                accepted,
+                detected,
+                facts.declaredMediaType,
+                facts.declaredFileName
+            )
+        )
         {
-            findings += finding(CONTENT_TYPE_NOT_ACCEPTED, detected)
+            findings += finding(
+                CONTENT_TYPE_NOT_ACCEPTED,
+                InformationRequestEvidenceMediaTypes.judgedType(
+                    detected,
+                    facts.declaredMediaType,
+                    facts.declaredFileName
+                ),
+            )
         }
-        val declared = facts.declaredMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)
-            ?.takeIf { it != UNDECLARED_MEDIA_TYPE }
-        if (declared != null && detected != null && declared != detected)
+        if (InformationRequestEvidenceMediaTypes.contradictsDeclaration(
+                detected,
+                facts.declaredMediaType,
+                facts.declaredFileName
+            )
+        )
         {
-            findings += finding(CONTENT_TYPE_MISMATCH, declared)
+            findings += finding(
+                CONTENT_TYPE_MISMATCH,
+                facts.declaredMediaType?.let(InformationRequestEvidenceMediaTypes::canonical)
+            )
         }
 
         if (policy.minimumPageCount != null || policy.maximumPageCount != null)

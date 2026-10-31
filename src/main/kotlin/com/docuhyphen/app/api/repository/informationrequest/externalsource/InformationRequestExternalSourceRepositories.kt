@@ -107,3 +107,21 @@ class InformationRequestGeneratedOutputRepository :
             .setParameter("requestId", requestId)
             .resultList
 }
+
+@ApplicationScoped
+class InformationRequestImportedValueReconciliationRunRepository :
+    BaseRepository<InformationRequestImportedValueReconciliationRun>(InformationRequestImportedValueReconciliationRun::class.java)
+
+@ApplicationScoped
+class InformationRequestImportedValueReconciliationRunItemRepository :
+    BaseRepository<InformationRequestImportedValueReconciliationRunItem>(
+        InformationRequestImportedValueReconciliationRunItem::class.java
+    ) {
+    fun findForRun(runId: UUID): List<InformationRequestImportedValueReconciliationRunItem> =
+        entityManager.createQuery(
+            "SELECT item FROM InformationRequestImportedValueReconciliationRunItem item WHERE item.reconciliationId = :runId ORDER BY item.itemNumber",
+            InformationRequestImportedValueReconciliationRunItem::class.java,
+        )
+            .setParameter("runId", runId)
+            .resultList
+}

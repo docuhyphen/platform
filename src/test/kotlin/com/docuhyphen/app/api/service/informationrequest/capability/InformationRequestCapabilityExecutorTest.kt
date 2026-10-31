@@ -2,21 +2,10 @@ package com.docuhyphen.app.api.service.informationrequest.capability
 
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilityRequirement
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-/**
- * What an installation can serve, and what it refuses to claim.
- *
- * A capability is served because an executor for it is installed, never because a Template asked
- * for it. These tests hold the empty installation refusing everything, the contract range an
- * installed executor honours, and the incoherent installations that fail startup instead of being
- * quietly narrowed.
- */
 class InformationRequestCapabilityExecutorTest
 {
     @Test
@@ -26,9 +15,6 @@ class InformationRequestCapabilityExecutorTest
 
         assertEquals(emptySet<InformationRequestCapability>(), installed.installedCapabilities())
 
-        // This is the state the platform ships in while the runtime is built, so every requirement
-        // a version could record is unserved, and every one of them is reported rather than the
-        // first.
         val requirements = InformationRequestCapability.entries.map { capability ->
             InformationRequestCapabilityRequirement(capability, capability.contractVersion)
         }
@@ -61,8 +47,6 @@ class InformationRequestCapabilityExecutorTest
             ),
         )
 
-        // A version frozen against a contract this executor does not implement is not served by it,
-        // because the behaviour the version was authored against is not the behaviour installed.
         assertFalse(
             installed.serves(
                 InformationRequestCapabilityRequirement(
@@ -72,7 +56,6 @@ class InformationRequestCapabilityExecutorTest
             ),
         )
 
-        // A capability nobody installed is unserved whatever contract version is asked for.
         assertFalse(
             installed.serves(
                 InformationRequestCapabilityRequirement(
@@ -86,10 +69,6 @@ class InformationRequestCapabilityExecutorTest
     @Test
     fun `an executor serving a range keeps every contract in it reachable`()
     {
-        // Raising a capability's contract version must not strand what was already published
-        // against an older one, which is what the range is for. The stub declares a wider range
-        // than the platform has reached so far, so the newest end is capped at the declared
-        // contract while the older end stays open.
         val installed = InstalledCapabilities(
             listOf(
                 StubCapabilityExecutor(
@@ -213,7 +192,6 @@ class InformationRequestCapabilityExecutorTest
         override val minimumSupportedContractVersion: Int,
     ) : InformationRequestCapabilityExecutor
 
-    /** A second implementation, so a duplicate claim names two different classes. */
     private class OtherCapabilityExecutor(
         override val capability: InformationRequestCapability,
         override val contractVersion: Int,

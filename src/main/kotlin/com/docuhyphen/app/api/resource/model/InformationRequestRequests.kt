@@ -2,9 +2,9 @@ package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.serializer.TimestampSerializer
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
@@ -62,12 +62,6 @@ data class SupersedeInformationRequestRequest(
     val reasonCode: String? = null,
 )
 
-/**
- * One sparse change to a single Requirement occurrence's response. [narrative] carries the new
- * value when set; [clearNarrative] is the explicit signal to blank an existing narrative, since an
- * absent [narrative] alone means "leave unchanged", not "clear". Setting both is refused by the
- * resource rather than left to guess which one wins.
- */
 @Serializable
 data class InformationRequestResponsePatchRequest(
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
@@ -87,6 +81,7 @@ data class InformationRequestResponseFieldValuesPatchRequest(
 data class PatchInformationRequestResponsesRequest(
     val patches: List<InformationRequestResponsePatchRequest>,
     val confirmedHiddenResponseClearRequirementIds: Set<@Serializable(with = UUIDSerializer::class) UUID> = emptySet(),
+    val respondentKey: String? = null,
 )
 
 @Serializable
@@ -204,6 +199,7 @@ data class OverrideInformationRequestReviewItemRequest(
 @Serializable
 data class RecordInformationRequestReviewFindingRequest(
     @Serializable(with = UUIDSerializer::class) val submissionItemId: UUID,
+    @Serializable(with = UUIDSerializer::class) val assignmentId: UUID? = null,
     @Serializable(with = UUIDSerializer::class) val evidenceVersionId: UUID? = null,
     val reasonCode: String,
     val narrative: String,
@@ -246,6 +242,7 @@ data class PromoteInformationRequestAcceptedFactRequest(
 data class RecertifyInformationRequestAcceptedFactRequest(
     @Serializable(with = UUIDSerializer::class) val requirementId: UUID,
     val assented: Boolean = false,
+    val confirmedHiddenResponseClearRequirementIds: Set<@Serializable(with = UUIDSerializer::class) UUID> = emptySet(),
 )
 
 @Serializable

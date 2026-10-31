@@ -5,13 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One frozen answer to an [InformationRequestTemplateDefinition]. Publishing a changed draft
- * creates a new Version; it never rewrites a published one, because every request that pins a
- * Version must keep resolving exactly the configuration it was issued against. Sections live in
- * [InformationRequestTemplateSection] and requirement placements in
- * [InformationRequestTemplateRequirementBinding].
- */
 @Entity
 @Table(name = "information_request_template_version")
 class InformationRequestTemplateVersion
@@ -29,11 +22,6 @@ class InformationRequestTemplateVersion
     @Enumerated(EnumType.STRING)
     var status: InformationRequestTemplateStatus = InformationRequestTemplateStatus.DRAFT
 
-    /**
-     * The exact published Schema Version that typed Field requirements resolve against, or null
-     * when this Version requests no typed data. Whether it is required is decided where requirement
-     * types are known, not here.
-     */
     @Column(name = "schema_version_id", nullable = true)
     var schemaVersionId: UUID? = null
 
@@ -53,20 +41,35 @@ class InformationRequestTemplateVersion
     @Column(name = "fact_reuse_purpose_key", nullable = true, length = 128)
     var factReusePurposeKey: String? = null
 
+    @Column(name = "revision", nullable = false)
+    var revision: Long = 0
+
     @Column(name = "published_at", nullable = true)
     var publishedAt: Timestamp? = null
 
-    @Column(name = "published_by_app_user_id", nullable = true)
-    var publishedByAppUserId: UUID? = null
+    @Column(name = "published_by_principal_kind", length = 32)
+    @Enumerated(EnumType.STRING)
+    var publishedByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "published_by_principal_id")
+    var publishedByPrincipalId: UUID? = null
 
     @Column(name = "retired_at", nullable = true)
     var retiredAt: Timestamp? = null
 
-    @Column(name = "retired_by_app_user_id", nullable = true)
-    var retiredByAppUserId: UUID? = null
+    @Column(name = "retired_by_principal_kind", length = 32)
+    @Enumerated(EnumType.STRING)
+    var retiredByPrincipalKind: PrincipalKind? = null
 
-    @Column(name = "created_by_app_user_id", nullable = true)
-    var createdByAppUserId: UUID? = null
+    @Column(name = "retired_by_principal_id")
+    var retiredByPrincipalId: UUID? = null
+
+    @Column(name = "created_by_principal_kind", length = 32)
+    @Enumerated(EnumType.STRING)
+    var createdByPrincipalKind: PrincipalKind? = null
+
+    @Column(name = "created_by_principal_id")
+    var createdByPrincipalId: UUID? = null
 
     @Column(name = "created_at", nullable = false)
     var createdAt: Timestamp = Timestamp.from(Instant.now())

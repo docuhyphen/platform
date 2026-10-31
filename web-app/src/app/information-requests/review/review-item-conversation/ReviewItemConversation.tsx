@@ -1,6 +1,10 @@
 import {Text} from "@fluentui/react-components";
-import {InformationRequestReviewCommentDto, InformationRequestReviewCommentRole, InformationRequestReviewVisibility} from "../../../models/models.tsx";
-import {useReviewAssignmentsPanelStyles} from "../review-assignments-panel/ReviewAssignmentsPanelStyles.tsx";
+import {
+    InformationRequestReviewCommentDto,
+    InformationRequestReviewCommentRole,
+    InformationRequestReviewVisibility
+} from "../../../models/models.tsx";
+import {useReviewItemConversationStyles} from "./ReviewItemConversationStyles.tsx";
 
 interface Props
 {
@@ -16,7 +20,7 @@ const AUTHORS: Record<InformationRequestReviewCommentRole, string> = {
 
 const ReviewItemConversation = ({itemId, comments}: Props) =>
 {
-    const styles = useReviewAssignmentsPanelStyles();
+    const styles = useReviewItemConversationStyles();
 
     if (comments.length === 0) return null;
 
@@ -27,9 +31,12 @@ const ReviewItemConversation = ({itemId, comments}: Props) =>
             {comments.map(comment => (
                 <li key={comment.id}
                     id={`information-request-review-item-${itemId}-comment-${comment.id}`}>
-                    <Text>{`${comment.authoredByCaller ? "You" : AUTHORS[comment.authorRole]}: ${comment.body}`}</Text>
+                    <Text id={`information-request-review-item-${itemId}-comment-${comment.id}-body`}>
+                        {`${comment.authoredByCaller ? "You" : AUTHORS[comment.authorRole]}: ${comment.body}`}
+                    </Text>
                     {comment.visibility === InformationRequestReviewVisibility.REVIEWERS_ONLY && (
-                        <Text size={200}
+                        <Text id={`information-request-review-item-${itemId}-comment-${comment.id}-visibility`}
+                              size={200}
                               className={styles.detail}>
                             {" (reviewers only)"}
                         </Text>

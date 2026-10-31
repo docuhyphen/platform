@@ -8,7 +8,7 @@ import {
     FieldValueType,
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
-import {addableDefinitions, draftForDefinition, toBindingDrafts} from "./schemaBindingDrafts.ts";
+import {addableDefinitions, draftForDefinition, toBindingDrafts, toBindingRequests} from "./schemaBindingDrafts.ts";
 
 const contract = (id: string, definitionId: string, version: number): FieldContractDto => ({
     id,
@@ -24,7 +24,7 @@ const contract = (id: string, definitionId: string, version: number): FieldContr
     isFilterable: false,
     isSortable: false,
     isReportable: false,
-    createdAt: "2026-08-01T00:00:00Z",
+    createdAt: Date.parse("2026-08-01T00:00:00Z"),
 });
 
 const definition = (id: string, fieldKey: string, latest?: FieldContractDto): FieldDefinitionDto => ({
@@ -35,10 +35,14 @@ const definition = (id: string, fieldKey: string, latest?: FieldContractDto): Fi
     status: FieldLifecycleStatus.PUBLISHED,
     contractCount: latest ? latest.contractVersion : 0,
     latestContract: latest,
-    createdAt: "2026-08-01T00:00:00Z",
+    createdAt: Date.parse("2026-08-01T00:00:00Z"),
 });
 
-const binding = (contractId: string, definitionId: string): SchemaFieldBindingDto => ({
+const binding = (
+    contractId: string,
+    definitionId: string,
+    configured: Partial<SchemaFieldBindingDto> = {},
+): SchemaFieldBindingDto => ({
     id: `binding-${contractId}`,
     fieldContractId: contractId,
     fieldDefinitionId: definitionId,
@@ -52,6 +56,7 @@ const binding = (contractId: string, definitionId: string): SchemaFieldBindingDt
     visibility: FieldDataClassification.INTERNAL,
     constraints: {},
     options: [],
+    ...configured,
 });
 
 const referenceV1 = contract("contract-reference-1", "field-reference", 1);
@@ -97,9 +102,62 @@ describe("schema binding drafts", () =>
             fieldContractId: referenceV1.id,
             label: "Reference code",
             keyLabel: "process:reference-code",
+            valueType: FieldValueType.SHORT_TEXT,
+            options: [],
             isRequired: false,
             isReadOnly: false,
+            section: undefined,
+            defaultValueJson: undefined,
+            visibility: FieldDataClassification.INTERNAL,
         }]);
+    });
+
+    it("carries every configured attribute of an existing binding into its draft", () => {
+        const [draft] = toBindingDrafts([binding(referenceV1.id, referenceField.id, {
+            section: "Identity",
+            defaultValueJson: "\"Standard reference\"",
+            visibility: FieldDataClassification.PUBLIC,
+            isReadOnly: true,
+        })]);
+
+        expect(draft.section).toBe("Identity");
+        expect(draft.defaultValueJson).toBe("\"Standard reference\"");
+        expect(draft.visibility).toBe(FieldDataClassification.PUBLIC);
+        expect(draft.isReadOnly).toBe(true);
+    });
+
+    it("saves every configured attribute a draft holds, so a save never wipes one", () => {
+        const drafts = toBindingDrafts([
+            binding(referenceV1.id, referenceField.id, {
+                section: "Identity",
+                defaultValueJson: "\"Standard reference\"",
+                visibility: FieldDataClassification.CONFIDENTIAL,
+                isRequired: true,
+                isReadOnly: true,
+            }),
+            binding(reviewV1.id, reviewField.id),
+        ]);
+
+        expect(toBindingRequests(drafts)).toEqual([
+            {
+                fieldContractId: referenceV1.id,
+                displayOrder: 0,
+                section: "Identity",
+                isRequired: true,
+                isReadOnly: true,
+                defaultValueJson: "\"Standard reference\"",
+                visibility: FieldDataClassification.CONFIDENTIAL,
+            },
+            {
+                fieldContractId: reviewV1.id,
+                displayOrder: 1,
+                section: undefined,
+                isRequired: false,
+                isReadOnly: false,
+                defaultValueJson: undefined,
+                visibility: FieldDataClassification.INTERNAL,
+            },
+        ]);
     });
 
     it("builds a draft from a definition's latest contract", () =>
@@ -109,8 +167,11 @@ describe("schema binding drafts", () =>
             fieldContractId: referenceV2.id,
             label: "Reference code",
             keyLabel: "process:reference-code",
+            valueType: FieldValueType.SHORT_TEXT,
+            options: [],
             isRequired: false,
             isReadOnly: false,
+            visibility: FieldDataClassification.INTERNAL,
         });
     });
 

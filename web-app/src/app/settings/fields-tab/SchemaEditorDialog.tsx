@@ -10,13 +10,19 @@ import {
     Field,
     Spinner,
 } from '@fluentui/react-components';
-import {FieldDefinitionDto, FieldScopeKind, SchemaDefinitionDto} from '../../models/models';
-import {BindingRequest, createSchema, updateSchemaDraftBindings,} from '../../../services/fieldsService';
-import {createPlatformSchema, updatePlatformSchemaBindings,} from '../../../services/platformFieldsService.ts';
+import {
+    FieldDefinitionDto,
+    FieldScopeKind,
+    ResponseError,
+    SchemaDefinitionDto,
+    SchemaTargetResourceType,
+} from '../../models/models';
 import {useFieldsTabStyles} from './FieldsTabStyles';
 import SchemaBindingsEditor from './SchemaBindingsEditor';
 import {BindingDraft, toBindingDrafts} from './schemaBindingDrafts';
+import {saveSchema} from './schemaEditorSave';
 import SchemaIdentityFields, {SchemaIdentity} from './SchemaIdentityFields';
+import {schemaTargetOf} from './schemaTarget';
 
 interface Props
 {
@@ -29,15 +35,13 @@ interface Props
 }
 
 const emptyIdentity = (): SchemaIdentity =>
-    ({namespace: '', schemaKey: '', displayName: '', description: ''});
-
-const toBindingRequests = (bindings: BindingDraft[]): BindingRequest[] =>
-    bindings.map((b, index) => ({
-        fieldContractId: b.fieldContractId,
-        displayOrder: index,
-        isRequired: b.isRequired,
-        isReadOnly: b.isReadOnly,
-    }));
+    ({
+        namespace: '',
+        schemaKey: '',
+        displayName: '',
+        description: '',
+        targetResourceType: SchemaTargetResourceType.EXCHANGE
+    });
 
 const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforcedScope}: Props) =>
 {
@@ -59,6 +63,7 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforc
                 schemaKey: schema.schemaKey,
                 displayName: schema.displayName,
                 description: schema.description ?? '',
+                targetResourceType: schemaTargetOf(schema.targetResourceType),
             });
             setBindings(toBindingDrafts(schema.draftVersion?.bindings ?? []));
         }
@@ -83,36 +88,11 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforc
         setError(null);
         try
         {
-            if (isEdit && schema)
-            {
-                const requests = toBindingRequests(bindings);
-                if (enforcedScope === FieldScopeKind.PLATFORM)
-                    await updatePlatformSchemaBindings(schema, requests);
-                else
-                    await updateSchemaDraftBindings(schema.id, {bindings: requests});
-            }
-            else
-            {
-                const request = {
-                    namespace: identity.namespace.trim(),
-                    schemaKey: identity.schemaKey.trim(),
-                    displayName: identity.displayName.trim(),
-                    description: identity.description.trim() || undefined,
-                    bindings: toBindingRequests(bindings),
-                };
-                if (enforcedScope === FieldScopeKind.PLATFORM)
-                    await createPlatformSchema(request);
-                else
-                    await createSchema(request);
-            }
+            await saveSchema(identity, bindings, schema, enforcedScope);
             onSaved();
-        }
-        catch (e: unknown)
+        } catch (refusal: unknown)
         {
-            const msg = typeof e === 'object' && e !== null && 'error' in e
-                ? String((e as {error: string}).error)
-                : 'Failed to save schema';
-            setError(msg);
+            setError((refusal as ResponseError | null)?.errorMessage?.trim() || 'Failed to save schema');
         }
         finally
         {
@@ -122,18 +102,22 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforc
 
     return (
         <Dialog open={open}
-                onOpenChange={(_, d) => { if (!d.open) onClose(); }}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>{isEdit ? `Edit ${schema?.displayName}` : 'New schema'}</DialogTitle>
-                    <DialogContent>
+                onOpenChange={(_, d) => {
+                    if (!d.open) onClose();
+                }}>
+            <DialogSurface id={"schema-editor-dialog-surface"}>
+                <DialogBody id={"schema-editor-dialog-body"}>
+                    <DialogTitle
+                        id={"schema-editor-schema-dialog-title"}>{isEdit ? `Edit ${schema?.displayName}` : 'New schema'}</DialogTitle>
+                    <DialogContent id={"schema-editor-dialog-content"}>
                         <div id="schema-editor-body"
                              className={styles.drawerBody}>
                             {!isEdit && (
                                 <SchemaIdentityFields identity={identity}
                                                       update={updateIdentity}/>
                             )}
-                            <Field label="Fields">
+                            <Field id={"schema-editor-fields-field"}
+                                   label="Fields">
                                 <SchemaBindingsEditor definitions={definitions}
                                                       bindings={bindings}
                                                       onChange={setBindings}/>
@@ -146,12 +130,13 @@ const SchemaEditorDialog = ({open, onClose, onSaved, definitions, schema, enforc
                             )}
                         </div>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"schema-editor-dialog-actions"}>
                         <Button id="schema-editor-save"
                                 appearance="primary"
                                 shape="circular"
                                 disabled={saving}
-                                icon={saving ? <Spinner size="tiny"/> : undefined}
+                                icon={saving ? <Spinner id={"schema-editor-spinner"}
+                                                        size="tiny"/> : undefined}
                                 onClick={handleSave}>
                             {saving ? 'Saving...' : isEdit ? 'Save draft' : 'Create'}
                         </Button>

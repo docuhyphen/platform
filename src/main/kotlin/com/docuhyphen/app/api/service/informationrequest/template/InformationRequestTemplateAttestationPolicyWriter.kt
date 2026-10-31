@@ -52,7 +52,6 @@ class InformationRequestTemplateAttestationPolicyWriter @Inject constructor(
         }
         if (written.isEmpty()) return
 
-        // A role names its policy, so every policy reaches the database before its roles are stated.
         entityManager.flush()
         written.forEach { (policy, roles) ->
             roles.forEachIndexed { index, role ->

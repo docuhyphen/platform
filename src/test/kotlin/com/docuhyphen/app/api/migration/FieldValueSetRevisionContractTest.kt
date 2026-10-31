@@ -10,21 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class ValueSetRevisionPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<ValueSetRevisionPostgreSQLContainer>(imageName)
 
-/**
- * A client that edits a set of answers has to be able to say which state of that set it edited, and
- * the only durable thing it can name is a count the database keeps. The released schema keeps no
- * such count: the set carries a timestamp, which two changes within the same clock tick share and
- * which a clock correction can move backwards.
- *
- * These contract tests prove that every set already stored gains that count, that a new set starts
- * at it, and that the database itself refuses to let a count move backwards, so a stale validator
- * can never be made to look current.
- */
 class FieldValueSetRevisionContractTest
 {
     private val releasedVersion = "80"
@@ -52,7 +42,6 @@ class FieldValueSetRevisionContractTest
                 assertEquals(1L, revisionOf(connection, rootSetId), "An existing set has been through one state")
                 assertEquals(1L, revisionOf(connection, requireNotNull(rootSetOf(connection, fixture.otherAssignmentId))))
 
-                // Giving a set a count must not disturb what it holds or when it last moved.
                 assertEquals("First answer", storedText(connection, fixture.firstValueId))
                 assertEquals(movedAt, updatedAtOf(connection, rootSetId))
             }
@@ -98,7 +87,6 @@ class FieldValueSetRevisionContractTest
                 setRevision(connection, setId, 5)
                 assertEquals(5L, revisionOf(connection, setId))
 
-                // Rewriting the set without touching its count is an ordinary update.
                 setRevision(connection, setId, 5)
                 assertEquals(5L, revisionOf(connection, setId))
 
@@ -133,8 +121,6 @@ class FieldValueSetRevisionContractTest
             }
         }
     }
-
-    // ── Fixture ─────────────────────────────────────────────────────────────────
 
     private class Fixture
     {
@@ -194,7 +180,7 @@ class FieldValueSetRevisionContractTest
             statement.setObject(1, fixture.organizationId)
             statement.setString(2, "Process Owner Org")
             statement.setString(3, "REG-PROCESS-SET-REVISION")
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -207,8 +193,8 @@ class FieldValueSetRevisionContractTest
         ).use { statement ->
             statement.setObject(1, fixture.fieldDefinitionId)
             statement.setObject(2, fixture.organizationId)
-            statement.setTimestamp(3, now)
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(3, now, utc())
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -221,7 +207,7 @@ class FieldValueSetRevisionContractTest
         ).use { statement ->
             statement.setObject(1, fixture.textContractId)
             statement.setObject(2, fixture.fieldDefinitionId)
-            statement.setTimestamp(3, now)
+            statement.setTimestamp(3, now, utc())
             statement.executeUpdate()
         }
 
@@ -236,8 +222,8 @@ class FieldValueSetRevisionContractTest
         ).use { statement ->
             statement.setObject(1, fixture.schemaDefinitionId)
             statement.setObject(2, fixture.organizationId)
-            statement.setTimestamp(3, now)
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(3, now, utc())
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -250,8 +236,8 @@ class FieldValueSetRevisionContractTest
         ).use { statement ->
             statement.setObject(1, fixture.schemaVersionId)
             statement.setObject(2, fixture.schemaDefinitionId)
-            statement.setTimestamp(3, now)
-            statement.setTimestamp(4, now)
+            statement.setTimestamp(3, now, utc())
+            statement.setTimestamp(4, now, utc())
             statement.executeUpdate()
         }
 
@@ -287,12 +273,11 @@ class FieldValueSetRevisionContractTest
             statement.setObject(2, resourceId)
             statement.setObject(3, fixture.schemaVersionId)
             statement.setObject(4, fixture.organizationId)
-            statement.setTimestamp(5, fixture.assignedAt)
+            statement.setTimestamp(5, fixture.assignedAt, utc())
             statement.executeUpdate()
         }
     }
 
-    /** Writes an answer into the assignment's root set, which the released schema already requires. */
     private fun insertValue(
         connection: Connection,
         fixture: Fixture,
@@ -318,8 +303,8 @@ class FieldValueSetRevisionContractTest
             statement.setObject(5, contractId)
             statement.setObject(6, fixture.resourceId)
             statement.setString(7, text)
-            statement.setTimestamp(8, fixture.assignedAt)
-            statement.setTimestamp(9, fixture.assignedAt)
+            statement.setTimestamp(8, fixture.assignedAt, utc())
+            statement.setTimestamp(9, fixture.assignedAt, utc())
             statement.executeUpdate()
         }
     }
@@ -347,8 +332,8 @@ class FieldValueSetRevisionContractTest
             statement.setObject(2, assignmentId)
             statement.setString(3, kind)
             statement.setString(4, occurrencePath)
-            statement.setTimestamp(5, now)
-            statement.setTimestamp(6, now)
+            statement.setTimestamp(5, now, utc())
+            statement.setTimestamp(6, now, utc())
             revision?.let { statement.setLong(7, it) }
             statement.executeUpdate()
         }
@@ -388,7 +373,7 @@ class FieldValueSetRevisionContractTest
             statement.setObject(1, valueSetId)
             statement.executeQuery().use { rows ->
                 rows.next()
-                rows.getTimestamp(1)
+                rows.getTimestamp(1, utc())
             }
         }
 
@@ -400,3 +385,5 @@ class FieldValueSetRevisionContractTest
             }
         }
 }
+
+private fun utc(): Calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))

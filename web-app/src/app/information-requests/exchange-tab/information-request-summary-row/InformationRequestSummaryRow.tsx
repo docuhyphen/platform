@@ -2,16 +2,20 @@ import {Badge, Button, ProgressBar, Spinner, Text} from "@fluentui/react-compone
 import {InformationRequestNextAction, InformationRequestSummaryDto} from "../../../models/models.tsx";
 import {requestStateLabels} from "../../operations/operationsLabels.ts";
 import {executionStandingBadge} from "../../shared/executionStandingText.ts";
-import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
+import {
+    formatInformationRequestCount,
+    formatInformationRequestTime
+} from "../../shared/informationRequestFormatting.ts";
 import {nextActionLabels, rolesSentence} from "../../shared/informationRequestLabels.ts";
 import {useInformationRequestSummaryRowStyles} from "./InformationRequestSummaryRowStyles.tsx";
-import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 
 interface Props
 {
     summary: InformationRequestSummaryDto;
+    context?: string;
     opening: boolean;
     onOpen: (summary: InformationRequestSummaryDto) => void;
+    onManage?: (summary: InformationRequestSummaryDto) => void;
 }
 
 const PRIMARY_ACTIONS = new Set([
@@ -20,12 +24,21 @@ const PRIMARY_ACTIONS = new Set([
     InformationRequestNextAction.REVIEW,
 ]);
 
-const InformationRequestSummaryRow = ({summary, opening, onOpen}: Props) =>
+const SECONDARY_MANAGE_ACTIONS = new Set([InformationRequestNextAction.RESPOND, InformationRequestNextAction.REVIEW]);
+
+const InformationRequestSummaryRow = ({summary, context, opening, onOpen, onManage}: Props) =>
 {
     const styles = useInformationRequestSummaryRowStyles();
     const actionLabel = nextActionLabels[summary.nextAction];
     const idPrefix = `information-request-summary-${summary.id}`;
     const standingBadge = executionStandingBadge(summary.executionStanding);
+    const offersManage = Boolean(onManage) && summary.permissions.canManage && SECONDARY_MANAGE_ACTIONS.has(summary.nextAction);
+    const openingIcon = opening
+        ? (
+            <Spinner id={`${idPrefix}-action-spinner`}
+                     size={"tiny"}/>
+        )
+        : undefined;
 
     return (
         <li id={idPrefix}
@@ -55,6 +68,12 @@ const InformationRequestSummaryRow = ({summary, opening, onOpen}: Props) =>
                 </div>
                 <div id={`${idPrefix}-meta`}
                      className={styles.meta}>
+                    {context && (
+                        <Text id={`${idPrefix}-context`}
+                              size={200}>
+                            {context}
+                        </Text>
+                    )}
                     {summary.issuedAt && (
                         <Text id={`${idPrefix}-issued`}
                               size={200}>
@@ -79,24 +98,36 @@ const InformationRequestSummaryRow = ({summary, opening, onOpen}: Props) =>
                          className={styles.progress}>
                         <Text id={`${idPrefix}-progress-text`}
                               size={200}>
-                            {`${formatInformationRequestCount(summary.completedCount)} of ${formatInformationRequestCount(summary.requiredCount)} required answers`}
+                            {`${formatInformationRequestCount(summary.completedCount)} of ${formatInformationRequestCount(summary.requiredCount)} answers complete`}
                         </Text>
                         <ProgressBar id={`${idPrefix}-progress-bar`}
-                                     aria-label={`${formatInformationRequestCount(summary.completedCount)} of ${formatInformationRequestCount(summary.requiredCount)} required answers`}
+                                     aria-label={`${formatInformationRequestCount(summary.completedCount)} of ${formatInformationRequestCount(summary.requiredCount)} answers complete`}
                                      value={summary.completedCount / summary.requiredCount}/>
                     </div>
                 )}
             </div>
-            <Button id={`${idPrefix}-action`}
-                    className={styles.action}
-                    shape={"circular"}
-                    appearance={PRIMARY_ACTIONS.has(summary.nextAction) ? "primary" : "secondary"}
-                    aria-label={`${actionLabel}: ${summary.title}`}
-                    icon={opening ? <Spinner size={"tiny"}/> : undefined}
-                    disabled={opening}
-                    onClick={() => onOpen(summary)}>
-                {actionLabel}
-            </Button>
+            <div id={`${idPrefix}-actions`}
+                 className={styles.action}>
+                {offersManage && (
+                    <Button id={`${idPrefix}-manage`}
+                            shape={"circular"}
+                            appearance={"secondary"}
+                            aria-label={`Manage: ${summary.title}`}
+                            disabled={opening}
+                            onClick={() => onManage?.(summary)}>
+                        Manage
+                    </Button>
+                )}
+                <Button id={`${idPrefix}-action`}
+                        shape={"circular"}
+                        appearance={PRIMARY_ACTIONS.has(summary.nextAction) ? "primary" : "secondary"}
+                        aria-label={`${actionLabel}: ${summary.title}`}
+                        icon={openingIcon}
+                        disabled={opening}
+                        onClick={() => onOpen(summary)}>
+                    {actionLabel}
+                </Button>
+            </div>
         </li>
     );
 };

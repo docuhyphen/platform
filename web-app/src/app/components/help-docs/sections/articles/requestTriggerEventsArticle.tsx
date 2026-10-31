@@ -26,6 +26,18 @@ export const requestTriggerEventsArticle = (
             <li><code>information_request.request.overdue</code>: a request clock passes its due time.</li>
         </ul>
 
+        <h3 id={"request-trigger-events-owner-heading"}>Whose workflows run</h3>
+        <p id={"request-trigger-events-owner-help"}>
+            An organization&apos;s request starts the organization&apos;s active workflows for the trigger, and a
+            personally owned request starts its owner&apos;s own active workflows from My Workflows. When the
+            owner has none for the trigger, the platform&apos;s active workflows run. If a workflow cannot be started,
+            for example because a
+            first step names an assignee that no longer exists, none of it starts and the request&apos;s
+            operations record the automation as skipped. A workflow still running on a request is cancelled when the
+            request is
+            cancelled, superseded or expires, or its Exchange is rejected, rescinded or deleted.
+        </p>
+
         <h3 id={"request-trigger-events-fields-heading"}>Subject fields</h3>
         <p id={"request-trigger-events-fields-help"}>
             Every request trigger offers the request, its Exchange, its Template Version, the owning
@@ -39,10 +51,17 @@ export const requestTriggerEventsArticle = (
         <h3 id={"request-trigger-events-applicability-heading"}>Applicability</h3>
         <p id={"request-trigger-events-applicability-help"}>
             Exchange Field conditions apply only to Exchange triggers, so the workflow designer does
-            not offer them for a request trigger and runs the workflow for every event of that
-            trigger. A workflow whose trigger names a Submission Package can instead be limited by
-            requirement conditions on the submitted answers. Those conditions are part of the
-            workflow definition sent through the API, and the designer keeps them when you save.
+            not offer them for a request trigger. An organization workflow whose trigger names a
+            Submission Package can instead be limited by requirement conditions on the submitted answers.
+            Open <b>Applicability</b>, choose an organization <b>Template</b>, and pick one of the typed
+            answers of its latest published Version under <b>Add condition</b>. Each condition has an
+            operator and, for most operators, a value. An answer inside a repeated group also names its
+            occurrence, such as <b>group[0]</b> for the first one. The workflow then starts only when every
+            condition matches the answers frozen in that Submission Package. Without conditions, and for
+            every other request trigger, the workflow runs for every event of its trigger. Reopening the workflow
+            selects
+            the Template its conditions belong to, and a Template list or answers that cannot be read are stated with
+            <b> Try again</b>.
         </p>
     </>
 );

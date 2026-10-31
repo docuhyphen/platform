@@ -37,7 +37,7 @@ class InformationRequestCallerStandingService @Inject constructor(
             .distinct()
             .sorted()
         val permissions = InformationRequestSummaryPermissions(
-            canManage = gate.permitsRequest(access, Action.INFORMATION_REQUEST_MANAGE_PARTIES, request.id),
+            canManage = gate.permitsRequest(access, Action.INFORMATION_REQUEST_VIEW_OPERATIONS, request.id),
             canRespond = gate.permitsRequest(access, Action.INFORMATION_REQUEST_SUBMIT, request.id) ||
                     roles.any { it in ATTESTING_ROLES },
             canReview = gate.permitsRequest(access, Action.INFORMATION_REQUEST_REVIEW, request.id),
@@ -76,6 +76,6 @@ class InformationRequestCallerStandingService @Inject constructor(
 
     private companion object
     {
-        val ATTESTING_ROLES = setOf(InformationRequestShareRoleKey.SUBJECT, InformationRequestShareRoleKey.ATTESTOR)
+        val ATTESTING_ROLES = setOf(InformationRequestShareRoleKey.ATTESTOR)
     }
 }

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useState} from "react";
 import {
     getInformationRequestPrivacyRequests,
     getInformationRequestSubjectRestrictions,
@@ -13,41 +13,36 @@ import {
     RecordInformationRequestPrivacyRequestRequest,
 } from "../../../models/models.tsx";
 import {informationRequestRefusalMessage} from "../../shared/informationRequestRefusal.ts";
+import {useServerRead} from "../../shared/useServerRead.ts";
+import {useStableIdempotencyKey} from "../../shared/useStableIdempotencyKey.ts";
 import {recordedSentence} from "./privacyLabels.ts";
+
+export interface PrivacyRecords {
+    subjects: InformationRequestSubjectDto[];
+    requests: InformationRequestPrivacyRequestDto[];
+    restrictions: InformationRequestSubjectRestrictionDto[];
+}
+
+const PRIVACY_RECORDS = "privacy-records";
+
+const readPrivacyRecords = async (): Promise<PrivacyRecords> => {
+    const [subjects, requests, restrictions] = await Promise.all([
+        getInformationRequestSubjects(),
+        getInformationRequestPrivacyRequests(),
+        getInformationRequestSubjectRestrictions(),
+    ]);
+    return {subjects, requests, restrictions};
+};
+
+const loadRefusal = (refusal: unknown) =>
+    informationRequestRefusalMessage(refusal, "The privacy records could not be loaded.");
 
 export const usePrivacy = () =>
 {
-    const [subjects, setSubjects] = useState<InformationRequestSubjectDto[] | null>(null);
-    const [requests, setRequests] = useState<InformationRequestPrivacyRequestDto[]>([]);
-    const [restrictions, setRestrictions] = useState<InformationRequestSubjectRestrictionDto[]>([]);
-    const [loadError, setLoadError] = useState<string | null>(null);
+    const records = useServerRead(PRIVACY_RECORDS, readPrivacyRecords, loadRefusal);
     const [notice, setNotice] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
-
-    const load = useCallback(async () =>
-    {
-        try
-        {
-            const [loadedSubjects, loadedRequests, loadedRestrictions] = await Promise.all([
-                getInformationRequestSubjects(),
-                getInformationRequestPrivacyRequests(),
-                getInformationRequestSubjectRestrictions(),
-            ]);
-            setSubjects(loadedSubjects);
-            setRequests(loadedRequests);
-            setRestrictions(loadedRestrictions);
-            setLoadError(null);
-        }
-        catch (caught: unknown)
-        {
-            setLoadError(informationRequestRefusalMessage(caught, "The privacy records could not be loaded."));
-        }
-    }, []);
-
-    useEffect(() =>
-    {
-        void load();
-    }, [load]);
+    const keyed = useStableIdempotencyKey();
 
     const run = async (work: () => Promise<string>): Promise<string | null> =>
     {
@@ -56,7 +51,7 @@ export const usePrivacy = () =>
         try
         {
             setNotice(await work());
-            await load();
+            await records.reload();
             return null;
         }
         catch (caught: unknown)
@@ -70,18 +65,19 @@ export const usePrivacy = () =>
     };
 
     return {
-        subjects,
-        requests,
-        restrictions,
-        loadError,
+        records: records.value,
+        loadError: records.error,
+        reload: records.reload,
         notice,
         busy,
         record: (request: RecordInformationRequestPrivacyRequestRequest) =>
-            run(async () => recordedSentence(await recordInformationRequestPrivacyRequest(request))),
+            run(async () => recordedSentence(await keyed("privacy-request", request, key =>
+                recordInformationRequestPrivacyRequest(request, key)))),
         lift: (restriction: InformationRequestSubjectRestrictionDto, reasonCode: string) =>
             run(async () =>
             {
-                await liftInformationRequestSubjectRestriction(restriction.id, reasonCode);
+                await keyed(`lift:${restriction.id}`, reasonCode, key =>
+                    liftInformationRequestSubjectRestriction(restriction.id, reasonCode, key));
                 return "The restriction was lifted.";
             }),
     };

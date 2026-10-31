@@ -6,13 +6,13 @@ import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.audit.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
-import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationResourceTypes
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditTargetHistoryService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRelatedRequestVisibility
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -34,8 +34,9 @@ class InformationRequestAuditService @Inject constructor(
     {
         gate.authorizeRequest(access, listOf(Action.INFORMATION_REQUEST_VIEW_OPERATIONS), requestId)
         return pageOf(
-            history.recordsForTarget(TARGET, requestId.toString(), queryOf(search, newestFirst = false)),
-            search
+            history.recordsForTarget(TARGET, requestId.toString(), queryOf(search, newestFirst = true)),
+            search,
+            InformationRequestRelatedRequestVisibility.of(gate, access),
         )
     }
 
@@ -48,7 +49,12 @@ class InformationRequestAuditService @Inject constructor(
             InformationRequestOwnerType.ORGANIZATION -> AuditOwnerScope.Organization(owner.ownerId)
             InformationRequestOwnerType.USER -> AuditOwnerScope.Personal(owner.ownerId)
         }
-        return pageOf(history.recordsForOwner(scope, TARGET, queryOf(search, newestFirst = true)), search)
+        val targetTypes = if (search.requestId != null) setOf(TARGET) else InformationRequestAuditTargets.OWNER_SEARCH
+        return pageOf(
+            history.recordsForOwner(scope, targetTypes, queryOf(search, newestFirst = true)),
+            search,
+            EVERY_OWNER_REQUEST_SHOWN,
+        )
     }
 
     fun reconciliation(requestId: UUID, access: RequestAccessContext): InformationRequestAuditReconciliation
@@ -93,14 +99,19 @@ class InformationRequestAuditService @Inject constructor(
         )
     }
 
-    private fun pageOf(page: AuditTargetRecordPage, search: InformationRequestAuditSearch) =
+    private fun pageOf(
+        page: AuditTargetRecordPage,
+        search: InformationRequestAuditSearch,
+        relatedRequestShown: (UUID) -> Boolean,
+    ) =
         InformationRequestAuditPage(
             events = page.records.map { record ->
+                val projection = InformationRequestAuditPayloadPolicy.projectionOf(record.payload, relatedRequestShown)
                 InformationRequestAuditEvent(
                     record = record,
                     eventClass = InformationRequestAuditPayloadPolicy.eventClassOf(record.eventTypeKey),
-                    payload = InformationRequestAuditPayloadPolicy.allowedPayload(record.payload),
-                    withheldKeyCount = InformationRequestAuditPayloadPolicy.withheldKeyCount(record.payload),
+                    payload = projection.payload,
+                    withheldKeyCount = projection.withheldKeyCount,
                 )
             },
             total = page.total,
@@ -126,7 +137,8 @@ class InformationRequestAuditService @Inject constructor(
 
     private companion object
     {
-        const val TARGET = RecordPreservationResourceTypes.INFORMATION_REQUEST
+        const val TARGET = InformationRequestAuditTargets.REQUEST
         const val RECORD_CLASS_PREFIX = "record_"
+        val EVERY_OWNER_REQUEST_SHOWN: (UUID) -> Boolean = { true }
     }
 }

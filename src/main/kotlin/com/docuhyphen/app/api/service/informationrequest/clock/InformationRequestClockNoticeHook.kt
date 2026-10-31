@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.clock
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestRespondentWork
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp
@@ -13,6 +14,7 @@ class InformationRequestClockNoticeHook @Inject constructor(
     private val partyRepository: InformationRequestPartyRepository,
     private val intentRepository: InformationRequestNoticeIntentRepository,
     private val policies: InformationRequestClockPolicyService,
+    private val respondentWork: InformationRequestRespondentWork,
 )
 {
     fun reminded(
@@ -42,8 +44,13 @@ class InformationRequestClockNoticeHook @Inject constructor(
         communicationId: UUID?,
     ): Int
     {
+        val outstanding = respondentWork.rolesWithOutstandingItems(request)
         val parties = partyRepository.findActiveForRequest(request.id)
-            .filter { it.roleKey in RESPONDING_ROLES && it.principalKind != null && it.principalId != null }
+            .filter {
+                it.roleKey in InformationRequestShareRoleKey.RESPONDING_ROLES && it.roleKey in outstanding &&
+                        it.principalKind != null && it.principalId != null
+            }
+            .distinctBy { it.principalKind to it.principalId }
         parties.forEach { party ->
             intentRepository.save(
                 InformationRequestNoticeIntent().apply {
@@ -57,15 +64,5 @@ class InformationRequestClockNoticeHook @Inject constructor(
             )
         }
         return parties.size
-    }
-
-    private companion object
-    {
-        val RESPONDING_ROLES = setOf(
-            InformationRequestShareRoleKey.SUBJECT,
-            InformationRequestShareRoleKey.CONTRIBUTOR,
-            InformationRequestShareRoleKey.PREPARER,
-            InformationRequestShareRoleKey.ATTESTOR,
-        )
     }
 }

@@ -1,9 +1,11 @@
 package com.docuhyphen.app.api.resource.informationrequest.capability
 
 import com.docuhyphen.app.api.model.dto.InformationRequestCapabilitiesDto
+import com.docuhyphen.app.api.model.dto.InformationRequestPlanQuotasDto
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapabilities
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestOwnerStanding
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestPlanQuotas
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import com.docuhyphen.app.api.resource.informationrequest.capability.operations.InformationRequestCapabilityResourceOperations
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
@@ -23,7 +25,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestCapabilityResourceContractTest
 {
@@ -48,6 +50,16 @@ class InformationRequestCapabilityResourceContractTest
                     operationallySuspended = false,
                     newWorkUnavailableReason = InformationRequestStandingReason.FEATURE_NOT_INCLUDED,
                 ),
+                quotas = InformationRequestPlanQuotas(
+                    maxOpenRequests = 0,
+                    openRequests = 0,
+                    maxActingPartiesPerRequest = 0,
+                    maxEvidenceFilesPerRequest = 0,
+                    maxEvidenceBytesPerRequest = 0,
+                    maxCommittedEvidenceBytes = 0,
+                    committedEvidenceBytes = 0,
+                ),
+                newWorkUnavailableReason = InformationRequestStandingReason.FEATURE_NOT_INCLUDED,
                 typedAnswersAvailable = true,
                 personalTemplatesAvailable = false,
                 assignedWork = true,
@@ -57,8 +69,12 @@ class InformationRequestCapabilityResourceContractTest
 
         val response = resource.get()
 
-        assertEquals("/information-request-capabilities", InformationRequestCapabilityResourceOperations::class.java.getAnnotation(Path::class.java).value)
-        assertTrue(InformationRequestCapabilityResourceOperations::class.java.declaredMethods.single { it.name == "get" }.isAnnotationPresent(GET::class.java))
+        assertEquals(
+            "/information-request-capabilities",
+            InformationRequestCapabilityResourceOperations::class.java.getAnnotation(Path::class.java).value
+        )
+        assertTrue(InformationRequestCapabilityResourceOperations::class.java.declaredMethods.single { it.name == "get" }
+            .isAnnotationPresent(GET::class.java))
         assertEquals(Response.Status.OK.statusCode, response.status)
         val body = response.entity as InformationRequestCapabilitiesDto
         assertEquals(SubscriptionOwnerType.USER, body.ownerType)
@@ -66,6 +82,38 @@ class InformationRequestCapabilityResourceContractTest
         assertEquals(false, body.newWorkAvailable)
         assertEquals(InformationRequestStandingReason.FEATURE_NOT_INCLUDED, body.newWorkUnavailableReason)
         assertEquals(true, body.assignedWork)
+        assertEquals(InformationRequestPlanQuotasDto(0, 0, 0, 0, 0, 0, 0), body.quotas)
+    }
+
+    @Test
+    fun `a scope at its open request allowance is told new work is unavailable and why`() {
+        whenever(accessContextFactory.currentAuthenticated()).thenReturn(access)
+        whenever(capabilityService.forCaller(access)).thenReturn(
+            InformationRequestCapabilities(
+                scope = InformationRequestOwnerStanding(
+                    ownerType = SubscriptionOwnerType.USER,
+                    ownerId = access.principal.id,
+                    planCode = PlanCode.PERSONAL,
+                    status = SubscriptionStatus.ACTIVE,
+                    enforcementMode = SubscriptionEnforcementMode.ENFORCE,
+                    featureIncluded = true,
+                    operationallySuspended = false,
+                    newWorkUnavailableReason = null,
+                ),
+                quotas = InformationRequestPlanQuotas(25, 25, 10, 100, 1_024, 4_096, 2_048),
+                newWorkUnavailableReason = InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED,
+                typedAnswersAvailable = true,
+                personalTemplatesAvailable = true,
+                assignedWork = false,
+                holdsRequests = true,
+            ),
+        )
+
+        val body = resource.get().entity as InformationRequestCapabilitiesDto
+
+        assertEquals(false, body.newWorkAvailable)
+        assertEquals(InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED, body.newWorkUnavailableReason)
+        assertEquals(InformationRequestPlanQuotasDto(25, 25, 10, 100, 1_024, 4_096, 2_048), body.quotas)
     }
 
     @Test

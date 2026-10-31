@@ -1,9 +1,16 @@
 package com.docuhyphen.app.api.service.informationrequest.amendment
 
-import com.docuhyphen.app.api.migration.NextSubmissionVersion
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.migration.execute
+import com.docuhyphen.app.api.migration.model.NextSubmissionVersion
+import com.docuhyphen.app.api.migration.queryInt
+import com.docuhyphen.app.api.migration.queryString
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
+import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestNoticeDeliveryState
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
@@ -12,6 +19,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
+import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformationRequestSubmissionAttestationCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementCurrentRepository
@@ -20,28 +28,38 @@ import com.docuhyphen.app.api.repository.informationrequest.amendment.Informatio
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
+import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
+import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponsePolicyEnforcer
+import com.docuhyphen.app.api.service.informationrequest.review.insertReviewStage
+import com.docuhyphen.app.api.service.subscription.PlanCode
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
+import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -57,6 +75,9 @@ class InformationRequestAmendmentTransactionTest
     @Inject lateinit var noticeRepository: InformationRequestNoticeIntentRepository
     @Inject lateinit var noticeStates: InformationRequestNoticeStateReader
     @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Inject
+    lateinit var hiddenResponses: InformationRequestHiddenResponsePolicyEnforcer
 
     @Test
     fun `a reworded Version re-pins the request, advances each Requirement, keeps its answers, and owes each party a notice`()
@@ -104,6 +125,63 @@ class InformationRequestAmendmentTransactionTest
         assertEquals(result.amendment.amendment.id, replayed.amendment.amendment.id)
         val visible = QuarkusTransaction.requiringNew().call { services.amendmentQueries.amendments(fixture.requestId, owner(fixture)) }
         assertEquals(1, visible.single().view.amendment.amendmentNumber)
+    }
+
+    @Test
+    fun `a draft is moved to the later Version without telling its parties that what was asked of them changed`() {
+        val (fixture, next) = fixture { connection, _, version ->
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET prompt = 'Upload the recorded item' WHERE id = ?",
+                version.documentBindingId,
+            )
+        }
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'DRAFT', issued_at = NULL WHERE id = ?",
+                fixture.requestId
+            )
+        }
+        val services = runtime.build(fixture.requestId)
+
+        val result = QuarkusTransaction.requiringNew().call {
+            services.amendments.amend(amend(fixture, next.versionId, aggregateETag(fixture), "draft"))
+        }
+
+        assertEquals(next.versionId, result.request.templateVersionId)
+        assertTrue(result.amendment.notices.isEmpty())
+        QuarkusTransaction.requiringNew()
+            .run { assertTrue(noticeRepository.findForRequest(fixture.requestId).isEmpty()) }
+    }
+
+    @Test
+    fun `a retried amendment answers the request with the ETag it has after a later change`() {
+        val (fixture, next) = fixture { connection, _, version ->
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET prompt = 'Upload the recorded item' WHERE id = ?",
+                version.documentBindingId,
+            )
+        }
+        val services = runtime.build(fixture.requestId)
+        val etag = aggregateETag(fixture)
+        val result = QuarkusTransaction.requiringNew()
+            .call { services.amendments.amend(amend(fixture, next.versionId, etag, "reword-then-change")) }
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                "UPDATE information_request SET aggregate_revision = aggregate_revision + 1 WHERE id = ?",
+                fixture.requestId
+            )
+        }
+
+        val replayed = QuarkusTransaction.requiringNew()
+            .call { services.amendments.amend(amend(fixture, next.versionId, etag, "reword-then-change")) }
+
+        assertEquals(result.amendment.amendment.id, replayed.amendment.amendment.id)
+        assertNotEquals(result.requestETag, replayed.requestETag)
+        assertEquals(aggregateETag(fixture), replayed.requestETag)
     }
 
     @Test
@@ -235,6 +313,272 @@ class InformationRequestAmendmentTransactionTest
             assertTrue(noticeRepository.findForRequest(fixture.requestId).isEmpty())
         }
     }
+
+    @Test
+    fun `a Version that changes only the review plan is refused while a submission stands`() {
+        val (fixture, next) = reviewPlanFixture()
+        val services = runtime.build(fixture.requestId)
+        val attested = QuarkusTransaction.requiringNew().call {
+            services.attestations.record(
+                RecordInformationRequestSubmissionAttestationCommand(
+                    requestId = fixture.requestId,
+                    requirementId = fixture.attestationRequirementId,
+                    decision = InformationRequestAttestationDecision.ASSENTED,
+                    access = RequestAccessContext(
+                        PrincipalRef.user(fixture.attestorUserId),
+                        AuthorizationContext(sessionRef = "attestor-session")
+                    ),
+                    precondition = CommandPrecondition.ExpectedRevision(
+                        QuarkusTransaction.requiringNew().call {
+                            val request = requireNotNull(requestRepository.findById(fixture.requestId))
+                            InformationRequestETag.submissionOf(
+                                null,
+                                runtime.contentCollector.collect(request, null).contentHash
+                            )
+                        },
+                    ),
+                    idempotencyKey = "assent-before-review-plan-change",
+                ),
+            )
+        }
+        QuarkusTransaction.requiringNew().run {
+            services.submissions.submit(
+                SubmitInformationRequestPackageCommand(
+                    requestId = fixture.requestId,
+                    access = contributor(fixture),
+                    precondition = CommandPrecondition.ExpectedRevision(attested.submissionETag),
+                    idempotencyKey = "submit-before-review-plan-change",
+                ),
+            )
+        }
+
+        val refused = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services.amendments.amend(
+                    amend(
+                        fixture,
+                        next.versionId,
+                        aggregateETag(fixture),
+                        "review-plan-after-submission"
+                    )
+                )
+            }
+        }
+
+        assertEquals(InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED, refused.reasonCode)
+        QuarkusTransaction.requiringNew().run {
+            assertEquals(fixture.template.versionId, requestRepository.findById(fixture.requestId)?.templateVersionId)
+        }
+    }
+
+    @Test
+    fun `a Version that changes only the review plan applies before any submission and records the review plan change`() {
+        val (fixture, next) = reviewPlanFixture()
+        val services = runtime.build(fixture.requestId)
+
+        val amended = QuarkusTransaction.requiringNew().call {
+            services.amendments.amend(
+                amend(
+                    fixture,
+                    next.versionId,
+                    aggregateETag(fixture),
+                    "review-plan-before-submission"
+                )
+            )
+        }
+
+        assertEquals(next.versionId, amended.request.templateVersionId)
+        assertEquals(
+            "true",
+            dataSource.connection.use { connection ->
+                queryString(
+                    connection,
+                    "SELECT payload_json::jsonb ->> 'reviewPlanChanged' FROM audit_outbox WHERE target_id = ? AND event_type_key = 'information_request.request.amend'",
+                    fixture.requestId.toString(),
+                )
+            },
+        )
+    }
+
+    @Test
+    fun `after the owner's plan lapses an amendment that adds or changes what is asked is refused while a reworded one applies`() {
+        val addedRequirement = UUID.randomUUID()
+        val (expanding, expandingNext) = fixture { _, fixture, version ->
+            val binding = UUID.randomUUID()
+            fixture.template.insertRequirement(addedRequirement, "additional-record", "DOCUMENT")
+            fixture.template.insertBinding(binding, version.versionId, addedRequirement, version.sectionId, 3)
+            fixture.template.insertEvidencePolicy(UUID.randomUUID(), binding, version.versionId)
+            fixture.template.insertDisposition(binding, version.versionId, "PROVIDED")
+        }
+        val (tightened, tightenedNext) = fixture { connection, _, version ->
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET requiredness = 'OPTIONAL' WHERE id = ?",
+                version.documentBindingId,
+            )
+        }
+        val (reworded, rewordedNext) = fixture { connection, _, version ->
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET prompt = 'Upload the recorded item' WHERE id = ?",
+                version.documentBindingId,
+            )
+        }
+
+        listOf(expanding to expandingNext, tightened to tightenedNext).forEach { (fixture, next) ->
+            val refusal = assertThrows(SubscriptionDenialException::class.java) {
+                QuarkusTransaction.requiringNew().call {
+                    lapsedAmendments(fixture).amend(
+                        amend(
+                            fixture,
+                            next.versionId,
+                            aggregateETag(fixture),
+                            "expand-after-lapse"
+                        )
+                    )
+                }
+            }
+            assertEquals(SubscriptionDenialReason.SUBSCRIPTION_CANCELED, refusal.denial.reason)
+            QuarkusTransaction.requiringNew().run {
+                assertEquals(
+                    fixture.template.versionId,
+                    requestRepository.findById(fixture.requestId)?.templateVersionId
+                )
+                assertTrue(
+                    transitionRepository.findForRequest(fixture.requestId)
+                        .none { it.mutation == InformationRequestMutation.AMEND })
+            }
+        }
+
+        val result = QuarkusTransaction.requiringNew().call {
+            lapsedAmendments(reworded).amend(
+                amend(
+                    reworded,
+                    rewordedNext.versionId,
+                    aggregateETag(reworded),
+                    "reword-after-lapse"
+                )
+            )
+        }
+        assertEquals(rewordedNext.versionId, result.request.templateVersionId)
+    }
+
+    @Test
+    fun `after the owner's plan lapses new configuration for a request is refused before any Version is published`() {
+        val (fixture, _) = fixture()
+        val versionsBefore = templateVersions(fixture)
+
+        assertThrows(SubscriptionDenialException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                lapsedAmendments(fixture).amend(
+                    AmendInformationRequestCommand(
+                        requestId = fixture.requestId,
+                        configuration = InformationRequestTemplateConfigurationRequest(),
+                        reasonCode = "revised-collection",
+                        access = owner(fixture),
+                        precondition = CommandPrecondition.ExpectedRevision(aggregateETag(fixture)),
+                        idempotencyKey = "configure-after-lapse",
+                    ),
+                )
+            }
+        }
+
+        assertEquals(versionsBefore, templateVersions(fixture))
+    }
+
+    @Test
+    fun `a meaning change requires reconfirmation of files even without a disposition row`() {
+        val (fixture, next) = fixture { connection, configured, version ->
+            execute(connection, "DELETE FROM information_request_response WHERE id = ?", configured.documentResponseId)
+            execute(
+                connection,
+                "UPDATE information_request_template_requirement_binding SET requiredness = 'OPTIONAL' WHERE id = ?",
+                version.documentBindingId
+            )
+        }
+        val services = runtime.build(fixture.requestId)
+        val result = QuarkusTransaction.requiringNew().call {
+            services.amendments.amend(amend(fixture, next.versionId, aggregateETag(fixture), "file-reconfirmation"))
+        }
+        QuarkusTransaction.requiringNew().run {
+            val response = responseRepository.findAllForRequest(fixture.requestId).singleOrNull()
+            assertEquals(result.amendment.amendment.id, response?.reconfirmationRequiredByAmendmentId)
+            assertEquals(fixture.documentRequirementId, response?.informationRequestRequirementId)
+        }
+        assertEquals(
+            InformationRequestSubmissionProblemCode.RECONFIRMATION_REQUIRED,
+            problems(services, fixture)[fixture.documentRequirementId]
+        )
+    }
+
+    private fun lapsedAmendments(fixture: SubmissionRuntimeSqlFixture): InformationRequestAmendmentService {
+        val lapsed = mock<InformationRequestEntitlementGuard>()
+        whenever(lapsed.requireRequestMutation(any())).thenThrow(
+            SubscriptionDenialException(
+                SubscriptionDenial(
+                    reason = SubscriptionDenialReason.SUBSCRIPTION_CANCELED,
+                    planCode = PlanCode.BUSINESS,
+                    ownerType = SubscriptionOwnerType.ORGANIZATION,
+                    message = "The subscription was canceled.",
+                ),
+            ),
+        )
+        val grants = mock<InformationRequestExecutionGrantService>()
+        whenever(grants.findForRequest(fixture.requestId)).thenReturn(issuedExecutionGrant().apply {
+            requestId = fixture.requestId
+        })
+        val authorization = mock<AuthorizationService>()
+        whenever(authorization.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
+        val gate = InformationRequestMutationGate(
+            requestRepository,
+            runtime.exchangeLookup,
+            authorization,
+            lapsed,
+            InformationRequestContinuationGuard(grants, lapsed),
+        )
+        return InformationRequestAmendmentService(
+            gate,
+            requestRepository,
+            runtime.amendmentTargetResolver,
+            runtime.projectionLoader,
+            runtime.capabilityGate,
+            runtime.amendmentGuard,
+            runtime.materializer,
+            runtime.amendmentRecorder,
+            runtime.amendmentReader,
+            runtime.commandReceiptService,
+            runtime.transitionHistory,
+            runtime.clock,
+            requirementRepository,
+            hiddenResponses,
+            runtime.fieldAudience,
+        )
+    }
+
+    private fun templateVersions(fixture: SubmissionRuntimeSqlFixture): Int =
+        dataSource.connection.use { connection ->
+            queryInt(
+                connection,
+                "SELECT COUNT(*) FROM information_request_template_version WHERE template_definition_id = ?",
+                fixture.template.definitionId,
+            )
+        }
+
+    private fun reviewPlanFixture(): Pair<SubmissionRuntimeSqlFixture, NextSubmissionVersion> =
+        dataSource.connection.use { connection ->
+            val fixture = SubmissionRuntimeSqlFixture(connection, reviewed = true)
+            fixture to fixture.publishNextVersion(
+                adjust = { version ->
+                    execute(
+                        connection,
+                        "UPDATE information_request_template_requirement_binding SET review_policy = 'REQUIRED' WHERE id = ?",
+                        version.documentBindingId,
+                    )
+                    insertReviewStage(connection, version.versionId, "added-check", 1)
+                },
+            )
+        }
 
     private fun fixture(
         staged: Boolean = false,

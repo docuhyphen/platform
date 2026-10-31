@@ -1,9 +1,15 @@
 import {
     FieldOperator,
+    InformationRequestConditionHiddenDataPolicy,
+    InformationRequestRequiredness,
+    InformationRequestRequirementType,
     InformationRequestReviewAggregation,
     InformationRequestReviewTieResolution,
+    InformationRequestTemplateConditionRuleRequest,
+    InformationRequestTemplateRequirementRequest,
 } from "../../models/models.tsx";
 import {TemplateDraftDocument} from "./templateDraftDocument.ts";
+import {conditionLiteralProblem} from "./templateConditionLiterals.ts";
 import {
     keyShapeMessage,
     MACHINE_KEY_PATTERN,
@@ -20,13 +26,49 @@ export const DISPOSITION_OPERATORS: FieldOperator[] = [
     FieldOperator.IS_NOT_EMPTY,
 ];
 
+const anchoredGroupKeys = (document: TemplateDraftDocument): Set<string> => {
+    const parentByKey = new Map(document.groups.map(group => [group.groupKey, group.parentGroupKey?.trim() || undefined]));
+    const anchored = new Set<string>();
+    document.sections.flatMap(section => section.requirements).forEach(requirement => {
+        let cursor = requirement.occurrenceAnchorKey?.trim() || undefined;
+        while (cursor && !anchored.has(cursor)) {
+            anchored.add(cursor);
+            cursor = parentByKey.get(cursor);
+        }
+    });
+    return anchored;
+};
+
+const MAXIMUM_GROUPS = 100;
+const MAXIMUM_DEPTH = 5;
+const MAXIMUM_REQUIRED_OCCURRENCES = 100;
+const MAXIMUM_ALLOWED_OCCURRENCES = 1000;
+
+const depthOf = (groupKey: string, parentByKey: ReadonlyMap<string, string | null | undefined>): number => {
+    const visited = new Set<string>();
+    for (let cursor: string | undefined = groupKey; cursor && !visited.has(cursor); cursor = parentByKey.get(cursor)?.trim() || undefined) {
+        visited.add(cursor);
+    }
+    return visited.size;
+};
+
 export const groupProblems = (document: TemplateDraftDocument, add: TemplateProblemSink) =>
 {
     const keys = new Set<string>();
     const parentByKey = new Map(document.groups.map(group => [group.groupKey, group.parentGroupKey]));
+    const anchored = anchoredGroupKeys(document);
+    if (document.groups.length > MAXIMUM_GROUPS) {
+        add(`A Template states at most ${MAXIMUM_GROUPS} repeatable groups.`, {
+            panel: "groups",
+            groupIndex: MAXIMUM_GROUPS
+        });
+    }
     document.groups.forEach((group, groupIndex) =>
     {
         const target = {panel: "groups" as const, groupIndex};
+        if (depthOf(group.groupKey, parentByKey) > MAXIMUM_DEPTH) {
+            add(`Group "${group.groupKey}" is nested more than ${MAXIMUM_DEPTH} groups deep.`, target);
+        }
         if (!MACHINE_KEY_PATTERN.test(group.groupKey)) add(keyShapeMessage("Group key", group.groupKey), target);
         else if (keys.has(group.groupKey)) add(`Two groups use the key "${group.groupKey}".`, target);
         keys.add(group.groupKey);
@@ -45,18 +87,92 @@ export const groupProblems = (document: TemplateDraftDocument, add: TemplateProb
             if (cursor) add(`Group "${group.groupKey}" is nested inside itself through "${parent}".`, target);
         }
         const minimum = group.minOccurrences ?? 0;
+        const maximum = group.maxOccurrences ?? undefined;
         if (minimum < 0) add(`Group "${group.groupKey}" cannot require a negative number of occurrences.`, target);
-        if (group.maxOccurrences !== undefined && group.maxOccurrences < minimum)
+        if (minimum > MAXIMUM_REQUIRED_OCCURRENCES) {
+            add(`Group "${group.groupKey}" requires at most ${MAXIMUM_REQUIRED_OCCURRENCES} occurrences.`, target);
+        }
+        if (maximum !== undefined && maximum > MAXIMUM_ALLOWED_OCCURRENCES) {
+            add(`Group "${group.groupKey}" allows at most ${MAXIMUM_ALLOWED_OCCURRENCES} occurrences.`, target);
+        }
+        if (maximum !== undefined && maximum < 1) add(`Group "${group.groupKey}" must allow at least one occurrence.`, target);
+        else if (maximum !== undefined && maximum < minimum)
         {
             add(`Group "${group.groupKey}" allows fewer occurrences than it requires.`, target);
+        }
+        if (!anchored.has(group.groupKey)) {
+            add(`Group "${group.groupKey}" holds no requirement, so make a requirement repeat per it or per a group nested in it.`, target);
         }
     });
 };
 
-export const conditionProblems = (document: TemplateDraftDocument, add: TemplateProblemSink) =>
+export const sourceKeysOf = (
+    rule: InformationRequestTemplateConditionRuleRequest,
+    collectorByField: ReadonlyMap<string, string>,
+): string[] =>
+    rule.predicates.flatMap(predicate => {
+        const source = predicate.sourceRequirementKey?.trim()
+            || (predicate.fieldDefinitionId ? collectorByField.get(predicate.fieldDefinitionId) : undefined);
+        return source ? [source] : [];
+    });
+
+export const collectorsOf = (requirements: InformationRequestTemplateRequirementRequest[]): Map<string, string> =>
+    new Map(requirements.flatMap(requirement =>
+        requirement.collectedFieldDefinitionId ? [[requirement.collectedFieldDefinitionId, requirement.requirementKey] as const] : []));
+
+const REMOVING_POLICIES: ReadonlySet<InformationRequestConditionHiddenDataPolicy | undefined> = new Set([
+    InformationRequestConditionHiddenDataPolicy.CLEAR_WITH_CONFIRMATION,
+    InformationRequestConditionHiddenDataPolicy.ARCHIVE_OUTSIDE_ACTIVE_RESPONSE,
+]);
+
+const crossRoleProblems = (
+    rule: InformationRequestTemplateConditionRuleRequest,
+    requirements: InformationRequestTemplateRequirementRequest[],
+    report: (message: string) => void,
+) => {
+    if (!REMOVING_POLICIES.has(rule.hiddenDataPolicy)) return;
+    const byKey = new Map(requirements.map(requirement => [requirement.requirementKey, requirement]));
+    const sources = sourceKeysOf(rule, collectorsOf(requirements)).flatMap(key => byKey.get(key) ?? []);
+    requirements
+        .filter(requirement => requirement.requiredness === InformationRequestRequiredness.CONDITIONAL
+            && requirement.conditionalRuleKey === rule.ruleKey)
+        .forEach(governed => {
+            const source = sources.find(candidate => candidate.contributorRole !== governed.contributorRole);
+            if (!source) return;
+            report(`Condition "${rule.ruleKey}" would remove the hidden answer to "${requirementLabel(governed)}", which a different role gives than its source "${requirementLabel(source)}", so it has to keep hidden answers securely.`);
+        });
+};
+
+export const conditionStageProblem = (
+    requirement: InformationRequestTemplateRequirementRequest,
+    document: TemplateDraftDocument,
+    stageByRequirement: ReadonlyMap<string, string>,
+): string | null => {
+    const rule = document.conditionRules.find(candidate => candidate.ruleKey === requirement.conditionalRuleKey);
+    const stage = stageByRequirement.get(requirement.requirementKey);
+    if (!rule || !stage) return null;
+    const requirements = document.sections.flatMap(section => section.requirements);
+    const crossing = sourceKeysOf(rule, collectorsOf(requirements)).find(key => {
+        const sourceStage = stageByRequirement.get(key);
+        return sourceStage !== undefined && sourceStage !== stage;
+    });
+    return crossing
+        ? `Requirement "${requirementLabel(requirement)}" is submitted in stage "${stage}", so its condition "${rule.ruleKey}" cannot read "${crossing}" from stage "${stageByRequirement.get(crossing)}".`
+        : null;
+};
+
+export const conditionProblems = (
+    document: TemplateDraftDocument,
+    optionCodes: ReadonlyMap<string, ReadonlySet<string>>,
+    add: TemplateProblemSink,
+) =>
 {
+    const requirements = document.sections.flatMap(section => section.requirements);
     const requirementKeys = new Set(document.sections.flatMap(section =>
         section.requirements.map(requirement => requirement.requirementKey)));
+    const confirmationKeys = new Set(requirements
+        .filter(requirement => requirement.requirementType === InformationRequestRequirementType.RESPONSE_ATTESTATION)
+        .map(requirement => requirement.requirementKey));
     const collectedFields = new Set(document.sections.flatMap(section =>
         section.requirements.flatMap(requirement =>
             requirement.collectedFieldDefinitionId ? [requirement.collectedFieldDefinitionId] : [])));
@@ -69,6 +185,7 @@ export const conditionProblems = (document: TemplateDraftDocument, add: Template
         else if (keys.has(key)) add(`Two conditions use the key "${key}".`, target);
         keys.add(key);
         if (rule.predicates.length === 0) add(`Condition "${key}" states no predicates.`, target);
+        crossRoleProblems(rule, requirements, message => add(message, target));
         rule.predicates.forEach(predicate =>
         {
             const source = predicate.sourceRequirementKey?.trim();
@@ -79,6 +196,8 @@ export const conditionProblems = (document: TemplateDraftDocument, add: Template
             else if (source && !requirementKeys.has(source))
             {
                 add(`Condition "${key}" reads "${source}", which is not a requirement of this Template.`, target);
+            } else if (source && confirmationKeys.has(source)) {
+                add(`Condition "${key}" reads "${source}", a confirmation; a condition reads an answer or a document.`, target);
             }
             else if (source && !DISPOSITION_OPERATORS.includes(predicate.operator))
             {
@@ -100,6 +219,9 @@ export const conditionProblems = (document: TemplateDraftDocument, add: Template
                 && (predicate.value === undefined || predicate.value === null || predicate.value === ""))
             {
                 add(`Condition "${key}" compares a Field but states no value.`, target);
+            } else if (predicate.fieldDefinitionId && predicate.valueType && !VALUELESS_OPERATORS.has(predicate.operator)) {
+                const problem = conditionLiteralProblem(key, predicate.valueType, predicate.value, optionCodes.get(predicate.fieldDefinitionId));
+                if (problem) add(problem, target);
             }
         });
     });

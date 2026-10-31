@@ -3,21 +3,15 @@ package com.docuhyphen.app.api.migration
 import com.docuhyphen.app.api.model.entity.ResourceType
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.*
 import org.testcontainers.containers.PostgreSQLContainer
 import java.io.File
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class CleanSchemaPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<CleanSchemaPostgreSQLContainer>(imageName)
@@ -233,14 +227,21 @@ class CleanSchemaMigrationContractTest
     }
 
     @Test
-    fun `a domain event names its owner, including a person`()
+    fun `a domain event names exactly one owner, including a person`()
     {
         inTransaction { connection ->
-            insertDomainEvent(connection, "USER", UUID.randomUUID(), null)
-            insertDomainEvent(connection, "PLATFORM", null, null)
-            connection.refused("owner_kind") { insertDomainEvent(connection, null, null, UUID.randomUUID()) }
+            insertDomainEvent(connection, "USER", UUID.randomUUID())
+            insertDomainEvent(connection, "ORGANIZATION", UUID.randomUUID())
+            insertDomainEvent(connection, "PLATFORM", null)
+            connection.refused("owner_kind") { insertDomainEvent(connection, null, null) }
+            connection.refused("ck_workflow_event_outbox_owner") { insertDomainEvent(connection, "USER", null) }
+            connection.refused("ck_workflow_event_outbox_owner") { insertDomainEvent(connection, "ORGANIZATION", null) }
             connection.refused("ck_workflow_event_outbox_owner") {
-                insertDomainEvent(connection, "USER", null, null)
+                insertDomainEvent(
+                    connection,
+                    "PLATFORM",
+                    UUID.randomUUID()
+                )
             }
         }
     }
@@ -784,14 +785,15 @@ class CleanSchemaMigrationContractTest
         execute(
             connection,
             """
-            INSERT INTO share_link (id, share_id, token_hash, status, created_at, link_mode)
-            VALUES (?, ?, ?, 'ACTIVE', ?, ?)
+            INSERT INTO share_link (id, share_id, token_hash, status, created_at, link_mode, verification_strength)
+            VALUES (?, ?, ?, 'ACTIVE', ?, ?, ?)
             """.trimIndent(),
             UUID.randomUUID(),
             shareId,
             "hash-${UUID.randomUUID()}",
             now,
             mode,
+            "EMAIL_OTP".takeIf { mode == "VERIFICATION_BOOTSTRAP" },
         )
     }
 
@@ -829,23 +831,22 @@ class CleanSchemaMigrationContractTest
         )
     }
 
-    private fun insertDomainEvent(connection: Connection, ownerKind: String?, ownerId: UUID?, organizationId: UUID?)
+    private fun insertDomainEvent(connection: Connection, ownerKind: String?, ownerId: UUID?)
     {
         val eventId = UUID.randomUUID()
         execute(
             connection,
             """
             INSERT INTO workflow_event_outbox
-                (id, event_id, idempotency_key, event_type, owner_kind, owner_id, organization_id, envelope_json,
+                (id, event_id, idempotency_key, event_type, owner_kind, owner_id, envelope_json,
                  status, attempt_count, created_at, next_attempt_at)
-            VALUES (?, ?, ?, 'process.record.recorded', ?, ?, ?, '{}', 'PENDING', 0, ?, ?)
+            VALUES (?, ?, ?, 'process.record.recorded', ?, ?, '{}', 'PENDING', 0, ?, ?)
             """.trimIndent(),
             UUID.randomUUID(),
             eventId,
             "process:$eventId",
             ownerKind,
             ownerId,
-            organizationId,
             now,
             now,
         )

@@ -1,19 +1,19 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
+const get = vi.fn();
 const patch = vi.fn();
 const put = vi.fn();
 const remove = vi.fn();
 
 vi.mock('../apiClient.ts', () => ({
     default: {
+        get: (...args: unknown[]) => get(...args),
         patch: (...args: unknown[]) => patch(...args),
         put: (...args: unknown[]) => put(...args),
         delete: (...args: unknown[]) => remove(...args),
     },
 }));
 
-// SchemaAssignmentDto shape (see web-app/src/app/models/models.tsx) as returned by
-// ExchangeFieldsResource.patchValues, carrying the validator of the version the save produced.
 const savedAssignment = {
     id: 'assignment-1',
     resourceType: 'EXCHANGE',
@@ -24,12 +24,11 @@ const savedAssignment = {
     displayName: 'Process intake',
     versionNumber: 1,
     assignmentSource: 'MANUAL',
-    assignedAt: '2024-03-01T00:00:00Z',
+    assignedAt: Date.parse('2024-03-01T00:00:00Z'),
     fields: [],
     etag: '"set-1:8"',
 };
 
-/** A refusal shaped as axios reports one, carrying the body the server states it with. */
 const refusal = (status: number, reasonCode?: string) => ({
     isAxiosError: true,
     message: 'Request failed with status code ' + status,
@@ -40,6 +39,7 @@ const request = {values: [{fieldContractId: 'contract-1', value: 'recorded note'
 
 beforeEach(() =>
 {
+    get.mockReset();
     patch.mockReset();
     put.mockReset();
     remove.mockReset();
@@ -72,18 +72,14 @@ describe('saveExchangeFieldValues', () =>
         expect(put).not.toHaveBeenCalled();
     });
 
-    it('accepts whichever version is current when it was served no validator', async () =>
+    it('never turns a version it was not given into one that accepts any version', async () =>
     {
         patch.mockResolvedValueOnce({data: savedAssignment});
         const {saveExchangeFieldValues} = await import('../fieldsService.ts');
 
-        await saveExchangeFieldValues('exchange-1', request, undefined);
+        await saveExchangeFieldValues('exchange-1', request, undefined as unknown as string);
 
-        expect(patch).toHaveBeenCalledWith(
-            '/exchanges/exchange-1/fields',
-            request,
-            {headers: {'If-Match': '*'}},
-        );
+        expect(patch.mock.calls[0][2]).not.toEqual({headers: {'If-Match': '*'}});
     });
 
     it('reports a version that has moved on as an answer rather than as a failure', async () =>
@@ -122,7 +118,18 @@ describe('saveExchangeFieldValues', () =>
 
 describe('Exchange schema assignment', () =>
 {
-    it('states that it accepts whichever version is current when choosing a schema', async () =>
+    it('reads the assignment together with what the caller may do with it', async () => {
+        const state = {assignment: savedAssignment, canManageSchema: true, canEditValues: false};
+        get.mockResolvedValueOnce({data: state, status: 200});
+        const {getExchangeSchema} = await import('../fieldsService.ts');
+
+        const read = await getExchangeSchema('exchange-1');
+
+        expect(get).toHaveBeenCalledWith('/exchanges/exchange-1/schema');
+        expect(read).toEqual(state);
+    });
+
+    it('states that it expects no schema to be assigned yet when choosing one', async () =>
     {
         put.mockResolvedValueOnce({data: savedAssignment});
         const {assignExchangeSchema} = await import('../fieldsService.ts');
@@ -132,7 +139,7 @@ describe('Exchange schema assignment', () =>
         expect(put).toHaveBeenCalledWith(
             '/exchanges/exchange-1/schema',
             {schemaDefinitionId: 'definition-1'},
-            {headers: {'If-Match': '*'}},
+            {headers: {'If-None-Match': '*'}},
         );
     });
 

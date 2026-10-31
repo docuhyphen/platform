@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.exchange.ExchangeLifecycleActor
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
+import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.service.informationrequest.parent.InformationReque
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.organization.OrganizationService
-import com.docuhyphen.app.api.service.workflow.TriggerRequest
+import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -21,20 +21,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Applies the side-effects of workflow lifecycle events to the Exchange and Share models.
- *
- * Legacy events: `session.activated` / `session.rejected` (group-approval workflow).
- * New lifecycle events: `exchange.activated`, `exchange.draft_approved`,
- * `exchange.ending`, `exchange.ended_confirmed`.
- *
- * Invoked by [com.docuhyphen.app.api.service.notification.EventRouter]. For workflow-originated
- * lifecycle events this runs from the transactional event outbox dispatcher, after the workflow
- * decision has committed, not in the decision's own transaction. Delivery is at-least-once and may
- * be retried after an ambiguous failure, so this handler is idempotent by business key: every
- * mutation is guarded on the Exchange's current status, so re-applying a completed transition is a
- * no-op rather than a repeated side-effect.
- */
 @ApplicationScoped
 class ExchangeApprovalEventHandler @Inject constructor(
     private val shareService: ShareService,
@@ -47,29 +33,30 @@ class ExchangeApprovalEventHandler @Inject constructor(
     private val exchangeRecipientService: ExchangeRecipientService,
     private val requestParentLifecycle: InformationRequestParentLifecycleService,
     private val requestCompletion: InformationRequestExchangeCompletionService,
+    private val endingIntents: ExchangeEndingIntentService,
+    private val lifecycleAudit: ExchangeLifecycleAudit,
 )
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeApprovalEventHandler::class.java)
 
-        // Legacy group-approval events
         const val EVENT_ACTIVATED = "session.activated"
         const val EVENT_REJECTED = "session.rejected"
 
-        // New lifecycle events
         const val EVENT_EXCHANGE_ACTIVATED = "exchange.activated"
         const val EVENT_DRAFT_APPROVED = "exchange.draft_approved"
         const val EVENT_ENDING = "exchange.ending"
         const val EVENT_ENDED_CONFIRMED = "exchange.ended_confirmed"
 
-        // Recipient-side lifecycle events
         const val EVENT_RECEIVED = "exchange.received"
         const val EVENT_RECEIVED_ACTIVATED = "exchange.received_activated"
         const val EVENT_RECEIVED_ENDING = "exchange.received_ending"
+
+        private const val INSTANCE_ID = "instanceId"
+        private val SYSTEM_PRINCIPAL = PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
     }
 
-    /** True for the event types this handler acts on. */
     fun handles(eventType: String): Boolean =
         eventType == EVENT_ACTIVATED ||
                 eventType == EVENT_REJECTED ||
@@ -85,7 +72,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
         val subject = event.subject ?: return
         if (subject.type != ResourceType.EXCHANGE.name) return
         val exchangeId = runCatching { UUID.fromString(subject.id) }.getOrNull() ?: run {
-            logger.warn("Lifecycle event {} has unparseable exchange id '{}'", event.type, subject.id)
+            logger.warn("Lifecycle event {} has unparseable Exchange id '{}'", event.type, subject.id)
             return
         }
 
@@ -99,27 +86,24 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
         when (event.type)
         {
-            // ---------------------------------------------------------------------------
-            // Legacy group-approval path
-            // ---------------------------------------------------------------------------
-
             EVENT_ACTIVATED ->
             {
                 val activated = activateExchangeGateShares(exchangeId)
-                // Fix known gap: the legacy handler did not set exchange.status; do it now.
                 exchangeRepository.findByIdForUpdate(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.ACCEPTED_STARTED)
                     {
+                        val previousStatus = session.status
                         session.status = ExchangeStatus.ACCEPTED_STARTED
                         exchangeRepository.update(session)
+                        recordTransition(session, previousStatus)
                         requestParentLifecycle.apply(
                             exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                            outcomeActor(event, Decision.APPROVE),
+                            previousStatus,
                         )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                     }
                 }
-                // Shares are now ACTIVE; send the invite email that was deferred during approval.
                 exchangeInitiationService.notifyRecipientOnActivation(exchangeId)
                 logger.info(
                     "Exchange {} approved (legacy): activated {} pending share(s), status -> ACCEPTED_STARTED",
@@ -132,12 +116,14 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 exchangeRepository.findByIdForUpdate(exchangeId)?.let { session ->
                     if (session.status != ExchangeStatus.REJECTED)
                     {
+                        val previousStatus = session.status
                         session.status = ExchangeStatus.REJECTED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        recordTransition(session, previousStatus)
                         requestParentLifecycle.apply(
                             exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                            outcomeActor(event, Decision.REJECT),
                         )
                         lifecycleNotificationService.publish(session, ExchangeStatus.REJECTED)
                     }
@@ -146,13 +132,8 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 logger.info("Exchange {} rejected by approval workflow: pending shares revoked", exchangeId)
             }
 
-            // ---------------------------------------------------------------------------
-            // New lifecycle events
-            // ---------------------------------------------------------------------------
-
             EVENT_EXCHANGE_ACTIVATED ->
             {
-                // Fired when the acceptance_pending workflow completes (or auto-acceptance).
                 val activated = activateExchangeGateShares(exchangeId)
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
                 val orgId = exchange?.ownerOrganizationId
@@ -165,12 +146,14 @@ class ExchangeApprovalEventHandler @Inject constructor(
                     {
                         if (!requireRecipientAcceptance)
                         {
-                            // Acceptance is not required: auto-advance straight to active.
+                            val previousStatus = session.status
                             session.status = ExchangeStatus.ACCEPTED_STARTED
                             exchangeRepository.update(session)
+                            recordTransition(session, previousStatus)
                             requestParentLifecycle.apply(
                                 exchangeId, session.status, session.isDeleted,
-                                PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                                outcomeActor(event, Decision.APPROVE),
+                                previousStatus,
                             )
                             lifecycleNotificationService.publish(session, ExchangeStatus.ACCEPTED_STARTED)
                             logger.info(
@@ -180,9 +163,6 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         }
                         else
                         {
-                            // Acceptance is required: shares are now ACTIVE so the recipient can load
-                            // the exchange by direct URL, but status stays INITIATED so the acceptance
-                            // dialog is presented. The recipient's explicit accept/reject advances status.
                             logger.info(
                                 "Exchange {} activated: {} pending share(s) activated; requireRecipientAcceptance=true, keeping INITIATED for recipient dialog",
                                 exchangeId, activated,
@@ -197,7 +177,6 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         )
                     }
                 }
-                // Send the invite email now that the recipient's share is ACTIVE.
                 exchangeInitiationService.notifyRecipientOnActivation(exchangeId)
                 val subjectData = buildMap<String, String> {
                     exchange?.initiator?.id?.let { put("initiatorId", it.toString()) }
@@ -208,9 +187,6 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
             EVENT_DRAFT_APPROVED ->
             {
-                // A pre-send (draft_submitted) approval workflow completed successfully.
-                // Fire exchange.acceptance_pending or auto-advance to ACCEPTED_STARTED,
-                // depending on the org's requireRecipientAcceptance setting.
                 logger.info("Exchange {} draft approved; checking whether to fire acceptance_pending", exchangeId)
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId) ?: run {
                     logger.warn("Exchange {} not found for draft_approved event", exchangeId)
@@ -238,14 +214,19 @@ class ExchangeApprovalEventHandler @Inject constructor(
                         )
                     )
                     logger.info("Exchange {}: fired acceptance_pending after draft_approved", exchangeId)
-                    // Fire exchange.received in each recipient org's context
                     fireRecipientTriggers(exchangeId, EVENT_RECEIVED, subjectData, exchange.initiator?.id)
                 }
                 else
                 {
-                    // Auto-advance: no acceptance required
+                    val previousStatus = exchange.status
                     exchange.status = ExchangeStatus.ACCEPTED_STARTED
                     exchangeRepository.update(exchange)
+                    recordTransition(exchange, previousStatus)
+                    requestParentLifecycle.apply(
+                        exchangeId, exchange.status, exchange.isDeleted,
+                        outcomeActor(event, Decision.APPROVE),
+                        previousStatus,
+                    )
                     lifecycleNotificationService.publish(exchange, ExchangeStatus.ACCEPTED_STARTED)
                     workflowEngineService.trigger(
                         TriggerRequest(
@@ -262,24 +243,28 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 }
             }
 
-            // exchange.ending is emitted by a workflow step to signal the ending workflow completed.
             EVENT_ENDING ->
             {
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
-                if (exchange != null && !requestsPermitEnding(exchange)) return
+                val intent = endingIntents.pendingFor(exchangeId, workflowInstanceOf(event))
+                val actor = endingActor(event, intent)
+                if (exchange != null && !requestsPermitEnding(exchange, intent, actor, event)) return
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
+                        val previousStatus = session.status
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        recordTransition(session, previousStatus)
                         requestParentLifecycle.apply(
                             exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                            actor,
                         )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
+                intent?.let(endingIntents::consume)
                 logger.info("Exchange {} ended (via exchange.ending event from workflow step)", exchangeId)
                 val orgId = exchange?.ownerOrganizationId
                 val subjectData = buildMap<String, String> {
@@ -291,22 +276,26 @@ class ExchangeApprovalEventHandler @Inject constructor(
 
             EVENT_ENDED_CONFIRMED ->
             {
-                // Canonical terminal event from an ending workflow (step onApprove.emit).
                 val exchange = exchangeRepository.findByIdForUpdate(exchangeId)
-                if (exchange != null && !requestsPermitEnding(exchange)) return
+                val intent = endingIntents.pendingFor(exchangeId, workflowInstanceOf(event))
+                val actor = endingActor(event, intent)
+                if (exchange != null && !requestsPermitEnding(exchange, intent, actor, event)) return
                 exchange?.let { session ->
                     if (session.status != ExchangeStatus.ENDED)
                     {
+                        val previousStatus = session.status
                         session.status = ExchangeStatus.ENDED
                         session.endDate = Timestamp.from(Instant.now())
                         exchangeRepository.update(session)
+                        recordTransition(session, previousStatus)
                         requestParentLifecycle.apply(
                             exchangeId, session.status, session.isDeleted,
-                            PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))
+                            actor,
                         )
                         lifecycleNotificationService.publish(session, ExchangeStatus.ENDED)
                     }
                 }
+                intent?.let(endingIntents::consume)
                 logger.info("Exchange {} ended (confirmed by workflow outcome)", exchangeId)
                 val orgId = exchange?.ownerOrganizationId
                 val subjectData = buildMap<String, String> {
@@ -318,13 +307,19 @@ class ExchangeApprovalEventHandler @Inject constructor(
         }
     }
 
-    private fun requestsPermitEnding(exchange: Exchange): Boolean =
+    private fun requestsPermitEnding(
+        exchange: Exchange,
+        intent: ExchangeEndingIntent?,
+        actor: InformationRequestAuditActor,
+        event: DomainEvent,
+    ): Boolean =
         try
         {
             requestCompletion.prepareEnding(
                 exchange,
-                PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0)),
-                cancelRemaining = false,
+                actor,
+                intent?.cancelRemainingInformationRequests ?: false,
+                cancelAuthorityCheckedAt = intent?.createdAt?.toInstant(),
             )
             true
         }
@@ -334,8 +329,60 @@ class ExchangeApprovalEventHandler @Inject constructor(
                 "Exchange {} was not ended because its Information Requests refused ending: {} {}",
                 exchange.id, refusal.reasonCode, refusal.requestIds,
             )
+            recordEndingRefused(exchange, intent, refusal, workflowInstanceOf(event))
             false
         }
+
+    private fun recordEndingRefused(
+        exchange: Exchange,
+        intent: ExchangeEndingIntent?,
+        refusal: InformationRequestExchangeCompletionException,
+        workflowInstanceId: UUID?,
+    ) {
+        lifecycleAudit.recordEndingRefused(
+            exchange.id,
+            exchange.name,
+            refusal.reasonCode,
+            refusal.requestIds.size,
+            workflowInstanceId,
+        )
+        val requester = intent
+            ?.takeIf { it.requestedByPrincipalKind == PrincipalKind.USER }
+            ?.requestedByPrincipalId
+        val approvers = workflowInstanceId?.let(workflowEngineService::decisionsOf).orEmpty()
+            .filter { it.decision == Decision.APPROVE && it.principal.kind == PrincipalKind.USER }
+            .map { it.principal.id }
+        lifecycleNotificationService.publishEndingRefused(exchange, (listOfNotNull(requester) + approvers).toSet())
+    }
+
+    private fun endingActor(event: DomainEvent, intent: ExchangeEndingIntent?): InformationRequestAuditActor =
+        InformationRequestAuditActor.system(
+            intent?.let { PrincipalRef(it.requestedByPrincipalKind, it.requestedByPrincipalId) }
+                ?: decidedBy(event, Decision.APPROVE)
+                ?: SYSTEM_PRINCIPAL,
+        )
+
+    private fun outcomeActor(event: DomainEvent, decision: Decision): InformationRequestAuditActor =
+        InformationRequestAuditActor.system(decidedBy(event, decision) ?: SYSTEM_PRINCIPAL)
+
+    private fun decidedBy(event: DomainEvent, decision: Decision): PrincipalRef? =
+        workflowInstanceOf(event)
+            ?.let(workflowEngineService::decisionsOf)
+            .orEmpty()
+            .lastOrNull { it.decision == decision }
+            ?.principal
+
+    private fun recordTransition(exchange: Exchange, previousStatus: ExchangeStatus) =
+        lifecycleAudit.recordTransition(
+            exchange.id,
+            exchange.name,
+            previousStatus,
+            exchange.status,
+            ExchangeLifecycleActor.WORKFLOW,
+        )
+
+    private fun workflowInstanceOf(event: DomainEvent): UUID? =
+        event.payload[INSTANCE_ID]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
 
     private fun activateExchangeGateShares(exchangeId: UUID): Int =
         shareService.activatePendingForResource(
@@ -344,10 +391,6 @@ class ExchangeApprovalEventHandler @Inject constructor(
             exchangeRecipientService.pendingTrustedParticipantShareIds(exchangeId),
         )
 
-    /**
-     * Fires [recipientEvent] in the context of each recipient org for [exchangeId].
-     * Adds `recipientOrgId` to the subject data so recipient workflow definitions can reference it.
-     */
     private fun fireRecipientTriggers(
         exchangeId: UUID,
         recipientEvent: String,
@@ -357,7 +400,7 @@ class ExchangeApprovalEventHandler @Inject constructor(
     {
         val recipientOrgIds = runCatching { exchangeParticipantOrgService.findRecipientOrgIds(exchangeId) }
             .getOrElse { e ->
-                logger.warn("Could not resolve recipient orgs for exchange {}: {}", exchangeId, e.message)
+                logger.warn("Could not resolve recipient orgs for Exchange {}: {}", exchangeId, e.message)
                 emptyList()
             }
         for (recipientOrgId in recipientOrgIds)

@@ -3,34 +3,22 @@ package com.docuhyphen.app.api.resource.exchange
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.resource.model.AssignSchemaRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import com.docuhyphen.app.api.service.fields.FieldValueSetETag
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentFieldsFixture
+import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * The Fields write surface of an Exchange, driven through the real engine rather than through a
- * service stubbed to refuse, so each status is produced by an actual precondition weighed against
- * actually stored answers.
- *
- * The surface requires the caller to state the version it read: a caller that states none is told to
- * start stating one, a caller whose version has been overtaken is told to read again, and neither
- * stores anything.
- */
 class ExchangeFieldsConditionalWriteTest
 {
     private val principal: PrincipalRef = PrincipalRef.user(UUID.randomUUID())
@@ -39,7 +27,7 @@ class ExchangeFieldsConditionalWriteTest
         principal = principal,
         rootAnswers = mapOf(
             SchemaAssignmentFieldsFixture.Question.NOTE to
-                SchemaAssignmentFieldsFixture.StoredAnswer("recorded note as read", principal),
+                    StoredAnswer("recorded note as read", principal),
         ),
     )
 
@@ -53,7 +41,6 @@ class ExchangeFieldsConditionalWriteTest
         },
     )
 
-    /** The version the exchange's answers currently stand in, as a read of them would serve it. */
     private val versionAsRead: String get() = FieldValueSetETag.of(fixture.rootSet)
 
     private val exchangeId: String get() = fixture.resourceId.toString()
@@ -176,7 +163,12 @@ class ExchangeFieldsConditionalWriteTest
         val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
 
         val response = resourceFor(unassigned)
-            .assignSchema(unassigned.resourceId.toString(), AssignSchemaRequest(unassigned.schemaDefinitionId), null)
+            .assignSchema(
+                unassigned.resourceId.toString(),
+                AssignSchemaRequest(unassigned.schemaDefinitionId),
+                null,
+                null
+            )
 
         assertEquals(428, response.status)
         assertEquals("FIELDS_PRECONDITION_REQUIRED", (response.entity as ResponseError).reasonCode)
@@ -189,7 +181,12 @@ class ExchangeFieldsConditionalWriteTest
         val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
 
         val response = resourceFor(unassigned)
-            .assignSchema(unassigned.resourceId.toString(), AssignSchemaRequest(unassigned.schemaDefinitionId), "*")
+            .assignSchema(
+                unassigned.resourceId.toString(),
+                AssignSchemaRequest(unassigned.schemaDefinitionId),
+                "*",
+                null
+            )
 
         assertEquals(200, response.status)
         assertEquals(1, unassigned.savedAssignments.size)
@@ -204,9 +201,62 @@ class ExchangeFieldsConditionalWriteTest
             unassigned.resourceId.toString(),
             AssignSchemaRequest(unassigned.schemaDefinitionId),
             "\"${UUID.randomUUID()}:3\"",
+            null,
         )
 
         assertEquals(412, response.status)
+        assertTrue(unassigned.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
+    }
+
+    @Test
+    fun `assigning a schema stating that none is assigned yet assigns it`() {
+        val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
+
+        val response = resourceFor(unassigned)
+            .assignSchema(
+                unassigned.resourceId.toString(),
+                AssignSchemaRequest(unassigned.schemaDefinitionId),
+                null,
+                "*"
+            )
+
+        assertEquals(200, response.status)
+        assertEquals(1, unassigned.savedAssignments.size)
+        assertEquals(FieldValueSetETag.of(unassigned.savedSets.single()), response.getHeaderString("ETag"))
+    }
+
+    @Test
+    fun `assigning a schema stating that none is assigned is refused as stale once one is`() {
+        val response = resource.assignSchema(exchangeId, AssignSchemaRequest(fixture.schemaDefinitionId), null, "*")
+
+        assertEquals(412, response.status)
+        assertEquals("FIELDS_PRECONDITION_STALE", (response.entity as ResponseError).reasonCode)
+        assertEquals(versionAsRead, response.getHeaderString("ETag"))
+        assertTrue(fixture.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
+    }
+
+    @Test
+    fun `assigning a schema to an exchange that already has one is refused with a stable conflict code`() {
+        val response = resource.assignSchema(exchangeId, AssignSchemaRequest(fixture.schemaDefinitionId), "*", null)
+
+        assertEquals(409, response.status)
+        assertEquals("FIELDS_SCHEMA_ALREADY_ASSIGNED", (response.entity as ResponseError).reasonCode)
+        assertTrue(fixture.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
+    }
+
+    @Test
+    fun `assigning a schema stating both If-Match and If-None-Match is refused as malformed`() {
+        val unassigned = SchemaAssignmentFieldsFixture(principal = principal, assigned = false, rootSetExists = false)
+
+        val response = resourceFor(unassigned)
+            .assignSchema(
+                unassigned.resourceId.toString(),
+                AssignSchemaRequest(unassigned.schemaDefinitionId),
+                "*",
+                "*"
+            )
+
+        assertEquals(400, response.status)
         assertTrue(unassigned.savedAssignments.isEmpty(), "A refused assignment assigns nothing")
     }
 

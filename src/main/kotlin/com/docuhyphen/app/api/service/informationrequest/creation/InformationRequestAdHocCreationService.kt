@@ -1,28 +1,33 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.*
+import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateAdHocInformationRequestCommand
 import com.docuhyphen.app.api.model.informationrequest.creation.InformationRequestCreationResult
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestReadAuthorization
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionMatrix
-import com.docuhyphen.app.api.service.informationrequest.template.*
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestPrivateVersionPublisher
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateTextLimits
+import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateValidationException
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -33,13 +38,10 @@ import java.util.*
 
 @ApplicationScoped
 class InformationRequestAdHocCreationService @Inject constructor(
-    private val exchangeRepository: ExchangeRepository,
+    private val exchangeLookup: ExchangeLookupService,
     private val definitionRepository: InformationRequestTemplateDefinitionRepository,
-    private val versionRepository: InformationRequestTemplateVersionRepository,
-    private val capabilityRepository: InformationRequestTemplateVersionCapabilityRepository,
+    private val versionPublisher: InformationRequestPrivateVersionPublisher,
     private val requestRepository: InformationRequestRepository,
-    private val configurationWriter: InformationRequestTemplateConfigurationWriter,
-    private val schemaCompatibility: InformationRequestTemplateSchemaCompatibility,
     private val materializer: InformationRequestTemplateMaterializer,
     private val authorizationService: AuthorizationService,
     private val commandReceiptService: CommandReceiptService,
@@ -47,14 +49,6 @@ class InformationRequestAdHocCreationService @Inject constructor(
     private val entitlementGuard: InformationRequestEntitlementGuard,
 )
 {
-    private val versionPublisher = InformationRequestPrivateVersionPublisher(
-        definitionRepository,
-        versionRepository,
-        capabilityRepository,
-        configurationWriter,
-        schemaCompatibility,
-    )
-
     @Transactional
     fun createAdHoc(command: CreateAdHocInformationRequestCommand): InformationRequestCreationResult
     {
@@ -79,7 +73,8 @@ class InformationRequestAdHocCreationService @Inject constructor(
 
     private fun createMutation(command: CreateAdHocInformationRequestCommand): InformationRequestCreationResult
     {
-        val exchange = exchangeRepository.findByIdForUpdate(command.exchangeId)
+        authorize(command)
+        val exchange = exchangeLookup.lockExchangeForUpdate(command.exchangeId)
             ?: throw IllegalArgumentException("Exchange not found")
         if (exchange.isDeleted)
         {
@@ -87,7 +82,6 @@ class InformationRequestAdHocCreationService @Inject constructor(
         }
         requireDraftCreationAllowed(exchange)
         entitlementGuard.requireRequestCreation(exchange)
-        authorize(command)
 
         val requestId = UUID.randomUUID()
         val definition = createDefinition(command, exchange, requestId)
@@ -112,6 +106,12 @@ class InformationRequestAdHocCreationService @Inject constructor(
     ): InformationRequestTemplateDefinition
     {
         val now = Timestamp.from(Instant.now())
+        InformationRequestTemplateTextLimits.requireDefinitionWithinLimits(
+            AD_HOC_NAMESPACE,
+            "request-$requestId",
+            command.displayName.trim(),
+            command.description?.trim(),
+        )
         return definitionRepository.save(
             InformationRequestTemplateDefinition().apply {
                 scopeKind = scopeKindOf(exchange)
@@ -126,9 +126,8 @@ class InformationRequestAdHocCreationService @Inject constructor(
                 status = InformationRequestTemplateStatus.DRAFT
                 originKind = InformationRequestTemplateOriginKind.AD_HOC_REQUEST
                 originRequestId = requestId
-                createdByAppUserId = command.access.principal.id.takeIf {
-                    command.access.principal.kind == PrincipalKind.USER
-                }
+                createdByPrincipalKind = command.access.principal.kind
+                createdByPrincipalId = command.access.principal.id
                 createdAt = now
                 updatedAt = now
             },
@@ -157,9 +156,8 @@ class InformationRequestAdHocCreationService @Inject constructor(
                 ownerUserId = exchange.ownerUserId
                 state = InformationRequestState.DRAFT
                 gatesExchangeClosure = command.gatesExchangeClosure
-                createdByAppUserId = command.access.principal.id.takeIf {
-                    command.access.principal.kind == PrincipalKind.USER
-                }
+                createdByPrincipalKind = command.access.principal.kind
+                createdByPrincipalId = command.access.principal.id
                 val now = Timestamp.from(Instant.now())
                 createdAt = now
                 updatedAt = now
@@ -211,8 +209,8 @@ class InformationRequestAdHocCreationService @Inject constructor(
                 fromState = null,
                 toState = InformationRequestState.DRAFT,
                 mutation = InformationRequestMutation.CREATE_DRAFT,
-                actor = command.access.principal,
-                idempotencyKey = "information_request.draft.create|$CREATE_AD_HOC_OPERATION|${request.id}|" +
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = "information_request.draft.create|$CREATE_AD_HOC_OPERATION|${request.id}|" +
                         command.idempotencyKey,
             ),
         )
@@ -247,9 +245,7 @@ class InformationRequestAdHocCreationService @Inject constructor(
         InformationRequestReadAuthorization.requireView(authorizationService, request.id, access)
         return InformationRequestCreationResult(
             request = request,
-            requestETag = requireNotNull(result.etag) {
-                "Information Request creation receipt did not record an aggregate ETag"
-            },
+            requestETag = InformationRequestETag.aggregateOf(request),
             requirementCount = requireNotNull(result.revision) {
                 "Information Request creation receipt did not record materialized Requirements"
             }.toInt(),
@@ -265,15 +261,16 @@ class InformationRequestAdHocCreationService @Inject constructor(
         )
 
     private fun fingerprint(command: CreateAdHocInformationRequestCommand): String =
-        CommandRequestFingerprint.sha256Hex(
-            listOf(
-                CREATE_AD_HOC_OPERATION,
-                command.exchangeId.toString(),
-                command.displayName.trim(),
-                command.description?.trim().orEmpty(),
-                command.gatesExchangeClosure.toString(),
-                command.configuration.toString(),
-            ).joinToString("|"),
+        CommandRequestFingerprint.of(
+            CREATE_AD_HOC_OPERATION,
+            command.exchangeId,
+            command.displayName.trim(),
+            command.description?.trim().orEmpty(),
+            command.gatesExchangeClosure,
+            CommandRequestFingerprint.serialized(
+                InformationRequestTemplateConfigurationRequest.serializer(),
+                command.configuration
+            ),
         )
 
     private companion object

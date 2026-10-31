@@ -8,6 +8,7 @@ import java.util.*
 data class InformationRequestResponseWorkspaceDto(
     val request: InformationRequestDto,
     val title: String,
+    val respondentKey: String,
     val templateVersion: InformationRequestTemplateVersionDto,
     val responseETag: String,
     val occurrences: List<InformationRequestGroupOccurrenceDto>,
@@ -17,6 +18,28 @@ data class InformationRequestResponseWorkspaceDto(
     val evidenceUploadAvailable: Boolean = false,
     val evidenceMalwareScanning: Boolean = false,
     val executionStanding: InformationRequestExecutionStandingDto,
+    val requirementsAwaitingStepUp: Int = 0,
+    val canRequestSupplement: Boolean = false,
+    val authorActions: InformationRequestAuthorActionsDto = InformationRequestAuthorActionsDto(),
+    val creatableGroupKeys: List<String> = emptyList(),
+    val exchangeAccepted: Boolean = true,
+)
+
+@Serializable
+data class InformationRequestAuthorActionsDto(
+    val issue: Boolean = false,
+    val cancel: Boolean = false,
+    val supersede: Boolean = false,
+    val changeCompletionGate: Boolean = false,
+    val manageParties: Boolean = false,
+    val previewRecipients: Boolean = false,
+    val manageClocks: Boolean = false,
+    val scheduleFollowUps: Boolean = false,
+    val createFollowUps: Boolean = false,
+    val promoteFacts: Boolean = false,
+    val revokeFacts: Boolean = false,
+    val recordDecisions: Boolean = false,
+    val issueAccessLinks: Boolean = false,
 )
 
 @Serializable

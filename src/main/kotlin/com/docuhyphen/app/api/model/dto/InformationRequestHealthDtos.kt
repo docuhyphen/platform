@@ -9,7 +9,6 @@ import java.sql.Timestamp
 data class InformationRequestHealthIndicatorDto(
     val key: InformationRequestHealthIndicatorKey,
     val count: Long,
-    val threshold: Long,
     val breached: Boolean,
 )
 

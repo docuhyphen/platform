@@ -6,6 +6,7 @@ import {
     assignInformationRequestParty,
     assignInformationRequestSubject,
     cancelInformationRequest,
+    changeInformationRequestCompletionGate,
     createInformationRequest,
     createNextInformationRequestOccurrence,
     defineInformationRequestRecurrence,
@@ -14,6 +15,7 @@ import {
     getInformationRequestLineage,
     getInformationRequestParties,
     getInformationRequestSubjects,
+    getInformationRequestTrustedRecipientCandidates,
     informationRequestAccessLinkUrl,
     issueInformationRequest,
     issueInformationRequestAccessLink,
@@ -31,7 +33,7 @@ import {
     InformationRequestSubjectKind,
 } from "../../app/models/models.tsx";
 
-vi.mock("../apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn()}}));
+vi.mock("../apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn(), put: vi.fn()}}));
 
 const refusal = (status: number, data: object) =>
 {
@@ -54,12 +56,22 @@ describe("Information Request authoring transport", () =>
 
         expect(await getExchangeInformationRequests("exchange-a")).toEqual({requests: [], canCreate: true});
         expect(apiClient.get).toHaveBeenLastCalledWith("/exchanges/exchange-a/information-requests");
-        expect(await getInformationRequestParties("request-a")).toEqual({parties: [{id: "party-a"}], partiesETag: "\"parties-2\""});
+        expect(await getInformationRequestParties("request-a")).toEqual({
+            parties: [{id: "party-a"}],
+            partiesETag: "\"parties-2\""
+        });
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-requests/request-a/parties");
         await getInformationRequestAccessLinks("request-a");
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-requests/request-a/access-links");
         await getInformationRequestSubjects();
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-request-subjects");
+    });
+
+    it("reads the trusted recipients of the request's Exchange that may become parties", async () => {
+        vi.mocked(apiClient.get).mockResolvedValueOnce({data: [{exchangeRecipientId: "recipient-a"}]});
+
+        expect(await getInformationRequestTrustedRecipientCandidates("request-a")).toEqual([{exchangeRecipientId: "recipient-a"}]);
+        expect(apiClient.get).toHaveBeenLastCalledWith("/information-requests/request-a/trusted-recipient-candidates");
     });
 
     it("creates a request under its Idempotency-Key and changes parties under the parties ETag", async () =>
@@ -106,7 +118,10 @@ describe("Information Request authoring transport", () =>
 
     it("issues, rotates, and revokes a party's access link under that party's ETag and builds the respondent link", async () =>
     {
-        vi.mocked(apiClient.post).mockResolvedValue({data: {shareLinkId: "link-a", accessToken: "secret"}, headers: {}});
+        vi.mocked(apiClient.post).mockResolvedValue({
+            data: {shareLinkId: "link-a", accessToken: "secret"},
+            headers: {}
+        });
 
         await issueInformationRequestAccessLink("request-a", {partyId: "party-a"}, "\"party-1\"", "issue-a");
         expect(apiClient.post).toHaveBeenLastCalledWith(
@@ -134,7 +149,11 @@ describe("Information Request authoring transport", () =>
     {
         vi.mocked(apiClient.get).mockResolvedValue({data: {informationRequestId: "request-a", successors: []}});
         vi.mocked(apiClient.post).mockResolvedValue({data: {}, headers: {}});
-        const recurrence = {intervalUnit: InformationRequestRecurrenceUnit.MONTH, intervalCount: 1, firstDueAt: "2026-10-01T08:00:00.000Z"};
+        const recurrence = {
+            intervalUnit: InformationRequestRecurrenceUnit.MONTH,
+            intervalCount: 1,
+            firstDueAt: "2026-10-01T08:00:00.000Z"
+        };
 
         await getInformationRequestLineage("request-a");
         expect(apiClient.get).toHaveBeenLastCalledWith("/information-requests/request-a/successors");
@@ -158,13 +177,32 @@ describe("Information Request authoring transport", () =>
         );
     });
 
+    it("states whether the request gates its Exchange under the request ETag and its Idempotency-Key", async () => {
+        vi.mocked(apiClient.put).mockResolvedValue({
+            data: {id: "request-a", gatesExchangeClosure: false},
+            headers: {etag: "\"request-4\""}
+        });
+
+        const changed = await changeInformationRequestCompletionGate("request-a", false, "\"request-3\"", "gate-a");
+
+        expect(changed).toEqual({id: "request-a", gatesExchangeClosure: false});
+        expect(apiClient.put).toHaveBeenCalledWith(
+            "/information-requests/request-a/completion-gate",
+            {gatesExchangeClosure: false},
+            {headers: {"Idempotency-Key": "gate-a", "If-Match": "\"request-3\""}},
+        );
+    });
+
     it("issues, cancels, and supersedes under the request ETag and states a refusal", async () =>
     {
         vi.mocked(apiClient.post)
             .mockResolvedValueOnce({data: {id: "request-a"}, headers: {}})
             .mockResolvedValueOnce({data: {id: "request-a"}, headers: {}})
             .mockResolvedValueOnce({data: {id: "request-a"}, headers: {}})
-            .mockRejectedValueOnce(refusal(409, {errorMessage: "This request needs a Decision Maker", reasonCode: "INFORMATION_REQUEST_STATE_INVALID"}));
+            .mockRejectedValueOnce(refusal(409, {
+                errorMessage: "This request needs a Decision Maker",
+                reasonCode: "INFORMATION_REQUEST_STATE_INVALID"
+            }));
 
         await issueInformationRequest("request-a", "\"request-1\"", "issue-a");
         expect(apiClient.post).toHaveBeenLastCalledWith(
@@ -185,6 +223,9 @@ describe("Information Request authoring transport", () =>
             {headers: {"Idempotency-Key": "supersede-a", "If-Match": "\"request-3\""}},
         );
         await expect(issueInformationRequest("request-a", "\"request-4\"", "issue-b"))
-            .rejects.toEqual({errorMessage: "This request needs a Decision Maker", reasonCode: "INFORMATION_REQUEST_STATE_INVALID"});
+            .rejects.toEqual({
+                errorMessage: "This request needs a Decision Maker",
+                reasonCode: "INFORMATION_REQUEST_STATE_INVALID"
+            });
     });
 });

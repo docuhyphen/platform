@@ -1,11 +1,12 @@
 package com.docuhyphen.app.api.migration
 
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 internal class ReviewSqlFixture(
     private val connection: Connection,
     val runtime: SubmissionRuntimeSqlFixture,
+    seedPackage: Boolean = true,
 )
 {
     val reviewerPartyId: UUID = UUID.randomUUID()
@@ -18,6 +19,7 @@ internal class ReviewSqlFixture(
     init
     {
         runtime.insertActingParty(reviewerPartyId, "REVIEWER", reviewerUserId)
+        if (seedPackage) {
         runtime.insertPackage(packageId, 1, reviewRequired = true)
         runtime.insertItem(
             documentItemId,
@@ -37,6 +39,7 @@ internal class ReviewSqlFixture(
             "RESPONSE_ATTESTATION",
         )
         runtime.insertEvidenceMember(evidenceMemberId, packageId, documentItemId)
+        }
     }
 
     @Suppress("LongParameterList")

@@ -8,6 +8,7 @@ import {
     InformationRequestClockPolicyDefinitionRequest,
     InformationRequestClockPolicyDto,
     InformationRequestPrivacyRequestDto,
+    InformationRequestRecordExportDto,
     InformationRequestReminderResultDto,
     InformationRequestSubjectRestrictionDto,
     RecordInformationRequestPrivacyRequestRequest,
@@ -54,14 +55,16 @@ export const getInformationRequestClockPolicies = (): Promise<InformationRequest
 
 export const defineInformationRequestClockPolicy = (
     request: DefineInformationRequestClockPolicyRequest,
+    idempotencyKey: string,
 ): Promise<InformationRequestClockPolicyDto> =>
-    read(() => apiClient.post("/information-request-clock-policies", request));
+    read(() => apiClient.post("/information-request-clock-policies", request, keyed(idempotencyKey)));
 
 export const publishInformationRequestClockPolicyVersion = (
     policyId: string,
     definition: InformationRequestClockPolicyDefinitionRequest,
+    idempotencyKey: string,
 ): Promise<InformationRequestClockPolicyDto> =>
-    read(() => apiClient.post(`/information-request-clock-policies/${policyId}/versions`, definition));
+    read(() => apiClient.post(`/information-request-clock-policies/${policyId}/versions`, definition, keyed(idempotencyKey)));
 
 export const startInformationRequestClock = (
     requestId: string,
@@ -92,11 +95,15 @@ export const sendInformationRequestReminders = (
 
 export const recordInformationRequestPrivacyRequest = (
     request: RecordInformationRequestPrivacyRequestRequest,
+    idempotencyKey: string,
 ): Promise<InformationRequestPrivacyRequestDto> =>
-    read(() => apiClient.post("/information-request-privacy-requests", request));
+    read(() => apiClient.post("/information-request-privacy-requests", request, keyed(idempotencyKey)));
 
 export const getInformationRequestPrivacyRequests = (subjectIdentityRefId?: string): Promise<InformationRequestPrivacyRequestDto[]> =>
     read(() => apiClient.get("/information-request-privacy-requests", {params: {subjectIdentityRefId}}));
+
+export const getInformationRequestPrivacyRecordExport = (privacyRequestId: string): Promise<InformationRequestRecordExportDto> =>
+    read(() => apiClient.get(`/information-request-privacy-requests/${privacyRequestId}/record-export`));
 
 export const getInformationRequestSubjectRestrictions = (): Promise<InformationRequestSubjectRestrictionDto[]> =>
     read(() => apiClient.get("/information-request-subject-restrictions"));
@@ -104,8 +111,9 @@ export const getInformationRequestSubjectRestrictions = (): Promise<InformationR
 export const liftInformationRequestSubjectRestriction = (
     restrictionId: string,
     reasonCode: string,
+    idempotencyKey: string,
 ): Promise<InformationRequestSubjectRestrictionDto> =>
-    read(() => apiClient.post(`/information-request-subject-restrictions/${restrictionId}/lift`, {reasonCode}));
+    read(() => apiClient.post(`/information-request-subject-restrictions/${restrictionId}/lift`, {reasonCode}, keyed(idempotencyKey)));
 
 export const searchInformationRequestAuditEvents = (search: InformationRequestAuditSearch): Promise<InformationRequestAuditPageDto> =>
     read(() => apiClient.get("/information-request-audit-events", {params: definedParams(search)}));

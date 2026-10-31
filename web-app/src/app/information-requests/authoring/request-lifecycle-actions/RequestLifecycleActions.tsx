@@ -1,25 +1,31 @@
 import {useState} from "react";
 import {Button, Text} from "@fluentui/react-components";
 import {InformationRequestDto, InformationRequestState} from "../../../models/models.tsx";
+import {LifecycleActionPermissions} from "../author-workspace-content/authorActionPermissions.ts";
 import CancelRequestDialog from "../cancel-request-dialog/CancelRequestDialog.tsx";
 import SupersedeRequestDialog from "../supersede-request-dialog/SupersedeRequestDialog.tsx";
 import {useRequestLifecycleActionsStyles} from "./RequestLifecycleActionsStyles.tsx";
+import {useDialogCommand} from "../../shared/useDialogCommand.ts";
 
 interface Props
 {
     request: InformationRequestDto;
+    permissions: LifecycleActionPermissions;
     busy: boolean;
+    error?: string | null;
+    notice?: string | null;
     onIssue: () => void;
-    onCancel: (reasonCode: string) => void;
-    onSupersede: (replacementId: string, reasonCode: string) => void;
+    onCancel: (reasonCode: string) => unknown;
+    onSupersede: (replacementId: string, reasonCode: string) => unknown;
 }
 
 const OPEN_STATES = new Set([InformationRequestState.ISSUED, InformationRequestState.IN_PROGRESS]);
 
-const RequestLifecycleActions = ({request, busy, onIssue, onCancel, onSupersede}: Props) =>
+const RequestLifecycleActions = ({request, permissions, busy, error, notice, onIssue, onCancel, onSupersede}: Props) =>
 {
     const styles = useRequestLifecycleActionsStyles();
     const [dialog, setDialog] = useState<"cancel" | "supersede" | null>(null);
+    const command = useDialogCommand(error, notice);
     const draft = request.state === InformationRequestState.DRAFT;
     const open = OPEN_STATES.has(request.state);
 
@@ -33,12 +39,14 @@ const RequestLifecycleActions = ({request, busy, onIssue, onCancel, onSupersede}
         );
     }
 
+    if (!permissions.issue && !permissions.cancel && !permissions.supersede) return null;
+
     return (
         <div id={"information-request-lifecycle-actions"}
              role={"group"}
              aria-label={"Request actions"}
              className={styles.actions}>
-            {draft && (
+            {permissions.issue && (
                 <Button id={"information-request-issue"}
                         appearance={"primary"}
                         shape={"circular"}
@@ -47,40 +55,42 @@ const RequestLifecycleActions = ({request, busy, onIssue, onCancel, onSupersede}
                     Issue
                 </Button>
             )}
-            {open && (
+            {permissions.supersede && (
                 <Button id={"information-request-supersede"}
                         appearance={"secondary"}
                         shape={"circular"}
                         disabled={busy}
-                        onClick={() => setDialog("supersede")}>
+                        onClick={() => {
+                            command.reset();
+                            setDialog("supersede");
+                        }}>
                     Supersede
                 </Button>
             )}
-            <Button id={"information-request-cancel"}
-                    appearance={"secondary"}
-                    shape={"circular"}
-                    disabled={busy}
-                    onClick={() => setDialog("cancel")}>
-                Cancel request
-            </Button>
+            {permissions.cancel && (
+                <Button id={"information-request-cancel"}
+                        appearance={"secondary"}
+                        shape={"circular"}
+                        disabled={busy}
+                        onClick={() => {
+                            command.reset();
+                            setDialog("cancel");
+                        }}>
+                    Cancel request
+                </Button>
+            )}
             {dialog === "cancel" && (
-                <CancelRequestDialog busy={busy}
-                                     onConfirm={reason =>
-                                     {
-                                         setDialog(null);
-                                         onCancel(reason);
-                                     }}
+                <CancelRequestDialog busy={busy || command.busy}
+                                     error={command.error}
+                                     onConfirm={reason => void command.run(() => onCancel(reason), () => setDialog(null))}
                                      onDismiss={() => setDialog(null)}/>
             )}
             {dialog === "supersede" && (
                 <SupersedeRequestDialog requestId={request.id}
                                         exchangeId={request.exchangeId}
-                                        busy={busy}
-                                        onConfirm={(replacementId, reason) =>
-                                        {
-                                            setDialog(null);
-                                            onSupersede(replacementId, reason);
-                                        }}
+                                        busy={busy || command.busy}
+                                        error={command.error}
+                                        onConfirm={(replacementId, reason) => void command.run(() => onSupersede(replacementId, reason), () => setDialog(null))}
                                         onDismiss={() => setDialog(null)}/>
             )}
         </div>

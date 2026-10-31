@@ -1,27 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance
 
 import com.docuhyphen.app.api.migration.queryString
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestCorrectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestRetestResult
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewKind
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewStageOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
@@ -29,25 +13,18 @@ import com.docuhyphen.app.api.model.informationrequest.response.ResponseFieldVal
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewFindingRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRemediationRepository
-import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
+import com.docuhyphen.app.api.repository.informationrequest.review.*
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.PublishedRequest
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionContentCollector
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
@@ -57,11 +34,9 @@ import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -144,7 +119,18 @@ class MultiStageReviewCorrectionRequestConformanceTest
             }
             assertEquals(InformationRequestErrorCatalog.CORRECTION_SCOPE_DENIED, refused.reasonCode)
         }
+        val awaitingRevision = QuarkusTransaction.requiringNew().call {
+            services.submissionQueries.preview(request.requestId, null, request.access(CONTRIBUTOR))
+        }
+        assertTrue(awaitingRevision.correctionOpen)
+        assertFalse(awaitingRevision.canSubmit)
+        assertEquals(listOf(firstNote), awaitingRevision.readiness.problems.map { it.requirementId })
         answer(services, request, mapOf(firstNote to (NOTE to "corrected first entry note")), "correct-first-note")
+        val reopened = QuarkusTransaction.requiringNew().call {
+            services.submissionQueries.preview(request.requestId, null, request.access(CONTRIBUTOR))
+        }
+        assertTrue(reopened.correctionOpen)
+        assertTrue(reopened.canSubmit)
 
         val secondPackage = submit(services, request, "submit-second")
         val retest = reviews.reviews(request.requestId).last()

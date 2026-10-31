@@ -38,6 +38,7 @@ data class RecordPreservationHoldDto(
     @Serializable(with = TimestampSerializer::class) val releasedAt: Timestamp? = null,
     val releaseReason: String? = null,
     val holdRevision: Long,
+    val holdETag: String,
     val events: List<RecordPreservationHoldEventDto> = emptyList(),
 )
 
@@ -57,6 +58,7 @@ data class RecordRetentionScheduleDto(
     val resourceType: String,
     val current: RecordRetentionScheduleVersionDto? = null,
     val versions: List<RecordRetentionScheduleVersionDto>,
+    val scheduleETag: String,
 )
 
 @Serializable
@@ -94,6 +96,14 @@ data class RecordDisposalDto(
 )
 
 @Serializable
+data class RecordPreservationHoldSummaryDto(
+    val resourceType: String,
+    val scope: RecordPreservationScope,
+    val status: RecordPreservationHoldStatus,
+    @Serializable(with = TimestampSerializer::class) val effectiveFrom: Timestamp,
+)
+
+@Serializable
 data class InformationRequestDisposalStandingDto(
     @Serializable(with = UUIDSerializer::class) val requestId: UUID,
     val eligible: Boolean,
@@ -102,6 +112,7 @@ data class InformationRequestDisposalStandingDto(
     @Serializable(with = TimestampSerializer::class) val eligibleFrom: Timestamp? = null,
     val schedule: RecordRetentionScheduleVersionDto? = null,
     val holds: List<RecordPreservationHoldDto> = emptyList(),
+    val withheldHolds: List<RecordPreservationHoldSummaryDto> = emptyList(),
     val retainedObjectCount: Int = 0,
     val disposal: RecordDisposalDto? = null,
 )

@@ -23,7 +23,7 @@ import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import org.mockito.kotlin.*
 import java.util.*
-import com.docuhyphen.app.api.service.auth.authz.Decision as AuthorizationDecision
+import com.docuhyphen.app.api.model.auth.authz.Decision as AuthorizationDecision
 
 internal class ExchangeAcceptanceWorkflowFixture
 {
@@ -118,8 +118,9 @@ internal class ExchangeAcceptanceWorkflowFixture
             noAuthExchangeAccessWindowService = mock(),
             lifecycleNotificationService = mock<ExchangeLifecycleNotificationService>(),
             documentThumbnailService = mock<DocumentThumbnailService>(),
-        requestParentLifecycle = mock(),
-        requestCompletion = mock(),
+            requestParentLifecycle = mock(),
+            requestCompletion = mock(),
+            endingIntents = mock(),
         )
     }
 

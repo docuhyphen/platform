@@ -1,18 +1,15 @@
 package com.docuhyphen.app.api.service.informationrequest
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestPolicyEvaluator
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,7 +19,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestQueryServiceTest
 {
@@ -35,11 +32,11 @@ class InformationRequestQueryServiceTest
         id = exchangeId
         ownerOrganizationId = UUID.randomUUID()
     }
-    private val exchangeRepository = mock<ExchangeRepository>()
+    private val exchangeLookup = mock<ExchangeLookupService>()
     private val requestRepository = mock<InformationRequestRepository>()
     private val authorizationService = mock<AuthorizationService>()
     private val service = InformationRequestQueryService(
-        exchangeRepository = exchangeRepository,
+        exchangeLookup = exchangeLookup,
         requestRepository = requestRepository,
         authorizationService = authorizationService,
     )
@@ -49,24 +46,41 @@ class InformationRequestQueryServiceTest
     {
         val request = InformationRequest().apply { exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
         whenever(requestRepository.findById(request.id)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_VIEW,
-            ResourceRef.informationRequest(request.id), access.authorization)).thenAnswer {
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
+        whenever(
+            authorizationService.authorize(
+                access.principal, Action.INFORMATION_REQUEST_VIEW,
+                ResourceRef.informationRequest(request.id), access.authorization
+            )
+        ).thenAnswer {
             val outcome = InformationRequestPolicyEvaluator().evaluate(
-                com.docuhyphen.app.api.service.auth.authz.ResourcePolicyRequest(access.principal,
-                    Action.INFORMATION_REQUEST_VIEW, ResourceRef.informationRequest(request.id),
-                    com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext(
-                        com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization(exchange.ownerOrganizationId!!),
+                ResourcePolicyRequest(
+                    access.principal,
+                    Action.INFORMATION_REQUEST_VIEW,
+                    ResourceRef.informationRequest(request.id),
+                    ResourceAuthorizationContext(
+                        OwnerContext.Organization(exchange.ownerOrganizationId!!),
                         policyFacts = com.docuhyphen.app.api.model.informationrequest.access.InformationRequestParentPolicyFacts(
-                            InformationRequestParentSnapshot(exchange.status, exchange.isDeleted))),
-                    setOf(com.docuhyphen.app.api.service.auth.authz.Capability.INFORMATION_REQUEST_READ), access.authorization))
+                            InformationRequestParentSnapshot(exchange.status, exchange.isDeleted)
+                        )
+                    ),
+                    setOf(Capability.INFORMATION_REQUEST_READ),
+                    access.authorization
+                )
+            )
             when (outcome) {
-                is com.docuhyphen.app.api.service.auth.authz.ResourcePolicyOutcome.Deny -> Decision.Deny(outcome.reasonCode, outcome.message)
+                is ResourcePolicyOutcome.Deny -> Decision.Deny(
+                    outcome.reasonCode,
+                    outcome.message
+                )
+
                 else -> Decision.Allow()
             }
         }
-        for (status in listOf(com.docuhyphen.app.api.model.entity.ExchangeStatus.REJECTED,
-            com.docuhyphen.app.api.model.entity.ExchangeStatus.RESCINDED))
+        for (status in listOf(
+            com.docuhyphen.app.api.model.entity.ExchangeStatus.REJECTED,
+            com.docuhyphen.app.api.model.entity.ExchangeStatus.RESCINDED
+        ))
         {
             exchange.status = status
             assertThrows(ForbiddenException::class.java) { service.findById(request.id, access) }
@@ -81,13 +95,22 @@ class InformationRequestQueryServiceTest
     {
         val request = InformationRequest().apply { exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
         whenever(requestRepository.findById(request.id)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
-        whenever(authorizationService.authorize(access.principal, Action.INFORMATION_REQUEST_VIEW,
-            ResourceRef.informationRequest(request.id), access.authorization)).thenAnswer {
-            parentPolicyDecision(request.id, com.docuhyphen.app.api.service.auth.authz.Capability.INFORMATION_REQUEST_ADMIN)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
+        whenever(
+            authorizationService.authorize(
+                access.principal, Action.INFORMATION_REQUEST_VIEW,
+                ResourceRef.informationRequest(request.id), access.authorization
+            )
+        ).thenAnswer {
+            parentPolicyDecision(
+                request.id,
+                Capability.INFORMATION_REQUEST_ADMIN
+            )
         }
-        for (status in listOf(com.docuhyphen.app.api.model.entity.ExchangeStatus.REJECTED,
-            com.docuhyphen.app.api.model.entity.ExchangeStatus.RESCINDED))
+        for (status in listOf(
+            com.docuhyphen.app.api.model.entity.ExchangeStatus.REJECTED,
+            com.docuhyphen.app.api.model.entity.ExchangeStatus.RESCINDED
+        ))
         {
             exchange.status = status
             assertEquals(request, service.findById(request.id, access))
@@ -104,7 +127,7 @@ class InformationRequestQueryServiceTest
             state = InformationRequestState.ISSUED
         }
         whenever(requestRepository.findById(request.id)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(
             authorizationService.authorize(
                 access.principal,
@@ -118,20 +141,26 @@ class InformationRequestQueryServiceTest
 
     private fun parentPolicyDecision(
         requestId: UUID,
-        vararg capabilities: com.docuhyphen.app.api.service.auth.authz.Capability,
+        vararg capabilities: Capability,
     ): Decision
     {
         val outcome = InformationRequestPolicyEvaluator().evaluate(
-            com.docuhyphen.app.api.service.auth.authz.ResourcePolicyRequest(access.principal,
+            ResourcePolicyRequest(
+                access.principal,
                 Action.INFORMATION_REQUEST_VIEW, ResourceRef.informationRequest(requestId),
-                com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext(
-                    com.docuhyphen.app.api.service.auth.authz.OwnerContext.Organization(exchange.ownerOrganizationId!!),
+                ResourceAuthorizationContext(
+                    OwnerContext.Organization(exchange.ownerOrganizationId!!),
                     policyFacts = com.docuhyphen.app.api.model.informationrequest.access.InformationRequestParentPolicyFacts(
-                        InformationRequestParentSnapshot(exchange.status, exchange.isDeleted))),
-                capabilities.toSet(), access.authorization))
+                        InformationRequestParentSnapshot(exchange.status, exchange.isDeleted)
+                    )
+                ),
+                capabilities.toSet(), access.authorization
+            )
+        )
         return when (outcome) {
-            is com.docuhyphen.app.api.service.auth.authz.ResourcePolicyOutcome.Deny ->
+            is ResourcePolicyOutcome.Deny ->
                 Decision.Deny(outcome.reasonCode, outcome.message)
+
             else -> Decision.Allow()
         }
     }
@@ -139,7 +168,7 @@ class InformationRequestQueryServiceTest
     @Test
     fun `an authorized owner lists the requests for their exchange`()
     {
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(
             authorizationService.authorize(
                 access.principal,
@@ -148,7 +177,8 @@ class InformationRequestQueryServiceTest
                 access.authorization,
             ),
         ).thenReturn(Decision.Allow())
-        val requests = listOf(InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId })
+        val requests =
+            listOf(InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId })
         whenever(requestRepository.findForExchange(exchangeId)).thenReturn(requests)
 
         val result = service.listForExchange(exchangeId, access)
@@ -160,7 +190,7 @@ class InformationRequestQueryServiceTest
     fun `a caller denied on the exchange and on every request is refused`()
     {
         val hidden = InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(requestRepository.findForExchange(exchangeId)).thenReturn(listOf(hidden))
         whenever(
             authorizationService.authorize(
@@ -177,9 +207,10 @@ class InformationRequestQueryServiceTest
     @Test
     fun `listing keeps a request the caller may still read and drops one the parent state denies`()
     {
-        val readable = InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
+        val readable =
+            InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
         val denied = InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId }
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(requestRepository.findForExchange(exchangeId)).thenReturn(listOf(readable, denied))
         whenever(
             authorizationService.authorize(
@@ -222,7 +253,7 @@ class InformationRequestQueryServiceTest
             this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
             state = InformationRequestState.DRAFT
         }
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(requestRepository.findForExchange(exchangeId)).thenReturn(listOf(issued, draft))
         whenever(
             authorizationService.authorize(
@@ -239,11 +270,29 @@ class InformationRequestQueryServiceTest
     }
 
     @Test
-    fun `a missing exchange is refused before authorization`()
+    fun `a missing exchange is refused like an existing exchange hidden from the caller`()
     {
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(null)
+        val unknownExchangeId = UUID.randomUUID()
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(unknownExchangeId)).thenReturn(null)
+        whenever(requestRepository.findForExchange(exchangeId)).thenReturn(
+            listOf(InformationRequest().apply { this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId })
+        )
+        whenever(requestRepository.findForExchange(unknownExchangeId)).thenReturn(emptyList())
+        whenever(
+            authorizationService.authorize(
+                eq(access.principal),
+                eq(Action.INFORMATION_REQUEST_VIEW),
+                any<ResourceRef>(),
+                eq(access.authorization),
+            ),
+        ).thenReturn(Decision.Deny("reason", "denied"))
 
-        assertThrows(IllegalArgumentException::class.java) { service.listForExchange(exchangeId, access) }
+        val hidden = assertThrows(ForbiddenException::class.java) { service.listForExchange(exchangeId, access) }
+        val unknown =
+            assertThrows(ForbiddenException::class.java) { service.listForExchange(unknownExchangeId, access) }
+
+        assertEquals(hidden.message, unknown.message)
     }
 
     @Test
@@ -255,7 +304,7 @@ class InformationRequestQueryServiceTest
             this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(
             authorizationService.authorize(
                 access.principal,
@@ -308,7 +357,7 @@ class InformationRequestQueryServiceTest
             state = InformationRequestState.ISSUED
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(
             authorizationService.authorize(
                 sessionAccess.principal,
@@ -332,7 +381,7 @@ class InformationRequestQueryServiceTest
             this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(exchange)
         whenever(
             authorizationService.authorize(
                 access.principal,
@@ -363,7 +412,7 @@ class InformationRequestQueryServiceTest
             this.exchangeId = this@InformationRequestQueryServiceTest.exchangeId
         }
         whenever(requestRepository.findById(requestId)).thenReturn(request)
-        whenever(exchangeRepository.findById(exchangeId)).thenReturn(null)
+        whenever(exchangeLookup.findExchange(exchangeId)).thenReturn(null)
 
         assertThrows(IllegalStateException::class.java) { service.findById(requestId, access) }
     }

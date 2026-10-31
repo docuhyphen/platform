@@ -1,81 +1,49 @@
 package com.docuhyphen.app.api.service.informationrequest.creation
 
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandReceiptRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.CommandReceipt
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateOriginKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersionCapability
-import com.docuhyphen.app.api.model.entity.InformationRequestTransition
-import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
-import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateAdHocInformationRequestCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestMaterializationResult
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandReceiptRequest
+import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.CommandReceiptStore
-import com.docuhyphen.app.api.service.fields.FieldsAccessContext
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestEntitlementGuard
+import com.docuhyphen.app.api.service.informationrequest.creation.model.AdHocCreationFixture
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateConfigurationWriter
-import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateMaterializer
-import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementConfigService
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsageService
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import com.docuhyphen.app.api.service.informationrequest.template.*
+import com.docuhyphen.app.api.service.subscription.*
+import io.quarkus.security.ForbiddenException
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.verifyNoInteractions
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestAdHocCreationServiceTest
 {
     private val exchangeId = UUID.randomUUID()
     private val organizationId = UUID.randomUUID()
     private val actorId = UUID.randomUUID()
-    private val access = RequestAccessContext(PrincipalRef.user(actorId), AuthorizationContext(activeOrgId = organizationId))
+    private val access =
+        RequestAccessContext(PrincipalRef.user(actorId), AuthorizationContext(activeOrgId = organizationId))
     private val configuration = InformationRequestTemplateConfigurationRequest(
         sections = listOf(
             InformationRequestTemplateSectionRequest(
@@ -91,6 +59,28 @@ class InformationRequestAdHocCreationServiceTest
             ),
         ),
     )
+
+    @Test
+    fun `a retried ad hoc creation answers the request with the ETag it has after a later change`() {
+        val fixture = fixture()
+        val command = CreateAdHocInformationRequestCommand(
+            exchangeId = exchangeId,
+            displayName = "Current record request",
+            description = "Collect current process records",
+            configuration = configuration,
+            gatesExchangeClosure = false,
+            access = access,
+            idempotencyKey = "create-before-a-later-change",
+        )
+        val first = fixture.service.createAdHoc(command)
+        fixture.savedRequests.single().aggregateRevision += 1
+
+        val replay = fixture.service.createAdHoc(command)
+
+        assertNotEquals(first.requestETag, replay.requestETag)
+        assertEquals(InformationRequestETag.aggregateOf(fixture.savedRequests.single()), replay.requestETag)
+        assertEquals(1, fixture.savedRequests.size)
+    }
 
     @Test
     fun `ad hoc creation stores one private Template request pair and replays the command result`()
@@ -126,13 +116,15 @@ class InformationRequestAdHocCreationServiceTest
         assertEquals(organizationId, definition.scopeOrgId)
         assertEquals(InformationRequestTemplateStatus.PUBLISHED, definition.status)
         assertEquals(InformationRequestTemplateStatus.PUBLISHED, version.status)
-        assertEquals(actorId, version.publishedByAppUserId)
+        assertEquals(PrincipalKind.USER, version.publishedByPrincipalKind)
+        assertEquals(actorId, version.publishedByPrincipalId)
         assertNotNull(version.publishedAt)
         assertEquals(version.id, request.templateVersionId)
         assertEquals(exchangeId, request.exchangeId)
         assertEquals(InformationRequestOwnerType.ORGANIZATION, request.ownerType)
         assertEquals(organizationId, request.ownerOrganizationId)
-        assertEquals(actorId, request.createdByAppUserId)
+        assertEquals(PrincipalKind.USER, request.createdByPrincipalKind)
+        assertEquals(actorId, request.createdByPrincipalId)
         assertEquals(false, request.gatesExchangeClosure)
 
         verify(fixture.authorizationService).authorize(
@@ -143,11 +135,36 @@ class InformationRequestAdHocCreationServiceTest
         )
         verify(fixture.configurationWriter).replaceConfiguration(version, configuration)
         val materializerAccess = argumentCaptor<FieldsAccessContext>()
-        verify(fixture.materializer).materialize(org.mockito.kotlin.eq(request), materializerAccess.capture())
+        verify(fixture.materializer).materialize(eq(request), materializerAccess.capture())
         assertEquals(access.principal, materializerAccess.firstValue.principal)
         assertEquals(access.authorization, materializerAccess.firstValue.authorization)
         verify(fixture.definitionRepository, times(1)).save(any())
         verify(fixture.requestRepository, times(1)).save(any())
+    }
+
+    @Test
+    fun `an ad hoc request whose name or description is too long is refused before anything is stored`() {
+        val fixture = fixture()
+        val longName = CreateAdHocInformationRequestCommand(
+            exchangeId = exchangeId,
+            displayName = "n".repeat(256),
+            description = null,
+            configuration = configuration,
+            gatesExchangeClosure = false,
+            access = access,
+            idempotencyKey = "create-long-name",
+        )
+        val longDescription = longName.copy(
+            displayName = "Current record request",
+            description = "d".repeat(1025),
+            idempotencyKey = "create-long-description",
+        )
+
+        assertThrows<InformationRequestTemplateValidationException> { fixture.service.createAdHoc(longName) }
+        assertThrows<InformationRequestTemplateValidationException> { fixture.service.createAdHoc(longDescription) }
+
+        assertEquals(0, fixture.savedDefinitions.size)
+        assertEquals(0, fixture.savedRequests.size)
     }
 
     @Test
@@ -176,9 +193,76 @@ class InformationRequestAdHocCreationServiceTest
         assertThrows<SubscriptionDenialException> { fixture.service.createAdHoc(command) }
 
         verify(deniedGuard).requireRequestCreation(any())
-        verifyNoInteractions(fixture.authorizationService)
+        verify(fixture.authorizationService).authorize(
+            access.principal,
+            Action.INFORMATION_REQUEST_CREATE,
+            ResourceRef.exchange(exchangeId),
+            access.authorization,
+        )
         verify(fixture.requestRepository, never()).save(any())
         verify(fixture.definitionRepository, never()).save(any())
+    }
+
+    @Test
+    fun `a caller who may not create on the Exchange learns nothing about the owner's plan`() {
+        val deniedGuard = mock<InformationRequestEntitlementGuard>()
+        whenever(deniedGuard.requireRequestCreation(any())).thenThrow(
+            SubscriptionDenialException(
+                SubscriptionDenial(
+                    reason = SubscriptionDenialReason.SUBSCRIPTION_PAST_DUE,
+                    planCode = PlanCode.BUSINESS,
+                    ownerType = SubscriptionOwnerType.ORGANIZATION,
+                    message = "The owner's subscription is past due.",
+                ),
+            ),
+        )
+        val fixture = fixture(entitlementGuard = deniedGuard)
+        whenever(fixture.authorizationService.authorize(any(), eq(Action.INFORMATION_REQUEST_CREATE), any(), any()))
+            .thenReturn(Decision.Deny("DENIED", "denied"))
+
+        assertThrows<ForbiddenException> {
+            fixture.service.createAdHoc(
+                CreateAdHocInformationRequestCommand(
+                    exchangeId = exchangeId,
+                    displayName = "Current record request",
+                    configuration = configuration,
+                    access = access,
+                    idempotencyKey = "create-by-an-outsider",
+                ),
+            )
+        }
+
+        verify(deniedGuard, never()).requireRequestCreation(any())
+        verify(fixture.requestRepository, never()).save(any())
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = PrincipalKind::class, names = ["USER", "APPLICATION", "SERVICE_ACCOUNT"])
+    fun `private Template creation and publication preserve the authorized principal`(kind: PrincipalKind) {
+        val actor = PrincipalRef(kind, UUID.randomUUID())
+        val actorAccess = RequestAccessContext(actor, access.authorization)
+        val fixture = fixture(actorAccess = actorAccess)
+        fixture.service.createAdHoc(
+            CreateAdHocInformationRequestCommand(
+                exchangeId = exchangeId,
+                displayName = "Current record confirmation",
+                configuration = configuration,
+                access = actorAccess,
+                idempotencyKey = "create-with-$kind",
+            )
+        )
+
+        val definition = fixture.savedDefinitions.single()
+        val version = fixture.savedVersions.single()
+        assertEquals(actor.kind, definition.createdByPrincipalKind)
+        assertEquals(actor.id, definition.createdByPrincipalId)
+        assertEquals(actor.kind, version.createdByPrincipalKind)
+        assertEquals(actor.id, version.createdByPrincipalId)
+        assertEquals(actor.kind, version.publishedByPrincipalKind)
+        assertEquals(actor.id, version.publishedByPrincipalId)
+        val request = fixture.savedRequests.single()
+        assertEquals(actor.kind, request.createdByPrincipalKind)
+        assertEquals(actor.id, request.createdByPrincipalId)
     }
 
     @Test
@@ -227,23 +311,10 @@ class InformationRequestAdHocCreationServiceTest
         )
     }
 
-    private data class Fixture(
-        val service: InformationRequestAdHocCreationService,
-        val definitionRepository: InformationRequestTemplateDefinitionRepository,
-        val versionRepository: InformationRequestTemplateVersionRepository,
-        val capabilityRepository: InformationRequestTemplateVersionCapabilityRepository,
-        val requestRepository: InformationRequestRepository,
-        val configurationWriter: InformationRequestTemplateConfigurationWriter,
-        val materializer: InformationRequestTemplateMaterializer,
-        val authorizationService: AuthorizationService,
-        val transitionHistory: InformationRequestTransitionHistoryService,
-        val savedDefinitions: MutableList<InformationRequestTemplateDefinition>,
-        val savedVersions: MutableList<InformationRequestTemplateVersion>,
-        val savedCapabilities: MutableList<InformationRequestTemplateVersionCapability>,
-        val savedRequests: MutableList<InformationRequest>,
-    )
-
-    private fun fixture(entitlementGuard: InformationRequestEntitlementGuard = mock()): Fixture
+    private fun fixture(
+        entitlementGuard: InformationRequestEntitlementGuard = mock(),
+        actorAccess: RequestAccessContext = access,
+    ): AdHocCreationFixture
     {
         val exchange = Exchange().apply {
             id = exchangeId
@@ -252,8 +323,8 @@ class InformationRequestAdHocCreationServiceTest
             status = ExchangeStatus.ACCEPTED_STARTED
             isDeleted = false
         }
-        val exchangeRepository = mock<ExchangeRepository>()
-        whenever(exchangeRepository.findByIdForUpdate(exchangeId)).thenReturn(exchange)
+        val exchangeLookup = mock<ExchangeLookupService>()
+        whenever(exchangeLookup.lockExchangeForUpdate(exchangeId)).thenReturn(exchange)
 
         val definitions = mutableListOf<InformationRequestTemplateDefinition>()
         val definitionRepository = mock<InformationRequestTemplateDefinitionRepository>()
@@ -294,10 +365,10 @@ class InformationRequestAdHocCreationServiceTest
         val authorizationService = mock<AuthorizationService>()
         whenever(
             authorizationService.authorize(
-                access.principal,
+                actorAccess.principal,
                 Action.INFORMATION_REQUEST_CREATE,
                 ResourceRef.exchange(exchangeId),
-                access.authorization,
+                actorAccess.authorization,
             ),
         ).thenReturn(Decision.Allow())
 
@@ -318,22 +389,34 @@ class InformationRequestAdHocCreationServiceTest
             }
         }
 
-        val service = InformationRequestAdHocCreationService(
-            exchangeRepository = exchangeRepository,
-            definitionRepository = definitionRepository,
+        val schemaCompatibility = mock<InformationRequestTemplateSchemaCompatibility>()
+        val versionPublisher = InformationRequestPrivateVersionPublisher(
             versionRepository = versionRepository,
-            capabilityRepository = capabilityRepository,
-            requestRepository = requestRepository,
             configurationWriter = configurationWriter,
-            schemaCompatibility = mock(),
+            schemaCompatibility = schemaCompatibility,
+            freezer = InformationRequestTemplateVersionFreezer(
+                definitionRepository = definitionRepository,
+                versionRepository = versionRepository,
+                capabilityRepository = capabilityRepository,
+                schemaCompatibility = schemaCompatibility,
+                projectionLoader = mock(),
+                conditionContracts = mock(),
+                fieldMembership = mock(),
+            ),
+        )
+        val service = InformationRequestAdHocCreationService(
+            exchangeLookup = exchangeLookup,
+            definitionRepository = definitionRepository,
+            versionPublisher = versionPublisher,
+            requestRepository = requestRepository,
             materializer = materializer,
             authorizationService = authorizationService,
-            commandReceiptService = CommandReceiptService(InMemoryCommandReceiptStore()),
+            commandReceiptService = CommandReceiptService(InMemoryCommandReceiptStore(), CommandReceiptScope()),
             transitionHistory = transitionHistory,
             entitlementGuard = entitlementGuard,
         )
 
-        return Fixture(
+        return AdHocCreationFixture(
             service = service,
             definitionRepository = definitionRepository,
             versionRepository = versionRepository,
@@ -354,14 +437,16 @@ class InformationRequestAdHocCreationServiceTest
     {
         private val receipts = mutableListOf<CommandReceipt>()
 
+        override fun lockCommand(request: CommandReceiptRequest) = Unit
+
         override fun findForCommand(request: CommandReceiptRequest): CommandReceipt? =
             receipts.firstOrNull {
                 it.resourceType == request.resource.type &&
-                    it.resourceId == request.resource.id &&
-                    it.operationName == request.operation &&
-                    it.actorKind == request.actor.kind &&
-                    it.actorId == request.actor.id &&
-                    it.idempotencyKey == request.idempotencyKey
+                        it.resourceId == request.resource.id &&
+                        it.operationName == request.operation &&
+                        it.actorKind == request.actor.kind &&
+                        it.actorId == request.actor.id &&
+                        it.idempotencyKey == request.idempotencyKey
             }
 
         override fun insert(receipt: CommandReceipt): CommandReceipt

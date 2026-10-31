@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.migration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAuthorActionsContractTest
 {
@@ -72,8 +72,8 @@ class InformationRequestAuthorActionsContractTest
             """
             INSERT INTO information_request_transition
                 (id, information_request_id, sequence_number, from_state, to_state, mutation, actor_kind, actor_id,
-                 occurred_at, party_id)
-            VALUES (?, ?, ?, 'IN_PROGRESS', 'IN_PROGRESS', ?, 'USER', ?, now(), ?)
+                 occurred_at, party_id, idempotency_key)
+            VALUES (?, ?, ?, 'IN_PROGRESS', 'IN_PROGRESS', ?, 'USER', ?, now(), ?, 'transition-$sequence')
             """.trimIndent(),
             id,
             runtime.requestId,

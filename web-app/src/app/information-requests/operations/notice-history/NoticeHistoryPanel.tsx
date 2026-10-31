@@ -5,17 +5,20 @@ import {getInformationRequestNotices} from "../../../../services/informationRequ
 import {InformationRequestNoticeHistoryDto} from "../../../models/models.tsx";
 import {humanizedKey, noticeStateLabels} from "../../submission/submissionLabels.ts";
 import LoadedPanel from "../loaded-panel/LoadedPanel.tsx";
+import {reportingForbidden} from "../operations-detail-content/reportingForbidden.ts";
 import {formattedTime, noticeKindLabels, noticeStateColors} from "../operationsLabels.ts";
 import {useNoticeHistoryPanelStyles} from "./NoticeHistoryPanelStyles.tsx";
 
 interface NoticeHistoryPanelProps
 {
     requestId: string;
+    onForbidden?: () => void;
 }
 
 const recipientOf = (notice: InformationRequestNoticeHistoryDto): string =>
 {
     if (notice.endpointState === "MISSING") return "No delivery address on file";
+    if (notice.recipientWithheld) return "To a group member";
     return notice.maskedEndpoint ? `To ${notice.maskedEndpoint}` : "Not yet addressed";
 };
 
@@ -26,10 +29,10 @@ const attemptsOf = (notice: InformationRequestNoticeHistoryDto): string =>
             : `Attempt ${attempt.attemptNumber} ${attempt.outcome.toLowerCase()}`)
         .join(", ");
 
-const NoticeHistoryPanel = ({requestId}: NoticeHistoryPanelProps) =>
+const NoticeHistoryPanel = ({requestId, onForbidden}: NoticeHistoryPanelProps) =>
 {
     const styles = useNoticeHistoryPanelStyles();
-    const load = useCallback(() => getInformationRequestNotices(requestId), [requestId]);
+    const load = useCallback(() => reportingForbidden(getInformationRequestNotices(requestId), onForbidden), [requestId, onForbidden]);
     const notices = useLoadedValue(load, "The notice history could not be loaded.");
 
     return (
@@ -43,10 +46,11 @@ const NoticeHistoryPanel = ({requestId}: NoticeHistoryPanelProps) =>
                     className={styles.list}>
                     {value.map(notice =>
                     {
-                        const id = `information-request-notice-${notice.noticeIntentId}`;
+                        const key = notice.noticeId ?? notice.noticeIntentId;
+                        const id = `information-request-notice-${key}`;
                         return (
                             <li id={id}
-                                key={notice.noticeIntentId}
+                                key={key}
                                 className={styles.notice}>
                                 <div id={`${id}-heading`}
                                      className={styles.heading}>

@@ -42,6 +42,9 @@ export const useInformationRequestSummaryRowStyles = makeStyles({
         maxWidth: "320px",
     },
     action: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: tokens.spacingHorizontalS,
         justifySelf: "end",
         "@media (max-width: 640px)": {
             justifySelf: "start",

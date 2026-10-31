@@ -1,30 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestResponse
-import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessContribution
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessProgressContext
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.inject.Instance
@@ -33,7 +20,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class InformationRequestCompletenessProgressServiceTest
 {
@@ -262,6 +249,43 @@ class InformationRequestCompletenessProgressServiceTest
         assertEquals(emptyList<InformationRequestCompletenessItemState>(), projection.items.map { it.state })
     }
 
+    @Test
+    fun `a rejected contribution takes precedence over every other contribution for the same Requirement`() {
+        val fixture = Fixture()
+        val returned = fixture.requirement("root")
+        val other = fixture.requirement("root")
+        fixture.bind(returned, InformationRequestRequiredness.REQUIRED)
+        fixture.bind(other, InformationRequestRequiredness.REQUIRED)
+        fixture.responses += fixture.response(other, InformationRequestResponseDisposition.PROVIDED)
+        fixture.extensionContributions += listOf(
+            InformationRequestCompletenessContribution(
+                itemKey = "evidence:${returned.id}",
+                requirementId = returned.id,
+                occurrencePath = returned.occurrencePath,
+                state = InformationRequestCompletenessItemState.COMPLETE,
+                contributesToDenominator = true,
+                contributesToNumerator = true,
+            ),
+            InformationRequestCompletenessContribution(
+                itemKey = "correction:${returned.id}",
+                requirementId = returned.id,
+                occurrencePath = returned.occurrencePath,
+                state = InformationRequestCompletenessItemState.REJECTED,
+                contributesToDenominator = true,
+                contributesToNumerator = false,
+            ),
+        )
+
+        val projection = fixture.service.evaluate(fixture.request.id)
+
+        assertEquals(
+            listOf(InformationRequestCompletenessItemState.REJECTED),
+            projection.items.filter { it.requirementId == returned.id }.map { it.state },
+        )
+        assertEquals(2, projection.totalCount)
+        assertEquals(1, projection.completedCount)
+    }
+
     private class Fixture
     {
         val request = InformationRequest().apply {
@@ -282,9 +306,7 @@ class InformationRequestCompletenessProgressServiceTest
         val requirementRepository = mock<InformationRequestRequirementRepository>()
         val occurrenceRepository = mock<InformationRequestGroupOccurrenceRepository>()
         val bindingRepository = mock<InformationRequestTemplateRequirementBindingRepository>()
-        val fieldValueRepository = mock<FieldValueRepository>()
-        val fieldValueSelectionRepository = mock<FieldValueSelectionRepository>()
-        val fieldContractRepository = mock<FieldContractRepository>()
+        val fieldsReader = mock<FieldsReadFacade>()
         val responseStore = mock<InformationRequestResponseStore>()
         val conditionEvaluationService = mock<InformationRequestConditionEvaluationService>()
         val contributionEvaluators = mock<Instance<InformationRequestCompletenessContributionEvaluator>>()
@@ -293,9 +315,7 @@ class InformationRequestCompletenessProgressServiceTest
             requirementRepository,
             occurrenceRepository,
             bindingRepository,
-            fieldValueRepository,
-            fieldValueSelectionRepository,
-            fieldContractRepository,
+            fieldsReader,
             responseStore,
             conditionEvaluationService,
             contributionEvaluators,
@@ -317,11 +337,11 @@ class InformationRequestCompletenessProgressServiceTest
                     }
             }
             whenever(bindingRepository.findOrdered(request.templateVersionId)).thenAnswer { bindings }
-            whenever(fieldValueRepository.findByValueSet(any())).thenAnswer { invocation ->
+            whenever(fieldsReader.valuesIn(any())).thenAnswer { invocation ->
                 valuesBySet[invocation.getArgument(0)].orEmpty()
             }
-            whenever(fieldValueSelectionRepository.findByValue(any())).thenReturn(emptyList())
-            whenever(fieldContractRepository.findByIds(any())).thenAnswer { invocation ->
+            whenever(fieldsReader.selectionCodesOf(any())).thenReturn(emptyList())
+            whenever(fieldsReader.contracts(any())).thenAnswer { invocation ->
                 invocation.getArgument<Collection<UUID>>(0).mapNotNull(contractsById::get)
             }
             whenever(responseStore.findCurrentForRequest(request.id)).thenAnswer { responses }

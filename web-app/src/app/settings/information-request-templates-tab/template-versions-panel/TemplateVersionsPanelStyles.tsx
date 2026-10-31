@@ -10,10 +10,12 @@ export const useTemplateVersionsPanelStyles = makeStyles({
     muted: {
         color: tokens.colorNeutralForeground3,
     },
-    actions: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        flexWrap: "wrap",
-        paddingTop: tokens.spacingVerticalS,
+    hash: {
+        color: tokens.colorNeutralForeground3,
+        fontFamily: tokens.fontFamilyMonospace,
+        overflowWrap: "anywhere",
+    },
+    choice: {
+        maxWidth: "16rem",
     },
 });

@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.organization
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.PrincipalGroupScope
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind

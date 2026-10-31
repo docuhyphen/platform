@@ -1,17 +1,18 @@
+import {ReactNode} from "react";
 import {
     CreateInformationRequestGroupOccurrenceRequest,
     InformationRequestConditionEvaluationDto,
     InformationRequestDto,
     InformationRequestGroupOccurrenceDto,
     InformationRequestResponseDto,
+    InformationRequestSupportingEvidenceLinkDto,
     InformationRequestTemplateGroupDto,
-    InformationRequestTemplateConditionRuleDto,
     InformationRequestTemplateRequirementDto,
     PatchInformationRequestResponsesRequest,
     ReorderInformationRequestGroupOccurrencesRequest,
     SchemaFieldBindingDto,
 } from "../../models/models.tsx";
-import {ResponseEdits} from "./structuredResponseWorkspaceState.ts";
+import {OccurrencePresentation, ResponseEdits} from "./structuredResponseWorkspaceState.ts";
 import {ResponseAnswerEdits} from "./responseAnswerState.ts";
 
 export type SaveResponsesResult =
@@ -29,14 +30,16 @@ export type OccurrenceCommandResult =
 export interface StructuredResponseWorkspaceProps
 {
     request: InformationRequestDto;
+    respondentKey: string;
     responseETag: string;
-    enabled: boolean;
     groups: InformationRequestTemplateGroupDto[];
-    conditionRules?: InformationRequestTemplateConditionRuleDto[];
+    creatableGroupKeys?: string[];
     occurrences: InformationRequestGroupOccurrenceDto[];
     requirements: InformationRequestTemplateRequirementDto[];
     bindings: SchemaFieldBindingDto[];
     responses: InformationRequestResponseDto[];
+    supportingEvidenceLinks?: InformationRequestSupportingEvidenceLinkDto[];
+    readOnly?: boolean;
     onSaveResponses: (
         requestId: string,
         request: PatchInformationRequestResponsesRequest,
@@ -57,19 +60,24 @@ export interface StructuredResponseWorkspaceProps
         request: ReorderInformationRequestGroupOccurrencesRequest,
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;
-    onRefresh: () => void;
+    onRefresh: () => void | Promise<void>;
 }
 
 export interface StructuredResponseOccurrenceProps
 {
     occurrence: InformationRequestGroupOccurrenceDto;
+    title: string;
+    presentation: OccurrencePresentation;
     occurrenceIndex: number;
     occurrenceCount: number;
     siblingOccurrenceIds: string[];
+    removable: boolean;
+    fullChildGroupKeys: string[];
+    nested?: ReactNode;
     requestId: string;
     responseETag: string;
     busy: boolean;
-    groups: InformationRequestTemplateGroupDto[];
+    readOnly: boolean;
     requirements: InformationRequestTemplateRequirementDto[];
     bindings: SchemaFieldBindingDto[];
     responses: InformationRequestResponseDto[];
@@ -81,7 +89,7 @@ export interface StructuredResponseOccurrenceProps
     onAdd: (
         requestId: string,
         groupKey: string,
-        parentOccurrenceId: string | undefined,
+        parentOccurrenceId: string | null | undefined,
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;
     onRemove: (
@@ -92,7 +100,7 @@ export interface StructuredResponseOccurrenceProps
     onReorder: (
         requestId: string,
         groupKey: string,
-        parentOccurrenceId: string | undefined,
+        parentOccurrenceId: string | null | undefined,
         occurrenceIds: string[],
         responseETag: string,
     ) => Promise<OccurrenceCommandResult>;

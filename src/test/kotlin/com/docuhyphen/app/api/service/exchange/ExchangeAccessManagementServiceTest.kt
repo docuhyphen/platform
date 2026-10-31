@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
@@ -10,7 +11,10 @@ import com.docuhyphen.app.api.resource.model.*
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
@@ -20,7 +24,6 @@ import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -66,7 +69,7 @@ class ExchangeAccessManagementServiceTest
         shareService,
         shareQueryService,
         appUserService,
-        externalParticipantRepository,
+        ExternalParticipantService(externalParticipantRepository),
         organizationGroupService,
         exchangeRecipientService,
         selectionResolver,
@@ -84,7 +87,17 @@ class ExchangeAccessManagementServiceTest
         auditOwnerScopeResolver,
         notificationDeliveryService,
         mock<ExchangeFeatureSubscriptionGuard>(),
+        mock(),
     )
+
+    init {
+        whenever(exchangeRepository.findByIdForUpdate(any())).thenAnswer {
+            exchangeRepository.findById(it.getArgument(0))
+        }
+        whenever(exchangeRecipientService.findPrimaryForUpdate(any())).thenAnswer {
+            exchangeRecipientService.findPrimary(it.getArgument(0))
+        }
+    }
 
     private fun grantOwnerAuthorization(activeOrgId: UUID? = activeOrganizationId)
     {
@@ -177,7 +190,7 @@ class ExchangeAccessManagementServiceTest
         val selection = TrustedPersonRecipientSelectionRequest(resolutionId = resolutionId.toString())
         service.replacePrimaryRecipient(exchangeId, selection)
 
-        verify(exchangeRecipientService).deleteBinding(currentPrimary)
+        verify(exchangeRecipientService).releasePrimary(currentPrimary)
         verify(shareService).revoke(eq(oldShare.id), eq(PrincipalRef.user(callerId)), eq(session.name))
 
         val statusCaptor = argumentCaptor<ShareStatus>()
@@ -204,7 +217,6 @@ class ExchangeAccessManagementServiceTest
             now = any(),
         )
         verify(attestationService).createPersonAttestation(eq(newPrimary), eq(prepared), any())
-        // Trusted selections force recipient sign-in.
         assertEquals(true, session.requireRecipientSignIn)
         verify(exchangeRepository).update(session)
     }
@@ -222,7 +234,8 @@ class ExchangeAccessManagementServiceTest
                 TrustedPersonRecipientSelectionRequest(resolutionId = UUID.randomUUID().toString()),
             )
         }
-        verify(exchangeRecipientService, never()).deleteBinding(any())
+        verify(exchangeRecipientService, never()).releasePrimary(any())
+        verify(exchangeRecipientService, never()).reopenBinding(any(), any(), any(), anyOrNull())
     }
 
     @Test
@@ -253,7 +266,8 @@ class ExchangeAccessManagementServiceTest
         )
         verify(selectionResolver, never()).resolve(any(), any(), anyOrNull())
         verify(exchangeRecipientService, never()).findPrimary(any())
-        verify(exchangeRecipientService, never()).deleteBinding(any())
+        verify(exchangeRecipientService, never()).releasePrimary(any())
+        verify(exchangeRecipientService, never()).reopenBinding(any(), any(), any(), anyOrNull())
         verify(shareService, never()).grant(
             any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
         )
@@ -323,7 +337,12 @@ class ExchangeAccessManagementServiceTest
             eq(targetOrganizationId),
             eq(ExchangeRecipientAcceptanceStatus.PENDING),
         )
-        verify(exchangeRecipientService).deleteBinding(previousParticipantBinding)
+        verify(exchangeRecipientService).reopenBinding(
+            previousParticipantBinding,
+            ExchangeRecipientPurpose.PRIMARY,
+            ExchangeRecipientSelectionType.TRUSTED_GROUP,
+            targetOrganizationId,
+        )
         verify(attestationService).createGroupAttestation(eq(newPrimary), eq(validation), any())
     }
 
@@ -399,6 +418,29 @@ class ExchangeAccessManagementServiceTest
     }
 
     @Test
+    fun `resend no-auth invitation refuses a participant principal primary before any account lookup or delivery`() {
+        grantOwnerAuthorization()
+        val exchange = draftExchange()
+        val primaryShare = directShare(PrincipalKind.PARTICIPANT, UUID.randomUUID()).apply {
+            status = ShareStatus.ACTIVE
+        }
+        val primaryRecipient = pendingPrimary(primaryShare.id, ExchangeRecipientSelectionType.EXTERNAL_EMAIL)
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(exchange)
+        whenever(exchangeRecipientService.findPrimary(exchangeId)).thenReturn(primaryRecipient)
+        whenever(shareService.getById(primaryShare.id)).thenReturn(primaryShare)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.resendNoAuthPrimaryRecipientInvitation(exchangeId)
+        }
+
+        verify(appUserService, never()).getById(any())
+        verify(otpService, never()).generateEmailOtp()
+        verify(exchangeRepository, never()).update(any())
+        verify(noAuthExchangeAccessTokenService, never()).issue(any())
+        verify(notificationDeliveryService, never()).scheduleAfterCommit(any(), any(), any(), any(), any())
+    }
+
+    @Test
     fun `resend no-auth invitation rejects sign-in required Exchanges`()
     {
         grantOwnerAuthorization()
@@ -437,7 +479,8 @@ class ExchangeAccessManagementServiceTest
                 TrustedPersonRecipientSelectionRequest(UUID.randomUUID().toString()),
             )
         }
-        verify(exchangeRecipientService, never()).deleteBinding(any())
+        verify(exchangeRecipientService, never()).releasePrimary(any())
+        verify(exchangeRecipientService, never()).reopenBinding(any(), any(), any(), anyOrNull())
         verify(shareService, never()).revoke(any(), anyOrNull(), anyOrNull())
     }
 
@@ -496,7 +539,7 @@ class ExchangeAccessManagementServiceTest
             )
         }
 
-        verify(exchangeRecipientService).deleteBinding(currentPrimary)
+        verify(exchangeRecipientService).releasePrimary(currentPrimary)
         verify(shareService).revoke(eq(oldShare.id), eq(PrincipalRef.user(callerId)), eq(session.name))
         verify(exchangeRecipientService).createBinding(
             eq(exchangeId), eq(newShare), eq(ExchangeRecipientPurpose.PRIMARY),
@@ -570,7 +613,8 @@ class ExchangeAccessManagementServiceTest
                 TrustedPersonRecipientSelectionRequest(resolutionId = UUID.randomUUID().toString()),
             )
         }
-        verify(exchangeRecipientService, never()).deleteBinding(any())
+        verify(exchangeRecipientService, never()).releasePrimary(any())
+        verify(exchangeRecipientService, never()).reopenBinding(any(), any(), any(), anyOrNull())
     }
 
     @Test
@@ -755,7 +799,12 @@ class ExchangeAccessManagementServiceTest
             ExchangeShareRoleName.VIEWER,
         )
 
-        verify(exchangeRecipientService).deleteBinding(previousRecipient)
+        verify(exchangeRecipientService).reopenBinding(
+            previousRecipient,
+            ExchangeRecipientPurpose.PARTICIPANT,
+            ExchangeRecipientSelectionType.TRUSTED_PERSON,
+            targetOrganizationId,
+        )
         verify(exchangeRecipientService).createBinding(
             eq(exchangeId),
             eq(revokedShare),
@@ -1112,4 +1161,76 @@ class ExchangeAccessManagementServiceTest
         )
         verify(exchangeRecipientService, never()).createBinding(any(), any(), any(), any(), anyOrNull(), any())
     }
+
+    @Test
+    fun `a participant another owner holds is refused as not found before any policy check, grant or invitation`() {
+        grantOwnerAuthorization()
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(draftExchange().apply { id = exchangeId })
+        val heldElsewhere = listOf(
+            participant(email = "other.organization@example.test").apply { ownerOrganizationId = UUID.randomUUID() },
+            participant(email = "caller.personal@example.test").apply { ownerAppUserId = callerId },
+        )
+
+        val refusals = heldElsewhere.map { foreign ->
+            assertThrows(IllegalArgumentException::class.java) {
+                service.grantAccess(
+                    exchangeId = exchangeId,
+                    principalKind = PrincipalKind.PARTICIPANT.name,
+                    principalId = foreign.id.toString(),
+                    roleName = ExchangeShareRoleName.VIEWER,
+                )
+            }
+        }
+
+        assertEquals(listOf("Participant not found", "Participant not found"), refusals.map { it.message })
+        verify(organizationExchangePolicyService, never()).assertCanShareWithUser(anyOrNull(), any(), anyOrNull())
+        verify(shareService, never()).grant(
+            any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+        )
+        verify(exchangeRecipientService, never()).createBinding(any(), any(), any(), any(), anyOrNull(), any())
+        verify(notificationDeliveryService, never()).scheduleAfterCommit(any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `a participant the Exchange's owner holds is granted, bound as an email recipient and invited at its address`() {
+        grantOwnerAuthorization()
+        val session = draftExchange().apply { id = exchangeId }
+        val held = participant(email = "held.here@example.test").apply { ownerOrganizationId = activeOrganizationId }
+        whenever(exchangeRepository.findById(exchangeId)).thenReturn(session)
+        whenever(
+            shareService.grant(
+                any(), any(), any(), any(), any(), anyOrNull(), any(), anyOrNull(), anyOrNull(), any(), anyOrNull(),
+            ),
+        ).thenReturn(directShare(PrincipalKind.PARTICIPANT, held.id).apply { status = ShareStatus.ACTIVE })
+
+        service.grantAccess(
+            exchangeId = exchangeId,
+            principalKind = PrincipalKind.PARTICIPANT.name,
+            principalId = held.id.toString(),
+            roleName = ExchangeShareRoleName.VIEWER,
+        )
+
+        verify(exchangeRecipientService).createBinding(
+            eq(exchangeId),
+            any(),
+            eq(ExchangeRecipientPurpose.PARTICIPANT),
+            eq(ExchangeRecipientSelectionType.EXTERNAL_EMAIL),
+            anyOrNull(),
+            eq(ExchangeRecipientAcceptanceStatus.NOT_REQUIRED),
+        )
+        val emailDeliveries = argumentCaptor<List<ExchangeEmailDelivery>>()
+        verify(notificationDeliveryService).scheduleAfterCommit(
+            eq(exchangeId),
+            eq(session.status.name),
+            emailDeliveries.capture(),
+            any(),
+            any(),
+        )
+        assertEquals("held.here@example.test", emailDeliveries.firstValue.single().to)
+    }
+
+    private fun participant(email: String) = ExternalParticipant().apply {
+        this.email = email
+        emailLower = email
+    }.also { whenever(externalParticipantRepository.findById(it.id)).thenReturn(it) }
 }

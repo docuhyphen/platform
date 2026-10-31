@@ -1,6 +1,7 @@
 import {useState} from "react";
-import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
-import {InformationRequestClockPolicyDto} from "../../../models/models.tsx";
+import {Button, Spinner, Text} from "@fluentui/react-components";
+import {InformationRequestClockPolicyDto, InformationRequestOwnerType} from "../../../models/models.tsx";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import ClockPolicyDialog from "../clock-policy-dialog/ClockPolicyDialog.tsx";
 import ClockPolicyRow from "../clock-policy-row/ClockPolicyRow.tsx";
 import {useClockPolicies} from "./useClockPolicies.ts";
@@ -9,11 +10,12 @@ import {useClockPoliciesPanelStyles} from "./ClockPoliciesPanelStyles.tsx";
 interface ClockPoliciesPanelProps
 {
     canManage: boolean;
+    ownerType: InformationRequestOwnerType;
 }
 
-type Editing = {kind: "define"} | {kind: "publish"; policy: InformationRequestClockPolicyDto};
+type Editing = { kind: "define" } | { kind: "publish"; policy: InformationRequestClockPolicyDto };
 
-const ClockPoliciesPanel = ({canManage}: ClockPoliciesPanelProps) =>
+const ClockPoliciesPanel = ({canManage, ownerType}: ClockPoliciesPanelProps) =>
 {
     const styles = useClockPoliciesPanelStyles();
     const state = useClockPolicies();
@@ -32,7 +34,7 @@ const ClockPoliciesPanel = ({canManage}: ClockPoliciesPanelProps) =>
                       className={styles.heading}>
                     Due date policies
                 </Text>
-                {canManage && (
+                {canManage && state.policies && (
                     <Button id={"information-request-clock-policies-new"}
                             appearance={"primary"}
                             shape={"circular"}
@@ -48,11 +50,9 @@ const ClockPoliciesPanel = ({canManage}: ClockPoliciesPanelProps) =>
                 due. Each change publishes a new version; clocks already running keep the version they started with.
             </Text>
             {state.loadError && (
-                <MessageBar id={"information-request-clock-policies-error"}
-                            intent={"error"}
-                            role={"alert"}>
-                    <MessageBarBody>{state.loadError}</MessageBarBody>
-                </MessageBar>
+                <InformationRequestLoadError id={"information-request-clock-policies-error"}
+                                             message={state.loadError}
+                                             onRetry={() => void state.reload()}/>
             )}
             <Text id={"information-request-clock-policies-status"}
                   role={"status"}
@@ -82,6 +82,7 @@ const ClockPoliciesPanel = ({canManage}: ClockPoliciesPanelProps) =>
             )}
             {editing && (
                 <ClockPolicyDialog policy={editing.kind === "publish" ? editing.policy : undefined}
+                                   ownerType={ownerType}
                                    busy={state.busy}
                                    onDefine={state.define}
                                    onPublish={state.publish}

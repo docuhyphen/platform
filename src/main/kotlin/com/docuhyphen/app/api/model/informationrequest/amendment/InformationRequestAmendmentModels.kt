@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model.informationrequest.amendment
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.util.*
 
 data class AmendInformationRequestCommand(
@@ -39,6 +39,9 @@ data class InformationRequestAmendmentPlan(
     val groupChanges: List<InformationRequestAmendmentGroupChange>,
     val schemaChanged: Boolean,
     val submissionPolicyChanged: Boolean,
+    val expanding: Boolean = false,
+    val reviewPlanChanged: Boolean = false,
+    val targetCollectsFields: Boolean = false,
 )
 
 data class InformationRequestRequirementAdvance(
@@ -76,7 +79,7 @@ internal data class InformationRequestAmendmentRequirementMeaning(
     val requirement: InformationRequestTemplateRequirementDto,
     val stageKey: String?,
     val condition: InformationRequestTemplateConditionRuleDto?,
-    val anchor: InformationRequestTemplateGroupDto?,
+    val anchors: List<InformationRequestTemplateGroupDto>,
 )
 
 internal data class InformationRequestAmendmentRequirementPresentation(

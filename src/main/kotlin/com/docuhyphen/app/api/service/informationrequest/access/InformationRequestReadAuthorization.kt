@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
 import java.util.*
@@ -18,5 +18,9 @@ object InformationRequestReadAuthorization
             ) is Decision.Deny
         )
             throw ForbiddenException("Access denied to view this Information Request")
+    }
+
+    fun requireVisibleTarget(authorization: AuthorizationService, requestId: UUID, access: RequestAccessContext) {
+        if (access.accessSessionId == null) requireView(authorization, requestId, access)
     }
 }

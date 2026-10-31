@@ -60,7 +60,7 @@ describe("Information Request outcome transport", () =>
             owningProcessKey: "intake",
             outcomeCode: "approved",
             kind: InformationRequestBusinessDecisionKind.ORIGINAL,
-            decidedAt: "2026-09-27T10:00:00.000Z",
+            decidedAt: Date.UTC(2026, 8, 27, 10, 0),
         };
         expect(await recordInformationRequestBusinessDecision("request-a", decision, "decide-a")).toEqual({id: "written-a"});
         expect(apiClient.post).toHaveBeenLastCalledWith(

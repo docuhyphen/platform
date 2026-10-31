@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.ResourceType
@@ -9,21 +10,12 @@ import com.docuhyphen.app.api.model.informationrequest.access.InformationRequest
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.OwnerContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyFacts
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyOutcome
-import com.docuhyphen.app.api.service.auth.authz.ResourcePolicyRequest
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 
 class InformationRequestRequirementPolicyEvaluatorTest
 {
@@ -122,6 +114,29 @@ class InformationRequestRequirementPolicyEvaluatorTest
         )
 
         assertTrue(outcome is ResourcePolicyOutcome.Permit)
+    }
+
+    @Test
+    fun `a participant neither responds for nor views its party once that party moved to a linked account`() {
+        val participant = PrincipalRef.participant(UUID.randomUUID())
+        val linked = facts(
+            assignedPrincipal = participant,
+            equivalentPrincipals = setOf(linkedPrincipal),
+            accountLinked = true,
+        )
+
+        val participantOutcomes = listOf(
+            Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+            Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+        ).map { action -> evaluate(principal = participant, action = action, facts = linked) }
+        val accountOutcome = evaluate(
+            principal = linkedPrincipal,
+            action = Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND,
+            facts = linked,
+        )
+
+        participantOutcomes.forEach { assertDenied(InformationRequestErrorCatalog.PARTY_NOT_ASSIGNED, it) }
+        assertTrue(accountOutcome is ResourcePolicyOutcome.Permit)
     }
 
     @Test
@@ -328,6 +343,7 @@ class InformationRequestRequirementPolicyEvaluatorTest
         occurrenceRemoved: Boolean = false,
         assignedPrincipal: PrincipalRef = this.assignedPrincipal,
         equivalentPrincipals: Set<PrincipalRef> = emptySet(),
+        accountLinked: Boolean = false,
     ) = InformationRequestRequirementPolicyFacts(
         requestId = requestId,
         requirementId = requirementId,
@@ -346,6 +362,7 @@ class InformationRequestRequirementPolicyEvaluatorTest
                 subjectIdentityRefId = null,
                 exchangeRecipientId = UUID.randomUUID(),
                 shareId = UUID.randomUUID(),
+                accountLinked = accountLinked,
             ),
         ),
         delegatedAuthorityFacts = delegatedAuthorityFacts,

@@ -3,10 +3,15 @@ import {InformationRequestRequirementType} from "../../../models/models.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import {optionsFrom} from "../../shared/choice-select/choiceOptions.ts";
 import TextField from "../../shared/text-field/TextField.tsx";
+import {collectedFieldNote} from "../collectedFieldNote.ts";
 import {useTemplateDocument} from "../TemplateDocumentContext.ts";
 import {requirementTypeLabels} from "../templateAuthoringLabels.ts";
 import {keyFromLabel} from "../templateDraftDocument.ts";
-import {RequirementDraft, RequirementFieldsProps, withRequirementType} from "../template-requirement-dialog/requirementDraft.ts";
+import {
+    RequirementDraft,
+    RequirementFieldsProps,
+    withRequirementType
+} from "../template-requirement-dialog/requirementDraft.ts";
 import {useRequirementQuestionFieldsStyles} from "./RequirementQuestionFieldsStyles.tsx";
 
 interface RequirementQuestionFieldsProps extends RequirementFieldsProps
@@ -22,7 +27,10 @@ const keyFromPrompt = (prompt: string): string => keyFromLabel(prompt).slice(0, 
 const RequirementQuestionFields = ({id, draft, readOnly, keyLocked, onChange, onDraftReplaced}: RequirementQuestionFieldsProps) =>
 {
     const styles = useRequirementQuestionFieldsStyles();
-    const {fieldBindings} = useTemplateDocument();
+    const {fieldBindings, fieldBindingsError} = useTemplateDocument();
+    const chosen = fieldBindings.find(binding => binding.fieldDefinitionId === draft.collectedFieldDefinitionId);
+    const fieldHint = fieldBindingsError
+        ?? (fieldBindings.length === 0 ? "Choose a Request Schema in Settings to list its Fields." : collectedFieldNote(chosen));
     const [keyEdited, setKeyEdited] = useState(() =>
         keyLocked || (draft.requirementKey !== "" && draft.requirementKey !== keyFromPrompt(draft.prompt)));
     const typed = draft.requirementType === InformationRequestRequirementType.FIELD;
@@ -61,7 +69,7 @@ const RequirementQuestionFields = ({id, draft, readOnly, keyLocked, onChange, on
                               placeholder={"Choose a Field"}
                               options={fieldBindings.map(binding => ({value: binding.fieldDefinitionId, label: binding.label}))}
                               disabled={readOnly}
-                              hint={fieldBindings.length === 0 ? "Choose a Request Schema in Settings to list its Fields." : undefined}
+                              hint={fieldHint}
                               onChange={collectedFieldDefinitionId => onChange({collectedFieldDefinitionId})}/>
             )}
             <TextField id={`${id}-help-input`}

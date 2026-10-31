@@ -1,7 +1,5 @@
 package com.docuhyphen.app.api.service.exchange
 
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
@@ -10,6 +8,7 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
+import jakarta.enterprise.inject.Instance
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
@@ -26,6 +25,10 @@ class ExchangeRecipientServiceTest
     private val validationService = mock<TrustedRecipientValidationService>()
     private val externalEmailAcceptancePolicyService = mock<ExternalEmailAcceptancePolicyService>()
     private val trustedRecipientAuditService = mock<TrustedRecipientAuditService>()
+    private val referenceHolder = mock<ExchangeRecipientReferenceHolder>()
+    private val referenceHolders = mock<Instance<ExchangeRecipientReferenceHolder>>().also {
+        whenever(it.iterator()).thenAnswer { mutableListOf(referenceHolder).iterator() }
+    }
     private val exchange = Exchange().apply {
         id = exchangeId
         this.ownerOrganizationId = this@ExchangeRecipientServiceTest.ownerOrganizationId
@@ -38,6 +41,7 @@ class ExchangeRecipientServiceTest
         validationService,
         externalEmailAcceptancePolicyService,
         trustedRecipientAuditService,
+        referenceHolders,
     )
 
     @Test
@@ -608,14 +612,94 @@ class ExchangeRecipientServiceTest
     }
 
     @Test
-    fun `deleteBinding removes the attestation and the recipient row`()
+    fun `releasing a pending primary that no request party records removes its attestation and the binding`()
     {
         val recipient = pendingRecipient(UUID.randomUUID())
 
-        service.deleteBinding(recipient)
+        service.releasePrimary(recipient)
 
         verify(attestationService).deleteForRecipient(recipient.id)
-        verify(repository).delete(recipient)
+        verify(repository).deleteAndFlush(recipient)
+        verify(repository, never()).updateAndFlush(any())
+    }
+
+    @Test
+    fun `releasing a pending primary that a request party records keeps the binding as a former participant`() {
+        val ordinary = pendingRecipient(UUID.randomUUID())
+        val trusted = pendingRecipient(UUID.randomUUID()).apply {
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+        }
+        whenever(referenceHolder.references(any())).thenReturn(true)
+        whenever(repository.updateAndFlush(any())).thenAnswer { it.getArgument(0) }
+
+        service.releasePrimary(ordinary)
+        service.releasePrimary(trusted)
+
+        verify(repository, never()).deleteAndFlush(any())
+        verify(attestationService, never()).deleteForRecipient(any())
+        assertEquals(ExchangeRecipientPurpose.PARTICIPANT, ordinary.purpose)
+        assertEquals(ExchangeRecipientAcceptanceStatus.NOT_REQUIRED, ordinary.acceptanceStatus)
+        assertEquals(ExchangeRecipientPurpose.PARTICIPANT, trusted.purpose)
+        assertEquals(ExchangeRecipientAcceptanceStatus.PENDING, trusted.acceptanceStatus)
+    }
+
+    @Test
+    fun `reopening a binding for a fresh trusted invitation keeps its identity and clears its earlier decision and attestation`() {
+        val groupId = UUID.randomUUID()
+        val share = directShare(PrincipalKind.PRINCIPAL_GROUP, groupId)
+        val targetOrganizationId = UUID.randomUUID()
+        val recipient = pendingRecipient(share.id).apply {
+            purpose = ExchangeRecipientPurpose.PARTICIPANT
+            selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP
+            acceptanceStatus = ExchangeRecipientAcceptanceStatus.ACCEPTED
+            acceptedOrRejectedByAppUserId = UUID.randomUUID()
+            acceptedOrRejectedAt = java.sql.Timestamp.from(java.time.Instant.now())
+        }
+        val bindingId = recipient.id
+        whenever(shareService.getById(share.id)).thenReturn(share)
+        whenever(repository.updateAndFlush(any())).thenAnswer { it.getArgument(0) }
+
+        val reopened = service.reopenBinding(
+            recipient,
+            ExchangeRecipientPurpose.PRIMARY,
+            ExchangeRecipientSelectionType.TRUSTED_GROUP,
+            targetOrganizationId,
+        )
+
+        assertEquals(bindingId, reopened.id)
+        assertEquals(ExchangeRecipientPurpose.PRIMARY, reopened.purpose)
+        assertEquals(ExchangeRecipientAcceptanceStatus.PENDING, reopened.acceptanceStatus)
+        assertEquals(targetOrganizationId, reopened.targetOrganizationId)
+        assertNull(reopened.acceptedOrRejectedByAppUserId)
+        assertNull(reopened.acceptedOrRejectedAt)
+        verify(attestationService).deleteForRecipient(bindingId)
+        verify(repository, never()).delete(any())
+    }
+
+    @Test
+    fun `only a trusted invitation reopens a recipient binding and only for a principal it can name`() {
+        val share = directShare(PrincipalKind.USER, UUID.randomUUID())
+        val recipient = pendingRecipient(share.id)
+        whenever(shareService.getById(share.id)).thenReturn(share)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.reopenBinding(
+                recipient,
+                ExchangeRecipientPurpose.PARTICIPANT,
+                ExchangeRecipientSelectionType.REGISTERED_USER,
+                null
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            service.reopenBinding(
+                recipient,
+                ExchangeRecipientPurpose.PARTICIPANT,
+                ExchangeRecipientSelectionType.TRUSTED_GROUP,
+                null
+            )
+        }
+        verify(attestationService, never()).deleteForRecipient(any())
+        verify(repository, never()).updateAndFlush(any())
     }
 
     @Test

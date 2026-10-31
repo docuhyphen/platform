@@ -1,17 +1,12 @@
 {
   "command": "node scripts/typecheck-app-baseline.mjs",
-  "generatedAt": "2026-09-13T09:37:47.818Z",
-  "diagnosticCount": 346,
+  "generatedAt": "2026-10-28T08:01:37.858Z",
+  "diagnosticCount": 310,
   "diagnostics": [
     {
       "file": "src/app/authorization/identityProviderDisplayName.ts",
       "code": "TS2550",
       "message": "Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later."
-    },
-    {
-      "file": "src/app/authorization/sign-in/SignIn.tsx",
-      "code": "TS6133",
-      "message": "'useToken' is declared but its value is never read."
     },
     {
       "file": "src/app/components/help-docs/sections/articles/blueprintOverviewArticle.tsx",
@@ -154,11 +149,6 @@
       "message": "Property 'message' does not exist on type 'unknown'."
     },
     {
-      "file": "src/app/components/MainMenu.tsx",
-      "code": "TS2339",
-      "message": "Property 'verificationComplete' does not exist on type 'OrganizationDetailedDto'."
-    },
-    {
       "file": "src/app/components/phone-management/PhoneManagementDialog.tsx",
       "code": "TS6133",
       "message": "'fallback' is declared but its value is never read."
@@ -172,11 +162,6 @@
       "file": "src/app/components/share-constraints/DownloadFormatRestriction.tsx",
       "code": "TS6133",
       "message": "'Text' is declared but its value is never read."
-    },
-    {
-      "file": "src/app/exchange-initiation/components/blueprint-picker/BlueprintPicker.tsx",
-      "code": "TS6133",
-      "message": "'onCancel' is declared but its value is never read."
     },
     {
       "file": "src/app/exchange-initiation/components/exchange-initiation-dialog-title-section/ExchangeInitiationDialogTabs.tsx",
@@ -216,37 +201,12 @@
     {
       "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
       "code": "TS2345",
-      "message": "Argument of type 'BlueprintParticipantConfig[]' is not assignable to parameter of type 'SetStateAction<AppUserPublicDto[]>'."
-    },
-    {
-      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
-      "code": "TS2304",
-      "message": "Cannot find name 'config'."
-    },
-    {
-      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
-      "code": "TS2304",
-      "message": "Cannot find name 'config'."
-    },
-    {
-      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
-      "code": "TS2304",
-      "message": "Cannot find name 'config'."
-    },
-    {
-      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
-      "code": "TS2345",
       "message": "Argument of type 'unknown' is not assignable to parameter of type 'ExchangeBasicDto'."
     },
     {
       "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
       "code": "TS2345",
       "message": "Argument of type 'unknown' is not assignable to parameter of type 'SetStateAction<string>'."
-    },
-    {
-      "file": "src/app/exchange-initiation/ExchangeInitiation.tsx",
-      "code": "TS2322",
-      "message": "Type 'AppUserPublicDto[]' is not assignable to type 'BlueprintParticipantConfig[]'."
     },
     {
       "file": "src/app/exchanges/components/exchange-acceptance-dialog/ExchangeAcceptanceRequestSummary.tsx",
@@ -449,134 +409,9 @@
       "message": "Type '\"subtle\" | \"brand\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\" | \"neutral\"' is not assignable to type '\"subtle\" | \"brand\" | \"danger\" | \"important\" | \"informative\" | \"severe\" | \"success\" | \"warning\"'."
     },
     {
-      "file": "src/app/exchanges/components/exchange-workflow-tab/ExchangeWorkflowTabStyles.tsx",
-      "code": "TS1117",
-      "message": "An object literal cannot have multiple properties with the same name."
-    },
-    {
       "file": "src/app/exchanges/components/exchange-workflow-tab/RejectionBanner.tsx",
       "code": "TS6133",
       "message": "'PRINCIPAL_KIND_LABELS' is declared but its value is never read."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'EQUALS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'NOT_EQUALS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'LESS_THAN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'LESS_THAN_OR_EQUAL'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'GREATER_THAN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'GREATER_THAN_OR_EQUAL'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'CONTAINS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'STARTS_WITH'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'NOT_IN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IS_EMPTY'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IS_NOT_EMPTY'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'EQUALS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'NOT_EQUALS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'LESS_THAN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'LESS_THAN_OR_EQUAL'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'GREATER_THAN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'GREATER_THAN_OR_EQUAL'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'CONTAINS'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'STARTS_WITH'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'NOT_IN'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IS_EMPTY'."
-    },
-    {
-      "file": "src/app/models/models.tsx",
-      "code": "TS2300",
-      "message": "Duplicate identifier 'IS_NOT_EMPTY'."
     },
     {
       "file": "src/app/onboarding/organization-onboarding/OrganizationOnboarding.tsx",
@@ -957,11 +792,6 @@
       "file": "src/app/settings/useSettingsPlanAvailability.test.ts",
       "code": "TS2352",
       "message": "Conversion of type '{ activeOrganizationId: string; availableOrganizations: undefined[]; capabilities: (Capability.ORG_POLICY_MANAGE | Capability.ORG_BILLING_MANAGE)[]; effectiveSubscription: EffectiveSubscriptionDto; }' to type 'CurrentSessionDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
-    },
-    {
-      "file": "src/app/settings/useSettingsPlanAvailability.test.ts",
-      "code": "TS2352",
-      "message": "Conversion of type '{ activeOrganizationId: string; availableOrganizations: undefined[]; capabilities: Capability.ORG_POLICY_MANAGE[]; effectiveSubscription: EffectiveSubscriptionDto; }' to type 'CurrentSessionDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first."
     },
     {
       "file": "src/app/settings/workflows-tab/step-card/condition-expression/ConditionExpressionBuilder.tsx",
@@ -1467,16 +1297,6 @@
       "file": "src/services/exchangeApi.ts",
       "code": "TS2339",
       "message": "Property 'response' does not exist on type 'unknown'."
-    },
-    {
-      "file": "src/services/fieldsService.ts",
-      "code": "TS2339",
-      "message": "Property 'response' does not exist on type 'unknown'."
-    },
-    {
-      "file": "src/services/fieldsService.ts",
-      "code": "TS2339",
-      "message": "Property 'message' does not exist on type 'unknown'."
     },
     {
       "file": "src/services/fieldsService.ts",

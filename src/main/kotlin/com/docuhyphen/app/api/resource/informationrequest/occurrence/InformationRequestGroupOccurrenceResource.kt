@@ -1,19 +1,20 @@
 package com.docuhyphen.app.api.resource.informationrequest.occurrence
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
-import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.InformationRequestGroupOccurrenceResult
-import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
-import com.docuhyphen.app.api.resource.command.CommandPreconditionHeader
+import com.docuhyphen.app.api.model.InformationRequestItemRefusalDtoMapper
+import com.docuhyphen.app.api.resource.command.CommandIdempotencyKeyHeader
 import com.docuhyphen.app.api.resource.command.CommandPreconditionResponse
+import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
+import com.docuhyphen.app.api.resource.informationrequest.occurrence.handler.InformationRequestGroupOccurrenceRequestHandler
 import com.docuhyphen.app.api.resource.informationrequest.occurrence.operations.InformationRequestGroupOccurrenceResourceOperations
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
+import com.docuhyphen.app.api.service.fields.FieldValidationException
+import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
@@ -27,10 +28,12 @@ import org.slf4j.LoggerFactory
 import java.util.*
 
 class InformationRequestGroupOccurrenceResource @Inject constructor(
-    private val occurrenceService: InformationRequestGroupOccurrenceService,
+    occurrenceService: InformationRequestGroupOccurrenceService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestGroupOccurrenceResourceOperations
 {
+    private val occurrences = InformationRequestGroupOccurrenceRequestHandler(occurrenceService)
+
     override fun add(
         id: String,
         request: CreateInformationRequestGroupOccurrenceRequest,
@@ -44,18 +47,7 @@ class InformationRequestGroupOccurrenceResource @Inject constructor(
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
             if (request.groupKey.isBlank()) return badRequest("A group key is required")
-            ok(
-                occurrenceService.add(
-                    AddInformationRequestGroupOccurrenceCommand(
-                        requestId = requestId,
-                        access = accessContextFactory.currentAuthenticated(),
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        groupKey = request.groupKey,
-                        parentOccurrenceId = request.parentOccurrenceId,
-                    ),
-                ),
-            )
+            occurrences.add(requestId, request, accessContextFactory.currentAuthenticated(), ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -76,17 +68,7 @@ class InformationRequestGroupOccurrenceResource @Inject constructor(
             val occurrence = parseUuid(occurrenceId) ?: return badRequest("Invalid group occurrence id")
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
-            ok(
-                occurrenceService.remove(
-                    RemoveInformationRequestGroupOccurrenceCommand(
-                        requestId = requestId,
-                        access = accessContextFactory.currentAuthenticated(),
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        occurrenceId = occurrence,
-                    ),
-                ),
-            )
+            occurrences.remove(requestId, occurrence, accessContextFactory.currentAuthenticated(), ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -107,19 +89,7 @@ class InformationRequestGroupOccurrenceResource @Inject constructor(
             val commandKey = requiredIdempotencyKey(idempotencyKey)
                 ?: return badRequest("Idempotency-Key is required")
             if (request.groupKey.isBlank()) return badRequest("A group key is required")
-            ok(
-                occurrenceService.reorder(
-                    ReorderInformationRequestGroupOccurrencesCommand(
-                        requestId = requestId,
-                        access = accessContextFactory.currentAuthenticated(),
-                        precondition = CommandPreconditionHeader.required(ifMatch),
-                        idempotencyKey = commandKey,
-                        groupKey = request.groupKey,
-                        parentOccurrenceId = request.parentOccurrenceId,
-                        orderedOccurrenceIds = request.occurrenceIds,
-                    ),
-                ),
-            )
+            occurrences.reorder(requestId, request, accessContextFactory.currentAuthenticated(), ifMatch, commandKey)
         }
         catch (exception: Exception)
         {
@@ -127,12 +97,8 @@ class InformationRequestGroupOccurrenceResource @Inject constructor(
         }
     }
 
-    private fun ok(result: InformationRequestGroupOccurrenceResult): Response =
-        Response.ok(result.occurrences.map(InformationRequestGroupOccurrenceDtoMapper::toDto).toTypedArray())
-            .header("ETag", result.responseETag)
-            .build()
-
-    private fun requiredIdempotencyKey(raw: String?): String? = raw?.trim()?.takeIf { it.isNotEmpty() }
+    private fun requiredIdempotencyKey(raw: String?): String? =
+        CommandIdempotencyKeyHeader.stated(raw)?.let(InformationRequestCommandHttp::idempotencyKey)
 
     private fun parseUuid(raw: String): UUID? = runCatching { UUID.fromString(raw) }.getOrNull()
 
@@ -150,23 +116,35 @@ class InformationRequestGroupOccurrenceResource @Inject constructor(
             is CommandReceiptConflictException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
-            is InformationRequestLifecycleException -> Response.status(CONFLICT)
-                .entity(ResponseError(exception.message, exception.reasonCode)).build()
+            is InformationRequestItemRefusalException -> Response.status(CONFLICT)
+                .entity(InformationRequestItemRefusalDtoMapper.toDto(exception)).build()
+
+            is InformationRequestLifecycleException -> InformationRequestCommandHttp.lifecycleRefused(exception)
+
+            is FieldValidationException -> InformationRequestCommandHttp.fieldValueRefused(exception)
+            is FieldsPreconditionException -> InformationRequestCommandHttp.fieldsPreconditionRefused(exception)
 
             is IllegalStateException -> Response.status(CONFLICT)
                 .entity(ResponseError(exception.message)).build()
+
+            is com.docuhyphen.app.api.exception.InformationRequestCommandRequestException -> Response.status(BAD_REQUEST)
+                .entity(ResponseError(exception.message, exception.reasonCode)).build()
 
             is IllegalArgumentException -> Response.status(NOT_FOUND)
                 .entity(ResponseError(exception.message)).build()
 
             is ForbiddenException -> Response.status(FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                .entity(
+                    ResponseError(
+                        exception.message,
+                        com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog.FORBIDDEN
+                    )
+                ).build()
 
             is UnauthorizedException -> Response.status(UNAUTHORIZED)
                 .entity(ResponseError(exception.message)).build()
 
-            else ->
-            {
+            else -> InformationRequestCommandHttp.storageRuleRefused(logger, message, exception) ?: run {
                 logger.error(message, exception)
                 Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
             }

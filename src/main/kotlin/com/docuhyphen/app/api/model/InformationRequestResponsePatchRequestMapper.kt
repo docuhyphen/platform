@@ -1,15 +1,11 @@
 package com.docuhyphen.app.api.model
 
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseFieldValuesPatch
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
 import com.docuhyphen.app.api.resource.model.InformationRequestResponsePatchRequest
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 
-/**
- * Turns the wire shape of one response patch into the domain patch the response draft service
- * expects, once the resource has already confirmed [hasConflictingNarrativeOperation] is false.
- */
 object InformationRequestResponsePatchRequestMapper
 {
     fun hasConflictingNarrativeOperation(request: InformationRequestResponsePatchRequest): Boolean =

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
@@ -39,7 +40,7 @@ class InformationRequestReviewOpeningService @Inject constructor(
         locked: LockedInformationRequest,
         submission: InformationRequestSubmissionPackage,
         corrected: InformationRequestCorrection?,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
     ): InformationRequestReview?
     {
@@ -59,8 +60,8 @@ class InformationRequestReviewOpeningService @Inject constructor(
                 templateVersionId = submission.templateVersionId
                 state = InformationRequestReviewState.PENDING
                 reviewRevision = 1
-                openedByPrincipalKind = actor.kind
-                openedByPrincipalId = actor.id
+                openedByPrincipalKind = actor.principal.kind
+                openedByPrincipalId = actor.principal.id
                 openedAt = now
             },
         )
@@ -70,19 +71,27 @@ class InformationRequestReviewOpeningService @Inject constructor(
         return settlement.settleIfDecided(locked, review, actor, idempotencyKey)
     }
 
-    fun requireWithdrawable(submission: InformationRequestSubmissionPackage, actor: PrincipalRef)
+    fun withdrawalRefusal(submission: InformationRequestSubmissionPackage): String?
     {
-        val reviews =
-            reviewRepository.findForRequest(submission.informationRequestId).filter { it.packageId == submission.id }
+        if (correctionRepository.findForRequest(submission.informationRequestId)
+                .any { it.resubmittedPackageId == submission.id }
+        ) {
+            return "This Submission Package answers a correction and can no longer be withdrawn"
+        }
+        val reviews = reviewsOf(submission)
         val underReview = reviews.any { it.state != InformationRequestReviewState.PENDING } ||
                 assignmentRepository.findForReviews(reviews.map { it.id }).isNotEmpty()
-        if (underReview)
-        {
+        return "This Submission Package is under review and can no longer be withdrawn".takeIf { underReview }
+    }
+
+    fun requireWithdrawable(submission: InformationRequestSubmissionPackage, actor: PrincipalRef) {
+        withdrawalRefusal(submission)?.let { refusal ->
             throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.SUBMISSION_NOT_WITHDRAWABLE,
-                "This Submission Package is under review and can no longer be withdrawn",
+                refusal
             )
         }
+        val reviews = reviewsOf(submission)
         val now = Timestamp.from(clock.instant())
         reviews.forEach { review ->
             review.state = InformationRequestReviewState.WITHDRAWN
@@ -94,11 +103,15 @@ class InformationRequestReviewOpeningService @Inject constructor(
         }
     }
 
+    private fun reviewsOf(submission: InformationRequestSubmissionPackage): List<InformationRequestReview> =
+        reviewRepository.findForRequest(submission.informationRequestId).filter { it.packageId == submission.id }
+
     fun recordStart(
         locked: LockedInformationRequest,
         review: InformationRequestReview,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
+        additionalDetails: Map<String, String> = emptyMap(),
     )
     {
         val request = locked.request
@@ -109,12 +122,13 @@ class InformationRequestReviewOpeningService @Inject constructor(
                 toState = request.state,
                 mutation = InformationRequestMutation.START_REVIEW,
                 actor = actor,
-                idempotencyKey = "information_request.review_start|${review.id}|$idempotencyKey",
+                auditIdempotencyKey = "information_request.review_start|${review.id}|$idempotencyKey",
                 details = mapOf(
                     "reviewId" to review.id.toString(),
                     "reviewKind" to review.kind.name,
                     "submissionPackageId" to review.packageId.toString(),
-                ) + (review.priorReviewId?.let { mapOf("priorReviewId" to it.toString()) } ?: emptyMap()),
+                ) + (review.priorReviewId?.let { mapOf("priorReviewId" to it.toString()) }
+                    ?: emptyMap()) + additionalDetails,
             ),
         )
     }

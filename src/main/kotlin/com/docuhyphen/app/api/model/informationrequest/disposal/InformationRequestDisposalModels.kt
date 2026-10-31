@@ -1,8 +1,6 @@
 package com.docuhyphen.app.api.model.informationrequest.disposal
 
-import com.docuhyphen.app.api.model.entity.RecordDisposalState
-import com.docuhyphen.app.api.model.entity.RecordPreservationHold
-import com.docuhyphen.app.api.model.entity.RecordRetentionSchedule
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalObjectCandidate
 import com.docuhyphen.app.api.model.recordpreservation.RecordDisposalView
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
@@ -33,6 +31,7 @@ sealed interface InformationRequestDisposalAssessment
         val reasonCode: String,
         val detail: String,
         val eligibleFrom: Instant? = null,
+        val references: List<String> = emptyList(),
     ) : InformationRequestDisposalAssessment
 }
 
@@ -43,10 +42,29 @@ sealed interface InformationRequestDisposalOutcome
     data class Refused(val reasonCode: String, val detail: String) : InformationRequestDisposalOutcome
 }
 
+data class InformationRequestDisposalReference(
+    val kind: String,
+    val referrer: UUID?,
+)
+
+data class InformationRequestDisposalBatch(
+    val claimed: List<RecordDisposalView>,
+    val open: List<UUID>,
+)
+
+data class InformationRequestWithheldHold(
+    val resourceType: String,
+    val scope: RecordPreservationScope,
+    val status: RecordPreservationHoldStatus,
+    val effectiveFrom: Instant,
+)
+
 data class InformationRequestDisposalStanding(
     val requestId: UUID,
     val assessment: InformationRequestDisposalAssessment?,
     val disposal: RecordDisposalView?,
+    val readableHolds: List<RecordPreservationHold>,
+    val withheldHolds: List<InformationRequestWithheldHold>,
 )
 {
     val state: RecordDisposalState? get() = disposal?.claim?.state

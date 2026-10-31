@@ -5,13 +5,13 @@ import com.docuhyphen.app.api.model.informationrequest.externalsource.ReconcileI
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.externalsource.operations.InformationRequestImportedValueReconciliationResourceOperations
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueService
+import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueReconciliationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
 class InformationRequestImportedValueReconciliationResource @Inject constructor(
-    private val importedValues: InformationRequestImportedValueService,
+    private val importedValueReconciliation: InformationRequestImportedValueReconciliationService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestImportedValueReconciliationResourceOperations
 {
@@ -26,7 +26,13 @@ class InformationRequestImportedValueReconciliationResource @Inject constructor(
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
             val results =
-                importedValues.reconcile(ReconcileInformationRequestImportedValuesCommand(requestId, access, key))
+                importedValueReconciliation.reconcile(
+                    ReconcileInformationRequestImportedValuesCommand(
+                        requestId,
+                        access,
+                        key
+                    )
+                )
             Response.ok(results.map(InformationRequestExternalSourceDtoMapper::toDto).toTypedArray()).build()
         }
         catch (exception: Exception)

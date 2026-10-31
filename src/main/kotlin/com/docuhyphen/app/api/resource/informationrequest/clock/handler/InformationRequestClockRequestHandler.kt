@@ -29,26 +29,33 @@ class InformationRequestClockRequestHandler(
     fun policy(policyId: UUID): Response =
         Response.ok(InformationRequestClockDtoMapper.toDto(policies.get(policyId))).build()
 
-    fun definePolicy(request: DefineInformationRequestClockPolicyRequest?): Response
+    fun definePolicy(request: DefineInformationRequestClockPolicyRequest?, idempotencyKey: String?): Response
     {
+        val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
         val body = request
             ?: throw InformationRequestCommandRequestException("A clock policy states its key, name, and definition")
         val view = policies.define(
             DefineInformationRequestClockPolicyCommand(
                 body.policyKey,
                 body.displayName,
-                definition(body.definition)
+                definition(body.definition),
+                key,
             )
         )
         return Response.status(Response.Status.CREATED).entity(InformationRequestClockDtoMapper.toDto(view)).build()
     }
 
-    fun publishVersion(policyId: UUID, request: InformationRequestClockPolicyDefinitionRequest?): Response
+    fun publishVersion(
+        policyId: UUID,
+        request: InformationRequestClockPolicyDefinitionRequest?,
+        idempotencyKey: String?,
+    ): Response
     {
+        val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
         val body =
             request ?: throw InformationRequestCommandRequestException("A clock policy version states its definition")
         val view =
-            policies.publishVersion(PublishInformationRequestClockPolicyVersionCommand(policyId, definition(body)))
+            policies.publishVersion(PublishInformationRequestClockPolicyVersionCommand(policyId, definition(body), key))
         return Response.status(Response.Status.CREATED).entity(InformationRequestClockDtoMapper.toDto(view)).build()
     }
 
@@ -100,7 +107,7 @@ class InformationRequestClockRequestHandler(
                 extensionMinutes = body.extensionMinutes,
                 reasonCode = body.reasonCode,
                 access = access,
-                precondition = CommandPreconditionHeader.required(ifMatch),
+                precondition = CommandPreconditionHeader.requiredExact(ifMatch),
                 idempotencyKey = InformationRequestCommandHttp.idempotencyKey(idempotencyKey),
             ),
         )

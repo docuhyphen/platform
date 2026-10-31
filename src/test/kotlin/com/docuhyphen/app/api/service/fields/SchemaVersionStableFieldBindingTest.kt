@@ -1,26 +1,17 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.OrganizationRoleName
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.repository.fields.*
+import com.docuhyphen.app.api.resource.model.BindingRequest
+import com.docuhyphen.app.api.resource.model.CreateSchemaRequest
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.fields.model.StableFieldBindingFixture
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -28,15 +19,8 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * A Schema Version describes each stable Field at most once. Two Field Contracts are two immutable
- * versions of the same Field Definition, so binding both into one version leaves every consumer
- * that addresses a field by its stable identity with two answers to choose between.
- *
- * These tests drive the authoring rule and the stable identity each persisted binding records.
- */
 class SchemaVersionStableFieldBindingTest
 {
     private val organizationId = UUID.randomUUID()
@@ -50,19 +34,10 @@ class SchemaVersionStableFieldBindingTest
     private val reviewFieldId = UUID.randomUUID()
     private val reviewContractId = UUID.randomUUID()
 
-    private data class Fixture(
-        val service: SchemaDefinitionService,
-        val savedBindings: MutableList<SchemaFieldBinding>,
-    )
-
-    /**
-     * @param hasOpenDraft whether the schema already has an editable draft version.
-     * @param publishedBindings bindings of a latest published version, cloned into a new draft.
-     */
     private fun fixture(
         hasOpenDraft: Boolean = true,
         publishedBindings: List<SchemaFieldBinding> = emptyList(),
-    ): Fixture
+    ): StableFieldBindingFixture
     {
         val principal = PrincipalRef.user(UUID.randomUUID())
         val contextFactory = mock<AuthorizationContextFactory>()
@@ -89,6 +64,7 @@ class SchemaVersionStableFieldBindingTest
         }
         val definitionRepository = mock<SchemaDefinitionRepository>()
         whenever(definitionRepository.findById(schemaDefinitionId)).thenReturn(definition)
+        whenever(definitionRepository.findByIdForUpdate(schemaDefinitionId)).thenReturn(definition)
         whenever(definitionRepository.update(any())).thenAnswer { it.getArgument(0) }
 
         val draft = SchemaVersion().apply {
@@ -130,7 +106,7 @@ class SchemaVersionStableFieldBindingTest
         whenever(fieldDefinitionRepository.findById(reviewFieldId))
             .thenReturn(fieldDefinition(reviewFieldId, "review-note"))
 
-        return Fixture(
+        return StableFieldBindingFixture(
             SchemaDefinitionService(
                 schemaDefinitionRepository = definitionRepository,
                 schemaVersionRepository = versionRepository,
@@ -259,6 +235,5 @@ class SchemaVersionStableFieldBindingTest
     }
 }
 
-/** The stable field the writer recorded, or null when it recorded none. */
 private fun SchemaFieldBinding.recordedStableFieldId(): UUID? =
     runCatching { fieldDefinitionId }.getOrNull()

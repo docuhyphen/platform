@@ -1,6 +1,7 @@
 import {
     InformationRequestNextAction,
     InformationRequestResponseDisposition,
+    InformationRequestResponseEditLock,
     InformationRequestShareRoleKey,
     InformationRequestSubjectKind,
 } from "../../models/models.tsx";
@@ -12,6 +13,7 @@ export const shareRoleLabels: Record<InformationRequestShareRoleKey, string> = {
     [InformationRequestShareRoleKey.ATTESTOR]: "Attestor",
     [InformationRequestShareRoleKey.REVIEWER]: "Reviewer",
     [InformationRequestShareRoleKey.DECISION_MAKER]: "Decision Maker",
+    [InformationRequestShareRoleKey.RECORD_OWNER]: "Record owner",
 };
 
 export const nextActionLabels: Record<InformationRequestNextAction, string> = {
@@ -31,6 +33,13 @@ export const dispositionLabels: Record<InformationRequestResponseDisposition, st
     [InformationRequestResponseDisposition.EXCEPTION_REQUESTED]: "Exception requested",
     [InformationRequestResponseDisposition.SATISFIED_BY_REFERENCE]: "Provided elsewhere",
     [InformationRequestResponseDisposition.WAIVED]: "Waived",
+};
+
+export const responseEditLockLabels: Record<InformationRequestResponseEditLock, string> = {
+    [InformationRequestResponseEditLock.SUBMITTED]: "Submitted. Withdraw the submission to change this answer.",
+    [InformationRequestResponseEditLock.NOT_RETURNED_FOR_CORRECTION]:
+        "Not returned for correction, so this answer stays as it was submitted.",
+    [InformationRequestResponseEditLock.GIVEN_ONCE]: "Given once, so this answer cannot change after it was submitted.",
 };
 
 export const subjectKindLabels: Record<InformationRequestSubjectKind, string> = {

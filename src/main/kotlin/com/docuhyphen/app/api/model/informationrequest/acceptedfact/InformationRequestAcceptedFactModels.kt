@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model.informationrequest.acceptedfact
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import java.time.Instant
 import java.util.*
 
@@ -44,6 +44,16 @@ data class InformationRequestAcceptedFactView(
     val supersededByFactId: UUID?,
     val freshness: InformationRequestAcceptedFactFreshness,
     val evidenceVersionIds: List<UUID> = emptyList(),
+    val conflictState: InformationRequestAcceptedFactConflictState = InformationRequestAcceptedFactConflictState.NONE,
+    val conflictingFactId: UUID? = null,
+)
+
+data class InformationRequestAcceptedFactKey(
+    val ownerType: InformationRequestOwnerType,
+    val ownerId: UUID,
+    val subjectIdentityRefId: UUID,
+    val fieldDefinitionId: UUID,
+    val purposeKey: String,
 )
 
 data class InformationRequestAcceptedFactOffer(
@@ -61,6 +71,7 @@ data class RecertifyInformationRequestAcceptedFactCommand(
     val precondition: CommandPrecondition,
     val access: RequestAccessContext,
     val idempotencyKey: String,
+    val confirmedHiddenResponseClears: Set<UUID> = emptySet(),
 )
 
 data class InformationRequestFactRecertificationView(

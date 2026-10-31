@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.model.informationrequest.oversight
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyVersionView
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.model.notification.DomainEventDeliveryStanding
 import java.time.Instant
@@ -51,6 +52,15 @@ data class InformationRequestOperationsFilter(
     val offset: Int = 0,
 )
 
+data class InformationRequestOperationsCriteria(
+    val ownerType: InformationRequestOwnerType,
+    val ownerId: UUID,
+    val states: Set<InformationRequestState>,
+    val exchangeId: UUID?,
+    val search: String?,
+    val assigneeId: UUID?,
+)
+
 data class InformationRequestOperationsAssignee(
     val roleKey: InformationRequestShareRoleKey,
     val principalKind: PrincipalKind,
@@ -67,6 +77,7 @@ data class InformationRequestOperationsRow(
     val standing: InformationRequestSlaStanding,
     val noticeCounts: Map<InformationRequestNoticeDeliveryState, Int>,
     val exceptionCounts: Map<InformationRequestOperationsException, Int>,
+    val executionStanding: InformationRequestExecutionStanding,
 )
 
 data class InformationRequestOperationsInputs(
@@ -75,6 +86,7 @@ data class InformationRequestOperationsInputs(
     val versions: Map<UUID, InformationRequestClockPolicyVersionView?>,
     val notices: Map<UUID, List<InformationRequestNoticeDeliveryState>>,
     val deliveries: Map<String, DomainEventDeliveryStanding>,
+    val executionStandings: Map<UUID, InformationRequestExecutionStanding>,
 )
 
 data class InformationRequestOperationsPage(

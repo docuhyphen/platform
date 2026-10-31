@@ -4,15 +4,6 @@ import com.docuhyphen.app.api.model.informationrequest.capability.InformationReq
 import jakarta.persistence.*
 import java.util.*
 
-/**
- * One runtime capability an [InformationRequestTemplateVersion] needs somebody to supply, at the
- * contract version the Version was frozen against.
- *
- * Which capabilities a Version needs follows from what it configures, so publication refuses a set
- * that disagrees with the configuration in either direction. Whether an installed runtime can serve
- * the recorded contract versions is a separate question, answered when a request is created against
- * the Version rather than when the Version freezes.
- */
 @Entity
 @Table(name = "information_request_template_version_capability")
 class InformationRequestTemplateVersionCapability

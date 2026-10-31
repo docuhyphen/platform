@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.resource.informationrequest.privacy
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.model.InformationRequestPrivacyDtoMapper
+import com.docuhyphen.app.api.model.informationrequest.privacy.LiftInformationRequestSubjectRestrictionCommand
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestCommandHttp
 import com.docuhyphen.app.api.resource.informationrequest.privacy.operations.InformationRequestSubjectRestrictionResourceOperations
 import com.docuhyphen.app.api.resource.model.LiftInformationRequestSubjectRestrictionRequest
@@ -31,14 +32,24 @@ class InformationRequestSubjectRestrictionResource @Inject constructor(
         }
     }
 
-    override fun lift(restrictionId: String, request: LiftInformationRequestSubjectRestrictionRequest?): Response
+    override fun lift(
+        restrictionId: String,
+        request: LiftInformationRequestSubjectRestrictionRequest?,
+        idempotencyKey: String?,
+    ): Response
     {
         return try
         {
             val body =
                 request ?: throw InformationRequestCommandRequestException("Lifting a restriction states its reason")
-            val lifted =
-                restrictions.lift(InformationRequestCommandHttp.uuid(restrictionId, "restriction id"), body.reasonCode)
+            val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
+            val lifted = restrictions.lift(
+                LiftInformationRequestSubjectRestrictionCommand(
+                    restrictionId = InformationRequestCommandHttp.uuid(restrictionId, "restriction id"),
+                    reasonCode = body.reasonCode,
+                    idempotencyKey = key,
+                ),
+            )
             Response.ok(InformationRequestPrivacyDtoMapper.toDto(lifted)).build()
         }
         catch (exception: Exception)

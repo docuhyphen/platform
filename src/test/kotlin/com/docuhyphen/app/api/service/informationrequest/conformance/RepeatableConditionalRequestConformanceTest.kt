@@ -1,39 +1,17 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance
 
 import com.docuhyphen.app.api.migration.queryStrings
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAcceptedValueRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateReviewStageRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingCorrectionScope
-import com.docuhyphen.app.api.model.entity.InformationRequestFindingSeverity
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewAggregation
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewOutcome
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestReviewState
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
+import com.docuhyphen.app.api.model.fields.FieldsPrecondition
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.occurrence.AddInformationRequestGroupOccurrenceCommand
 import com.docuhyphen.app.api.model.informationrequest.occurrence.RemoveInformationRequestGroupOccurrenceCommand
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationContext
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationIssue
-import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestStructuredResponseValidationKind
-import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
-import com.docuhyphen.app.api.model.informationrequest.response.ResponseFieldValuesPatch
+import com.docuhyphen.app.api.model.informationrequest.occurrence.ReorderInformationRequestGroupOccurrencesCommand
+import com.docuhyphen.app.api.model.informationrequest.response.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
@@ -44,21 +22,18 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
-import com.docuhyphen.app.api.service.fields.FieldsPrecondition
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.capability.WalkingSkeletonField
+import com.docuhyphen.app.api.service.informationrequest.capability.model.WalkingSkeletonField
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.RepeatableConditionalScenario
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.RepeatableGroupOccurrence
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupOccurrenceService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidator
@@ -69,41 +44,72 @@ import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class RepeatableConditionalRequestConformanceTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var requirementRepository: InformationRequestRequirementRepository
-    @Inject lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
-    @Inject lateinit var versionRepository: InformationRequestTemplateVersionRepository
-    @Inject lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
-    @Inject lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
-    @Inject lateinit var materializer: InformationRequestTemplateMaterializer
-    @Inject lateinit var occurrences: InformationRequestGroupOccurrenceService
-    @Inject lateinit var conditions: InformationRequestConditionEvaluationService
-    @Inject lateinit var authorizationService: AuthorizationService
-    @Inject lateinit var reviewRepository: InformationRequestReviewRepository
-    @Inject lateinit var correctionRepository: InformationRequestCorrectionRepository
-    @Inject lateinit var correctionItemRepository: InformationRequestCorrectionItemRepository
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var requirementRepository: InformationRequestRequirementRepository
+
+    @Inject
+    lateinit var definitionRepository: InformationRequestTemplateDefinitionRepository
+
+    @Inject
+    lateinit var versionRepository: InformationRequestTemplateVersionRepository
+
+    @Inject
+    lateinit var capabilityRepository: InformationRequestTemplateVersionCapabilityRepository
+
+    @Inject
+    lateinit var configurationWriter: InformationRequestTemplateConfigurationWriter
+
+    @Inject
+    lateinit var materializer: InformationRequestTemplateMaterializer
+
+    @Inject
+    lateinit var occurrences: InformationRequestGroupOccurrenceService
+
+    @Inject
+    lateinit var conditions: InformationRequestConditionEvaluationService
+
+    @Inject
+    lateinit var authorizationService: AuthorizationService
+
+    @Inject
+    lateinit var reviewRepository: InformationRequestReviewRepository
+
+    @Inject
+    lateinit var correctionRepository: InformationRequestCorrectionRepository
+
+    @Inject
+    lateinit var correctionItemRepository: InformationRequestCorrectionItemRepository
 
     private val reviews by lazy { ConformanceReviewSupport(runtime, reviewRepository) }
 
     private val published by lazy {
         PublishedRequestSupport(
-            dataSource, requestRepository, requirementRepository, definitionRepository, versionRepository, capabilityRepository,
-            configurationWriter, materializer,
+            dataSource,
+            requestRepository,
+            requirementRepository,
+            definitionRepository,
+            versionRepository,
+            capabilityRepository,
+            configurationWriter,
+            materializer,
         )
     }
 
@@ -114,7 +120,13 @@ class RepeatableConditionalRequestConformanceTest
         val services = runtime.build(
             scenario.requestId,
             centralAuthorization = authorizationService,
-            responseValidation = InformationRequestStructuredResponseValidationService(listOf(DistinctEntryLabels(scenario.label.fieldContractId))),
+            responseValidation = InformationRequestStructuredResponseValidationService(
+                listOf(
+                    DistinctEntryLabels(
+                        scenario.label.fieldDefinitionId
+                    )
+                )
+            ),
         )
 
         val first = addOccurrence(scenario, ENTRY, null, "add-first")
@@ -124,8 +136,8 @@ class RepeatableConditionalRequestConformanceTest
         assertTrue(nested.path.startsWith(first.path), "${nested.path} is nested under ${first.path}")
         val secondNested = addOccurrence(scenario, DETAIL, second.id, "add-second-nested")
 
-        assertEquals(InformationRequestConditionEvaluationState.UNKNOWN, detailCondition(scenario, nested.path))
-        assertEquals(InformationRequestConditionEvaluationState.UNKNOWN, detailCondition(scenario, secondNested.path))
+        assertEquals(InformationRequestConditionEvaluationState.FALSE, detailCondition(scenario, nested.path))
+        assertEquals(InformationRequestConditionEvaluationState.FALSE, detailCondition(scenario, secondNested.path))
 
         val duplicate = assertThrows(InformationRequestLifecycleException::class.java) {
             patchLabels(services, scenario, mapOf(first.path to "same", second.path to "same"), "duplicate-labels")
@@ -134,6 +146,17 @@ class RepeatableConditionalRequestConformanceTest
         assertEquals(0, storedLabels(scenario).size)
 
         patchLabels(services, scenario, mapOf(first.path to DETAILED, second.path to "brief"), "distinct-labels")
+        assertEquals(setOf("$DETAILED@${first.path}", "brief@${second.path}"), storedLabels(scenario))
+        val repeated = assertThrows(InformationRequestItemRefusalException::class.java) {
+            patchLabels(services, scenario, mapOf(second.path to DETAILED), "repeat-a-saved-label")
+        }
+        assertEquals(InformationRequestErrorCatalog.STRUCTURED_RESPONSE_VALIDATION_FAILED, repeated.reasonCode)
+        assertEquals(
+            InformationRequestStructuredResponseValidationKind.DUPLICATE,
+            repeated.problems.single().validationKind
+        )
+        assertEquals(second.path, repeated.problems.single().occurrencePath)
+        assertEquals(requirement(scenario, LABEL_KEY, second.path).id, repeated.problems.single().requirementId)
         assertEquals(setOf("$DETAILED@${first.path}", "brief@${second.path}"), storedLabels(scenario))
         assertEquals(InformationRequestConditionEvaluationState.TRUE, detailCondition(scenario, nested.path))
         assertEquals(InformationRequestConditionEvaluationState.FALSE, detailCondition(scenario, secondNested.path))
@@ -155,10 +178,47 @@ class RepeatableConditionalRequestConformanceTest
             )
         }
         val third = addOccurrence(scenario, ENTRY, null, "add-third")
-        assertFalse(third.path in setOf(first.path, second.path), "a removed occurrence path is never reused: ${third.path}")
+        assertFalse(
+            third.path in setOf(first.path, second.path),
+            "a removed occurrence path is never reused: ${third.path}"
+        )
         assertEquals(setOf(third.path), missingRecords(services, scenario))
         assertEquals(InformationRequestConditionEvaluationState.TRUE, detailCondition(scenario, nested.path))
         assertTrue("$DETAILED@${first.path}" in storedLabels(scenario))
+    }
+
+    @Test
+    fun `an entry whose nested entry was removed can still be reordered and removed`() {
+        val scenario = scenario()
+        val first = addOccurrence(scenario, ENTRY, null, "add-first")
+        val second = addOccurrence(scenario, ENTRY, null, "add-second")
+        val nested = addOccurrence(scenario, DETAIL, first.id, "add-nested")
+        removeOccurrence(scenario, nested.id, "remove-nested")
+
+        val reordered = QuarkusTransaction.requiringNew().call {
+            occurrences.reorder(
+                ReorderInformationRequestGroupOccurrencesCommand(
+                    requestId = scenario.requestId,
+                    access = scenario.contributor,
+                    precondition = CommandPrecondition.ExpectedRevision(responseETag(scenario)),
+                    idempotencyKey = "reorder-entries",
+                    groupKey = ENTRY,
+                    orderedOccurrenceIds = listOf(second.id, first.id),
+                ),
+            )
+        }
+        val removed = removeOccurrence(scenario, first.id, "remove-first")
+
+        assertEquals(
+            listOf(second.id, first.id),
+            reordered.occurrences.filter { it.removedAt == null && it.parentOccurrenceId == null }
+                .sortedBy { it.occurrenceIndex }
+                .map { it.id },
+        )
+        assertEquals(
+            listOf(second.id),
+            removed.occurrences.filter { it.removedAt == null && it.parentOccurrenceId == null }.map { it.id },
+        )
     }
 
     @Test
@@ -178,7 +238,10 @@ class RepeatableConditionalRequestConformanceTest
                     requestId = scenario.requestId,
                     access = scenario.contributor,
                     precondition = CommandPrecondition.ExpectedRevision(
-                        InformationRequestETag.submissionOf(null, runtime.contentCollector.collect(stored, null).contentHash),
+                        InformationRequestETag.submissionOf(
+                            null,
+                            runtime.contentCollector.collect(stored, null).contentHash
+                        ),
                     ),
                     idempotencyKey = "reviewed-submit",
                 ),
@@ -186,19 +249,33 @@ class RepeatableConditionalRequestConformanceTest
         }
         val review = reviews.reviews(scenario.requestId).single()
         val assigned = reviews.assign(
-            services, scenario.requestId, review.id, ENTRY_REVIEW, scenario.published.parties.getValue("REVIEWER"), scenario.published.owner,
+            services,
+            scenario.requestId,
+            review.id,
+            ENTRY_REVIEW,
+            scenario.published.parties.getValue("REVIEWER"),
+            scenario.published.owner,
             "reviewed-assign",
         )
         val firstLabel = requirement(scenario, LABEL_KEY, first.path).id
         val firstItem = reviews.item(scenario.requestId, submitted, firstLabel)
         val finding = reviews.finding(
-            services, scenario.requestId, review.id, firstItem, InformationRequestFindingSeverity.MAJOR,
-            InformationRequestFindingCorrectionScope.RESPONSE, scenario.published.access("REVIEWER"), "reviewed-finding",
+            services,
+            scenario.requestId,
+            review.id,
+            firstItem,
+            InformationRequestFindingSeverity.MAJOR,
+            InformationRequestFindingCorrectionScope.RESPONSE,
+            scenario.published.access("REVIEWER"),
+            "reviewed-finding",
         )
         assertEquals(
             first.path,
             QuarkusTransaction.requiringNew().call {
-                runtime.packageReader.view(scenario.requestId, submitted).items.single { it.id == finding.submissionItemId }.occurrencePath
+                runtime.packageReader.view(
+                    scenario.requestId,
+                    submitted
+                ).items.single { it.id == finding.submissionItemId }.occurrencePath
             },
         )
         val returned = reviews.decide(
@@ -211,7 +288,9 @@ class RepeatableConditionalRequestConformanceTest
         assertEquals(InformationRequestReviewState.CHANGES_REQUESTED, returned.review.state)
         QuarkusTransaction.requiringNew().run {
             val correction = correctionRepository.findForRequest(scenario.requestId).single()
-            assertEquals(listOf(firstLabel), correctionItemRepository.findForCorrections(listOf(correction.id)).map { it.requirementId })
+            assertEquals(
+                listOf(firstLabel),
+                correctionItemRepository.findForCorrections(listOf(correction.id)).map { it.requirementId })
         }
         val refused = assertThrows(InformationRequestLifecycleException::class.java) {
             patchLabels(services, scenario, mapOf(second.path to "changed"), "reviewed-outside")
@@ -222,7 +301,25 @@ class RepeatableConditionalRequestConformanceTest
         assertTrue("short@${second.path}" in storedLabels(scenario))
     }
 
-    private fun addOccurrence(scenario: Scenario, groupKey: String, parent: UUID?, key: String): Occurrence =
+    private fun removeOccurrence(scenario: RepeatableConditionalScenario, occurrenceId: UUID, key: String) =
+        QuarkusTransaction.requiringNew().call {
+            occurrences.remove(
+                RemoveInformationRequestGroupOccurrenceCommand(
+                    requestId = scenario.requestId,
+                    access = scenario.contributor,
+                    precondition = CommandPrecondition.ExpectedRevision(responseETag(scenario)),
+                    idempotencyKey = key,
+                    occurrenceId = occurrenceId,
+                ),
+            )
+        }
+
+    private fun addOccurrence(
+        scenario: RepeatableConditionalScenario,
+        groupKey: String,
+        parent: UUID?,
+        key: String
+    ): RepeatableGroupOccurrence =
         QuarkusTransaction.requiringNew().call {
             val result = occurrences.add(
                 AddInformationRequestGroupOccurrenceCommand(
@@ -236,10 +333,15 @@ class RepeatableConditionalRequestConformanceTest
             )
             val added = result.occurrences.single { it.removedAt == null && it.id !in scenario.seen }
             scenario.seen += added.id
-            Occurrence(added.id, added.occurrencePath)
+            RepeatableGroupOccurrence(added.id, added.occurrencePath)
         }
 
-    private fun patchLabels(services: InformationRequestRuntimeServices, scenario: Scenario, labels: Map<String, String>, key: String) =
+    private fun patchLabels(
+        services: InformationRequestRuntimeServices,
+        scenario: RepeatableConditionalScenario,
+        labels: Map<String, String>,
+        key: String
+    ) =
         QuarkusTransaction.requiringNew().call {
             services.responses.patch(
                 PatchInformationRequestResponsesCommand(
@@ -261,7 +363,11 @@ class RepeatableConditionalRequestConformanceTest
             )
         }
 
-    private fun provideRecord(services: InformationRequestRuntimeServices, scenario: Scenario, path: String)
+    private fun provideRecord(
+        services: InformationRequestRuntimeServices,
+        scenario: RepeatableConditionalScenario,
+        path: String
+    )
     {
         val record = requirement(scenario, RECORD_KEY, path)
         QuarkusTransaction.requiringNew().call {
@@ -271,14 +377,29 @@ class RepeatableConditionalRequestConformanceTest
                     access = scenario.contributor,
                     precondition = CommandPrecondition.ExpectedRevision(responseETag(scenario)),
                     idempotencyKey = "provide-record-$path",
-                    patches = listOf(InformationRequestResponsePatch(requirementId = record.id, disposition = InformationRequestResponseDisposition.PROVIDED)),
+                    patches = listOf(
+                        InformationRequestResponsePatch(
+                            requirementId = record.id,
+                            disposition = InformationRequestResponseDisposition.PROVIDED
+                        )
+                    ),
                 ),
             )
         }
-        dataSource.connection.use { connection -> ConformanceEvidenceSql.insertConformingFile(connection, scenario.requestId, record.id, scenario.contributorId) }
+        dataSource.connection.use { connection ->
+            ConformanceEvidenceSql.insertConformingFile(
+                connection,
+                scenario.requestId,
+                record.id,
+                scenario.contributorId
+            )
+        }
     }
 
-    private fun missingRecords(services: InformationRequestRuntimeServices, scenario: Scenario): Set<String> =
+    private fun missingRecords(
+        services: InformationRequestRuntimeServices,
+        scenario: RepeatableConditionalScenario
+    ): Set<String> =
         QuarkusTransaction.requiringNew().call {
             services.submissionQueries.preview(scenario.requestId, null, scenario.contributor).readiness.problems
                 .filter { it.requirementKey == RECORD_KEY && it.code == InformationRequestSubmissionProblemCode.REQUIREMENT_INCOMPLETE }
@@ -286,12 +407,16 @@ class RepeatableConditionalRequestConformanceTest
                 .toSet()
         }
 
-    private fun detailCondition(scenario: Scenario, path: String): InformationRequestConditionEvaluationState =
+    private fun detailCondition(
+        scenario: RepeatableConditionalScenario,
+        path: String
+    ): InformationRequestConditionEvaluationState =
         QuarkusTransaction.requiringNew().call {
-            conditions.evaluate(scenario.requestId).single { it.ruleKey == DETAIL_RULE && it.occurrencePath == path }.state
+            conditions.evaluate(scenario.requestId)
+                .single { it.ruleKey == DETAIL_RULE && it.occurrencePath == path }.state
         }
 
-    private fun storedLabels(scenario: Scenario): Set<String> =
+    private fun storedLabels(scenario: RepeatableConditionalScenario): Set<String> =
         dataSource.connection.use { connection ->
             queryStrings(
                 connection,
@@ -306,7 +431,11 @@ class RepeatableConditionalRequestConformanceTest
             )
         }
 
-    private fun requirement(scenario: Scenario, key: String, path: String): InformationRequestRequirement =
+    private fun requirement(
+        scenario: RepeatableConditionalScenario,
+        key: String,
+        path: String
+    ): InformationRequestRequirement =
         QuarkusTransaction.requiringNew().call {
             val templateRequirementIds = dataSource.connection.use { connection ->
                 queryStrings(
@@ -320,16 +449,21 @@ class RepeatableConditionalRequestConformanceTest
                 .single { it.sourceTemplateRequirementId in templateRequirementIds && it.occurrencePath == path }
         }
 
-    private fun responseETag(scenario: Scenario): String =
-        QuarkusTransaction.requiringNew().call { InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(scenario.requestId))) }
+    private fun responseETag(scenario: RepeatableConditionalScenario): String =
+        QuarkusTransaction.requiringNew()
+            .call { InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(scenario.requestId))) }
 
-    private fun scenario(reviewed: Boolean = false): Scenario
+    private fun scenario(reviewed: Boolean = false): RepeatableConditionalScenario
     {
         val parties = if (reviewed) listOf("CONTRIBUTOR", "REVIEWER") else listOf("CONTRIBUTOR")
-        val issued = published.issue("repeatable-conditional-request", listOf(LABEL_KEY, "entry-detail"), parties) { schemaVersionId, fields ->
+        val issued = published.issue(
+            "repeatable-conditional-request",
+            listOf(LABEL_KEY, "entry-detail"),
+            parties
+        ) { schemaVersionId, fields ->
             configuration(schemaVersionId, fields.getValue(LABEL_KEY), fields.getValue("entry-detail"), reviewed)
         }
-        return Scenario(
+        return RepeatableConditionalScenario(
             requestId = issued.requestId,
             definitionId = issued.definitionId,
             contributorId = issued.users.getValue("CONTRIBUTOR"),
@@ -339,10 +473,16 @@ class RepeatableConditionalRequestConformanceTest
         )
     }
 
-    private fun configuration(schemaVersionId: UUID, label: WalkingSkeletonField, detail: WalkingSkeletonField, reviewed: Boolean) =
+    private fun configuration(
+        schemaVersionId: UUID,
+        label: WalkingSkeletonField,
+        detail: WalkingSkeletonField,
+        reviewed: Boolean
+    ) =
         InformationRequestTemplateConfigurationRequest(
             schemaVersionId = schemaVersionId,
-            reviewStages = if (!reviewed) emptyList() else listOf(
+            reviewStages = if (!reviewed) emptyList()
+            else listOf(
                 InformationRequestTemplateReviewStageRequest(
                     stageKey = ENTRY_REVIEW,
                     title = "Entry review",
@@ -411,7 +551,10 @@ class RepeatableConditionalRequestConformanceTest
                                 maximumFileSizeBytes = 1_000_000,
                                 maximumTotalSizeBytes = 2_000_000,
                                 acceptedValues = listOf(
-                                    InformationRequestTemplateAcceptedValueRequest(InformationRequestEvidenceAttribute.CONTENT_TYPE, "application/pdf"),
+                                    InformationRequestTemplateAcceptedValueRequest(
+                                        InformationRequestEvidenceAttribute.CONTENT_TYPE,
+                                        "application/pdf"
+                                    ),
                                 ),
                             ),
                         ),
@@ -420,36 +563,29 @@ class RepeatableConditionalRequestConformanceTest
             ),
         )
 
-    private class DistinctEntryLabels(private val labelContractId: UUID) : InformationRequestStructuredResponseValidator
+    private class DistinctEntryLabels(private val labelDefinitionId: UUID) :
+        InformationRequestStructuredResponseValidator
     {
-        override val kinds = setOf(InformationRequestStructuredResponseValidationKind.DUPLICATE)
+        override val stages = setOf(InformationRequestStructuredResponseValidationStage.RESPONSE_SAVE)
 
         override fun validate(context: InformationRequestStructuredResponseValidationContext): List<InformationRequestStructuredResponseValidationIssue> =
-            context.patches
-                .flatMap { patch -> patch.fieldValues?.entries.orEmpty().filter { it.fieldContractId == labelContractId }.map { it.value to patch.requirementId } }
+            context.fieldValuesByOccurrencePath
+                .mapNotNull { (path, values) -> values[labelDefinitionId]?.takeUnless { it.isEmpty }?.textValue?.let { it to path } }
                 .groupBy({ it.first }, { it.second })
                 .filterValues { it.size > 1 }
-                .map { (value, requirements) ->
+                .map { (_, paths) ->
+                    val repeatedAt = paths.sorted().last()
                     InformationRequestStructuredResponseValidationIssue(
                         kind = InformationRequestStructuredResponseValidationKind.DUPLICATE,
-                        message = "Entry label $value is used by ${requirements.size} entries",
-                        requirementId = requirements.first(),
-                        fieldContractId = labelContractId,
+                        message = "This entry label is already used by another entry",
+                        requirementId = context.requirementsById.values.firstOrNull { requirement ->
+                            requirement.occurrencePath == repeatedAt &&
+                                    context.bindingsById[requirement.sourceTemplateBindingId]?.collectedFieldDefinitionId == labelDefinitionId
+                        }?.id,
+                        occurrencePath = repeatedAt,
                     )
                 }
     }
-
-    private data class Occurrence(val id: UUID, val path: String)
-
-    private data class Scenario(
-        val requestId: UUID,
-        val definitionId: UUID,
-        val contributorId: UUID,
-        val contributor: RequestAccessContext,
-        val label: WalkingSkeletonField,
-        val published: PublishedRequest,
-        val seen: MutableSet<UUID> = mutableSetOf(),
-    )
 
     private companion object
     {

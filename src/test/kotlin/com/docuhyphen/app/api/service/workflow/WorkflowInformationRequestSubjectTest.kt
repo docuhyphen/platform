@@ -1,44 +1,25 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.entity.Exchange
-import com.docuhyphen.app.api.model.entity.WorkflowDefinition
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowInstanceStatus
-import com.docuhyphen.app.api.model.entity.WorkflowScope
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepStatus
-import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.exception.WorkflowStartRefusedException
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepAssigneeRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepDecisionRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepInstanceRepository
-import com.docuhyphen.app.api.repository.workflow.WorkflowStepTransitionRepository
+import com.docuhyphen.app.api.repository.workflow.*
+import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
+import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.doThrow
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class WorkflowInformationRequestSubjectTest
 {
@@ -61,8 +42,20 @@ class WorkflowInformationRequestSubjectTest
     @Test
     fun `a counterparty wait on a request subject completes at once because it only observes other organizations`()
     {
-        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(listOf(waitDefinition()))
-        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any())).thenReturn(true)
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(
+            listOf(
+                waitDefinition()
+            )
+        )
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
 
         newEngine().trigger(
             TriggerRequest(
@@ -88,8 +81,21 @@ class WorkflowInformationRequestSubjectTest
     {
         val allowed = waitDefinition()
         val refused = waitDefinition()
-        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(listOf(allowed, refused))
-        whenever(applicabilityEvaluator.isApplicable(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull(), any())).thenReturn(true)
+        whenever(
+            definitionRepository.findAllActiveForTrigger(
+                eq(SUBMIT),
+                eq(organizationId)
+            )
+        ).thenReturn(listOf(allowed, refused))
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
         doThrow(denial()).whenever(subscriptionGuard).requireInstanceStart(refused, organizationId)
 
         assertThrows<SubscriptionDenialException> {
@@ -104,6 +110,213 @@ class WorkflowInformationRequestSubjectTest
         }
 
         verify(instanceRepository, never()).save(any())
+    }
+
+    @Test
+    fun `a matching definition whose steps cannot be read refuses the start before any instance is created`() {
+        val readable = waitDefinition()
+        val unreadable = waitDefinition().apply { stepsJson = "{\"steps\": [{\"type\": " }
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(
+            listOf(
+                readable,
+                unreadable
+            )
+        )
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
+
+        val refusal = assertThrows<WorkflowStartRefusedException> { newEngine().trigger(submitTrigger()) }
+
+        assertEquals(unreadable.id, refusal.definitionId)
+        assertEquals(WorkflowStartRefusedException.SPEC_UNREADABLE, refusal.reasonCode)
+        verify(instanceRepository, never()).save(any())
+    }
+
+    @Test
+    fun `a first step naming a malformed principal or a definition without its owner refuses the start`() {
+        val malformed = waitDefinition().apply {
+            stepsJson = WorkflowSpecJson.encode(
+                WorkflowSpec(
+                    steps = listOf(
+                        WorkflowStepSpec(
+                            type = WorkflowStepType.APPROVAL,
+                            assignees = listOf(AssigneeSpec.Principal(PrincipalKind.USER, "not-an-identifier")),
+                            onApprove = StepOutcomeSpec("END"),
+                            onReject = StepOutcomeSpec("END"),
+                        ),
+                    ),
+                ),
+            )
+        }
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(
+            listOf(
+                malformed
+            )
+        )
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
+
+        val assignee = assertThrows<WorkflowStartRefusedException> { newEngine().trigger(submitTrigger()) }
+        assertEquals(malformed.id, assignee.definitionId)
+        assertEquals(WorkflowStartRefusedException.ASSIGNEE_INVALID, assignee.reasonCode)
+
+        val ownerless = waitDefinition().apply { this.organizationId = null }
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(
+            listOf(
+                ownerless
+            )
+        )
+        doThrow(IllegalArgumentException("Organization workflow has no subscription owner"))
+            .whenever(subscriptionGuard).requireInstanceStart(ownerless, organizationId)
+
+        val owner = assertThrows<WorkflowStartRefusedException> { newEngine().trigger(submitTrigger()) }
+        assertEquals(ownerless.id, owner.definitionId)
+        assertEquals(WorkflowStartRefusedException.OWNER_UNRESOLVED, owner.reasonCode)
+        verify(instanceRepository, never()).save(any())
+    }
+
+    @Test
+    fun `a personally owned request trigger starts its owner's personal definitions instead of the platform ones`() {
+        val ownerId = UUID.randomUUID()
+        val personal = waitDefinition().apply {
+            scope = WorkflowScope.PERSONAL
+            this.organizationId = null
+            createdByAppUserId = ownerId
+        }
+        whenever(definitionRepository.findAllActiveForPersonalTrigger(SUBMIT, ownerId)).thenReturn(listOf(personal))
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
+
+        val started = newEngine().trigger(
+            TriggerRequest(
+                triggerEvent = SUBMIT,
+                subjectResourceType = "INFORMATION_REQUEST",
+                subjectResourceId = requestId,
+                ownerAppUserId = ownerId,
+            ),
+        )
+
+        assertEquals(personal.id, started?.definitionId)
+        verify(subscriptionGuard).requireInstanceStart(personal, null)
+        verify(definitionRepository, never()).findAllActiveForTrigger(any(), anyOrNull())
+    }
+
+    @Test
+    fun `a personally owned workflow records its events under its owner rather than the platform`() {
+        val ownerId = UUID.randomUUID()
+        val personal = approvalDefinition(ownerId).apply {
+            scope = WorkflowScope.PERSONAL
+            this.organizationId = null
+            createdByAppUserId = ownerId
+        }
+        whenever(definitionRepository.findAllActiveForPersonalTrigger(SUBMIT, ownerId)).thenReturn(listOf(personal))
+        whenever(definitionRepository.findById(personal.id)).thenReturn(personal)
+        whenever(assigneeResolver.resolveAll(any(), anyOrNull())).thenReturn(listOf(PrincipalRef.user(ownerId)))
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
+
+        newEngine().trigger(
+            TriggerRequest(
+                triggerEvent = SUBMIT,
+                subjectResourceType = "INFORMATION_REQUEST",
+                subjectResourceId = requestId,
+                ownerAppUserId = ownerId,
+            ),
+        )
+
+        verify(eventPublisher).publish(
+            argThat<DomainEvent> { type == "workflow.step_assigned" },
+            eq(AuditOwnerScope.Personal(ownerId)),
+        )
+    }
+
+    @Test
+    fun `an organization workflow records its events under the organization`() {
+        val approverId = UUID.randomUUID()
+        val organizationDefinition = approvalDefinition(approverId)
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId)))
+            .thenReturn(listOf(organizationDefinition))
+        whenever(definitionRepository.findById(organizationDefinition.id)).thenReturn(organizationDefinition)
+        whenever(assigneeResolver.resolveAll(any(), anyOrNull())).thenReturn(listOf(PrincipalRef.user(approverId)))
+        whenever(
+            applicabilityEvaluator.isApplicable(
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                anyOrNull(),
+                any()
+            )
+        ).thenReturn(true)
+
+        newEngine().trigger(submitTrigger())
+
+        verify(eventPublisher).publish(
+            argThat<DomainEvent> { type == "workflow.step_assigned" },
+            eq(AuditOwnerScope.Organization(organizationId)),
+        )
+    }
+
+    @Test
+    fun `the decisions recorded on an instance are reported oldest first with who made them`() {
+        val instanceId = UUID.randomUUID()
+        val approverId = UUID.randomUUID()
+        val rejecterId = UUID.randomUUID()
+        val approvedAt = Instant.now().minusSeconds(120)
+        val rejectedAt = Instant.now()
+        val firstStep = step(instanceId, 0)
+        val secondStep = step(instanceId, 1)
+        whenever(stepRepository.findByInstance(instanceId)).thenReturn(listOf(secondStep, firstStep))
+        whenever(decisionRepository.findAllByStepInstanceId(firstStep.id))
+            .thenReturn(listOf(decision(firstStep, approverId, "APPROVE", approvedAt)))
+        whenever(decisionRepository.findAllByStepInstanceId(secondStep.id))
+            .thenReturn(listOf(decision(secondStep, rejecterId, "REJECT", rejectedAt)))
+
+        val decisions = newEngine().decisionsOf(instanceId)
+
+        assertEquals(
+            listOf(
+                WorkflowDecisionRecord(PrincipalRef.user(approverId), Decision.APPROVE, approvedAt),
+                WorkflowDecisionRecord(PrincipalRef.user(rejecterId), Decision.REJECT, rejectedAt),
+            ),
+            decisions,
+        )
+    }
+
+    @Test
+    fun `an organization request trigger never consults personal definitions`() {
+        whenever(definitionRepository.findAllActiveForTrigger(eq(SUBMIT), eq(organizationId))).thenReturn(emptyList())
+
+        newEngine().trigger(submitTrigger().copy(ownerAppUserId = UUID.randomUUID()))
+
+        verify(definitionRepository, never()).findAllActiveForPersonalTrigger(any(), any())
     }
 
     @Test
@@ -153,6 +366,49 @@ class WorkflowInformationRequestSubjectTest
             ),
         )
     }
+
+    private fun step(instanceId: UUID, index: Int) = WorkflowStepInstance().apply {
+        this.instanceId = instanceId
+        stepIndex = index
+        stepType = WorkflowStepType.APPROVAL
+        status = WorkflowStepStatus.APPROVED
+        createdAt = Timestamp.from(Instant.now())
+    }
+
+    private fun decision(step: WorkflowStepInstance, principalId: UUID, outcome: String, at: Instant) =
+        WorkflowStepDecision().apply {
+            stepInstanceId = step.id
+            principalKind = PrincipalKind.USER
+            this.principalId = principalId
+            decision = outcome
+            decidedAt = Timestamp.from(at)
+        }
+
+    private fun approvalDefinition(approverId: UUID): WorkflowDefinition = WorkflowDefinition().apply {
+        name = "Approval on submission"
+        scope = WorkflowScope.ORG
+        this.organizationId = this@WorkflowInformationRequestSubjectTest.organizationId
+        triggerEvent = SUBMIT
+        stepsJson = WorkflowSpecJson.encode(
+            WorkflowSpec(
+                steps = listOf(
+                    WorkflowStepSpec(
+                        type = WorkflowStepType.APPROVAL,
+                        assignees = listOf(AssigneeSpec.Principal(PrincipalKind.USER, approverId.toString())),
+                        onApprove = StepOutcomeSpec("END"),
+                        onReject = StepOutcomeSpec("END"),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun submitTrigger() = TriggerRequest(
+        triggerEvent = SUBMIT,
+        subjectResourceType = "INFORMATION_REQUEST",
+        subjectResourceId = requestId,
+        organizationId = organizationId,
+    )
 
     private fun denial() = SubscriptionDenialException(
         SubscriptionDenial(

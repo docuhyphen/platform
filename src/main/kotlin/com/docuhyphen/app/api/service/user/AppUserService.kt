@@ -89,11 +89,6 @@ class AppUserService @Inject constructor(
         return saved
     }
 
-    /**
-     * Gives a registered account its individual subscription record. Temporary recipient
-     * placeholders and machine accounts are skipped: neither is a subscriber and neither
-     * consumes a paid seat.
-     */
     fun provisionSubscriptionIfRegistered(user: AppUser)
     {
         if (user.isTemporary || user.application != null)
@@ -147,10 +142,6 @@ class AppUserService @Inject constructor(
         val newFirst = personDto.firstName.trim()
         val newLast = personDto.lastName.trim()
 
-        // Mutate the existing Person in place rather than replacing the reference.
-        // Replacing would orphan the existing person row and (with cascade=ALL) make
-        // Hibernate try to re-INSERT the old id, blowing up on the person_pkey unique
-        // constraint. If the user somehow has no Person yet, create one for them.
         val person = appUser.person ?: Person().also { appUser.person = it }
 
         val changes = mutableListOf<String>()
@@ -202,7 +193,6 @@ class AppUserService @Inject constructor(
             }
         }
 
-        // Step 1 of two-step flow: send a code to the OLD email.
         val oldEmailCode = otpService.generateEmailOtp()
         appUser.pendingEmail = email
         appUser.pendingEmailOldVerificationCode = oldEmailCode
@@ -338,6 +328,8 @@ class AppUserService @Inject constructor(
         return exchangeService.getExchangesLinkedToAppUserId(appUserId).isNotEmpty()
     }
 
+    fun hasRetainedAccountRecords(appUserId: UUID): Boolean = appUserRepository.hasRetainedAccountRecords(appUserId)
+
     fun delete(appUserId: String?)
     {
         val appUser = appUserRepository.findById(
@@ -353,8 +345,10 @@ class AppUserService @Inject constructor(
 
         if (hasLinkedExchanges(appUser.id))
         {
-            throw IllegalArgumentException("Cannot delete app user with linked exchanges")
+            throw IllegalArgumentException("Cannot delete app user with linked Exchanges")
         }
+
+        require(!hasRetainedAccountRecords(appUser.id)) { "Cannot delete app user with retained account records" }
 
         val deletedEmail = appUser.email
         appUserRepository.delete(appUser)

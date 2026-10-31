@@ -6,22 +6,15 @@ import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 class InformationRequestHealthServiceTest
 {
@@ -39,7 +32,7 @@ class InformationRequestHealthServiceTest
     {
         whenever(repository.countIssuedWithoutExecutionGrant()).thenReturn(2)
         whenever(repository.countReservationsAboveCap()).thenReturn(0)
-        whenever(repository.countNoticeIntentsWithoutNoticeBefore(now.minus(60, ChronoUnit.MINUTES))).thenReturn(1)
+        whenever(repository.countNoticeIntentsWithoutNoticeBefore(now.minus(60, ChronoUnit.MINUTES), 5)).thenReturn(1)
         whenever(repository.countConnectorExchangesFailedSince(eq(now.minus(24, ChronoUnit.HOURS)), any())).thenReturn(0)
         whenever(repository.countDisposalClaimsClaimedBefore(now.minus(24, ChronoUnit.HOURS))).thenReturn(0)
         whenever(repository.countPendingRequestEventsBefore(now.minus(15, ChronoUnit.MINUTES))).thenReturn(3)

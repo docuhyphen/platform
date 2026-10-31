@@ -1,19 +1,23 @@
 import {useState} from "react";
 import {Button, MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import OperationsQueueFilters from "../operations-queue-filters/OperationsQueueFilters.tsx";
 import OperationsQueueRow from "../operations-queue-row/OperationsQueueRow.tsx";
 import OperationsQueueToolbar from "../operations-queue-toolbar/OperationsQueueToolbar.tsx";
 import SendRemindersDialog from "../send-reminders-dialog/SendRemindersDialog.tsx";
-import {OPERATIONS_PAGE_SIZE, useOperationsQueue} from "./useOperationsQueue.ts";
+import {useOperationsQueue} from "./useOperationsQueue.ts";
+import {OPERATIONS_PAGE_SIZE} from "./useOperationsQueueFilter.ts";
+import {isRemindable} from "./useReminderSelection.ts";
 import {useOperationsQueueStyles} from "./OperationsQueueStyles.tsx";
 import {formatInformationRequestCount} from "../../shared/informationRequestFormatting.ts";
 
 interface OperationsQueueProps
 {
     canSendReminders: boolean;
+    canPlaceHolds: boolean;
 }
 
-const OperationsQueue = ({canSendReminders}: OperationsQueueProps) =>
+const OperationsQueue = ({canSendReminders, canPlaceHolds}: OperationsQueueProps) =>
 {
     const styles = useOperationsQueueStyles();
     const queue = useOperationsQueue();
@@ -24,26 +28,26 @@ const OperationsQueue = ({canSendReminders}: OperationsQueueProps) =>
     return (
         <div id={"information-request-operations-queue"}
              className={styles.queue}>
-            <OperationsQueueFilters query={queue.query}
-                                    assigneeId={filter.assigneeId}
-                                    assignees={queue.assignees}
-                                    slaStatus={filter.slaStatus}
-                                    exceptionsOnly={filter.exceptionsOnly}
-                                    onQueryChange={queue.setQuery}
-                                    onAssigneeChange={queue.setAssigneeId}
-                                    onSlaStatusChange={queue.setSlaStatus}
-                                    onExceptionsOnlyChange={queue.setExceptionsOnly}/>
+            <OperationsQueueFilters queue={queue}/>
             <OperationsQueueToolbar selectedCount={queue.selected.size}
+                                    selectionFull={queue.selectionFull}
                                     canSendReminders={canSendReminders}
                                     busy={queue.busy}
                                     onSendReminders={() => setConfirming(true)}
                                     onExport={() => void queue.exportCsv()}/>
-            {(page.error ?? queue.error) && (
+            {queue.error && (
                 <MessageBar id={"information-request-operations-error"}
                             intent={"error"}
                             role={"alert"}>
-                    <MessageBarBody>{queue.error ?? page.error}</MessageBarBody>
+                    <MessageBarBody id={"information-request-operations-error-body"}>
+                        {queue.error}
+                    </MessageBarBody>
                 </MessageBar>
+            )}
+            {page.error && (
+                <InformationRequestLoadError id={"information-request-operations-load-error"}
+                                             message={page.error}
+                                             onRetry={page.reload}/>
             )}
             <Text id={"information-request-operations-status"}
                   role={"status"}
@@ -65,8 +69,10 @@ const OperationsQueue = ({canSendReminders}: OperationsQueueProps) =>
                     {page.value.items.map(row => (
                         <OperationsQueueRow key={row.requestId}
                                             row={row}
-                                            selectable={canSendReminders}
+                                            selectable={canSendReminders && isRemindable(row)}
                                             selected={queue.selected.has(row.requestId)}
+                                            selectionFull={queue.selectionFull}
+                                            canPlaceHold={canPlaceHolds}
                                             onToggle={() => queue.toggle(row)}/>
                     ))}
                 </ul>

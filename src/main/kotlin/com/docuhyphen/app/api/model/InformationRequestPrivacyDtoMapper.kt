@@ -20,6 +20,7 @@ object InformationRequestPrivacyDtoMapper
         refusalCode = view.request.refusalCode,
         refusalDetail = view.request.refusalDetail,
         recordExportId = view.request.recordExportId,
+        recordExportAvailable = view.recordExportAvailable,
         recordedByPrincipalKind = view.request.recordedByPrincipalKind,
         recordedByPrincipalId = view.request.recordedByPrincipalId,
         recordedAt = view.request.recordedAt,

@@ -19,6 +19,11 @@ class ExchangeRecipientAttestationRepository :
             .resultList
             .singleOrNull()
 
+    fun deleteAndFlush(attestation: ExchangeRecipientAttestation) {
+        delete(attestation)
+        entityManager.flush()
+    }
+
     fun findByRelationshipId(relationshipId: UUID): List<ExchangeRecipientAttestation> =
         entityManager.createQuery(
             """SELECT a FROM ExchangeRecipientAttestation a

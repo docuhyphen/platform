@@ -2,7 +2,7 @@ import React from "react";
 
 export const workflowDiagramPreviewArticle = (
     <>
-        <p>
+        <p id={"workflow-diagram-preview-intro-paragraph"}>
             Two read-only diagram surfaces visualize a workflow: the{" "}
             <b>Diagram</b> in the Workflow Designer and the <b>Diagram</b> view on
             an Exchange's Workflow tab. Both are read-only for workflow data. You
@@ -13,26 +13,26 @@ export const workflowDiagramPreviewArticle = (
             and the Timeline stays the detailed audit view.
         </p>
 
-        <h3>Preview in the Workflow Designer</h3>
-        <p>
+        <h3 id={"workflow-diagram-preview-in-the-workflow-heading"}>Preview in the Workflow Designer</h3>
+        <p id={"workflow-diagram-preview-in-the-workflow-paragraph"}>
             Open the designer from Settings. The live Diagram is always visible on
             the left at about 60% width, including unsaved Form changes, while the
             editable Form stays on the right at about 40% width. The Diagram fills
             the available height while the Form pane scrolls. On narrow screens
             the two sections stack.
         </p>
-        <p>
+        <p id={"workflow-diagram-preview-in-the-workflow-paragraph-2"}>
             A bottom-right orientation icon switches between horizontal and
             vertical layouts. It starts in its pressed vertical state so the
             workflow fits the split layout.
         </p>
-        <p>
+        <p id={"workflow-diagram-preview-in-the-workflow-paragraph-3"}>
             The diagram controls include fit to window, an enlarge button for an
             in-app expanded preview, and a full screen button for browser full
             screen mode. Enlarge and full screen change to their matching exit
             icons while those modes are active.
         </p>
-        <p>
+        <p id={"workflow-diagram-preview-in-the-workflow-paragraph-4"}>
             An <b>Applicability</b> summary line above the diagram states whether
             the workflow always runs or only when field conditions match. The
             diagram itself is read-only: pan, zoom, drag a node to reposition it,
@@ -40,8 +40,8 @@ export const workflowDiagramPreviewArticle = (
             workflow.
         </p>
 
-        <h3>Reading the diagram</h3>
-        <ul>
+        <h3 id={"workflow-diagram-preview-reading-the-diagram-heading"}>Reading the diagram</h3>
+        <ul id={"workflow-diagram-preview-reading-the-diagram-list"}>
             <li><b>Start</b> and <b>End</b> mark where the workflow begins and terminates.</li>
             <li>Each step is a node labeled by its type.</li>
             <li>
@@ -49,23 +49,23 @@ export const workflowDiagramPreviewArticle = (
                 generic Action node.
             </li>
             <li>
-                Connectors are labeled by outcome: <b>On Approve</b>, <b>On Reject</b>,
+                Connectors are labeled by outcome: <b>On Approve</b>, <b>On Reject</b>,{" "}
                 <b>On True</b>, <b>On False</b>, or <b>Continue</b> for a Wait for
                 Counterparty Clearance step. Plain sequence connectors are unlabeled.
             </li>
             <li>A legend below the canvas explains the node and connector meanings.</li>
         </ul>
 
-        <h3>Diagram notices</h3>
-        <p>
+        <h3 id={"workflow-diagram-preview-diagram-notices-heading"}>Diagram notices</h3>
+        <p id={"workflow-diagram-preview-diagram-notices-paragraph"}>
             The Diagram reports structural notices such as an outcome pointing to a
             missing step, an unreachable step, or a branch with no path to End.
             These notices are <b>informational only</b>. They do not block saving,
             and the Save rules are unchanged.
         </p>
 
-        <h3>Diagram view on an Exchange</h3>
-        <ol>
+        <h3 id={"workflow-diagram-preview-diagram-view-on-an-heading"}>Diagram view on an Exchange</h3>
+        <ol id={"workflow-diagram-preview-diagram-view-on-an-list"}>
             <li>Open an Exchange and select the <b>Workflow</b> tab.</li>
             <li>
                 Use the circular menu control at the top right to choose{" "}
@@ -78,7 +78,7 @@ export const workflowDiagramPreviewArticle = (
                 sitting side by side.
             </li>
         </ol>
-        <p>
+        <p id={"workflow-diagram-preview-diagram-view-on-an-paragraph"}>
             The control changes every workflow shown in the tab at once. The tab
             header stays fixed while the content below it scrolls. Each workflow
             diagram also has its own bottom-right orientation icon. Exchange
@@ -89,7 +89,7 @@ export const workflowDiagramPreviewArticle = (
             same frozen structure it started with, with runtime state layered on
             top.
         </p>
-        <ul>
+        <ul id={"workflow-diagram-preview-diagram-view-on-an-list-2"}>
             <li>
                 <b>Node states:</b> Not reached, In progress, Awaiting counterparty,
                 Completed, Skipped, Rejected, Escalated, Cancelled, Failed, Paused,
@@ -101,22 +101,23 @@ export const workflowDiagramPreviewArticle = (
                 recorded execution data and are never guessed from step order.
             </li>
         </ul>
-        <p>
+        <p id={"workflow-diagram-preview-diagram-view-on-an-paragraph-2"}>
             A very large workflow shows a notice suggesting the Timeline for easier
             reading. The diagram is still shown.
         </p>
 
-        <h3>When a diagram cannot be shown</h3>
-        <p>
+        <h3 id={"workflow-diagram-preview-when-a-diagram-cannot-heading"}>When a diagram cannot be shown</h3>
+        <p id={"workflow-diagram-preview-when-a-diagram-cannot-paragraph"}>
             If a diagram fails to render, that workflow section shows a short message
             with a <b>View timeline</b> button and switches you to the Timeline view.
             Other workflows and the Timeline are unaffected.
         </p>
 
-        <h3>Diagram compared with Timeline</h3>
-        <p>
+        <h3 id={"workflow-diagram-preview-diagram-compared-with-timeline-heading"}>Diagram compared with Timeline</h3>
+        <p id={"workflow-diagram-preview-diagram-compared-with-timeline-paragraph"}>
             The Diagram is a compact visual summary. The{" "}
-            <a href="#"
+            <a id={"workflow-diagram-preview-diagram-compared-with-timeline-link"}
+               href="#"
                data-help-article="workflow-activity-monitoring">
                 Timeline
             </a>{" "}

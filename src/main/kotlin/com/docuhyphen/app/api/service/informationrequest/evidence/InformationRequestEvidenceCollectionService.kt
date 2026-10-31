@@ -1,23 +1,27 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.command.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
+import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAction
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCommandResult
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceTransition
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.*
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -31,6 +35,7 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
     private val commandReceiptService: CommandReceiptService,
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val viewLoader: InformationRequestEvidenceViewLoader,
+    private val noAuthAccess: InformationRequestNoAuthReadAccessService,
 )
 {
     @Transactional
@@ -42,6 +47,53 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
             setOf(InformationRequestEvidenceCollectionState.ACTIVE),
             listOf(Action.INFORMATION_REQUEST_EVIDENCE_WITHDRAW),
         )
+
+    fun withdrawForCondition(
+        request: InformationRequest,
+        requirement: InformationRequestRequirement,
+        artifacts: List<InformationRequestEvidenceArtifact>,
+        reason: String,
+        access: RequestAccessContext,
+        now: Timestamp,
+    ): Boolean {
+        artifacts.forEach { artifact ->
+            gate.requireArtifactOpen(request, requirement, artifact.id)
+            artifact.collectionState = InformationRequestEvidenceCollectionState.WITHDRAWN
+            artifact.stateChangedAt = now
+            artifact.stateChangedByPrincipalKind = access.principal.kind
+            artifact.stateChangedByPrincipalId = access.principal.id
+            artifact.stateReason = reason
+            artifact.artifactRevision += 1
+            artifact.updatedAt = now
+            artifactRepository.update(artifact)
+            transitionHistory.record(
+                InformationRequestTransitionHistoryCommand(
+                    request = request,
+                    fromState = request.state,
+                    toState = request.state,
+                    mutation = InformationRequestMutation.ADMINISTER_EVIDENCE,
+                    actor = InformationRequestAuditActor.of(access),
+                    reasonCode = reason,
+                    auditIdempotencyKey = listOf(
+                        AUDIT_KEY_PREFIX,
+                        requirement.id,
+                        "${access.principal.kind}:${access.principal.id}",
+                        InformationRequestEvidenceAction.WITHDRAW,
+                        reason,
+                        artifact.id,
+                        artifact.artifactRevision,
+                    ).joinToString("|"),
+                    evidence = InformationRequestEvidenceTransition(
+                        requirement.id,
+                        artifact.id,
+                        null,
+                        InformationRequestEvidenceAction.WITHDRAW,
+                    ),
+                ),
+            )
+        }
+        return artifacts.isNotEmpty()
+    }
 
     @Transactional
     fun remove(command: ChangeInformationRequestEvidenceStateCommand): InformationRequestEvidenceCommandResult =
@@ -57,27 +109,27 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         )
 
     private fun changeState(
-        command: ChangeInformationRequestEvidenceStateCommand,
+        requested: ChangeInformationRequestEvidenceStateCommand,
         action: InformationRequestEvidenceAction,
         target: InformationRequestEvidenceCollectionState,
         permittedFrom: Set<InformationRequestEvidenceCollectionState>,
         permittingActions: List<Action>,
     ): InformationRequestEvidenceCommandResult
     {
-        val locked = gate.lock(command.requestId)
+        gate.requireVisibleTarget(requested.access, requested.requestId)
+        val locked = gate.lock(requested.requestId)
+        val command = requested.copy(access = noAuthAccess.requireCurrent(requested.requestId, requested.access))
         val receipt = CommandReceiptRequest(
             resource = ResourceRef(ResourceType.INFORMATION_REQUEST_EVIDENCE_ARTIFACT, command.artifactId),
             operation = operationOf(action),
             actor = CommandActorRef.principal(command.access.principal),
             idempotencyKey = command.idempotencyKey,
-            requestFingerprint = CommandRequestFingerprint.sha256Hex(
-                listOf(
-                    operationOf(action),
-                    command.requestId,
-                    command.requirementId,
-                    command.artifactId,
-                    command.reason.orEmpty(),
-                ).joinToString("|"),
+            requestFingerprint = CommandRequestFingerprint.of(
+                operationOf(action),
+                command.requestId,
+                command.requirementId,
+                command.artifactId,
+                command.reason.orEmpty(),
             ),
         )
 
@@ -97,7 +149,7 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         )
         {
             is CommandReceiptDecision.Recorded -> decision.response
-            is CommandReceiptDecision.Replayed -> replay(locked, command, permittingActions, decision.result)
+            is CommandReceiptDecision.Replayed -> replay(locked, command, permittingActions)
         }
     }
 
@@ -110,12 +162,15 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         permittingActions: List<Action>,
     ): InformationRequestEvidenceCommandResult
     {
+        gate.requireRequestView(command.access, locked.request.id)
+        gate.requireEvidenceTarget(command.access, command.requirementId, permittingActions)
         val requirement = gate.requireEvidenceOccurrence(locked.request, command.requirementId)
         val artifact = ownedArtifact(command, forUpdate = true)
         gate.requireMutationAllowed(locked)
         gate.requireArtifactOpen(locked, requirement, artifact.id)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
         gate.authorizeAny(command.access, permittingActions, requirement.id)
+        requireChangeable(locked, command, permittingActions, artifact)
         command.precondition.requireSatisfiedBy(InformationRequestETag.artifactOf(artifact))
         if (artifact.collectionState !in permittedFrom)
         {
@@ -141,8 +196,8 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
                 fromState = locked.request.state,
                 toState = locked.request.state,
                 mutation = InformationRequestMutation.ADMINISTER_EVIDENCE,
-                actor = command.access.principal,
-                idempotencyKey = listOf(
+                actor = InformationRequestAuditActor.of(command.access),
+                auditIdempotencyKey = listOf(
                     AUDIT_KEY_PREFIX,
                     requirement.id,
                     "${command.access.principal.kind}:${command.access.principal.id}",
@@ -154,7 +209,7 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         )
 
         return InformationRequestEvidenceCommandResult(
-            artifact = viewLoader.view(artifact),
+            artifact = gate.forCaller(command.access, locked.request, viewLoader.view(artifact)),
             evidenceETag = InformationRequestETag.evidenceOf(
                 requirement.id,
                 artifactRepository.findForRequirement(requirement.id)
@@ -163,24 +218,42 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         )
     }
 
+    private fun requireChangeable(
+        locked: LockedInformationRequest,
+        command: ChangeInformationRequestEvidenceStateCommand,
+        permittingActions: List<Action>,
+        artifact: InformationRequestEvidenceArtifact,
+    ) {
+        val manages = Action.INFORMATION_REQUEST_EVIDENCE_MANAGE in permittingActions &&
+                gate.permits(
+                    command.access,
+                    Action.INFORMATION_REQUEST_EVIDENCE_MANAGE,
+                    artifact.informationRequestRequirementId
+                )
+        if (!manages) gate.requireChangeableBy(command.access, locked.request, artifact)
+    }
+
     private fun replay(
         locked: LockedInformationRequest,
         command: ChangeInformationRequestEvidenceStateCommand,
         permittingActions: List<Action>,
-        recorded: CommandResultReference,
     ): InformationRequestEvidenceCommandResult
     {
+        gate.requireEvidenceTarget(command.access, command.requirementId, permittingActions)
         val requirement = gate.requireEvidenceOccurrence(locked.request, command.requirementId)
         gate.requireMutationAllowed(locked)
-        gate.requireContinuationEntitlement(locked)
+        gate.requireContinuation(locked, InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
         gate.authorizeAny(command.access, permittingActions, requirement.id)
         val artifact = ownedArtifact(command, forUpdate = false)
-        val recordedRevision = requireNotNull(recorded.revision) { "Evidence receipt did not record a revision" }
+        requireChangeable(locked, command, permittingActions, artifact)
 
         return InformationRequestEvidenceCommandResult(
-            artifact = viewLoader.view(artifact),
-            evidenceETag = requireNotNull(recorded.etag) { "Evidence receipt did not record an evidence ETag" },
-            artifactETag = RevisionETag.of(artifact.id, recordedRevision),
+            artifact = gate.forCaller(command.access, locked.request, viewLoader.view(artifact)),
+            evidenceETag = InformationRequestETag.evidenceOf(
+                requirement.id,
+                artifactRepository.findForRequirement(requirement.id)
+            ),
+            artifactETag = InformationRequestETag.artifactOf(artifact),
         )
     }
 
@@ -192,7 +265,7 @@ class InformationRequestEvidenceCollectionService @Inject constructor(
         else artifactRepository.findById(
             command.artifactId
         ))
-            ?.takeIf { it.informationRequestRequirementId == command.requirementId }
+            ?.takeIf { it.informationRequestRequirementId == command.requirementId && gate.sees(command.access, it) }
             ?: throw InformationRequestLifecycleException(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Information Request evidence not found",

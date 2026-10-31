@@ -1,6 +1,8 @@
+import {useState} from "react";
 import {Badge, Button, Text} from "@fluentui/react-components";
 import {formattedTime, shortId} from "../../information-requests/operations/operationsLabels.ts";
 import {RecordPreservationHoldDto, RecordPreservationHoldStatus} from "../../models/models.tsx";
+import RecordHoldHistory from "../hold-history/RecordHoldHistory.tsx";
 import {holdScopeLabels, holdStatusPresentation, recordTypeLabel} from "../recordPreservationLabels.ts";
 import {useRecordHoldRowStyles} from "./RecordHoldRowStyles.tsx";
 
@@ -15,6 +17,7 @@ interface RecordHoldRowProps
 const RecordHoldRow = ({hold, canManage, onChangeScope, onRelease}: RecordHoldRowProps) =>
 {
     const styles = useRecordHoldRowStyles();
+    const [showingHistory, setShowingHistory] = useState(false);
     const id = `record-hold-${hold.id}`;
     const status = holdStatusPresentation[hold.status];
 
@@ -46,22 +49,36 @@ const RecordHoldRow = ({hold, canManage, onChangeScope, onRelease}: RecordHoldRo
                    color={status.color}>
                 {status.label}
             </Badge>
-            {canManage && hold.status === RecordPreservationHoldStatus.ACTIVE && (
-                <div id={`${id}-actions`}
-                     className={styles.actions}>
-                    <Button id={`${id}-scope`}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            onClick={onChangeScope}>
-                        Change scope
-                    </Button>
-                    <Button id={`${id}-release`}
-                            appearance={"secondary"}
-                            shape={"circular"}
-                            onClick={onRelease}>
-                        Release
-                    </Button>
-                </div>
+            <div id={`${id}-actions`}
+                 className={styles.actions}>
+                <Button id={`${id}-history-btn`}
+                        appearance={"secondary"}
+                        shape={"circular"}
+                        aria-expanded={showingHistory}
+                        aria-controls={`${id}-history`}
+                        onClick={() => setShowingHistory(current => !current)}>
+                    History
+                </Button>
+                {canManage && hold.status === RecordPreservationHoldStatus.ACTIVE && (
+                    <>
+                        <Button id={`${id}-change-scope`}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                onClick={onChangeScope}>
+                            Change scope
+                        </Button>
+                        <Button id={`${id}-release`}
+                                appearance={"secondary"}
+                                shape={"circular"}
+                                onClick={onRelease}>
+                            Release
+                        </Button>
+                    </>
+                )}
+            </div>
+            {showingHistory && (
+                <RecordHoldHistory id={`${id}-history`}
+                                   holdId={hold.id}/>
             )}
         </li>
     );

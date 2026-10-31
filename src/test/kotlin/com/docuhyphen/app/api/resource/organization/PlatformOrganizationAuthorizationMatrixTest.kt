@@ -8,6 +8,8 @@ import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepo
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
+import com.docuhyphen.app.api.resource.organization.model.PlatformOrganizationHarness
+import com.docuhyphen.app.api.resource.organization.model.PrincipalCase
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
@@ -91,7 +93,7 @@ class PlatformOrganizationAuthorizationMatrixTest
         )
     }
 
-    private fun harness(principalCase: PrincipalCase): Harness
+    private fun harness(principalCase: PrincipalCase): PlatformOrganizationHarness
     {
         val actor = AppUser().apply {
             id = UUID.randomUUID()
@@ -168,30 +170,13 @@ class PlatformOrganizationAuthorizationMatrixTest
             authAuditService = mock<AuthAuditService>(),
         )
 
-        return Harness(
+        return PlatformOrganizationHarness(
             resource = PlatformOrganizationResource(
                 service,
                 mock<PlatformOrganizationStatusService>(),
             ),
             organizationRepository = organizationRepository,
         )
-    }
-
-    private data class Harness(
-        val resource: PlatformOrganizationResource,
-        val organizationRepository: OrganizationRepository,
-    )
-
-    data class PrincipalCase(
-        val label: String,
-        val appRoles: Set<AppRoleName> = setOf(AppRoleName.APP_USER),
-        val organizationRoles: Set<OrganizationRoleName> = emptySet(),
-        val assignmentEffective: Boolean = true,
-        val userActive: Boolean = true,
-        val userDeprovisioned: Boolean = false,
-    )
-    {
-        override fun toString(): String = label
     }
 
     companion object

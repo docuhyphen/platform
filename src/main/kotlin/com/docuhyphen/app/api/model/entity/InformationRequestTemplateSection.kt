@@ -6,11 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * One ordered grouping of requirements within a single [InformationRequestTemplateVersion]. The
- * section key recognises the same grouping across Versions, while the position is a property of
- * this Version alone, so a later Version may reorder without renaming.
- */
 @Entity
 @Table(name = "information_request_template_section")
 class InformationRequestTemplateSection

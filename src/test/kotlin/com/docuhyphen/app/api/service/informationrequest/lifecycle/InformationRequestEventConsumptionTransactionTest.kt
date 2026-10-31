@@ -7,31 +7,21 @@ import com.docuhyphen.app.api.model.notification.DomainEventConsumptionOutcome
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
+import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
 import com.docuhyphen.app.api.service.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsPostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewTestSupport
-import com.docuhyphen.app.api.service.notification.DomainEvent
-import com.docuhyphen.app.api.service.notification.DomainEventConsumptionService
-import com.docuhyphen.app.api.service.notification.DomainEventDispatcher
-import com.docuhyphen.app.api.service.notification.DomainEventPublisher
-import com.docuhyphen.app.api.service.notification.EventRouter
-import com.docuhyphen.app.api.service.notification.ProbeDomainEventConsumer
-import com.docuhyphen.app.api.service.notification.TransactionalEventSink
+import com.docuhyphen.app.api.service.notification.*
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
@@ -46,7 +36,9 @@ class InformationRequestEventConsumptionTransactionTest
     @Inject lateinit var eventRouter: EventRouter
     @Inject lateinit var dispatcher: DomainEventDispatcher
     @Inject lateinit var probe: ProbeDomainEventConsumer
-    @Inject lateinit var consumption: DomainEventConsumptionService
+
+    @Inject
+    lateinit var consumption: DomainEventConsumptionRepository
     @Inject lateinit var firstViews: InformationRequestFirstViewService
 
     @Inject
@@ -65,7 +57,8 @@ class InformationRequestEventConsumptionTransactionTest
         assertEquals(before + 1, probe.applied.get())
         assertEquals(
             DomainEventConsumptionOutcome.APPLIED,
-            QuarkusTransaction.requiringNew().call { consumption.outcomeOf(ProbeDomainEventConsumer.CONSUMER_KEY, event) },
+            QuarkusTransaction.requiringNew()
+                .call { consumption.outcomeOf(ProbeDomainEventConsumer.CONSUMER_KEY, event.eventUuid()) },
         )
     }
 
@@ -77,7 +70,9 @@ class InformationRequestEventConsumptionTransactionTest
         probe.failNext.set(true)
 
         assertThrows(IllegalStateException::class.java) { eventRouter.routeDurable(event) }
-        assertNull(QuarkusTransaction.requiringNew().call { consumption.outcomeOf(ProbeDomainEventConsumer.CONSUMER_KEY, event) })
+        assertNull(
+            QuarkusTransaction.requiringNew()
+                .call { consumption.outcomeOf(ProbeDomainEventConsumer.CONSUMER_KEY, event.eventUuid()) })
 
         eventRouter.routeDurable(event)
         eventRouter.routeDurable(event)
@@ -205,6 +200,6 @@ class InformationRequestEventConsumptionTransactionTest
 
     private companion object
     {
-        const val DRAIN_LIMIT = 1000
+        const val DRAIN_LIMIT = 100_000
     }
 }

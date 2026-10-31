@@ -11,7 +11,8 @@ const InformationRequestReviewWorkspace = () =>
         <section id={"information-request-review-page"}
                  className={styles.page}>
             {requestId && reviewId && (
-                <ReviewWorkspaceContent requestId={requestId}
+                <ReviewWorkspaceContent key={`${requestId}|${reviewId}`}
+                                        requestId={requestId}
                                         reviewId={reviewId}/>
             )}
         </section>

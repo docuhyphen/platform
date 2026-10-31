@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.blueprint
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintScope
@@ -12,6 +13,7 @@ import com.docuhyphen.app.api.service.auth.AdminActionGuardService
 import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.blueprint.model.BlueprintTenantFixture
 import com.docuhyphen.app.api.service.fields.SchemaDefinitionService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateReferenceService
 import io.quarkus.security.ForbiddenException
@@ -57,17 +59,12 @@ class BlueprintTenantBoundaryTest
             }
         }
 
-    private data class ServiceFixture(
-        val service: BlueprintDefinitionService,
-        val repository: BlueprintDefinitionRepository,
-    )
-
     private fun fixture(
         appAdmin: Boolean = true,
         orgAdmin: Boolean = false,
         allowedActions: Array<out Action> = emptyArray(),
         context: AuthorizationContext = authorizationContext(),
-    ): ServiceFixture
+    ): BlueprintTenantFixture
     {
         val repository = mock<BlueprintDefinitionRepository>()
         val documentDefaults = mock<BlueprintDocumentDefaultRepository>()
@@ -78,7 +75,7 @@ class BlueprintTenantBoundaryTest
         whenever(participantDefaults.findAllByBlueprintDefinitionId(any())).thenReturn(emptyList())
         whenever(fieldDefaults.findAllByBlueprintDefinitionId(any())).thenReturn(emptyList())
 
-        return ServiceFixture(
+        return BlueprintTenantFixture(
             service = BlueprintDefinitionService(
                 repository = repository,
                 documentDefaultRepository = documentDefaults,

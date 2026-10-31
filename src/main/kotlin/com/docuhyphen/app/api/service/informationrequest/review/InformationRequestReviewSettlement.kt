@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.review
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
@@ -10,7 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionItemRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestCorrectionRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockHold
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestSatisfactionService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
 import jakarta.enterprise.context.ApplicationScoped
@@ -31,12 +32,13 @@ class InformationRequestReviewSettlement @Inject constructor(
     private val transitionHistory: InformationRequestTransitionHistoryService,
     private val clock: Clock,
     private val entityManager: EntityManager,
+    private val clockHold: InformationRequestClockHold,
 )
 {
     fun settleIfDecided(
         locked: LockedInformationRequest,
         review: InformationRequestReview,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
     ): InformationRequestReview
     {
@@ -47,8 +49,8 @@ class InformationRequestReviewSettlement @Inject constructor(
         val now = Timestamp.from(clock.instant())
         review.state = settledState
         review.settledAt = now
-        review.settledByPrincipalKind = actor.kind
-        review.settledByPrincipalId = actor.id
+        review.settledByPrincipalKind = actor.principal.kind
+        review.settledByPrincipalId = actor.principal.id
         review.reviewRevision += 1
         reviewRepository.update(review)
         val request = locked.request
@@ -64,7 +66,7 @@ class InformationRequestReviewSettlement @Inject constructor(
                 toState = request.state,
                 mutation = InformationRequestMutation.SETTLE_REVIEW,
                 actor = actor,
-                idempotencyKey = "information_request.review_settlement|${review.id}|$idempotencyKey",
+                auditIdempotencyKey = "information_request.review_settlement|${review.id}|$idempotencyKey",
                 details = mapOf(
                     "reviewId" to review.id.toString(),
                     "submissionPackageId" to review.packageId.toString(),
@@ -94,7 +96,7 @@ class InformationRequestReviewSettlement @Inject constructor(
     private fun openCorrection(
         locked: LockedInformationRequest,
         snapshot: InformationRequestReviewSnapshot,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
         now: Timestamp,
     )
@@ -152,7 +154,7 @@ class InformationRequestReviewSettlement @Inject constructor(
                 toState = request.state,
                 mutation = InformationRequestMutation.REQUEST_CORRECTION,
                 actor = actor,
-                idempotencyKey = "information_request.correction|${correction.id}|$idempotencyKey",
+                auditIdempotencyKey = "information_request.correction|${correction.id}|$idempotencyKey",
                 details = mapOf(
                     "correctionId" to correction.id.toString(),
                     "reviewId" to snapshot.review.id.toString(),
@@ -161,5 +163,6 @@ class InformationRequestReviewSettlement @Inject constructor(
                 ) + (snapshot.submission.submissionPackage.stageKey?.let { mapOf("stageKey" to it) } ?: emptyMap()),
             ),
         )
+        clockHold.sync(locked)
     }
 }

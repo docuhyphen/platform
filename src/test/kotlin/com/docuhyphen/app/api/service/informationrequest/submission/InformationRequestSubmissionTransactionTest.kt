@@ -1,9 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.evidence.ChangeInformationRequestEvidenceStateCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
@@ -11,15 +12,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionProblemCode
-import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionResult
-import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformationRequestSubmissionAttestationCommand
-import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
-import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
-import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
+import com.docuhyphen.app.api.model.informationrequest.submission.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRevisionRepository
@@ -28,60 +21,52 @@ import com.docuhyphen.app.api.repository.informationrequest.evidence.Information
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionEvidenceRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionItemRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageAttestationRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionPackageRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionSupportingLinkRepository
-import com.docuhyphen.app.api.repository.informationrequest.submission.InformationRequestSubmissionWithdrawalRepository
+import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.command.RevisionETag
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
+import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
+import com.docuhyphen.app.api.service.fields.FieldValueRevisionQueryService
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestAttestationPolicyLoader
 import com.docuhyphen.app.api.service.informationrequest.attestation.InformationRequestSubmissionAttestationService
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockHold
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionVisibility
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceCollectionService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceGate
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceQueryService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceViewLoader
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionGrantService
+import com.docuhyphen.app.api.service.informationrequest.execution.issuedExecutionGrant
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestSatisfactionService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestCompletenessProgressService
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseDraftService
-import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestStructuredResponseValidationService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
+import com.docuhyphen.app.api.service.informationrequest.response.*
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewOpeningService
+import com.docuhyphen.app.api.service.informationrequest.submission.model.SubmissionServices
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
@@ -89,7 +74,7 @@ import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -101,7 +86,9 @@ class InformationRequestSubmissionTransactionTest
 {
     @Inject lateinit var dataSource: DataSource
     @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var exchangeRepository: ExchangeRepository
+
+    @Inject
+    lateinit var exchangeLookup: ExchangeLookupService
     @Inject lateinit var requirementRepository: InformationRequestRequirementRepository
     @Inject lateinit var revisionRepository: InformationRequestRequirementRevisionRepository
     @Inject lateinit var occurrenceRepository: InformationRequestGroupOccurrenceRepository
@@ -134,14 +121,32 @@ class InformationRequestSubmissionTransactionTest
     @Inject lateinit var dispositionRepository: InformationRequestTemplateBindingDispositionRepository
     @Inject lateinit var responseRepository: InformationRequestResponseRepository
     @Inject lateinit var schemaAssignmentService: SchemaAssignmentService
-    @Inject lateinit var schemaAssignmentRepository: SchemaAssignmentRepository
-    @Inject lateinit var fieldValueSetRepository: FieldValueSetRepository
-    @Inject lateinit var fieldContractRepository: FieldContractRepository
+
+    @Inject
+    lateinit var fieldsReader: FieldsReadFacade
     @Inject lateinit var conditionEvaluationService: InformationRequestConditionEvaluationService
     @Inject lateinit var structuredResponseValidationService: InformationRequestStructuredResponseValidationService
+
+    @Inject
+    lateinit var validationContextLoader: InformationRequestStructuredResponseValidationContextLoader
+
+    @Inject
+    lateinit var groupCardinality: InformationRequestSubmissionGroupCardinalityEvaluator
+
+    @Inject
+    lateinit var hiddenResponseArchiver: InformationRequestHiddenResponseArchiver
+
+    @Inject
+    lateinit var conditionEffectRecorder: InformationRequestConditionEffectRecorder
     @Inject lateinit var fieldValueRevisionQueryService: FieldValueRevisionQueryService
     @Inject lateinit var reviewOpening: InformationRequestReviewOpeningService
+
+    @Inject
+    lateinit var clockHold: InformationRequestClockHold
     @Inject lateinit var satisfaction: InformationRequestSatisfactionService
+
+    @Inject
+    lateinit var evidenceQueries: InformationRequestEvidenceQueryService
 
     @Test
     fun `a ready whole-package submission freezes the scope and closes a request that needs no review`()
@@ -181,6 +186,37 @@ class InformationRequestSubmissionTransactionTest
         QuarkusTransaction.requiringNew().run {
             assertEquals(1, packageRepository.findForRequest(fixture.requestId).size)
         }
+    }
+
+    @Test
+    fun `a submission or attestation key reused with another reviewed version is a conflict while the same version replays`() {
+        val fixture = fixture()
+        val services = services(fixture)
+        val stale = "\"submission:whole:${"0".repeat(64)}\""
+        val assent = assent(fixture, submissionETag(fixture, null))
+        val attested = QuarkusTransaction.requiringNew().call { services.attestations.record(assent) }
+
+        assertThrows(com.docuhyphen.app.api.service.command.CommandReceiptConflictException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services.attestations.record(assent.copy(precondition = CommandPrecondition.ExpectedRevision(stale)))
+            }
+        }
+        val replayedAttestation = QuarkusTransaction.requiringNew().call { services.attestations.record(assent) }
+        assertEquals(attested.attestation.id, replayedAttestation.attestation.id)
+
+        val submitted = QuarkusTransaction.requiringNew().call {
+            services.submissions.submit(submit(fixture, null, attested.submissionETag, "submit-once"))
+        }
+        assertThrows(com.docuhyphen.app.api.service.command.CommandReceiptConflictException::class.java)
+        {
+            QuarkusTransaction.requiringNew()
+                .call { services.submissions.submit(submit(fixture, null, stale, "submit-once")) }
+        }
+        val replayedSubmission = QuarkusTransaction.requiringNew().call {
+            services.submissions.submit(submit(fixture, null, attested.submissionETag, "submit-once"))
+        }
+        assertEquals(submitted.submission.submissionPackage.id, replayedSubmission.submission.submissionPackage.id)
     }
 
     @Test
@@ -225,6 +261,162 @@ class InformationRequestSubmissionTransactionTest
             QuarkusTransaction.requiringNew().call { services.submissions.submit(submit(fixture, null, stale, "stale-key")) }
         }
         assertEquals(CommandPreconditionException.Kind.STALE, submission.kind)
+    }
+
+    @Test
+    fun `a submission or attestation that names no exact reviewed version is refused with the current submission ETag`() {
+        val fixture = fixture()
+        val services = services(fixture)
+        val current = submissionETag(fixture, null)
+        val unstated = listOf(CommandPrecondition.Unconditioned, CommandPrecondition.Absent)
+
+        unstated.forEach { precondition ->
+            val attestation = assertThrows(CommandPreconditionException::class.java)
+            {
+                QuarkusTransaction.requiringNew().call {
+                    services.attestations.record(assent(fixture, current).copy(precondition = precondition))
+                }
+            }
+            assertEquals(CommandPreconditionException.Kind.REQUIRED, attestation.kind)
+            assertEquals(current, attestation.currentETag)
+        }
+        QuarkusTransaction.requiringNew().run { services.attestations.record(assent(fixture, current)) }
+
+        unstated.forEach { precondition ->
+            val submission = assertThrows(CommandPreconditionException::class.java)
+            {
+                QuarkusTransaction.requiringNew().call {
+                    services.submissions.submit(
+                        submit(
+                            fixture,
+                            null,
+                            current,
+                            "unreviewed-submit"
+                        ).copy(precondition = precondition)
+                    )
+                }
+            }
+            assertEquals(CommandPreconditionException.Kind.REQUIRED, submission.kind)
+            assertEquals(current, submission.currentETag)
+        }
+        QuarkusTransaction.requiringNew().run {
+            assertTrue(packageRepository.findForRequest(fixture.requestId).isEmpty())
+            assertEquals(1, attestationRepository.findForRequest(fixture.requestId).size)
+        }
+
+        val submitted = QuarkusTransaction.requiringNew().call {
+            services.submissions.submit(submit(fixture, null, current, "unreviewed-submit"))
+        }
+        assertEquals(1, submitted.submission.submissionPackage.packageNumber)
+    }
+
+    @Test
+    fun `a note recorded against an assertion after review makes the reviewed submission ETag stale`() {
+        val fixture = fixture()
+        val services = services(fixture)
+        val reviewed = submissionETag(fixture, null)
+        QuarkusTransaction.requiringNew().run { services.attestations.record(assent(fixture, reviewed)) }
+        val responses = QuarkusTransaction.requiringNew().call {
+            InformationRequestETag.responsesOf(requireNotNull(requestRepository.findById(fixture.requestId)))
+        }
+        QuarkusTransaction.requiringNew().run {
+            services.responses.patch(
+                PatchInformationRequestResponsesCommand(
+                    requestId = fixture.requestId,
+                    access = attestor(fixture),
+                    precondition = CommandPrecondition.ExpectedRevision(responses),
+                    idempotencyKey = "assertion-note",
+                    patches = listOf(
+                        InformationRequestResponsePatch(
+                            requirementId = fixture.attestationRequirementId,
+                            narrative = ResponseNarrativePatch.Set("Recorded after the review"),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        val refusal = assertThrows(CommandPreconditionException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services.submissions.submit(submit(fixture, null, reviewed, "after-assertion-note"))
+            }
+        }
+
+        assertEquals(CommandPreconditionException.Kind.STALE, refusal.kind)
+        assertNotEquals(reviewed, refusal.currentETag)
+        QuarkusTransaction.requiringNew().run {
+            assertTrue(packageRepository.findForRequest(fixture.requestId).isEmpty())
+        }
+    }
+
+    @Test
+    fun `an earlier stage is not withdrawn while a later stage submitted after it stays submitted`() {
+        val fixture = fixture(staged = true, sequential = true, reviewed = true)
+        val services = services(fixture)
+        val first = QuarkusTransaction.requiringNew().call {
+            services.submissions.submit(
+                submit(
+                    fixture,
+                    "record-stage",
+                    submissionETag(fixture, "record-stage"),
+                    "earlier-stage"
+                )
+            )
+        }
+        val attested = QuarkusTransaction.requiringNew().call {
+            services.attestations.record(assent(fixture, submissionETag(fixture, "confirmation-stage")))
+        }
+        val second = QuarkusTransaction.requiringNew().call {
+            services.submissions.submit(submit(fixture, "confirmation-stage", attested.submissionETag, "later-stage"))
+        }
+        assertNotEquals(InformationRequestState.CLOSED, second.request.state)
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            QuarkusTransaction.requiringNew().call {
+                services.submissions.withdraw(
+                    withdrawal(
+                        fixture,
+                        first.submission.submissionPackage.id,
+                        second.responseETag,
+                        "withdraw-earlier"
+                    )
+                )
+            }
+        }
+        assertEquals(InformationRequestErrorCatalog.SUBMISSION_NOT_WITHDRAWABLE, refusal.reasonCode)
+        QuarkusTransaction.requiringNew().run {
+            assertEquals(
+                setOf<String?>("record-stage", "confirmation-stage"),
+                lockService.submittedStages(fixture.requestId)
+            )
+        }
+
+        val laterWithdrawn = QuarkusTransaction.requiringNew().call {
+            services.submissions.withdraw(
+                withdrawal(
+                    fixture,
+                    second.submission.submissionPackage.id,
+                    second.responseETag,
+                    "withdraw-later"
+                )
+            )
+        }
+        val earlierWithdrawn = QuarkusTransaction.requiringNew().call {
+            services.submissions.withdraw(
+                withdrawal(
+                    fixture,
+                    first.submission.submissionPackage.id,
+                    laterWithdrawn.responseETag,
+                    "withdraw-earlier-after"
+                ),
+            )
+        }
+        assertNotNull(earlierWithdrawn.submission.withdrawal)
+        QuarkusTransaction.requiringNew().run {
+            assertTrue(lockService.submittedStages(fixture.requestId).isEmpty())
+        }
     }
 
     @Test
@@ -480,10 +672,23 @@ class InformationRequestSubmissionTransactionTest
         assertTrue(packages.single().visibleRequirementIds.isEmpty())
     }
 
-    private fun fixture(staged: Boolean = false, sequential: Boolean = false): SubmissionRuntimeSqlFixture =
+    private fun fixture(
+        staged: Boolean = false,
+        sequential: Boolean = false,
+        reviewed: Boolean = false,
+    ): SubmissionRuntimeSqlFixture =
         dataSource.connection.use { connection ->
-            SubmissionRuntimeSqlFixture(connection, staged = staged, sequential = sequential)
+            SubmissionRuntimeSqlFixture(connection, staged = staged, sequential = sequential, reviewed = reviewed)
         }
+
+    private fun withdrawal(fixture: SubmissionRuntimeSqlFixture, packageId: UUID, etag: String, key: String) =
+        WithdrawInformationRequestPackageCommand(
+            requestId = fixture.requestId,
+            packageId = packageId,
+            access = contributor(fixture),
+            precondition = CommandPrecondition.ExpectedRevision(etag),
+            idempotencyKey = key,
+        )
 
     private fun submissionETag(fixture: SubmissionRuntimeSqlFixture, stageKey: String?): String =
         QuarkusTransaction.requiringNew().call {
@@ -525,7 +730,7 @@ class InformationRequestSubmissionTransactionTest
         whenever(authorization.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
         val grants = mock<InformationRequestExecutionGrantService>()
         whenever(grants.findForRequest(fixture.requestId)).thenReturn(
-            RequestExecutionGrant().apply {
+            issuedExecutionGrant().apply {
                 requestId = fixture.requestId
                 ownerType = "ORGANIZATION"
                 planCode = "BUSINESS"
@@ -534,19 +739,40 @@ class InformationRequestSubmissionTransactionTest
                 issuedAt = Timestamp.from(Instant.now())
             },
         )
-        val gate = InformationRequestMutationGate(requestRepository, exchangeRepository, authorization, mock(), grants)
+        val gate = InformationRequestMutationGate(
+            requestRepository,
+            exchangeLookup,
+            authorization,
+            mock(),
+            InformationRequestContinuationGuard(grants, mock()),
+        )
         val evidenceGate = InformationRequestEvidenceGate(
             requestRepository = requestRepository,
-            exchangeRepository = exchangeRepository,
+            exchangeLookup = exchangeLookup,
             requirementRepository = requirementRepository,
             occurrenceRepository = occurrenceRepository,
             templateRequirementRepository = templateRequirementRepository,
             authorizationService = authorization,
-            entitlementGuard = mock(),
-            executionGrantService = grants,
+            continuationGuard = InformationRequestContinuationGuard(grants, mock()),
             lockService = lockService,
+            requirementContext = requirementContext,
+            conditionVisibility = InformationRequestConditionVisibility(conditionEvaluationService, bindingRepository),
         )
-        val readiness = InformationRequestSubmissionReadinessEvaluator(completenessProgressService, attestationEvaluationService, gate)
+        val readiness = InformationRequestSubmissionReadinessEvaluator(
+            completenessProgressService,
+            attestationEvaluationService,
+            gate,
+            structuredResponseValidationService,
+            validationContextLoader,
+            groupCardinality,
+        )
+        val activeResponses = InformationRequestActiveResponseReader(
+            requirementRepository,
+            occurrenceRepository,
+            bindingRepository,
+            responseRepository,
+            conditionEvaluationService,
+        )
         return SubmissionServices(
             submissions = InformationRequestSubmissionService(
                 gate = gate,
@@ -567,6 +793,8 @@ class InformationRequestSubmissionTransactionTest
                 satisfaction = satisfaction,
                 clock = clock,
                 entityManager = entityManager,
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
+                clockHold = clockHold,
             ),
             attestations = InformationRequestSubmissionAttestationService(
                 gate = gate,
@@ -586,6 +814,11 @@ class InformationRequestSubmissionTransactionTest
                 commandReceiptService = commandReceiptService,
                 transitionHistory = history,
                 clock = clock,
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
+                conditionVisibility = InformationRequestConditionVisibility(
+                    conditionEvaluationService,
+                    bindingRepository
+                ),
             ),
             evidence = InformationRequestEvidenceCollectionService(
                 gate = evidenceGate,
@@ -593,28 +826,55 @@ class InformationRequestSubmissionTransactionTest
                 commandReceiptService = commandReceiptService,
                 transitionHistory = history,
                 viewLoader = InformationRequestEvidenceViewLoader(versionRepository, documentVersionRecordingService),
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
             ),
             responses = InformationRequestResponseDraftService(
                 requestRepository = requestRepository,
-                exchangeRepository = exchangeRepository,
                 requirementRepository = requirementRepository,
                 occurrenceRepository = occurrenceRepository,
                 revisionRepository = revisionRepository,
-                dispositionRepository = dispositionRepository,
-                bindingRepository = bindingRepository,
                 responseStore = responseRepository,
-                schemaAssignmentService = schemaAssignmentService,
-                schemaAssignmentRepository = schemaAssignmentRepository,
-                fieldValueSetRepository = fieldValueSetRepository,
-                fieldContractRepository = fieldContractRepository,
+                mutationGuard = InformationRequestResponseMutationGuard(
+                    requestRepository, exchangeLookup, InformationRequestContinuationGuard(grants, mock()),
+                ),
+                patchValidator = InformationRequestResponsePatchValidator(dispositionRepository, responseRepository),
+                fieldWriter = InformationRequestResponseFieldWriter(
+                    schemaAssignmentService,
+                    fieldsReader,
+                    bindingRepository,
+                    activeResponses
+                ),
+                activeResponses = activeResponses,
                 authorizationService = authorization,
                 commandReceiptService = commandReceiptService,
-                entitlementGuard = mock(),
-                executionGrantService = grants,
                 transitionHistory = history,
-                conditionEvaluationService = conditionEvaluationService,
                 structuredResponseValidationService = structuredResponseValidationService,
+                validationContextLoader = validationContextLoader,
                 lockService = lockService,
+                hiddenResponsePolicies = InformationRequestHiddenResponsePolicyEnforcer(
+                    conditionEvaluationService, bindingRepository, revisionRepository, responseRepository,
+                    schemaAssignmentService, authorization, hiddenResponseArchiver, fieldsReader,
+                    InformationRequestHiddenResponseFiles(
+                        artifactRepository,
+                        versionRepository,
+                        evidenceGate,
+                    ),
+                    InformationRequestEvidenceCollectionService(
+                        gate = evidenceGate,
+                        artifactRepository = artifactRepository,
+                        commandReceiptService = commandReceiptService,
+                        transitionHistory = history,
+                        viewLoader = InformationRequestEvidenceViewLoader(
+                            versionRepository,
+                            documentVersionRecordingService
+                        ),
+                        noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
+                    ),
+                    lockService,
+                    InformationRequestConditionVisibility(conditionEvaluationService, bindingRepository),
+                ),
+                conditionEffectRecorder = conditionEffectRecorder,
+                noAuthAccess = InformationRequestNoAuthAccessDoubles.current(),
             ),
         )
     }
@@ -634,25 +894,36 @@ class InformationRequestSubmissionTransactionTest
                 Decision.Allow()
         }
         val grants = mock<InformationRequestExecutionGrantService>()
-        val gate = InformationRequestMutationGate(requestRepository, exchangeRepository, authorization, mock(), grants)
+        whenever(grants.findForRequest(fixture.requestId)).thenReturn(issuedExecutionGrant().apply {
+            requestId = fixture.requestId
+        })
+        val gate = InformationRequestMutationGate(
+            requestRepository,
+            exchangeLookup,
+            authorization,
+            mock(),
+            InformationRequestContinuationGuard(grants, mock()),
+        )
         return InformationRequestSubmissionQueryService(
-            queryService = InformationRequestQueryService(exchangeRepository, requestRepository, authorization),
-            exchangeRepository = exchangeRepository,
+            queryService = InformationRequestQueryService(exchangeLookup, requestRepository, authorization),
+            exchangeLookup = exchangeLookup,
             packageReader = packageReader,
             contentCollector = contentCollector,
             stages = stages,
-            readinessEvaluator = InformationRequestSubmissionReadinessEvaluator(completenessProgressService, attestationEvaluationService, gate),
+            readinessEvaluator = InformationRequestSubmissionReadinessEvaluator(
+                completenessProgressService,
+                attestationEvaluationService,
+                gate,
+                structuredResponseValidationService,
+                validationContextLoader,
+                groupCardinality,
+            ),
             lockService = lockService,
             requirementContext = requirementContext,
             fieldValueRevisions = fieldValueRevisionQueryService,
             gate = gate,
+            evidenceQueries = evidenceQueries,
+            reviewOpening = reviewOpening,
         )
     }
-
-    private data class SubmissionServices(
-        val submissions: InformationRequestSubmissionService,
-        val attestations: InformationRequestSubmissionAttestationService,
-        val evidence: InformationRequestEvidenceCollectionService,
-        val responses: InformationRequestResponseDraftService,
-    )
 }

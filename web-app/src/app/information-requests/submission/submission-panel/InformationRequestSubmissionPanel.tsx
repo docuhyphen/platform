@@ -1,13 +1,23 @@
-import {useState} from "react";
-import {Button, Dropdown, Field, MessageBar, MessageBarBody, Option, Text} from "@fluentui/react-components";
-import {InformationRequestState, InformationRequestSubmissionMode} from "../../../models/models.tsx";
+import {submissionUnavailableReason} from "../submissionAvailability.ts";
+import {Text} from "@fluentui/react-components";
+import {
+    InformationRequestState,
+    InformationRequestSubmissionMode,
+    SchemaFieldBindingDto
+} from "../../../models/models.tsx";
+import {RespondentPendingWork} from "../../shared/respondentPendingWork.ts";
+import {AttestationExceptionSettings} from "../attestationException.ts";
+import SubmissionActions from "../submission-actions/SubmissionActions.tsx";
 import SubmissionAttestationCard from "../submission-attestation-card/SubmissionAttestationCard.tsx";
+import SubmissionLoadError from "../submission-load-error/SubmissionLoadError.tsx";
 import SubmissionPackageList from "../submission-package-list/SubmissionPackageList.tsx";
 import SubmissionReadinessList from "../submission-readiness-list/SubmissionReadinessList.tsx";
 import SubmissionReviewDialog from "../submission-review-dialog/SubmissionReviewDialog.tsx";
-import {SubmissionReviewItem} from "../submissionReview.ts";
-import {humanizedKey} from "../submissionLabels.ts";
+import SubmissionStagePicker from "../submission-stage-picker/SubmissionStagePicker.tsx";
+import SubmissionPanelMessages from "./SubmissionPanelMessages.tsx";
+import {previewReviewItems} from "../submissionReview.ts";
 import {useInformationRequestSubmission} from "../useInformationRequestSubmission.ts";
+import {useReviewBeforeSubmitting} from "../useReviewBeforeSubmitting.ts";
 import {useInformationRequestSubmissionPanelStyles} from "./InformationRequestSubmissionPanelStyles.tsx";
 
 interface Props
@@ -17,30 +27,50 @@ interface Props
     responseETag: string;
     accessLinkToken?: string;
     requirementLabels?: Record<string, string>;
-    reviewItems?: SubmissionReviewItem[];
+    bindings?: SchemaFieldBindingDto[];
+    confirmationExceptions?: Record<string, AttestationExceptionSettings>;
+    pendingWork?: RespondentPendingWork;
     onChanged: () => void;
 }
 
 const InformationRequestSubmissionPanel = ({
-    requestId,
-    requestState,
-    responseETag,
-    accessLinkToken,
-    requirementLabels = {},
-    reviewItems = [],
-    onChanged,
-}: Props) =>
+                                               requestId,
+                                               requestState,
+                                               responseETag,
+                                               accessLinkToken,
+                                               requirementLabels = {},
+                                               bindings = [],
+                                               confirmationExceptions = {},
+                                               pendingWork,
+                                               onChanged,
+                                           }: Props) =>
 {
-    const [reviewing, setReviewing] = useState(false);
     const styles = useInformationRequestSubmissionPanelStyles();
-    const {preview, result, busy, error, selectStage, submit, attest, withdraw} =
-        useInformationRequestSubmission(requestId, responseETag, accessLinkToken, onChanged);
-    const closed = requestState === InformationRequestState.CLOSED;
+    const {
+        preview,
+        reviewed,
+        selectedStageKey,
+        loading,
+        result,
+        busy,
+        error,
+        retry,
+        selectStage,
+        submit,
+        attest,
+        withdraw,
+        recordException,
+    } =
+        useInformationRequestSubmission(requestId, responseETag, accessLinkToken, onChanged, undefined, pendingWork?.evidenceRevision);
+    const closed = [InformationRequestState.CLOSED, InformationRequestState.CANCELLED, InformationRequestState.SUPERSEDED, InformationRequestState.EXPIRED].includes(requestState);
+    const held = busy || loading;
+    const review = useReviewBeforeSubmitting(reviewed, held, pendingWork);
 
-    if (!preview) return null;
+    if (!preview && !error) return null;
 
     return (
         <section id={"information-request-submission-panel"}
+                 aria-labelledby={"information-request-submission-title"}
                  className={styles.panel}>
             <div id={"information-request-submission-header"}
                  className={styles.header}>
@@ -49,86 +79,56 @@ const InformationRequestSubmissionPanel = ({
                       weight={"semibold"}>
                     Review and submit
                 </Text>
-                {preview.submissionMode === InformationRequestSubmissionMode.STAGED && preview.stageKey && (
-                    <Field id={"information-request-submission-stage-field"}
-                           label={"Part to submit"}
-                           className={styles.stageField}>
-                        <Dropdown id={"information-request-submission-stage"}
-                                  value={humanizedKey(preview.stageKey)}
-                                  selectedOptions={[preview.stageKey]}
-                                  disabled={busy}
-                                  onOptionSelect={(_, data) => data.optionValue && void selectStage(data.optionValue)}>
-                            {preview.stages.map(stage => (
-                                <Option id={`information-request-submission-stage-${stage.stageKey}`}
-                                        key={stage.stageKey}
-                                        value={stage.stageKey}
-                                        text={humanizedKey(stage.stageKey)}>
-                                    {`${humanizedKey(stage.stageKey)}${stage.submitted ? " (submitted)" : ""}`}
-                                </Option>
-                            ))}
-                        </Dropdown>
-                    </Field>
+                {preview?.submissionMode === InformationRequestSubmissionMode.STAGED && selectedStageKey && (
+                    <SubmissionStagePicker stageKey={selectedStageKey}
+                                           stages={preview.stages}
+                                           disabled={busy}
+                                           onSelect={stageKey => void selectStage(stageKey)}/>
                 )}
             </div>
-            {error && (
-                <MessageBar id={"information-request-submission-error"}
-                            intent={"error"}>
-                    <MessageBarBody>{error}</MessageBarBody>
-                </MessageBar>
-            )}
-            {result && (
-                <MessageBar id={"information-request-submission-result"}
-                            intent={"success"}>
-                    <MessageBarBody>
-                        {`Submission ${result.submission.packageNumber} was recorded.`}
-                        {result.requestState === InformationRequestState.CLOSED && " This request is now complete."}
-                    </MessageBarBody>
-                </MessageBar>
-            )}
-            {!closed && (
+            {!preview && error && <SubmissionLoadError message={error}
+                                                       onRetry={() => void retry()}/>}
+            <SubmissionPanelMessages correctionOpen={Boolean(preview && !closed && preview.correctionOpen)}
+                                     error={preview ? error : null}
+                                     result={result}/>
+            {preview && !closed && (
                 <SubmissionReadinessList ready={preview.ready}
                                          problems={preview.problems}
                                          undisclosedProblemCount={preview.undisclosedProblemCount}
+                                         groupProblems={preview.groupProblems}
                                          requirementLabels={requirementLabels}/>
             )}
-            {!closed && preview.attestations.map(status => (
+            {preview && !closed && preview.attestations.map(status => (
                 <SubmissionAttestationCard key={status.requirementId}
                                            status={status}
-                                           busy={busy}
-                                           onAttest={input => void attest(input)}/>
+                                           busy={held || pendingWork?.unsaved === true || pendingWork?.blocker != null}
+                                           contactOnly={!!accessLinkToken}
+                                           label={requirementLabels[status.requirementId]}
+                                           exception={confirmationExceptions[status.requirementId]}
+                                           onAttest={input => void attest(input)}
+                                           onRecordException={input => void recordException(input)}/>
             ))}
-            {!closed && (
-                <div id={"information-request-submission-actions"}
-                     className={styles.actions}>
-                    <Button id={"information-request-submission-submit"}
-                            appearance={"primary"}
-                            shape={"circular"}
-                            disabled={busy || !preview.canSubmit}
-                            onClick={() => setReviewing(true)}>
-                        Submit
-                    </Button>
-                    {!preview.canSubmit && preview.ready && (
-                        <Text id={"information-request-submission-unavailable"}
-                              className={styles.detail}>
-                            This part cannot be submitted now.
-                        </Text>
-                    )}
-                </div>
+            {preview && !closed && (
+                <SubmissionActions label={preview.correctionOpen ? "Submit again" : "Submit"}
+                                   disabled={held || !preview.canSubmit || review.preparing}
+                                   blocker={review.blocker}
+                                   unavailableReason={submissionUnavailableReason(preview)}
+                                   onSubmit={review.open}/>
             )}
-            {reviewing && (
-                <SubmissionReviewDialog items={reviewItems}
-                                        busy={busy}
-                                        onConfirm={() =>
-                                        {
-                                            setReviewing(false);
-                                            void submit();
-                                        }}
-                                        onDismiss={() => setReviewing(false)}/>
+            {review.reviewing && (
+                <SubmissionReviewDialog items={previewReviewItems(reviewed?.scopeItems ?? [], bindings)}
+                                        undisclosedItemCount={reviewed?.undisclosedScopeItemCount ?? 0}
+                                        busy={held || review.blocker !== null}
+                                        onConfirm={() => review.confirm(() => void submit())}
+                                        onDismiss={review.dismiss}/>
             )}
-            <SubmissionPackageList packages={preview.packages}
-                                   busy={busy}
-                                   closed={closed}
-                                   onWithdraw={packageId => void withdraw(packageId)}/>
+            {preview && (
+                <SubmissionPackageList packages={preview.packages}
+                                       busy={held}
+                                       closed={closed}
+                                       error={error}
+                                       onWithdraw={withdraw}/>
+            )}
         </section>
     );
 };

@@ -411,6 +411,16 @@ Resources:
                 Resource:
                   - !GetAtt DocumentsBucket.Arn
                   - !Sub ${DocumentsBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - s3:ListBucketVersions
+                Resource:
+                  - !GetAtt DocumentsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - s3:DeleteObjectVersion
+                Resource:
+                  - !Sub ${DocumentsBucket.Arn}/*
         - PolicyName: S3DocumentPreviewAccess
           PolicyDocument:
             Version: "2012-10-17"

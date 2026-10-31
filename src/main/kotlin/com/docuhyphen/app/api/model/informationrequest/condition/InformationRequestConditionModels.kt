@@ -21,3 +21,8 @@ data class InformationRequestConditionEvaluationProjection(
     val fieldDefinitionIds: Set<UUID>,
     val occurrencePath: String = InformationRequestOccurrencePath.ROOT,
 )
+
+data class InformationRequestConditionSnapshot(
+    val evaluations: List<InformationRequestConditionEvaluationProjection>,
+    val inactiveRequirementIds: Set<UUID> = emptySet(),
+)

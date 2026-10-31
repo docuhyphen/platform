@@ -1,37 +1,24 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateConfigurationMapper
-import com.docuhyphen.app.api.model.dto.CreateInformationRequestTemplateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionDto
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import com.docuhyphen.app.api.service.command.CommandReceiptScope
+import com.docuhyphen.app.api.service.command.CommandReceiptService
+import com.docuhyphen.app.api.service.informationrequest.template.model.TemplateLifecycleFixture
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestTemplateLifecycleServiceTest
 {
@@ -43,18 +30,21 @@ class InformationRequestTemplateLifecycleServiceTest
     {
         val fixture = fixture()
 
-        val result = fixture.service.retireVersion(fixture.definition.id, 1)
+        val result = fixture.service.retireVersion(fixture.definition.id, 1, key())
 
         assertEquals(fixture.projected, result)
         assertEquals(InformationRequestTemplateStatus.RETIRED, fixture.source.status)
-        assertEquals(actorId, fixture.source.retiredByAppUserId)
+        assertEquals(PrincipalKind.USER, fixture.source.retiredByPrincipalKind)
+        assertEquals(actorId, fixture.source.retiredByPrincipalId)
         assertNotNull(fixture.source.retiredAt)
         verify(fixture.versionRepository).update(fixture.source)
         verify(fixture.configurationWriter, never()).replaceConfiguration(any(), any())
-        verify(fixture.authoringService).recordTemplateEvent(
+        verify(fixture.authoringService).recordTemplateVersionEvent(
             AuditEventType.INFORMATION_REQUEST_TEMPLATE_RETIRE,
             fixture.definition,
-            actorId,
+            fixture.source,
+            PrincipalRef.user(actorId),
+            null,
         )
     }
 
@@ -63,9 +53,20 @@ class InformationRequestTemplateLifecycleServiceTest
     {
         val fixture = fixture()
 
-        fixture.service.retireVersion(fixture.definition.id, 1)
+        fixture.service.retireVersion(fixture.definition.id, 1, key())
 
         assertEquals(InformationRequestTemplateStatus.RETIRED, fixture.definition.status)
+        verify(fixture.definitionRepository).update(fixture.definition)
+    }
+
+    @Test
+    fun `retiring the only published version while a draft is open leaves a Template that is only a draft`() {
+        val fixture = fixture(hasDraft = true)
+        fixture.definition.status = InformationRequestTemplateStatus.PUBLISHED
+
+        fixture.service.retireVersion(fixture.definition.id, 1, key())
+
+        assertEquals(InformationRequestTemplateStatus.DRAFT, fixture.definition.status)
         verify(fixture.definitionRepository).update(fixture.definition)
     }
 
@@ -74,7 +75,7 @@ class InformationRequestTemplateLifecycleServiceTest
     {
         val fixture = fixture()
 
-        fixture.service.createDraftVersion(fixture.definition.id, 1)
+        fixture.service.createDraftVersion(fixture.definition.id, 1, key())
 
         val created = argumentCaptor<InformationRequestTemplateVersion>()
         verify(fixture.versionRepository).save(created.capture())
@@ -82,10 +83,12 @@ class InformationRequestTemplateLifecycleServiceTest
         assertEquals(InformationRequestTemplateStatus.DRAFT, created.firstValue.status)
         assertNull(created.firstValue.publishedAt)
         verify(fixture.configurationWriter).replaceConfiguration(created.firstValue, expectedConfiguration())
-        verify(fixture.authoringService).recordTemplateEvent(
+        verify(fixture.authoringService).recordTemplateVersionEvent(
             AuditEventType.INFORMATION_REQUEST_TEMPLATE_NEW_VERSION,
             fixture.definition,
-            actorId,
+            created.firstValue,
+            PrincipalRef.user(actorId),
+            fixture.source,
         )
     }
 
@@ -94,7 +97,7 @@ class InformationRequestTemplateLifecycleServiceTest
     {
         val fixture = fixture()
 
-        fixture.service.createDraftVersion(fixture.definition.id, 1)
+        fixture.service.createDraftVersion(fixture.definition.id, 1, key())
 
         inOrder(fixture.definitionRepository, fixture.versionRepository) {
             verify(fixture.definitionRepository).findByIdForUpdate(fixture.definition.id)
@@ -109,7 +112,7 @@ class InformationRequestTemplateLifecycleServiceTest
         val fixture = fixture(hasDraft = true)
 
         assertThrows<IllegalStateException> {
-            fixture.service.createDraftVersion(fixture.definition.id, 1)
+            fixture.service.createDraftVersion(fixture.definition.id, 1, key())
         }
 
         verify(fixture.versionRepository, never()).save(any())
@@ -126,19 +129,85 @@ class InformationRequestTemplateLifecycleServiceTest
             displayName = "Collection pattern copy",
             scopeKind = InformationRequestTemplateScopeKind.PERSONAL,
         )
-        val target = templateDto(UUID.randomUUID(), InformationRequestTemplateStatus.DRAFT)
+        val target = targetDefinition()
         val configured = templateDto(target.id, InformationRequestTemplateStatus.DRAFT)
-        whenever(fixture.authoringService.createTemplate(request)).thenReturn(target)
-        whenever(fixture.authoringService.replaceDraftConfiguration(target.id, expectedConfiguration()))
-            .thenReturn(configured)
+        whenever(fixture.authoringService.createDefinition(request)).thenReturn(target)
+        whenever(
+            fixture.authoringService.configureCopiedDraft(
+                target.id,
+                expectedConfiguration(),
+                fixture.source,
+            ),
+        ).thenReturn(configured)
 
-        val result = fixture.service.cloneTemplate(fixture.definition.id, 1, request)
+        val result = fixture.service.cloneTemplate(fixture.definition.id, 1, request, key())
 
         assertEquals(configured, result)
         verify(fixture.authoringService).getTemplate(fixture.definition.id)
         verify(fixture.definitionRepository).findByIdForUpdate(fixture.definition.id)
-        verify(fixture.authoringService).createTemplate(request)
-        verify(fixture.authoringService).replaceDraftConfiguration(target.id, expectedConfiguration())
+        verify(fixture.authoringService).createDefinition(request)
+        verify(fixture.authoringService).configureCopiedDraft(
+            target.id,
+            expectedConfiguration(),
+            fixture.source,
+        )
+    }
+
+    @Test
+    fun `a retirement retried under its idempotency key answers again instead of refusing the retired version`() {
+        val fixture = fixture()
+
+        fixture.service.retireVersion(fixture.definition.id, 1, "retire-once")
+        val replayed = fixture.service.retireVersion(fixture.definition.id, 1, "retire-once")
+
+        assertEquals(fixture.projected, replayed)
+        verify(fixture.versionRepository, times(1)).update(fixture.source)
+        verify(fixture.authoringService, times(1)).recordTemplateVersionEvent(
+            AuditEventType.INFORMATION_REQUEST_TEMPLATE_RETIRE,
+            fixture.definition,
+            fixture.source,
+            PrincipalRef.user(actorId),
+            null,
+        )
+    }
+
+    @Test
+    fun `a new version retried under its idempotency key answers again instead of refusing its own draft`() {
+        val fixture = fixture()
+
+        fixture.service.createDraftVersion(fixture.definition.id, 1, "new-version-once")
+        whenever(fixture.versionRepository.findDraft(fixture.definition.id)).thenReturn(
+            InformationRequestTemplateVersion().apply {
+                templateDefinitionId = fixture.definition.id
+                versionNumber = 2
+            },
+        )
+        val replayed = fixture.service.createDraftVersion(fixture.definition.id, 1, "new-version-once")
+
+        assertEquals(fixture.projected, replayed)
+        verify(fixture.versionRepository, times(1)).save(any())
+    }
+
+    @Test
+    fun `a copy retried under its idempotency key answers with the first copy`() {
+        val fixture = fixture()
+        val request = CreateInformationRequestTemplateRequest(
+            namespace = "process-copy",
+            templateKey = "collection-pattern-copy",
+            displayName = "Collection pattern copy",
+            scopeKind = InformationRequestTemplateScopeKind.PERSONAL,
+        )
+        val target = targetDefinition()
+        val configured = templateDto(target.id, InformationRequestTemplateStatus.DRAFT)
+        whenever(fixture.authoringService.createDefinition(request)).thenReturn(target)
+        whenever(fixture.authoringService.configureCopiedDraft(any(), any(), any())).thenReturn(configured)
+        whenever(fixture.authoringService.getTemplate(target.id)).thenReturn(configured)
+
+        fixture.service.cloneTemplate(fixture.definition.id, 1, request, "copy-once")
+        val replayed = fixture.service.cloneTemplate(fixture.definition.id, 1, request, "copy-once")
+
+        assertEquals(configured, replayed)
+        verify(fixture.authoringService, times(1)).createDefinition(request)
     }
 
     @Test
@@ -152,30 +221,19 @@ class InformationRequestTemplateLifecycleServiceTest
         )
 
         assertThrows<IllegalStateException> {
-            fixture.service.createDraftVersion(fixture.definition.id, 1)
+            fixture.service.createDraftVersion(fixture.definition.id, 1, key())
         }
         assertThrows<IllegalStateException> {
-            fixture.service.cloneTemplate(fixture.definition.id, 1, request)
+            fixture.service.cloneTemplate(fixture.definition.id, 1, request, key())
         }
 
-        verify(fixture.authoringService, never()).createTemplate(any())
+        verify(fixture.authoringService, never()).createDefinition(any())
     }
-
-    private data class Fixture(
-        val service: InformationRequestTemplateLifecycleService,
-        val authoringService: InformationRequestTemplateAuthoringService,
-        val definitionRepository: InformationRequestTemplateDefinitionRepository,
-        val versionRepository: InformationRequestTemplateVersionRepository,
-        val configurationWriter: InformationRequestTemplateConfigurationWriter,
-        val definition: InformationRequestTemplateDefinition,
-        val source: InformationRequestTemplateVersion,
-        val projected: InformationRequestTemplateDto,
-    )
 
     private fun fixture(
         hasDraft: Boolean = false,
         sourceStatus: InformationRequestTemplateStatus = InformationRequestTemplateStatus.PUBLISHED,
-    ): Fixture
+    ): TemplateLifecycleFixture
     {
         val authoringService = mock<InformationRequestTemplateAuthoringService>()
         val definitionRepository = mock<InformationRequestTemplateDefinitionRepository>()
@@ -195,7 +253,8 @@ class InformationRequestTemplateLifecycleServiceTest
             versionNumber = 1
             status = sourceStatus
             publishedAt = Timestamp.from(Instant.now())
-            publishedByAppUserId = actorId
+            publishedByPrincipalKind = PrincipalKind.USER
+            publishedByPrincipalId = actorId
         }
         val sourceProjection = sourceProjection(source)
         val projected = templateDto(definition.id, definition.status)
@@ -204,6 +263,7 @@ class InformationRequestTemplateLifecycleServiceTest
             InformationRequestTemplateMutationContext(definition, PrincipalRef.user(actorId)),
         )
         whenever(authoringService.getTemplate(definition.id)).thenReturn(projected)
+        whenever(authoringService.currentAuthor()).thenReturn(PrincipalRef.user(actorId))
         whenever(authoringService.projectTemplate(any())).thenReturn(projected)
         whenever(definitionRepository.findByIdForUpdate(definition.id)).thenReturn(definition)
         whenever(versionRepository.findByNumber(definition.id, 1)).thenReturn(source)
@@ -215,18 +275,20 @@ class InformationRequestTemplateLifecycleServiceTest
             if (hasDraft) InformationRequestTemplateVersion().apply {
                 templateDefinitionId = definition.id
                 versionNumber = 2
-            } else null,
+            }
+            else null,
         )
         whenever(versionRepository.save(any())).thenAnswer { it.getArgument(0) }
         whenever(projectionLoader.loadVersion(source)).thenReturn(sourceProjection)
 
-        return Fixture(
+        return TemplateLifecycleFixture(
             InformationRequestTemplateLifecycleService(
                 authoringService,
                 definitionRepository,
                 versionRepository,
                 configurationWriter,
                 projectionLoader,
+                CommandReceiptService(InMemoryTemplateReceiptStore(), CommandReceiptScope()),
             ),
             authoringService,
             definitionRepository,
@@ -283,6 +345,16 @@ class InformationRequestTemplateLifecycleServiceTest
             },
         ),
     )
+
+    private fun key(): String = UUID.randomUUID().toString()
+
+    private fun targetDefinition() = InformationRequestTemplateDefinition().apply {
+        scopeKind = InformationRequestTemplateScopeKind.PERSONAL
+        scopeUserId = actorId
+        namespace = "process-copy"
+        templateKey = "collection-pattern-copy"
+        displayName = "Collection pattern copy"
+    }
 
     private fun templateDto(id: UUID, status: InformationRequestTemplateStatus) =
         InformationRequestTemplateDto(

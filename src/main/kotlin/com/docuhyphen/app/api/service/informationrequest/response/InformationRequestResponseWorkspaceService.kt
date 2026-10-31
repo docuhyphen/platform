@@ -1,12 +1,18 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
-import com.docuhyphen.app.api.model.InformationRequestDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestGroupOccurrenceDtoMapper
 import com.docuhyphen.app.api.model.InformationRequestResponseWorkspaceDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldValueReadCommand
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
+import com.docuhyphen.app.api.model.fields.FieldsAccessContext
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
+import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestAuthorActions
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestWorkspacePurpose
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
@@ -14,19 +20,24 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestHeaderProjectionService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestTitleReader
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAuthorActionService
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
+import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestGoverningCondition
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceDeploymentPolicy
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceQueryService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestFirstViewService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupAuthorizationService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateProjectionLoader
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
@@ -51,6 +62,11 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
     private val firstViewService: InformationRequestFirstViewService,
     private val titleReader: InformationRequestTitleReader,
     private val standingService: InformationRequestExecutionStandingService,
+    private val headerProjection: InformationRequestHeaderProjectionService,
+    private val lockService: InformationRequestSubmissionLockService,
+    private val evidenceQueries: InformationRequestEvidenceQueryService,
+    private val authorActions: InformationRequestAuthorActionService,
+    private val parentState: ExchangeLifecycleStateService,
 )
 {
     fun loadRequest(requestId: UUID, access: RequestAccessContext): InformationRequestDto
@@ -63,14 +79,29 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         val evaluations = InformationRequestWorkspaceOccurrenceProjection.conditions(
             conditionEvaluationService.evaluate(requestId), templateVersion, requirements, activeRequirements,
         )
-        return InformationRequestDtoMapper.toDto(request, evaluations)
+        return headerProjection.headerOf(request, access, evaluations)
     }
 
-    fun load(requestId: UUID, access: RequestAccessContext): InformationRequestResponseWorkspaceDto
+    fun load(
+        requestId: UUID,
+        access: RequestAccessContext,
+        purpose: InformationRequestWorkspacePurpose = InformationRequestWorkspacePurpose.RESPONSE,
+    ): InformationRequestResponseWorkspaceDto
     {
         val request = queryService.findById(requestId, access)
-        runCatching { firstViewService.recordIfFirst(requestId, access) }
-            .onFailure { logger.warn("Information Request first view was not recorded for request={}", requestId, it) }
+        val manages = managesRequest(request, access)
+        if (purpose == InformationRequestWorkspacePurpose.MANAGEMENT && !manages)
+            throw ForbiddenException(MANAGEMENT_READ_REFUSAL)
+        if (purpose == InformationRequestWorkspacePurpose.RESPONSE) {
+            runCatching { firstViewService.recordIfFirst(requestId, access) }
+                .onFailure {
+                    logger.warn(
+                        "Information Request first view was not recorded for request={}",
+                        requestId,
+                        it
+                    )
+                }
+        }
         val templateVersionDto = loadTemplateVersion(request)
         val conditionEvaluations = conditionEvaluationService.evaluate(requestId)
         val responsesByRequirement = responseRepository.findAllForRequest(requestId)
@@ -84,8 +115,14 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
             request = request,
             access = access,
         )
-        val safeTemplateVersion =
-            recipientSafeTemplateVersion(templateVersionDto, disclosedRequirements, creationGroupKeys)
+        val safeTemplateVersion = reviewStagesFor(
+            InformationRequestRecipientTemplateProjection.recipientSafe(
+                templateVersionDto,
+                disclosedRequirements.map { it.sourceTemplateBindingId }.toSet(),
+                creationGroupKeys,
+            ),
+            manages,
+        )
         val safeConditionEvaluations = InformationRequestWorkspaceOccurrenceProjection.conditions(
             conditionEvaluations, templateVersionDto, disclosedRequirements, activeRequirements,
         )
@@ -95,14 +132,26 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         val requirementsByBindingId = safeTemplateVersion.sections
             .flatMap { it.requirements }
             .associateBy { it.id }
-        val authorizedRequirements = disclosedRequirements
-            .filter { requirement ->
-                InformationRequestActiveResponseProjection.isActive(
-                    authoredRequirementsByBindingId[requirement.sourceTemplateBindingId]?.conditionalRuleKey,
-                    requirement.occurrencePath, conditionEvaluations,
-                    responsesByRequirement[requirement.id]?.activeInResponse != false
-                )
-            }
+        val inEffect = { requirement: InformationRequestRequirement ->
+            InformationRequestActiveResponseProjection.isActive(
+                InformationRequestGoverningCondition.ruleKeyOf(authoredRequirementsByBindingId[requirement.sourceTemplateBindingId]),
+                requirement.occurrencePath, conditionEvaluations,
+                responsesByRequirement[requirement.id]?.activeInResponse != false
+            )
+        }
+        val authorizedRequirements = disclosedRequirements.filter(inEffect)
+        val requirementsAwaitingStepUp = awaitingStepUp(activeRequirements - disclosedRequirements.toSet(), access)
+            .count(inEffect)
+        val editLocks = lockService.editLocks(requestId, authorizedRequirements.map { it.id })
+        val fileCounts = evidenceQueries.attachedFileCounts(
+            requestId,
+            authorizedRequirements
+                .filter {
+                    requirementsByBindingId[it.sourceTemplateBindingId]?.requirementType == InformationRequestRequirementType.DOCUMENT
+                }
+                .map { it.id },
+            access,
+        )
         val fieldProjections = authorizedRequirements.associateWith { requirement ->
             fieldProjection(
                 requestId,
@@ -113,8 +162,9 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         }
 
         return InformationRequestResponseWorkspaceDtoMapper.toDto(
-            request = InformationRequestDtoMapper.toDto(request, safeConditionEvaluations),
+            request = headerProjection.headerOf(request, access, safeConditionEvaluations),
             title = titleReader.titleOf(request),
+            respondentKey = InformationRequestRespondentKey.of(access.principal),
             templateVersion = safeTemplateVersion,
             responseETag = InformationRequestETag.responsesOf(request),
             occurrences = InformationRequestWorkspaceOccurrenceProjection.occurrences(
@@ -129,6 +179,8 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
                     response = responsesByRequirement[requirement.id],
                     fieldProjection = fieldProjections[requirement],
                     updatedAt = request.updatedAt,
+                    editLock = editLocks[requirement.id],
+                    evidenceFileCount = fileCounts[requirement.id],
                 )
             },
             supportingEvidenceLinks = supportingEvidenceLinkService
@@ -136,27 +188,65 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
                 .map(InformationRequestResponseWorkspaceDtoMapper::linkDto),
             evidenceUploadAvailable = evidenceDeploymentPolicy.uploadAvailable(),
             evidenceMalwareScanning = evidenceDeploymentPolicy.malwareScanningConfigured(),
-            executionStanding = executionStandingFor(request, access),
+            executionStanding = executionStandingFor(request, manages),
+            requirementsAwaitingStepUp = requirementsAwaitingStepUp,
+            canRequestSupplement = mayRequestSupplement(request, access),
+            authorActions = if (manages) authorActions.actionsFor(
+                request,
+                access
+            ) else InformationRequestAuthorActions(),
+            creatableGroupKeys = creationGroupKeys,
+            exchangeAccepted = parentState.snapshot(request.exchangeId)?.status != ExchangeStatus.INITIATED,
         )
+    }
+
+    private fun managesRequest(request: InformationRequest, access: RequestAccessContext): Boolean =
+        authorizationService.authorize(
+            access.principal,
+            Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
+            ResourceRef.informationRequest(request.id),
+            access.authorization,
+        ) is Decision.Allow
+
+    private fun reviewStagesFor(
+        templateVersion: InformationRequestTemplateVersionDto,
+        manages: Boolean,
+    ): InformationRequestTemplateVersionDto =
+        if (manages) templateVersion else InformationRequestRecipientTemplateProjection.forParticipant(templateVersion)
+
+    private fun mayRequestSupplement(request: InformationRequest, access: RequestAccessContext): Boolean =
+        SUPPLEMENT_ACTIONS.any { action ->
+            authorizationService.authorize(
+                access.principal,
+                action,
+                ResourceRef.informationRequest(request.id),
+                access.authorization,
+            ) is Decision.Allow
+        }
+
+    private fun awaitingStepUp(
+        undisclosed: List<InformationRequestRequirement>,
+        access: RequestAccessContext,
+    ): List<InformationRequestRequirement> {
+        if (access.authorization.mfaSatisfied) return emptyList()
+        val steppedUp = access.copy(authorization = access.authorization.copy(mfaSatisfied = true))
+        return undisclosed.filter { canViewRequirement(it.id, steppedUp) }
     }
 
     private fun executionStandingFor(
         request: InformationRequest,
-        access: RequestAccessContext
-    ): InformationRequestExecutionStanding
-    {
+        manages: Boolean,
+    ): InformationRequestExecutionStanding {
         val standing = standingService.standingOf(request, standingService.ownerStanding(request))
-        val manages = authorizationService.authorize(
-            access.principal,
-            Action.INFORMATION_REQUEST_MANAGE_PARTIES,
-            ResourceRef.informationRequest(request.id),
-            access.authorization,
-        ) is Decision.Allow
         return if (manages) standing else standing.forParticipant()
     }
 
     private companion object
     {
+        val SUPPLEMENT_ACTIONS =
+            listOf(Action.INFORMATION_REQUEST_SUPERSEDE, Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT)
+        const val MANAGEMENT_READ_REFUSAL =
+            "Only a caller who manages this Information Request can open it for management"
         private val logger = org.slf4j.LoggerFactory.getLogger(InformationRequestResponseWorkspaceService::class.java)
     }
 
@@ -208,54 +298,6 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         else
             FieldValueSetRef.Occurrence(occurrencePath)
 
-    private fun recipientSafeTemplateVersion(
-        templateVersion: InformationRequestTemplateVersionDto,
-        disclosedRequirements: List<InformationRequestRequirement>,
-        safeExtraGroupKeys: Set<String>,
-    ): InformationRequestTemplateVersionDto
-    {
-        val disclosedBindingIds = disclosedRequirements.map { it.sourceTemplateBindingId }.toSet()
-        val fullRequirements = templateVersion.sections.flatMap { it.requirements }
-        val disclosedRequirementKeys = fullRequirements
-            .filter { it.id in disclosedBindingIds }
-            .map { it.requirementKey }
-            .toSet()
-        val disclosedFieldIds = fullRequirements
-            .filter { it.id in disclosedBindingIds }
-            .mapNotNull { it.collectedFieldDefinitionId }
-            .toSet()
-        val safeRules = templateVersion.conditionRules.filter { rule ->
-            fullRequirements.any { it.id in disclosedBindingIds && it.conditionalRuleKey == rule.ruleKey } &&
-                    rule.predicates.all { predicate ->
-                        (predicate.sourceRequirementKey == null || predicate.sourceRequirementKey in disclosedRequirementKeys) &&
-                                (predicate.fieldDefinitionId == null || predicate.fieldDefinitionId in disclosedFieldIds)
-                    }
-        }
-        val safeRuleKeys = safeRules.map { it.ruleKey }.toSet()
-        val safeSections = templateVersion.sections.mapNotNull { section ->
-            val requirements = section.requirements
-                .filter { it.id in disclosedBindingIds }
-                .map { requirement ->
-                    requirement.copy(
-                        conditionalRuleKey = requirement.conditionalRuleKey?.takeIf { it in safeRuleKeys },
-                        substituteRequirementKeys = requirement.substituteRequirementKeys.filter { it in disclosedRequirementKeys },
-                        supportingEvidenceRequirementKeys = requirement.supportingEvidenceRequirementKeys.filter { it in disclosedRequirementKeys },
-                    )
-                }
-            if (requirements.isEmpty()) null else section.copy(requirements = requirements)
-        }
-        val safeGroupKeys = recipientSafeGroupKeys(
-            templateVersion.groups,
-            safeSections.flatMap { it.requirements },
-            safeExtraGroupKeys,
-        )
-        return templateVersion.copy(
-            sections = safeSections,
-            groups = templateVersion.groups.filter { it.groupKey in safeGroupKeys },
-            conditionRules = safeRules,
-        )
-    }
-
     private fun recipientSafeCreationGroupKeys(
         templateVersion: InformationRequestTemplateVersionDto,
         bindings: List<InformationRequestTemplateRequirementBinding>,
@@ -266,33 +308,39 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
         val groupsByParent = templateVersion.groups.groupBy { it.parentGroupKey }
         return templateVersion.groups
             .filter {
-                authorizeGroupMaterialization(
+                authorizeGroupCreation(
                     request,
                     access,
-                    materializedBindings(it, groupsByParent, bindings)
+                    materializedBindings(it, groupsByParent, bindings),
+                    bindingsUnder(it, groupsByParent, bindings),
                 )
             }
             .map { it.groupKey }
             .toSet()
     }
 
-    private fun authorizeGroupMaterialization(
+    private fun authorizeGroupCreation(
         request: InformationRequest,
         access: RequestAccessContext,
-        bindings: List<InformationRequestTemplateRequirementBinding>,
+        materializedBindings: List<InformationRequestTemplateRequirementBinding>,
+        groupBindings: List<InformationRequestTemplateRequirementBinding>,
     ): Boolean
     {
-        if (bindings.isEmpty()) return false
-        return try
-        {
-            groupAuthorizationService.authorizeMaterializedBindings(access, request, bindings)
+        return !(materializedBindings.isEmpty() && groupBindings.isEmpty()) && try {
+            groupAuthorizationService.authorizeGroupCreation(access, request, materializedBindings, groupBindings)
             true
-        }
-        catch (_: ForbiddenException)
-        {
+        } catch (_: ForbiddenException) {
             false
         }
     }
+
+    private fun bindingsUnder(
+        group: InformationRequestTemplateGroupDto,
+        groupsByParent: Map<String?, List<InformationRequestTemplateGroupDto>>,
+        bindings: List<InformationRequestTemplateRequirementBinding>,
+    ): List<InformationRequestTemplateRequirementBinding> =
+        bindings.filter { it.occurrenceAnchorKey == group.groupKey } +
+                groupsByParent[group.groupKey].orEmpty().flatMap { bindingsUnder(it, groupsByParent, bindings) }
 
     private fun materializedBindings(
         group: InformationRequestTemplateGroupDto,
@@ -303,24 +351,5 @@ class InformationRequestResponseWorkspaceService @Inject constructor(
                 groupsByParent[group.groupKey].orEmpty()
                     .filter { it.minOccurrences > 0 }
                     .flatMap { materializedBindings(it, groupsByParent, bindings) }
-
-    private fun recipientSafeGroupKeys(
-        groups: List<InformationRequestTemplateGroupDto>,
-        requirements: List<InformationRequestTemplateRequirementDto>,
-        extraGroupKeys: Set<String>,
-    ): Set<String>
-    {
-        val byKey = groups.associateBy { it.groupKey }
-        val safe = mutableSetOf<String>()
-        fun addWithParents(groupKey: String?)
-        {
-            val group = groupKey?.let(byKey::get) ?: return
-            if (!safe.add(group.groupKey)) return
-            addWithParents(group.parentGroupKey)
-        }
-        requirements.forEach { addWithParents(it.occurrenceAnchorKey) }
-        extraGroupKeys.forEach { addWithParents(it) }
-        return safe
-    }
 
 }

@@ -1,23 +1,47 @@
 import {Badge, Button, Text} from "@fluentui/react-components";
 import {BackIcon} from "../../../components/IconBundles.tsx";
-import {InformationRequestTemplateDto} from "../../../models/models.tsx";
+import {
+    InformationRequestTemplateDto,
+    InformationRequestTemplateStatus,
+    InformationRequestTemplateVersionStandingDto,
+} from "../../../models/models.tsx";
 import {useTemplateEditorHeaderStyles} from "./TemplateEditorHeaderStyles.tsx";
 
 interface TemplateEditorHeaderProps
 {
     template: InformationRequestTemplateDto;
     readOnly: boolean;
+    shown?: InformationRequestTemplateVersionStandingDto | null;
+    onShowCurrent?: () => void;
     onBack: () => void;
 }
 
-const versionText = (template: InformationRequestTemplateDto): string =>
-{
+const versionText = (
+    template: InformationRequestTemplateDto,
+    shown: InformationRequestTemplateVersionStandingDto | null | undefined,
+): string => {
+    if (shown) {
+        if (!template.draftVersion && !template.latestPublishedVersion) {
+            return `All versions retired, viewing version ${shown.versionNumber}`;
+        }
+        const standing = shown.status === InformationRequestTemplateStatus.RETIRED ? "retired" : "published";
+        return `Viewing version ${shown.versionNumber}, ${standing}`;
+    }
     if (template.draftVersion) return `Draft version ${template.draftVersion.versionNumber}`;
     if (template.latestPublishedVersion) return `Published version ${template.latestPublishedVersion.versionNumber}`;
+    if (template.versions?.some(version => version.status === InformationRequestTemplateStatus.RETIRED)) return "All versions retired";
     return "No version yet";
 };
 
-const TemplateEditorHeader = ({template, readOnly, onBack}: TemplateEditorHeaderProps) =>
+const versionColor = (
+    template: InformationRequestTemplateDto,
+    shown: InformationRequestTemplateVersionStandingDto | null | undefined,
+): "informative" | "warning" | "success" => {
+    if (shown) return "informative";
+    return template.draftVersion ? "warning" : "success";
+};
+
+const TemplateEditorHeader = ({template, readOnly, shown, onShowCurrent, onBack}: TemplateEditorHeaderProps) =>
 {
     const styles = useTemplateEditorHeaderStyles();
 
@@ -46,8 +70,8 @@ const TemplateEditorHeader = ({template, readOnly, onBack}: TemplateEditorHeader
                 </Text>
                 <Badge id={"information-request-template-editor-version"}
                        appearance={"tint"}
-                       color={template.draftVersion ? "warning" : "success"}>
-                    {versionText(template)}
+                       color={versionColor(template, shown)}>
+                    {versionText(template, shown)}
                 </Badge>
                 {readOnly && (
                     <Badge id={"information-request-template-editor-read-only"}
@@ -55,6 +79,15 @@ const TemplateEditorHeader = ({template, readOnly, onBack}: TemplateEditorHeader
                            color={"informative"}>
                         Read only
                     </Badge>
+                )}
+                {onShowCurrent && (
+                    <Button id={"information-request-template-editor-show-current"}
+                            appearance={"subtle"}
+                            shape={"circular"}
+                            size={"small"}
+                            onClick={onShowCurrent}>
+                        Show current version
+                    </Button>
                 )}
             </div>
         </header>

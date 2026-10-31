@@ -3,23 +3,9 @@ package com.docuhyphen.app.api.resource.informationrequest.acceptedfact
 import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactDto
 import com.docuhyphen.app.api.model.dto.InformationRequestAcceptedFactOfferDto
 import com.docuhyphen.app.api.model.dto.InformationRequestBusinessDecisionDto
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFact
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactConfidence
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactRevocation
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecision
-import com.docuhyphen.app.api.model.entity.InformationRequestBusinessDecisionKind
-import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactFreshness
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactOffer
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactView
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestBusinessDecisionResult
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.PromoteInformationRequestAcceptedFactCommand
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RecordInformationRequestBusinessDecisionCommand
-import com.docuhyphen.app.api.model.informationrequest.acceptedfact.RevokeInformationRequestAcceptedFactCommand
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.model.informationrequest.acceptedfact.*
 import com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operations.InformationRequestAcceptedFactOfferResourceOperations
 import com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operations.InformationRequestAcceptedFactResourceOperations
 import com.docuhyphen.app.api.resource.informationrequest.acceptedfact.operations.InformationRequestBusinessDecisionResourceOperations
@@ -36,25 +22,17 @@ import com.docuhyphen.app.api.service.informationrequest.acceptedfact.Informatio
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestBusinessDecisionService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
 import jakarta.ws.rs.Path
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import kotlinx.serialization.json.JsonPrimitive
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAcceptedFactResourceContractTest
 {
@@ -67,7 +45,8 @@ class InformationRequestAcceptedFactResourceContractTest
     private val factQueries: InformationRequestAcceptedFactQueryService = mock()
     private val decisions: InformationRequestBusinessDecisionService = mock()
     private val accessContextFactory: InformationRequestAccessContextFactory = mock()
-    private val readAccessService: InformationRequestNoAuthReadAccessService = mock()
+    private val readAccessService: InformationRequestNoAuthReadAccessService =
+        InformationRequestNoAuthAccessDoubles.current()
 
     private val fact = InformationRequestAcceptedFact().apply {
         subjectIdentityRefId = UUID.randomUUID()
@@ -107,7 +86,7 @@ class InformationRequestAcceptedFactResourceContractTest
     init
     {
         whenever(accessContextFactory.currentAuthenticated()).thenReturn(access)
-        whenever(readAccessService.resolve(eq("link-token"), anyOrNull())).thenReturn(InformationRequestNoAuthAccess(noAuthAccess, requestId))
+        whenever(readAccessService.resolve(eq(requestId), eq("link-token"), anyOrNull())).thenReturn(noAuthAccess)
     }
 
     @Test
@@ -198,12 +177,19 @@ class InformationRequestAcceptedFactResourceContractTest
     fun `offers are read for the caller on both surfaces and a link for another request is not found`()
     {
         val offer = InformationRequestAcceptedFactOffer(UUID.randomUUID(), "requirement.one", view, reconfirmationRequired = true)
+        val elsewhereId = UUID.randomUUID()
         whenever(factQueries.offers(requestId, access)).thenReturn(listOf(offer))
         whenever(factQueries.offers(requestId, noAuthAccess)).thenReturn(listOf(offer))
+        whenever(readAccessService.resolve(eq(elsewhereId), eq("link-token"), anyOrNull())).thenThrow(
+            InformationRequestLifecycleException(
+                InformationRequestErrorCatalog.NOT_FOUND,
+                "Information Request not found"
+            ),
+        )
 
         val authenticated = offerResource.offers(requestId.toString())
         val linked = noAuthOfferResource.offers(requestId.toString(), "link-token", "session-token")
-        val elsewhere = noAuthOfferResource.offers(UUID.randomUUID().toString(), "link-token", "session-token")
+        val elsewhere = noAuthOfferResource.offers(elsewhereId.toString(), "link-token", "session-token")
 
         assertEquals(200, authenticated.status)
         val authenticatedOffer = (authenticated.entity as Array<*>).filterIsInstance<InformationRequestAcceptedFactOfferDto>().single()
@@ -224,7 +210,9 @@ class InformationRequestAcceptedFactResourceContractTest
         val linkedJson = Json.encodeToString(InformationRequestAcceptedFactOfferDto.serializer(), linkedOffer)
         assertEquals(authenticatedJson, linkedJson)
         assertEquals(404, elsewhere.status)
+        assertEquals(InformationRequestErrorCatalog.NOT_FOUND, (elsewhere.entity as ResponseError).reasonCode)
         verify(factQueries).offers(requestId, noAuthAccess)
+        verify(factQueries, never()).offers(eq(elsewhereId), any())
     }
 
     @Test

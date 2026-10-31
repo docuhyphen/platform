@@ -16,7 +16,7 @@ export const useReviewQueueListStyles = makeStyles({
         gap: tokens.spacingHorizontalM,
         padding: tokens.spacingVerticalM,
         borderRadius: tokens.borderRadiusMedium,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
         flexWrap: "wrap",
     },

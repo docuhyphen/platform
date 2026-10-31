@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {getExchangeInformationRequests} from "../../../services/informationRequestAuthoringService.ts";
-import {InformationRequestExchangeListingDto} from "../../models/models.tsx";
+import {ExchangeStatus, InformationRequestExchangeListingDto} from "../../models/models.tsx";
 import {informationRequestRefusalCode, informationRequestRefusalMessage} from "../shared/informationRequestRefusal.ts";
 
 const ACCESS_REFUSED = "INFORMATION_REQUEST_FORBIDDEN";
@@ -14,9 +14,14 @@ export interface ExchangeInformationRequestsState
     reload: () => Promise<void>;
 }
 
-export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInformationRequestsState =>
+interface KeyedListing
 {
-    const [listing, setListing] = useState<InformationRequestExchangeListingDto | null>(null);
+    exchangeId: string;
+    listing: InformationRequestExchangeListingDto;
+}
+
+export const useExchangeInformationRequests = (exchangeId?: string, exchangeStatus?: ExchangeStatus): ExchangeInformationRequestsState => {
+    const [keyed, setKeyed] = useState<KeyedListing | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [accessRefused, setAccessRefused] = useState(false);
@@ -27,7 +32,7 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
         const load = ++latestLoad.current;
         if (!exchangeId)
         {
-            setListing(null);
+            setKeyed(null);
             setError(null);
             return;
         }
@@ -37,12 +42,12 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
         try
         {
             const loaded = await getExchangeInformationRequests(exchangeId);
-            if (load === latestLoad.current) setListing(loaded);
+            if (load === latestLoad.current) setKeyed({exchangeId, listing: loaded});
         }
         catch (caught: unknown)
         {
             if (load !== latestLoad.current) return;
-            setListing(null);
+            setKeyed(null);
             setAccessRefused(informationRequestRefusalCode(caught) === ACCESS_REFUSED);
             setError(informationRequestRefusalMessage(caught, "The Information Requests could not be loaded."));
         }
@@ -55,7 +60,9 @@ export const useExchangeInformationRequests = (exchangeId?: string): ExchangeInf
     useEffect(() =>
     {
         void reload();
-    }, [reload]);
+    }, [reload, exchangeStatus]);
+
+    const listing = keyed && keyed.exchangeId === exchangeId ? keyed.listing : null;
 
     return {
         listing,

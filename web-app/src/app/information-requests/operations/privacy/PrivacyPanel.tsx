@@ -1,6 +1,7 @@
 import {useState} from "react";
-import {MessageBar, MessageBarBody, Spinner, Text} from "@fluentui/react-components";
+import {Spinner, Text} from "@fluentui/react-components";
 import {InformationRequestSubjectDto, InformationRequestSubjectRestrictionDto} from "../../../models/models.tsx";
+import InformationRequestLoadError from "../../shared/load-error/InformationRequestLoadError.tsx";
 import LiftRestrictionDialog from "../lift-restriction-dialog/LiftRestrictionDialog.tsx";
 import PrivacyRequestList from "../privacy-request-list/PrivacyRequestList.tsx";
 import PrivacySubjectList from "../privacy-subject-list/PrivacySubjectList.tsx";
@@ -14,11 +15,12 @@ const PrivacyPanel = () =>
 {
     const styles = usePrivacyPanelStyles();
     const state = usePrivacy();
+    const records = state.records;
     const [recording, setRecording] = useState<InformationRequestSubjectDto | null>(null);
     const [lifting, setLifting] = useState<InformationRequestSubjectRestrictionDto | null>(null);
     const labelOf = (subjectId: string): string =>
     {
-        const subject = state.subjects?.find(candidate => candidate.id === subjectId);
+        const subject = records?.subjects.find(candidate => candidate.id === subjectId);
         return subject ? subjectLabel(subject) : "Unknown subject";
     };
 
@@ -39,32 +41,30 @@ const PrivacyPanel = () =>
                 kept with its purpose, its policy basis, and what it did to each record.
             </Text>
             {state.loadError && (
-                <MessageBar id={"information-request-privacy-error"}
-                            intent={"error"}
-                            role={"alert"}>
-                    <MessageBarBody>{state.loadError}</MessageBarBody>
-                </MessageBar>
+                <InformationRequestLoadError id={"information-request-privacy-error"}
+                                             message={state.loadError}
+                                             onRetry={() => void state.reload()}/>
             )}
             <Text id={"information-request-privacy-status"}
                   role={"status"}
                   aria-live={"polite"}>
                 {state.notice ?? ""}
             </Text>
-            {!state.subjects && !state.loadError && (
+            {!records && !state.loadError && (
                 <Spinner id={"information-request-privacy-loading"}
                          size={"medium"}
                          label={"Loading privacy records"}/>
             )}
-            {state.subjects && (
+            {records && (
                 <>
-                    <PrivacySubjectList subjects={state.subjects}
+                    <PrivacySubjectList subjects={records.subjects}
                                         busy={state.busy}
                                         onRecord={setRecording}/>
-                    <SubjectRestrictionList restrictions={state.restrictions}
+                    <SubjectRestrictionList restrictions={records.restrictions}
                                             labelOf={labelOf}
                                             busy={state.busy}
                                             onLift={setLifting}/>
-                    <PrivacyRequestList requests={state.requests}
+                    <PrivacyRequestList requests={records.requests}
                                         labelOf={labelOf}/>
                 </>
             )}

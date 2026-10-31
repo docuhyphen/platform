@@ -34,6 +34,7 @@ import {
     removeItem,
     replaceItem,
 } from "./templateDraftDocument.ts";
+import {templateDraftProblems} from "./templateDraftValidation.ts";
 
 const publishedVersion = (): InformationRequestTemplateVersionDto => ({
     id: "version-2",
@@ -172,7 +173,7 @@ const publishedVersion = (): InformationRequestTemplateVersionDto => ({
         },
     ],
     requiredCapabilities: [],
-    createdAt: "2026-09-27T00:00:00Z",
+    createdAt: Date.parse("2026-09-27T00:00:00Z"),
 });
 
 describe("templateDraftDocument", () =>
@@ -318,4 +319,103 @@ describe("templateDraftDocument", () =>
         expect(keyFromLabel("---")).toBe("");
         expect(keyFromLabel("Step 2: Review")).toBe("step-2-review");
     });
+
+    it("reads a Version the server sends with its unset values as null into the same draft as one that leaves them out", () => {
+        const sent = serverSentVersion();
+        const draft = draftDocumentFromVersion(sent);
+
+        expect(nullPaths(draft)).toEqual([]);
+        expect(draft).toEqual(draftDocumentFromVersion(withoutNulls(sent)));
+        expect(templateDraftProblems(draft)).toEqual(templateDraftProblems(draftDocumentFromVersion(withoutNulls(sent))));
+        expect(templateDraftProblems(draft).map(problem => problem.message).join(" ")).not.toMatch(/files allowed|positive file size limit/);
+    });
 });
+
+const serverSentVersion = (): InformationRequestTemplateVersionDto => {
+    const version = publishedVersion();
+    const [noteSection, fileSection] = version.sections;
+    const [note] = noteSection.requirements;
+    const [file, confirmation] = fileSection.requirements;
+    return {
+        ...version,
+        contentHashSha256: null,
+        reviewStages: (version.reviewStages ?? []).map(stage => ({...stage, quorumCount: null})),
+        groups: version.groups.map(group => ({...group, parentGroupKey: null, maxOccurrences: null})),
+        conditionRules: version.conditionRules.map(rule => ({
+            ...rule,
+            predicates: rule.predicates.map(predicate => ({
+                ...predicate,
+                sourceRequirementKey: null,
+                expectedDisposition: null
+            })),
+        })),
+        sections: [
+            {
+                ...noteSection,
+                requirements: [{
+                    ...note,
+                    helpText: null,
+                    confidentialityCompartmentKey: null,
+                    evidencePolicy: null,
+                    attestationPolicy: null,
+                }],
+            },
+            {
+                ...fileSection,
+                helpText: null,
+                requirements: [
+                    {
+                        ...file,
+                        helpText: null,
+                        confidentialityCompartmentKey: null,
+                        conditionalRuleKey: null,
+                        occurrenceAnchorKey: null,
+                        collectedFieldDefinitionId: null,
+                        attestationPolicy: null,
+                        evidencePolicy: file.evidencePolicy && {
+                            ...file.evidencePolicy,
+                            maximumFileCount: null,
+                            maximumFileSizeBytes: null,
+                            maximumTotalSizeBytes: null,
+                            minimumPageCount: null,
+                            maximumPageCount: null,
+                            minimumRemainingValidityDays: null,
+                            minimumCoverageDays: null,
+                        },
+                    },
+                    {
+                        ...confirmation,
+                        helpText: null,
+                        conditionalRuleKey: null,
+                        occurrenceAnchorKey: null,
+                        collectedFieldDefinitionId: null,
+                        evidencePolicy: null,
+                        attestationPolicy: confirmation.attestationPolicy && {
+                            ...confirmation.attestationPolicy,
+                            validityHours: null
+                        },
+                    },
+                ],
+            },
+        ],
+    };
+};
+
+const withoutNulls = <T, >(value: T): T => {
+    if (Array.isArray(value)) return value.map(withoutNulls) as T;
+    if (value !== null && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value)
+            .filter(([, entry]) => entry !== null)
+            .map(([key, entry]) => [key, withoutNulls(entry)])) as T;
+    }
+    return value;
+};
+
+const nullPaths = (value: unknown, path = "draft"): string[] => {
+    if (value === null) return [path];
+    if (Array.isArray(value)) return value.flatMap((entry, index) => nullPaths(entry, `${path}[${index}]`));
+    if (typeof value === "object" && value !== undefined) {
+        return Object.entries(value).flatMap(([key, entry]) => nullPaths(entry, `${path}.${key}`));
+    }
+    return [];
+};

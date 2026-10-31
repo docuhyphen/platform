@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.workflow
 import com.docuhyphen.app.api.model.entity.CommunicationScope
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
+import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -10,28 +11,6 @@ import jakarta.inject.Inject
 import kotlinx.serialization.builtins.ListSerializer
 import java.util.UUID
 import kotlin.collections.ArrayDeque
-import kotlin.collections.List
-import kotlin.collections.Set
-import kotlin.collections.any
-import kotlin.collections.buildList
-import kotlin.collections.distinct
-import kotlin.collections.emptyList
-import kotlin.collections.flatMapIndexed
-import kotlin.collections.forEach
-import kotlin.collections.forEachIndexed
-import kotlin.collections.getOrNull
-import kotlin.collections.indices
-import kotlin.collections.isNotEmpty
-import kotlin.collections.joinToString
-import kotlin.collections.listOf
-import kotlin.collections.listOfNotNull
-import kotlin.collections.map
-import kotlin.collections.mapIndexedNotNull
-import kotlin.collections.mapNotNull
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableSetOf
-import kotlin.collections.orEmpty
-import kotlin.collections.plusAssign
 
 data class WorkflowValidationError(
     val code: String,

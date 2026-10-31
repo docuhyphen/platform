@@ -5,13 +5,14 @@ import com.docuhyphen.app.api.exception.DocumentVersionContentNotFoundException
 import com.docuhyphen.app.api.exception.DocumentVersionObjectKeyInUseException
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigest
 import com.docuhyphen.app.api.model.document.DocumentVersionDeletionOutcome
+import com.docuhyphen.app.api.model.document.DocumentVersionReadHandle
 import com.docuhyphen.app.api.model.document.ObjectStoreDocumentVersionLocator
 import com.docuhyphen.app.api.qualifier.Aws
+import com.docuhyphen.app.api.qualifier.DocumentVersionObjectStore
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import software.amazon.awssdk.core.sync.ResponseTransformer
-import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.*
 import java.io.File
@@ -21,7 +22,7 @@ import java.nio.file.Files
 @ApplicationScoped
 class AwsS3DocumentVersionStorageService @Inject constructor(
     @ConfigProperty(name = "document.version.storage.aws.bucket") private val bucketName: String,
-    @ConfigProperty(name = "document.version.storage.aws.region") private val awsRegion: String,
+    @DocumentVersionObjectStore private val s3Client: S3Client,
 ) : DocumentVersionStorageService
 {
     private companion object
@@ -30,9 +31,8 @@ class AwsS3DocumentVersionStorageService @Inject constructor(
         const val KEY_ALREADY_WRITTEN_STATUS = 412
         const val OBJECT_MISSING_STATUS = 404
         const val CHECKSUM_REFUSED_ERROR = "BadDigest"
+        const val TEMPORARY_COPY_PREFIX = "document-version-read-"
     }
-
-    private val s3Client: S3Client = S3Client.builder().region(Region.of(awsRegion)).build()
 
     override fun writeNewVersion(
         key: String,
@@ -71,40 +71,40 @@ class AwsS3DocumentVersionStorageService @Inject constructor(
         return locator
     }
 
-    override fun openVersion(locator: ObjectStoreDocumentVersionLocator): File
+    override fun openVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionReadHandle
     {
         val request = GetObjectRequest.builder()
             .bucket(bucketName)
             .key(locator.value)
             .build()
 
-        val target = Files.createTempDirectory("document-version")
+        val directory = Files.createTempDirectory(TEMPORARY_COPY_PREFIX)
+        val target = directory
             .resolve(locator.value.substringAfterLast('/'))
             .toFile()
+        val opened = DocumentVersionReadHandle.temporaryCopy(target, directory)
 
         try
         {
             target.outputStream().use { output ->
                 s3Client.getObject(request, ResponseTransformer.toOutputStream(output))
             }
-        }
-        catch (_: NoSuchKeyException)
-        {
-            target.delete()
-            throw DocumentVersionContentNotFoundException(locator.value)
-        }
-        catch (exception: S3Exception)
-        {
-            target.delete()
-            if (exception.statusCode() == OBJECT_MISSING_STATUS)
-            {
-                throw DocumentVersionContentNotFoundException(locator.value)
-            }
-            throw exception
+        } catch (failure: Exception) {
+            opened.close()
+            throw readFailure(locator, failure)
         }
 
-        return target
+        return opened
     }
+
+    private fun readFailure(locator: ObjectStoreDocumentVersionLocator, failure: Exception): Exception =
+        when {
+            failure is NoSuchKeyException -> DocumentVersionContentNotFoundException(locator.value)
+            failure is S3Exception && failure.statusCode() == OBJECT_MISSING_STATUS ->
+                DocumentVersionContentNotFoundException(locator.value)
+
+            else -> failure
+        }
 
     override fun deleteVersion(locator: ObjectStoreDocumentVersionLocator): DocumentVersionDeletionOutcome
     {

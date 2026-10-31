@@ -7,10 +7,9 @@ import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind
 import com.docuhyphen.app.api.model.document.DocumentVersionStorageProvider
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
+import com.docuhyphen.app.api.repository.document.DocumentVersionRepository
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.storage.DocumentVersionContentService
 import io.quarkus.narayana.jta.QuarkusTransaction
@@ -19,17 +18,14 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
 import java.io.File
 import java.nio.file.Files
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class DocumentVersionStoragePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<DocumentVersionStoragePostgreSQLContainer>(imageName)
@@ -232,19 +228,7 @@ class ExchangeDocumentVersionStorageContractTest
             )
         }
 
-    private fun storedDocument(): UUID
-    {
-        val document = Document().apply {
-            title = "Process record"
-            type = DocumentType.PDF
-            createdDate = Timestamp.from(Instant.now())
-            updateDate = Timestamp.from(Instant.now())
-        }
-
-        QuarkusTransaction.requiringNew().run { entityManager.persist(document) }
-
-        return document.id
-    }
+    private fun storedDocument(): UUID = ExchangeHeldDocument.stored(entityManager)
 
     private fun uploadedFile(content: String): File
     {

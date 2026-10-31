@@ -1,27 +1,27 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestSupportingEvidenceLink
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateBindingEvidenceLink
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestSupportingEvidenceLinkRepository
+import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingEvidenceLinkRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
-import java.util.UUID
+import org.mockito.kotlin.*
+import java.util.*
 
 class InformationRequestSupportingEvidenceLinkServiceTest
 {
     private val templateLinkRepository: InformationRequestTemplateBindingEvidenceLinkRepository = mock()
     private val requirementRepository: InformationRequestRequirementRepository = mock()
     private val linkRepository: InformationRequestSupportingEvidenceLinkRepository = mock()
-    private val service = InformationRequestSupportingEvidenceLinkService(templateLinkRepository, requirementRepository, linkRepository)
+    private val occurrenceRepository: InformationRequestGroupOccurrenceRepository = mock()
+    private val service = InformationRequestSupportingEvidenceLinkService(
+        templateLinkRepository,
+        requirementRepository,
+        linkRepository,
+        occurrenceRepository,
+    )
 
     private val request = InformationRequest().apply {
         id = UUID.randomUUID()
@@ -40,6 +40,7 @@ class InformationRequestSupportingEvidenceLinkServiceTest
         whenever(linkRepository.save(any())).thenAnswer { invocation ->
             (invocation.arguments[0] as InformationRequestSupportingEvidenceLink).also { stored += it }
         }
+        activeOccurrences("reported-item[0]", "reported-item[1]")
     }
 
     @Test
@@ -95,6 +96,27 @@ class InformationRequestSupportingEvidenceLinkServiceTest
     }
 
     @Test
+    fun `a Requirement of a removed group occurrence is never linked or frozen into a package`() {
+        val supported = requirement(templateLink.templateBindingId, "root")
+        val kept = requirement(templateLink.supportingTemplateBindingId, "reported-item[0]")
+        val removed = requirement(templateLink.supportingTemplateBindingId, "reported-item[1]")
+        whenever(templateLinkRepository.findForVersion(request.templateVersionId)).thenReturn(listOf(templateLink))
+        whenever(requirementRepository.findForRequest(request.id)).thenReturn(listOf(supported, kept, removed))
+        stored += link(supported.id, removed.id)
+        activeOccurrences("reported-item[0]")
+
+        service.materialize(request)
+
+        assertEquals(listOf(removed.id, kept.id), stored.map { it.supportingRequirementId })
+        assertEquals(
+            listOf(kept.id),
+            service.linksFrom(request, setOf(supported.id)).map { it.supportingRequirementId })
+        assertEquals(
+            listOf(kept.id),
+            service.visibleLinks(request, setOf(supported.id, kept.id, removed.id)).map { it.supportingRequirementId })
+    }
+
+    @Test
     fun `a stored link the pinned Version no longer names is not current`()
     {
         val supported = requirement(templateLink.templateBindingId, "root")
@@ -104,6 +126,17 @@ class InformationRequestSupportingEvidenceLinkServiceTest
         stored += link(supported.id, document.id)
 
         assertEquals(emptyList<UUID>(), service.linksFrom(request, setOf(supported.id)).map { it.id })
+    }
+
+    private fun activeOccurrences(vararg paths: String) {
+        whenever(occurrenceRepository.findForRequest(request.id)).thenReturn(
+            paths.map { path ->
+                InformationRequestGroupOccurrence().apply {
+                    informationRequestId = request.id
+                    occurrencePath = path
+                }
+            },
+        )
     }
 
     private fun link(supported: UUID, supporting: UUID) = InformationRequestSupportingEvidenceLink().apply {

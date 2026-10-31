@@ -7,7 +7,7 @@ export const useReviewItemCardStyles = makeStyles({
         gap: tokens.spacingVerticalS,
         padding: tokens.spacingVerticalL,
         borderRadius: tokens.borderRadiusMedium,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         backgroundColor: tokens.colorNeutralBackground1,
         minWidth: 0,
     },

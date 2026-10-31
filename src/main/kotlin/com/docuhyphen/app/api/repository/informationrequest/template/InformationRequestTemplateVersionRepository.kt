@@ -6,15 +6,12 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.persistence.LockModeType
 import java.util.*
 
-/**
- * Persistence for [InformationRequestTemplateVersion]. Every lookup states the definition it is
- * asking about, so a version number, which is only unique within one definition, cannot resolve
- * against a Template that belongs to somebody else.
- */
 @ApplicationScoped
 class InformationRequestTemplateVersionRepository :
     BaseRepository<InformationRequestTemplateVersion>(InformationRequestTemplateVersion::class.java)
 {
+    fun flushChanges() = entityManager.flush()
+
     fun findByNumber(definitionId: UUID, versionNumber: Int): InformationRequestTemplateVersion? =
         entityManager.createQuery(
             """
@@ -30,11 +27,6 @@ class InformationRequestTemplateVersionRepository :
             .resultList
             .firstOrNull()
 
-    /**
-     * Every version of several definitions at once, so listing Templates costs one read rather than
-     * one per Template. Ordered by definition and then by version number, so a caller can group the
-     * result without sorting it again.
-     */
     fun findForDefinitions(definitionIds: List<UUID>): List<InformationRequestTemplateVersion>
     {
         if (definitionIds.isEmpty())
@@ -54,11 +46,6 @@ class InformationRequestTemplateVersionRepository :
             .resultList
     }
 
-    /**
-     * The one editable version of this definition, or null when every version has frozen. There is
-     * at most one: a second open draft would leave two answers to what the next published version
-     * is going to be.
-     */
     fun findDraft(definitionId: UUID): InformationRequestTemplateVersion? =
         entityManager.createQuery(
             """
@@ -92,7 +79,6 @@ class InformationRequestTemplateVersionRepository :
             .resultList
             .firstOrNull()
 
-    /** Published versions oldest first. A retired version is deliberately not one of them. */
     fun findPublished(definitionId: UUID): List<InformationRequestTemplateVersion> =
         entityManager.createQuery(
             """

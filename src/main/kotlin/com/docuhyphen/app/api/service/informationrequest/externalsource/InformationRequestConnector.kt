@@ -7,10 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject
 
-/**
- * An adapter that reaches a remote endpoint must pass `WebhookDestinationPolicy.validate` for that
- * endpoint before every call.
- */
 interface InformationRequestConnector
 {
     val contract: InformationRequestConnectorContract
@@ -45,7 +41,6 @@ class InformationRequestConnectorRegistry
         return matching.singleOrNull()
     }
 
-    fun installedKeys(): List<String> = connectors().map { it.contract.key }.sorted()
 
     private fun connectors(): List<InformationRequestConnector> = testConnectors ?: connectorInstances.toList()
 }

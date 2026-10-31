@@ -2,9 +2,13 @@ package com.docuhyphen.app.api.service.informationrequest.amendment
 
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestAmendmentChangeKind
+import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.informationrequest.amendment.InformationRequestAmendmentPlan
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
+import com.docuhyphen.app.api.service.fields.FieldsReadFacade
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
@@ -16,6 +20,7 @@ class InformationRequestAmendmentGuard @Inject constructor(
     private val requirementRepository: InformationRequestRequirementRepository,
     private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val lockService: InformationRequestSubmissionLockService,
+    private val fieldsReader: FieldsReadFacade,
 )
 {
     fun requireAmendable(
@@ -31,8 +36,17 @@ class InformationRequestAmendmentGuard @Inject constructor(
                 "A later Version with another Schema Version needs a supplemental or superseding request"
             )
         }
+        if (plan.targetCollectsFields &&
+            fieldsReader.assignmentFor(FieldsResourceRef(ResourceType.INFORMATION_REQUEST.name, request.id)) == null
+        ) {
+            refuse(
+                InformationRequestErrorCatalog.AMENDMENT_SCHEMA_CHANGED,
+                "A later Version that starts collecting Field answers needs a supplemental or superseding request",
+            )
+        }
         requireOccurrenceStructureKept(request, from, plan)
         requireSubmittedScopesKept(request, plan)
+        requireGivenOnceAnswersKept(request, plan)
     }
 
     private fun requireOccurrenceStructureKept(
@@ -72,7 +86,7 @@ class InformationRequestAmendmentGuard @Inject constructor(
             .filter { it.id in locked }
             .map { it.sourceTemplateRequirementId }
             .toSet()
-        val reachesSubmission = plan.submissionPolicyChanged || plan.changes.any { change ->
+        val reachesSubmission = plan.submissionPolicyChanged || plan.reviewPlanChanged || plan.changes.any { change ->
             null in submittedStages ||
                     change.templateRequirementId in lockedTemplateRequirements ||
                     (change.fromStageKey != null && change.fromStageKey in submittedStages) ||
@@ -83,6 +97,21 @@ class InformationRequestAmendmentGuard @Inject constructor(
             refuse(
                 InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED,
                 "This change reaches a submission that was not withdrawn",
+            )
+        }
+    }
+
+    private fun requireGivenOnceAnswersKept(request: InformationRequest, plan: InformationRequestAmendmentPlan) {
+        val givenOnce = lockService.givenOnceRequirementIds(request.id)
+        if (givenOnce.isEmpty()) return
+        val fixed = requirementRepository.findForRequest(request.id)
+            .filter { it.id in givenOnce }
+            .map { it.sourceTemplateRequirementId }
+            .toSet()
+        if (plan.changes.any { it.templateRequirementId in fixed && it.kind != InformationRequestAmendmentChangeKind.PRESENTATION_CHANGED }) {
+            refuse(
+                InformationRequestErrorCatalog.AMENDMENT_SUBMITTED_SCOPE_CHANGED,
+                "This change reaches an answer given once in an earlier submission",
             )
         }
     }

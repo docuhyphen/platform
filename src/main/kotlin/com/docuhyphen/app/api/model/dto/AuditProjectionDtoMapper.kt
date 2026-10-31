@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model.dto
 
-import com.docuhyphen.app.api.service.audit.AuditProjectionCursor
-import com.docuhyphen.app.api.service.audit.AuditProjectionEvent
-import com.docuhyphen.app.api.service.audit.AuditProjectionPage
+import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
+import com.docuhyphen.app.api.model.audit.AuditProjectionEvent
+import com.docuhyphen.app.api.model.audit.AuditProjectionPage
 
 object AuditProjectionDtoMapper
 {

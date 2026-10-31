@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
+import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestRetainedEvidenceVersion
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.repository.informationrequest.submission.*
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
@@ -25,6 +26,40 @@ class InformationRequestSubmissionPackageReader @Inject constructor(
                 InformationRequestErrorCatalog.NOT_FOUND,
                 "Submission Package not found"
             )
+
+    fun findRetainedEvidence(
+        requestId: UUID,
+        packageId: UUID,
+        evidenceVersionId: UUID
+    ): InformationRequestRetainedEvidenceVersion? {
+        val member = evidenceRepository.findMember(requestId, packageId, evidenceVersionId) ?: return null
+        val item = itemRepository.findById(member.itemId)
+            ?.takeIf { it.packageId == packageId && it.informationRequestId == requestId }
+            ?: return null
+        return InformationRequestRetainedEvidenceVersion(
+            packageId = packageId,
+            submissionItemId = item.id,
+            requirementId = item.informationRequestRequirementId,
+            artifactId = member.evidenceArtifactId,
+            versionId = member.evidenceVersionId,
+            versionNumber = member.evidenceVersionNumber,
+            documentVersionId = member.documentVersionId,
+            contentHashAlgorithm = member.contentHashAlgorithm,
+            contentHash = member.contentHash,
+            contentLength = member.contentLength,
+        )
+    }
+
+    fun retainedEvidenceRequirementIds(requestId: UUID, packageId: UUID): Set<UUID> {
+        val itemIds = evidenceRepository.findForPackages(listOf(packageId))
+            .filter { it.informationRequestId == requestId }
+            .map { it.itemId }
+            .toSet()
+        return itemRepository.findForPackages(listOf(packageId))
+            .filter { it.id in itemIds && it.informationRequestId == requestId }
+            .map { it.informationRequestRequirementId }
+            .toSet()
+    }
 
     fun views(requestId: UUID): List<InformationRequestSubmissionPackageView>
     {

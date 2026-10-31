@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.externalsource
 import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchange
 import com.docuhyphen.app.api.model.entity.InformationRequestConnectorExchangeState
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorCall
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorClaim
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestConnectorContract
@@ -26,7 +27,8 @@ class InformationRequestConnectorWorker @Inject constructor(
     private val registry: InformationRequestConnectorRegistry,
     private val exchangeRepository: InformationRequestConnectorExchangeRepository,
     private val gate: InformationRequestMutationGate,
-    private val importedValues: InformationRequestImportedValueService,
+    private val importedValueIntake: InformationRequestImportedValueIntakeService,
+    private val exchangeRecorder: InformationRequestConnectorExchangeRecorder,
     private val entityManager: EntityManager,
     private val clock: Clock,
 )
@@ -84,21 +86,24 @@ class InformationRequestConnectorWorker @Inject constructor(
         val exchange = exchangeRepository.findByIdForUpdate(exchangeId) ?: return null
         val now = clock.instant()
         if (!exchange.isOpen() || exchange.nextAttemptAt?.toInstant()?.isAfter(now) == true) return null
+        if (exchange.attemptCount >= MAXIMUM_ATTEMPTS) {
+            exchangeRecorder.fail(locked.request, exchange, ATTEMPTS_EXHAUSTED, now)
+            return InformationRequestConnectorClaim.Ended(exchange.state)
+        }
         val connector = registry.find(exchange.connectorKey)
         val ending = when
         {
-            !acceptsValues(locked) -> REQUEST_NOT_ACCEPTING
+            !acceptsValues(locked) || !importedValueIntake.acceptsRequirement(exchange) -> REQUEST_NOT_ACCEPTING
             connector == null -> CONNECTOR_UNAVAILABLE
             connector.contract.contractVersion != exchange.contractVersion -> CONTRACT_VERSION_CHANGED
             else -> null
         }
         if (ending != null)
         {
-            exchange.fail(ending, now)
+            exchangeRecorder.fail(locked.request, exchange, ending, now)
             return InformationRequestConnectorClaim.Ended(exchange.state)
         }
-        exchange.attemptCount += 1
-        exchange.nextAttemptAt = Timestamp.from(now.plus(CLAIM_LEASE))
+        exchangeRecorder.startAttempt(locked.request, exchange, now.plus(CLAIM_LEASE))
         return InformationRequestConnectorClaim.Due(
             InformationRequestConnectorCall(
                 exchangeId = exchange.id,
@@ -128,15 +133,30 @@ class InformationRequestConnectorWorker @Inject constructor(
         val now = clock.instant()
         when
         {
-            !acceptsValues(locked) -> exchange.fail(REQUEST_NOT_ACCEPTING, now)
+            !acceptsValues(locked) || !importedValueIntake.acceptsRequirement(exchange) ->
+                exchangeRecorder.fail(locked.request, exchange, REQUEST_NOT_ACCEPTING, now)
             outcome == null ->
-                if (attempt >= MAXIMUM_ATTEMPTS) exchange.fail(ATTEMPTS_EXHAUSTED, now)
-                else exchange.nextAttemptAt = Timestamp.from(now.plus(RETRY_DELAY.multipliedBy(attempt.toLong())))
+                if (attempt >= MAXIMUM_ATTEMPTS) exchangeRecorder.fail(
+                    locked.request,
+                    exchange,
+                    ATTEMPTS_EXHAUSTED,
+                    now
+                )
+                else exchangeRecorder.scheduleRetry(
+                    locked.request,
+                    exchange,
+                    now.plus(RETRY_DELAY.multipliedBy(attempt.toLong()))
+                )
 
             outcome is InformationRequestConnectorOutcome.Failed ->
-                exchange.fail(outcome.reasonCode.trim().ifEmpty { CONNECTOR_FAILED }, now)
+                exchangeRecorder.fail(
+                    locked.request,
+                    exchange,
+                    outcome.reasonCode.trim().ifEmpty { CONNECTOR_FAILED },
+                    now
+                )
 
-            outcome is InformationRequestConnectorOutcome.Pending -> pending(exchange, attempt, outcome, now)
+            outcome is InformationRequestConnectorOutcome.Pending -> pending(locked, exchange, attempt, outcome, now)
             outcome is InformationRequestConnectorOutcome.Completed -> complete(
                 locked,
                 exchange,
@@ -149,6 +169,7 @@ class InformationRequestConnectorWorker @Inject constructor(
     }
 
     private fun pending(
+        locked: LockedInformationRequest,
         exchange: InformationRequestConnectorExchange,
         attempt: Int,
         outcome: InformationRequestConnectorOutcome.Pending,
@@ -158,14 +179,16 @@ class InformationRequestConnectorWorker @Inject constructor(
         val reference = outcome.externalReference.trim()
         when
         {
-            reference.isEmpty() || reference.length > REFERENCE_LENGTH -> exchange.fail(RESULT_REJECTED, now)
-            attempt >= MAXIMUM_ATTEMPTS -> exchange.fail(ATTEMPTS_EXHAUSTED, now)
-            else ->
-            {
-                exchange.state = InformationRequestConnectorExchangeState.PENDING
-                exchange.externalReference = reference
-                exchange.nextAttemptAt = Timestamp.from(now.plus(maxOf(outcome.retryAfter, MINIMUM_RETRY)))
-            }
+            reference.isEmpty() || reference.length > REFERENCE_LENGTH ->
+                exchangeRecorder.fail(locked.request, exchange, RESULT_REJECTED, now)
+
+            attempt >= MAXIMUM_ATTEMPTS -> exchangeRecorder.fail(locked.request, exchange, ATTEMPTS_EXHAUSTED, now)
+            else -> exchangeRecorder.pending(
+                locked.request,
+                exchange,
+                reference,
+                now.plus(maxOf(outcome.retryAfter, MINIMUM_RETRY))
+            )
         }
     }
 
@@ -179,7 +202,14 @@ class InformationRequestConnectorWorker @Inject constructor(
     {
         val reference = outcome.externalReference.trim()
         val prepared =
-            runCatching { importedValues.prepareConnectorResult(locked.request, exchange, contract, outcome.result) }
+            runCatching {
+                importedValueIntake.prepareConnectorResult(
+                    locked.request,
+                    exchange,
+                    contract,
+                    outcome.result
+                )
+            }
                 .onFailure {
                     logger.warn(
                         "Information Request connector {} result for exchange {} was rejected",
@@ -191,36 +221,27 @@ class InformationRequestConnectorWorker @Inject constructor(
                 .getOrNull()
         if (prepared == null || reference.isEmpty() || reference.length > REFERENCE_LENGTH)
         {
-            exchange.fail(RESULT_REJECTED, now)
+            exchangeRecorder.fail(locked.request, exchange, RESULT_REJECTED, now)
             return
         }
-        exchange.state = InformationRequestConnectorExchangeState.COMPLETED
-        exchange.externalReference = reference
-        exchange.completedAt = Timestamp.from(now)
-        exchange.nextAttemptAt = null
+        exchangeRecorder.complete(locked.request, exchange, reference, now)
         entityManager.flush()
-        importedValues.recordConnectorResult(locked.request, exchange, prepared)
+        importedValueIntake.recordConnectorResult(locked.request, exchange, prepared)
     }
 
     private fun acceptsValues(locked: LockedInformationRequest): Boolean =
-        runCatching { gate.requireMutation(locked, InformationRequestMutation.RECORD_EXTERNAL_VALUE) }.isSuccess
+        runCatching {
+            gate.requireMutation(locked, InformationRequestMutation.RECORD_EXTERNAL_VALUE)
+            gate.requireContinuation(locked, InformationRequestContinuationAction.RESPOND)
+        }.isSuccess
 
     private fun InformationRequestConnectorExchange.isOpen(): Boolean =
         state == InformationRequestConnectorExchangeState.REQUESTED || state == InformationRequestConnectorExchangeState.PENDING
-
-    private fun InformationRequestConnectorExchange.fail(reasonCode: String, now: Instant)
-    {
-        state = InformationRequestConnectorExchangeState.FAILED
-        failureCode = reasonCode.take(FAILURE_CODE_LENGTH)
-        completedAt = Timestamp.from(now)
-        nextAttemptAt = null
-    }
 
     companion object
     {
         const val MAXIMUM_ATTEMPTS = 10
         private const val BATCH_SIZE = 50
-        private const val FAILURE_CODE_LENGTH = 128
         private const val REFERENCE_LENGTH = 256
         private const val CONNECTOR_UNAVAILABLE = "connector_unavailable"
         private const val CONTRACT_VERSION_CHANGED = "contract_version_changed"

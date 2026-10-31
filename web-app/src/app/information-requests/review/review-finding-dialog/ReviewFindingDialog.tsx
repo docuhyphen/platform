@@ -14,26 +14,33 @@ import {
 import {
     InformationRequestFindingCorrectionScope,
     InformationRequestFindingSeverity,
+    InformationRequestRetestResult,
+    InformationRequestReviewFindingDto,
     InformationRequestReviewItemDto,
     InformationRequestReviewVisibility,
     RecordInformationRequestReviewFindingRequest,
 } from "../../../models/models.tsx";
-import {humanizedKey} from "../../submission/submissionLabels.ts";
-import {correctionScopeLabels, findingSeverityLabels, visibilityLabels} from "../reviewLabels.ts";
+import ReviewDialogFeedback from "../review-dialog-feedback/ReviewDialogFeedback.tsx";
+import {ReviewMessage} from "../useReviewFeedback.ts";
 import ReviewFindingChoice from "./ReviewFindingChoice.tsx";
+import ReviewFindingClassificationFields from "./ReviewFindingClassificationFields.tsx";
+import ReviewFindingRetestFields, {NOT_A_RETEST} from "./ReviewFindingRetestFields.tsx";
 import {useReviewFindingDialogStyles} from "./ReviewFindingDialogStyles.tsx";
 
 interface Props
 {
     item: InformationRequestReviewItemDto;
+    label: string;
+    earlierFindings: InformationRequestReviewFindingDto[];
     busy: boolean;
+    message?: ReviewMessage | null;
     onConfirm: (request: RecordInformationRequestReviewFindingRequest) => void;
     onDismiss: () => void;
 }
 
 const REASON_PATTERN = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 
-const ReviewFindingDialog = ({item, busy, onConfirm, onDismiss}: Props) =>
+const ReviewFindingDialog = ({item, label, earlierFindings, busy, message, onConfirm, onDismiss}: Props) =>
 {
     const styles = useReviewFindingDialogStyles();
     const [reasonCode, setReasonCode] = useState("");
@@ -41,7 +48,10 @@ const ReviewFindingDialog = ({item, busy, onConfirm, onDismiss}: Props) =>
     const [severity, setSeverity] = useState(InformationRequestFindingSeverity.MAJOR);
     const [visibility, setVisibility] = useState(InformationRequestReviewVisibility.RESPONDENT_VISIBLE);
     const [scope, setScope] = useState(InformationRequestFindingCorrectionScope.RESPONSE);
-    const [evidenceVersionId, setEvidenceVersionId] = useState(item.evidence[0]?.evidenceVersionId ?? "");
+    const [evidenceVersionId, setEvidenceVersionId] = useState("");
+    const [retestsFindingId, setRetestsFindingId] = useState(NOT_A_RETEST);
+    const [retestResult, setRetestResult] = useState(InformationRequestRetestResult.RESOLVED);
+    const retest = retestsFindingId === NOT_A_RETEST ? {} : {retestsFindingId, retestResult};
     const normalizedReason = reasonCode.trim().toLowerCase();
     const reasonValid = REASON_PATTERN.test(normalizedReason);
     const fileScoped = scope === InformationRequestFindingCorrectionScope.EVIDENCE_VERSION;
@@ -52,9 +62,9 @@ const ReviewFindingDialog = ({item, busy, onConfirm, onDismiss}: Props) =>
                 onOpenChange={(_, data) => { if (!data.open) onDismiss(); }}>
             <DialogSurface id={"information-request-review-finding-dialog"}
                            className={styles.surface}>
-                <DialogBody>
+                <DialogBody id={"information-request-review-finding-dialog-body"}>
                     <DialogTitle id={"information-request-review-finding-dialog-title"}>
-                        {`Finding for ${humanizedKey(item.requirementKey)}`}
+                        {`Finding for ${label}`}
                     </DialogTitle>
                     <DialogContent id={"information-request-review-finding-dialog-content"}
                                    className={styles.content}>
@@ -75,36 +85,33 @@ const ReviewFindingDialog = ({item, busy, onConfirm, onDismiss}: Props) =>
                                       disabled={busy}
                                       onChange={(_, data) => setNarrative(data.value)}/>
                         </Field>
-                        <ReviewFindingChoice id={"information-request-review-finding-severity"}
-                                             label={"Severity"}
-                                             options={Object.values(InformationRequestFindingSeverity)}
-                                             labelOf={value => findingSeverityLabels[value]}
-                                             value={severity}
-                                             disabled={busy}
-                                             onChange={value => setSeverity(value)}/>
-                        <ReviewFindingChoice id={"information-request-review-finding-visibility"}
-                                             label={"Who can see it"}
-                                             options={Object.values(InformationRequestReviewVisibility)}
-                                             labelOf={value => visibilityLabels[value]}
-                                             value={visibility}
-                                             disabled={busy}
-                                             onChange={value => setVisibility(value)}/>
-                        <ReviewFindingChoice id={"information-request-review-finding-scope"}
-                                             label={"What the respondent may change"}
-                                             options={Object.values(InformationRequestFindingCorrectionScope)}
-                                             labelOf={value => correctionScopeLabels[value]}
-                                             value={scope}
-                                             disabled={busy}
-                                             onChange={value => setScope(value)}/>
-                        {fileScoped && (
+                        <ReviewFindingClassificationFields severity={severity}
+                                                           visibility={visibility}
+                                                           scope={scope}
+                                                           disabled={busy}
+                                                           onSeverityChange={setSeverity}
+                                                           onVisibilityChange={setVisibility}
+                                                           onScopeChange={setScope}/>
+                        {item.evidence.length > 0 && (
                             <ReviewFindingChoice id={"information-request-review-finding-file"}
-                                                 label={"File to replace"}
-                                                 options={item.evidence.map(file => file.evidenceVersionId)}
-                                                 labelOf={value => `File version ${item.evidence.find(file => file.evidenceVersionId === value)?.versionNumber ?? ""}`}
+                                                 label={fileScoped ? "File to replace" : "File (optional)"}
+                                                 options={["", ...item.evidence.map(file => file.evidenceVersionId)]}
+                                                 labelOf={value => {
+                                                     const file = item.evidence.find(candidate => candidate.evidenceVersionId === value);
+                                                     return file ? `${file.declaredFileName ?? "File"}, version ${file.versionNumber}` : "No exact file";
+                                                 }}
                                                  value={evidenceVersionId}
                                                  disabled={busy}
                                                  onChange={value => setEvidenceVersionId(value)}/>
                         )}
+                        <ReviewDialogFeedback id={"information-request-review-finding-refusal"}
+                                              message={message}/>
+                        <ReviewFindingRetestFields earlierFindings={earlierFindings}
+                                                   retestsFindingId={retestsFindingId}
+                                                   retestResult={retestResult}
+                                                   disabled={busy}
+                                                   onRetestChange={setRetestsFindingId}
+                                                   onResultChange={setRetestResult}/>
                     </DialogContent>
                     <DialogActions id={"information-request-review-finding-dialog-actions"}
                                    className={styles.actions}>
@@ -119,7 +126,8 @@ const ReviewFindingDialog = ({item, busy, onConfirm, onDismiss}: Props) =>
                                     severity,
                                     visibility,
                                     correctionScope: scope,
-                                    evidenceVersionId: fileScoped ? evidenceVersionId : undefined,
+                                    evidenceVersionId: evidenceVersionId || undefined,
+                                    ...retest,
                                 })}>
                             Record finding
                         </Button>

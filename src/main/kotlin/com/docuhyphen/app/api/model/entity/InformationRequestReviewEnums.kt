@@ -21,6 +21,9 @@ enum class InformationRequestReviewState(val settled: Boolean)
 
     val accepted: Boolean
         get() = this == SATISFIED || this == SATISFIED_WITH_EXCEPTION
+
+    val decided: Boolean
+        get() = settled && this != WITHDRAWN
 }
 
 enum class InformationRequestReviewAssignmentState

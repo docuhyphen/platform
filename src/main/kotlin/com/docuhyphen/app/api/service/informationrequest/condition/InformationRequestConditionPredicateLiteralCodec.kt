@@ -2,9 +2,9 @@ package com.docuhyphen.app.api.service.informationrequest.condition
 
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicate
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import com.docuhyphen.app.api.service.fields.CanonicalDateTime
 import com.docuhyphen.app.api.service.fields.CanonicalNumber
-import com.docuhyphen.app.api.service.fields.FieldOperator
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -13,18 +13,10 @@ import java.math.BigDecimal
 import java.sql.Timestamp
 import java.time.LocalDate
 
-/**
- * Converts a condition predicate's authored literal between the canonical JSON it is authored and
- * read as and the typed scalar columns it is stored as, the same convention
- * [com.docuhyphen.app.api.service.fields.CanonicalValueCodec] uses for a Field's own stored answer.
- * An `IN` / `NOT_IN` predicate's literal is a list rather than a scalar, so it is handled
- * separately as the ordered rows of [com.docuhyphen.app.api.model.entity.InformationRequestTemplateConditionPredicateLiteral].
- */
 object InformationRequestConditionPredicateLiteralCodec
 {
     private val LIST_OPERATORS = setOf(FieldOperator.IN, FieldOperator.NOT_IN)
 
-    /** Writes the scalar literal onto [target]'s typed columns. Callers write list literals separately. */
     fun applyScalarTo(target: InformationRequestTemplateConditionPredicate, value: JsonElement?)
     {
         target.textValue = null
@@ -54,12 +46,10 @@ object InformationRequestConditionPredicateLiteralCodec
         }
     }
 
-    /** The list literal rows an `IN` / `NOT_IN` predicate stores; empty for every other predicate. */
     fun listLiteralValues(operator: FieldOperator, value: JsonElement?): List<String> =
         if (operator !in LIST_OPERATORS) emptyList()
         else (value as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
 
-    /** Reconstructs the canonical literal a stored predicate compares against. */
     fun toJson(predicate: InformationRequestTemplateConditionPredicate, literalValues: List<String>): JsonElement?
     {
         if (predicate.operator in LIST_OPERATORS)

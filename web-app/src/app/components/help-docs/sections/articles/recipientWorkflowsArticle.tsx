@@ -73,7 +73,7 @@ export const recipientWorkflowsArticle = (
         <p>
             If you need your workflow to pause until the other party's workflows
             are also done, add a{" "}
-            <b>Wait for Counterparty Clearance</b> step. The step parks with status
+            <b>Wait for Counterparty Clearance</b> step. The step parks with status{" "}
             <b>Awaiting Counterparty</b> until all workflow instances on the other
             party's side of the Exchange reach a terminal state, then unblocks
             automatically.

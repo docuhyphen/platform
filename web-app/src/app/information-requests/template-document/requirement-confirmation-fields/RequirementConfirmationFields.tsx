@@ -10,6 +10,7 @@ import CheckList from "../../shared/check-list/CheckList.tsx";
 import ChoiceSelect from "../../shared/choice-select/ChoiceSelect.tsx";
 import {optionsFrom} from "../../shared/choice-select/choiceOptions.ts";
 import NumberField from "../../shared/number-field/NumberField.tsx";
+import ConfirmationRoleSequence from "../confirmation-role-sequence/ConfirmationRoleSequence.tsx";
 import {
     attestationOrderingLabels,
     authenticationStrengthLabels,
@@ -37,6 +38,11 @@ const RequirementConfirmationFields = ({id, draft, readOnly, onChange}: Requirem
         : [draft.contributorRole ?? InformationRequestContributorRole.CONTRIBUTOR];
     const set = (change: Partial<InformationRequestTemplateAttestationPolicyRequest>) =>
         onChange({attestationPolicy: {...policy, ...change}});
+    const setRoles = (requiredRoles: InformationRequestContributorRole[]) => set({
+        requiredRoles,
+        minimumAssentCount: policy.minimumAssentCount === roles.length ? requiredRoles.length : policy.minimumAssentCount,
+    });
+    const sequenced = policy.ordering === InformationRequestAttestationOrdering.ROLE_SEQUENCE;
 
     return (
         <div id={`${id}-confirmation`}
@@ -48,7 +54,14 @@ const RequirementConfirmationFields = ({id, draft, readOnly, onChange}: Requirem
                            options={optionsFrom(contributorRoleLabels)}
                            selected={roles}
                            disabled={readOnly}
-                           onChange={requiredRoles => set({requiredRoles})}/>
+                           keepSelectionOrder={true}
+                           onChange={setRoles}/>
+                {sequenced && roles.length > 1 && (
+                    <ConfirmationRoleSequence id={`${id}-confirmation-role-sequence`}
+                                              roles={roles}
+                                              disabled={readOnly}
+                                              onChange={setRoles}/>
+                )}
             </div>
             <ChoiceSelect id={`${id}-confirmation-order-select`}
                           label={"Order"}

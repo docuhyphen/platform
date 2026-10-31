@@ -56,23 +56,6 @@ class ShareRepository : BaseRepository<Share>(Share::class.java)
             .setParameter("status", ShareStatus.ACTIVE)
             .resultList
 
-    fun existsActiveForPrincipalOnResourceType(
-        kind: PrincipalKind,
-        principalId: UUID,
-        resourceType: ResourceType
-    ): Boolean =
-        entityManager.createQuery(
-            """SELECT COUNT(s) FROM Share s
-               WHERE s.principalKind = :pk AND s.principalId = :pid AND s.resourceType = :rt AND s.status = :status""",
-            java.lang.Long::class.java,
-        )
-            .setParameter("pk", kind)
-            .setParameter("pid", principalId)
-            .setParameter("rt", resourceType)
-            .setParameter("status", ShareStatus.ACTIVE)
-            .singleResult
-            .toLong() > 0
-
     fun findActiveDirectByResourceOrdered(
         resourceType: ResourceType,
         resourceId: UUID,
@@ -142,7 +125,6 @@ class ShareRepository : BaseRepository<Share>(Share::class.java)
             .setParameter("source", ShareSource.DIRECT)
             .resultList
 
-    /** Inherited (materialised) shares that point back to a parent group/org share. */
     fun findBySourceShareId(sourceShareId: UUID): List<Share> =
         entityManager.createQuery(
             """SELECT s FROM Share s WHERE s.sourceShareId = :sid""",

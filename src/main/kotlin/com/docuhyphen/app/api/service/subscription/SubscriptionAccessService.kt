@@ -7,19 +7,6 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.*
 
-/**
- * The single authority for commercial plan decisions.
- *
- * Resolution answers "which paying subject owns this operation, what does their plan include,
- * and what allowance is left". It never answers "is this caller authorized", which stays with
- * role capabilities and Share grants. A protected operation must satisfy both: holding a role
- * grants no plan feature, and owning a plan grants no role permission.
- *
- * Refusals are produced identically in every environment. The configured enforcement mode only
- * decides whether a refusal is recorded and allowed through or raised to the caller, so a new
- * environment can be observed before anything is actually blocked.
- *
- */
 @ApplicationScoped
 class SubscriptionAccessService @Inject constructor(
     private val subscriptionPolicyService: SubscriptionPolicyService,
@@ -34,10 +21,6 @@ class SubscriptionAccessService @Inject constructor(
 
     fun enforcementMode(): SubscriptionEnforcementMode = enforcementConfigService.mode()
 
-    /**
-     * Resolves the commercial position of the paying subject. The record is created on demand
-     * when a subject somehow has none, so no call site has to cope with a missing subscription.
-     */
     fun resolve(context: SubscriptionContext): EffectiveSubscription
     {
         return try
@@ -61,10 +44,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /**
-     * Resolves the subject for a session: the selected organization when one is active,
-     * otherwise the authenticated user acting personally.
-     */
     fun resolveForSession(appUserId: UUID, activeOrganizationId: UUID?): EffectiveSubscription
     {
         val context = activeOrganizationId
@@ -81,22 +60,9 @@ class SubscriptionAccessService @Inject constructor(
         return subscriptionUsageService.measure(subscription, at)
     }
 
-    /**
-     * Whether the owner can reach the feature, answered without refusing anything. Callers that
-     * decide what to offer rather than what to permit use this; callers that are about to act use
-     * [requireFeature] so the refusal reaches the caller with its reason.
-     */
     fun isFeatureAvailable(context: SubscriptionContext, feature: PlanFeature): Boolean
     {
         return resolve(context).hasFeature(feature)
-    }
-
-    /**
-     * The features the owner can reach from their plan and platform-administered overrides.
-     */
-    fun availableFeatures(subscription: EffectiveSubscription): Set<PlanFeature>
-    {
-        return subscription.features
     }
 
     fun requireFeature(context: SubscriptionContext, feature: PlanFeature)
@@ -112,8 +78,6 @@ class SubscriptionAccessService @Inject constructor(
             return
         }
 
-        // Pointing an individual at an organization plan is only true advice when an organization
-        // plan actually sells the feature. A feature no plan sells is refused on its own terms.
         val soldOnlyToOrganizations =
             !PlanCatalog.definitionOf(PlanCode.PERSONAL).includes(feature) &&
                     PlanCatalog.definitionOf(PlanCode.BUSINESS).includes(feature)
@@ -146,11 +110,6 @@ class SubscriptionAccessService @Inject constructor(
         apply(SubscriptionDenialFactory.mutationsNotAllowed(subscription))
     }
 
-    /**
-     * Checks the Exchange allowances before an Exchange is created: how many may be created in
-     * the current calendar month, and how many may stay open at once. Drafts count towards the
-     * open allowance so it cannot be sidestepped by leaving Exchanges unsent.
-     */
     fun requireExchangeCapacity(context: SubscriptionContext, at: Instant = Instant.now())
     {
         if (!enforcementMode().evaluatesDecisions)
@@ -199,7 +158,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /** Counts under the owner's subscription row lock so concurrent creations cannot both take the last place. */
     fun requireInformationRequestCapacity(context: SubscriptionContext, openRequests: () -> Long)
     {
         if (!enforcementMode().evaluatesDecisions)
@@ -226,7 +184,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /** Counts under the owner's subscription row lock so concurrent issuances cannot both take the last capacity. */
     fun requireCommittedEvidenceCapacity(context: SubscriptionContext, committedBytes: () -> Long)
     {
         if (!enforcementMode().evaluatesDecisions)
@@ -254,9 +211,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /**
-     * Checks whether the subject may add participants beyond the required primary recipient.
-     */
     fun requireParticipantCapacity(context: SubscriptionContext, additionalParticipants: Int)
     {
         if (!enforcementMode().evaluatesDecisions || additionalParticipants <= 0)
@@ -291,10 +245,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /**
-     * Checks that the organization has an unused purchased seat before a membership becomes
-     * active. An organization with no assigned seat quantity is uncapped.
-     */
     fun requireOrganizationSeat(organizationId: UUID)
     {
         if (!enforcementMode().evaluatesDecisions)
@@ -341,10 +291,6 @@ class SubscriptionAccessService @Inject constructor(
         }
     }
 
-    /**
-     * Records the refusal, then raises it only when enforcement is active. Report-only
-     * environments get a full picture of what would be blocked without affecting customers.
-     */
     private fun apply(denial: SubscriptionDenial)
     {
         val mode = enforcementMode()
@@ -365,7 +311,6 @@ class SubscriptionAccessService @Inject constructor(
         )
     }
 
-    /** Records the refusal and raises it, for a decision that no enforcement mode softens. */
     private fun refuse(denial: SubscriptionDenial): Nothing
     {
         logger.info(

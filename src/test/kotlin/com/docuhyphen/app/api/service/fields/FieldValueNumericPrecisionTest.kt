@@ -3,21 +3,14 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.FieldContract
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.FieldConstraints
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
-import java.util.UUID
+import java.util.*
 
-/**
- * A numeric answer must survive the round trip through storage and through the API without being
- * silently rounded. The stored column holds 28 integer and 10 fraction digits, so anything wider is
- * refused with a validation message instead of being reshaped by the database, and the canonical
- * JSON carries digits rather than a JSON number that a client would parse as a binary float.
- */
 class FieldValueNumericPrecisionTest
 {
     private val registry = FieldTypeRegistry()

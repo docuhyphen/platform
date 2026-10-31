@@ -30,6 +30,12 @@ class InformationRequestClockPolicyRepository :
         policyKey: String
     ): InformationRequestClockPolicy? =
         findForOwner(ownerType, ownerId).firstOrNull { it.policyKey == policyKey }
+
+    fun insertNow(policy: InformationRequestClockPolicy): InformationRequestClockPolicy {
+        entityManager.persist(policy)
+        entityManager.flush()
+        return policy
+    }
 }
 
 @ApplicationScoped

@@ -6,13 +6,13 @@ only the services that template already declares; nothing here adds an AWS servi
 
 ## What protects the data
 
-| Data | Where it lives | Protection declared in `infra/cloudformation.yml` |
-|---|---|---|
-| Requests, grants, reservations, answers, reviews, decisions, clocks, notices, holds, disposals, exports | RDS PostgreSQL `RDSInstance` | Automated backups kept 7 days (`BackupRetentionPeriod: 7`), so any point in the last 7 days can be restored. A final snapshot is taken if the instance is deleted or replaced (`DeletionPolicy: Snapshot`, `UpdateReplacePolicy: Snapshot`). `DeletionProtection: true`, `StorageEncrypted: true`. Single Availability Zone (`MultiAZ: false`). |
-| Evidence file content | S3 documents bucket (`...-documents-prod`) | Versioning enabled, so an overwritten or deleted object keeps earlier versions. Retained if the stack is deleted (`DeletionPolicy: Retain`). The lifecycle rule only aborts incomplete multipart uploads after 1 day. |
-| Signed audit ledger segments | S3 audit archive bucket (`...-audit-archive-prod`) | Versioning and Object Lock in `GOVERNANCE` mode for `AuditArchiveRetentionDays` (default 2555 days). The application role can write and read but cannot delete or change retention. |
-| Application logs, including the health and abuse markers | CloudWatch log group `/ecs/<AppName>` | Kept 30 days (`RetentionInDays: 30`). |
-| Credentials | Secrets Manager | Retained if the stack is deleted. |
+| Data                                                                                                    | Where it lives                                     | Protection declared in `infra/cloudformation.yml`                                                                                                                                                                                                                                                                                               |
+|---------------------------------------------------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Requests, grants, reservations, answers, reviews, decisions, clocks, notices, holds, disposals, exports | RDS PostgreSQL `RDSInstance`                       | Automated backups kept 7 days (`BackupRetentionPeriod: 7`), so any point in the last 7 days can be restored. A final snapshot is taken if the instance is deleted or replaced (`DeletionPolicy: Snapshot`, `UpdateReplacePolicy: Snapshot`). `DeletionProtection: true`, `StorageEncrypted: true`. Single Availability Zone (`MultiAZ: false`). |
+| Evidence file content                                                                                   | S3 documents bucket (`...-documents-prod`)         | Versioning enabled, so an overwritten or deleted object keeps earlier versions. Retained if the stack is deleted (`DeletionPolicy: Retain`). The lifecycle rule only aborts incomplete multipart uploads after 1 day.                                                                                                                           |
+| Signed audit ledger segments                                                                            | S3 audit archive bucket (`...-audit-archive-prod`) | Versioning and Object Lock in `GOVERNANCE` mode for `AuditArchiveRetentionDays` (default 2555 days). The application role can write and read but cannot delete or change retention.                                                                                                                                                             |
+| Application logs, including the health and abuse markers                                                | CloudWatch log group `/ecs/<AppName>`              | Kept 30 days (`RetentionInDays: 30`).                                                                                                                                                                                                                                                                                                           |
+| Credentials                                                                                             | Secrets Manager                                    | Retained if the stack is deleted.                                                                                                                                                                                                                                                                                                               |
 
 Known limits of the current template, which need the user's approval to change because they add
 cost: a single-AZ database; 7 days of point-in-time recovery; no cross-Region copy of backups or
@@ -22,18 +22,19 @@ buckets.
 
 - `GET /platform/information-request-health` (platform administrators only; every read is audited
   as `platform.information_request_health.view`) counts six invariant breaches:
-  - `REQUESTS_WITHOUT_EXECUTION_GRANT`
-  - `RESERVATIONS_ABOVE_CAP`
-  - `NOTICE_INTENTS_OVERDUE`
-  - `CONNECTOR_EXCHANGES_FAILED`
-  - `DISPOSAL_CLAIMS_STALLED`
-  - `EVENT_DELIVERY_BACKLOG`
+    - `REQUESTS_WITHOUT_EXECUTION_GRANT`
+    - `RESERVATIONS_ABOVE_CAP`
+    - `NOTICE_INTENTS_OVERDUE`
+    - `CONNECTOR_EXCHANGES_FAILED`
+    - `DISPOSAL_CLAIMS_STALLED`
+    - `EVENT_DELIVERY_BACKLOG`
 - A scheduled check (every 15 minutes, `app.information-request.health.every`) logs
   `INFORMATION_REQUEST_HEALTH_BREACH indicator=<key> count=<n>` for each breach.
   `InformationRequestHealthBreachAlarm` fires on any breach in a 15-minute period.
-- Abuse controls log `INFORMATION_REQUEST_ABUSE_REFUSED control=<control>`.
-  `InformationRequestAbuseRefusalAlarm` fires at 50 refusals in 5 minutes. That usually means
-  probing of contact codes or scripted exports, not a platform failure.
+- Abuse controls log `INFORMATION_REQUEST_ABUSE_REFUSED control=<control>`, including contact-code
+  limits and lockouts (`CONTACT_CODE_CHALLENGE_LIMIT`, `CONTACT_CODE_LOCKOUT`) and exhausted access
+  links (`ACCESS_LINK_USE_LIMIT`). `InformationRequestAbuseRefusalAlarm` fires at 50 refusals in 5
+  minutes. That usually means probing of contact codes or scripted exports, not a platform failure.
 
 ## Procedures
 
@@ -47,20 +48,42 @@ above zero.
 2. Restart the service (force a new deployment of the same image). Every worker resumes from the
    database, and notices and events are written once and retried idempotently.
 3. Read the health report again. A connector exchange that exhausted its attempts stays failed by
-   design. To try again, start a new exchange with `POST /information-requests/{id}/connector-exchanges`;
-   external sources have no screen yet.
+   design. The request's audit history shows each of its attempts and retries and, on
+   `information_request.external.fail`, its failure code. To try again, start a new exchange with
+   `POST /information-requests/{id}/connector-exchanges`; external sources have no screen yet.
 
 ### A disposal stalled
 
 Symptom: `DISPOSAL_CLAIMS_STALLED`.
 
-1. A claim that deleted some objects but not all is finished by the disposal worker on its next run
-   (hourly by default, `app.record-disposal.every`).
+1. A claim that deleted some objects but not all is finished by the disposal worker on its next run (hourly by default,
+   `app.record-disposal.every`).
    Object deletion removes every S3 version and delete marker of a record's objects, so a retry is
    safe.
 2. If the claim stays stalled, read the claim's objects and error in the record preservation page
    and the logs. Do not delete rows by hand: disposal writes a tombstone and audit events that the
    retention record depends on.
+3. An S3 `AccessDenied` on listing or deleting versions means the deployed task role lacks the
+   disposal permissions. `ECSTaskRole` in `infra/cloudformation.yml` grants `s3:ListBucketVersions`
+   on the documents bucket and `s3:DeleteObjectVersion` on its objects (policy `S3DocumentAccess`);
+   deploy the current template, then let the worker retry. Retries cannot repair a missing
+   permission. `DocumentVersionStoragePermissionContractTest` fails the backend suite when the
+   template stops granting any S3 action that version storage performs.
+
+### Stored bytes from a failed write remain
+
+Symptom: the log repeats `Stored document version ... could not be removed; it will be retried`, or
+`document_version_storage_cleanup` keeps rows whose `attempt_count` grows.
+
+1. Each row names an object written for a document version whose recording never committed. The
+   cleanup worker (`app.document-version.storage-cleanup.every`, 15 minutes by default) deletes it
+   once due and retries a failed delete after 15 minutes, doubling to at most 24 hours. It never
+   deletes an object a committed document version refers to; such a row is simply removed.
+2. A growing attempt count with S3 `AccessDenied` is the same missing permission as a stalled
+   disposal: deploy the current template so `ECSTaskRole` holds `s3:ListBucketVersions` and
+   `s3:DeleteObjectVersion`, then let the worker retry.
+3. Do not delete rows by hand while their objects still exist: the row is the only record that the
+   object is unreferenced.
 
 ### The database must be restored to an earlier point
 
@@ -72,15 +95,15 @@ from the database, so reconcile it afterwards.
 3. Point the application's database secret at the restored instance. Start one task and let Flyway
    validate: the history must match the migrations in the deployed image.
 4. Reconcile work done after the restore point:
-   - Disposals: records disposed after the restore point come back in the database, but their
-     objects are gone, because disposal deletes every S3 version. Find the disposal audit events
-     after the restore point in the audit archive, and dispose of those records again through
-     record preservation, so the database matches the object store.
-   - Uploads: evidence uploaded after the restore point has objects in S3 but no rows. Those objects
-     are unreferenced. Keep them until the affected parties have uploaded again, then remove them
-     under the normal object retention review.
-   - Grants: a request issued after the restore point is a draft again, and its owner issues it
-     again. `REQUESTS_WITHOUT_EXECUTION_GRANT` must read zero.
+    - Disposals: records disposed after the restore point come back in the database, but their
+      objects are gone, because disposal deletes every S3 version. Find the disposal audit events
+      after the restore point in the audit archive, and dispose of those records again through
+      record preservation, so the database matches the object store.
+    - Uploads: evidence uploaded after the restore point has objects in S3 but no rows. Those objects
+      are unreferenced. Keep them until the affected parties have uploaded again, then remove them
+      under the normal object retention review.
+    - Grants: a request issued after the restore point is a draft again, and its owner issues it
+      again. `REQUESTS_WITHOUT_EXECUTION_GRANT` must read zero.
 5. Read the health report. Every indicator must be zero before the service is scaled back up.
 
 ### An evidence object was deleted or overwritten by mistake
@@ -88,6 +111,10 @@ from the database, so reconcile it afterwards.
 The documents bucket is versioned. Restore the previous version of the object key named in the
 document version's storage locator, unless disposal deleted it; disposal removes every version on
 purpose. The document version's recorded content hash confirms the restored bytes.
+
+Missing or changed evidence logs `INFORMATION_REQUEST_EVIDENCE_CONTENT_INTEGRITY_FAILED` with
+`reason=CONTENT_MISSING` or `reason=DIGEST_MISMATCH` and the request, Evidence Version and Document
+Version ids. Use those ids to find the affected storage locator and verify the restored bytes.
 
 ### A suspension or revocation was applied by mistake
 

@@ -1,12 +1,15 @@
 package com.docuhyphen.app.api.model.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.command.CommandPrecondition
+import com.docuhyphen.app.api.model.document.DocumentVersionContent
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.command.CommandPrecondition
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import java.io.File
+import java.io.OutputStream
 import java.util.*
 
 enum class InformationRequestEvidenceAction
@@ -28,9 +31,9 @@ data class InformationRequestEvidenceFile(
     {
         require(declaredFileName.isNotBlank()) { "An evidence file states its file name" }
         require(declaredFileName.length <= NAME_LIMIT) { "An evidence file name is at most $NAME_LIMIT characters" }
-        require(declaredFileName.none { it.isISOControl() || it == '/' || it == '\\' })
+        require(declaredFileName.none { it.isISOControl() || it.category == CharCategory.FORMAT || it == '/' || it == '\\' })
         {
-            "An evidence file name names one file without a path or control characters"
+            "An evidence file name names one file without a path, control characters or invisible formatting characters"
         }
         require(declaredMediaType == null || declaredMediaType.isNotBlank()) { "A declared media type is not blank" }
         require(declaredMediaType == null || declaredMediaType.length <= NAME_LIMIT)
@@ -86,6 +89,15 @@ data class InformationRequestEvidenceVersionView(
 data class InformationRequestEvidenceArtifactView(
     val artifact: InformationRequestEvidenceArtifact,
     val versions: List<InformationRequestEvidenceVersionView>,
+    val changeableByCaller: Boolean = false,
+)
+
+data class InformationRequestEvidenceVersionRecord(
+    val evidenceVersionId: UUID,
+    val evidenceArtifactId: UUID,
+    val versionNumber: Int,
+    val declaredFileName: String?,
+    val createdBy: PrincipalRef,
 )
 
 data class InformationRequestEvidenceCommandResult(
@@ -114,9 +126,15 @@ data class InformationRequestEvidenceList(
     val evaluation: InformationRequestEvidenceRequirementEvaluation?,
 )
 
-data class InformationRequestEvidenceContent(
-    val file: File,
+class InformationRequestEvidenceContent(
+    private val content: DocumentVersionContent,
     val fileName: String,
     val mediaType: String,
     val inline: Boolean,
-)
+) : AutoCloseable {
+    val file: File get() = content.file
+
+    fun transferTo(output: OutputStream) = content.transferTo(output)
+
+    override fun close() = content.close()
+}

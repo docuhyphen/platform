@@ -4,36 +4,16 @@ import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateScopeKind
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
-import com.docuhyphen.app.api.service.subscription.ExchangeUsageCounter
-import com.docuhyphen.app.api.service.subscription.OrganizationSeatCounter
-import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.PlanFeature
-import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementConfigService
-import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
-import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsageService
+import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * Which owner answers for a piece of reusable request configuration.
- *
- * The entitlement decision is recorded against an owner. What is covered here is the part specific
- * to Templates: that a scope kind consults
- * exactly the owner it names, that a person is a resolvable owner in their own right rather than
- * falling back to an organization or to the platform, and that a scope with no owner is refused
- * rather than reaching neither decision and passing by default.
- */
 class InformationRequestTemplateEntitlementGuardTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -127,18 +107,16 @@ class InformationRequestTemplateEntitlementGuardTest
     }
 
     @Test
-    fun `a scope with no owner to answer for it is refused`()
+    fun `platform content answers to no subscription owner`()
     {
         val guard = guard()
 
-        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+        assertDoesNotThrow {
             guard.requireTemplateMutation(InformationRequestTemplateScopeKind.PLATFORM, null, null, null)
+            guard.requireTemplateAccess(InformationRequestTemplateScopeKind.PLATFORM, null, null, organizationId)
         }
 
-        assertTrue(
-            refusal.message.contains("PLATFORM"),
-            "The refusal names the scope with no owner: ${refusal.message}",
-        )
+        verifyNoInteractions(policyService)
     }
 
     @Test
@@ -164,8 +142,6 @@ class InformationRequestTemplateEntitlementGuardTest
             )
         }
     }
-
-    // ── Fixture ───────────────────────────────────────────────────────────────
 
     private fun guard(
         mode: SubscriptionEnforcementMode = SubscriptionEnforcementMode.ENFORCE,

@@ -23,6 +23,7 @@ class InformationRequestTemplateEntitlementGuard @Inject constructor(
         if (!subscriptionAccessService.enforcementMode().evaluatesDecisions) return
 
         val contexts = entitlementContexts(scopeKind, organizationId, userId, actingOrganizationId)
+        if (contexts.isEmpty()) return
         if (contexts.any { subscriptionAccessService.isFeatureAvailable(it, PlanFeature.INFORMATION_REQUESTS) }) return
 
         subscriptionAccessService.requireFeature(contexts.first(), PlanFeature.INFORMATION_REQUESTS)
@@ -38,6 +39,7 @@ class InformationRequestTemplateEntitlementGuard @Inject constructor(
         if (!subscriptionAccessService.enforcementMode().evaluatesDecisions) return
 
         val contexts = entitlementContexts(scopeKind, organizationId, userId, actingOrganizationId)
+        if (contexts.isEmpty()) return
         val subscriptions = contexts.map { it to subscriptionAccessService.resolve(it) }
         if (subscriptions.any { (_, subscription) ->
                 subscription.hasFeature(PlanFeature.INFORMATION_REQUESTS) && subscription.allowsMutations()
@@ -65,9 +67,7 @@ class InformationRequestTemplateEntitlementGuard @Inject constructor(
     {
         val owner = when (scopeKind)
         {
-            InformationRequestTemplateScopeKind.PLATFORM -> throw InformationRequestTemplateValidationException(
-                "A PLATFORM information request template has no subscription owner",
-            )
+            InformationRequestTemplateScopeKind.PLATFORM -> return emptyList()
 
             InformationRequestTemplateScopeKind.ORGANIZATION -> SubscriptionContext.forOrganization(
                 requireNotNull(organizationId) {

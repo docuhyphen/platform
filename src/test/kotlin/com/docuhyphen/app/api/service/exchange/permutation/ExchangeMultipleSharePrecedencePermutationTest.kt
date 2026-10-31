@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
 import com.docuhyphen.app.api.model.entity.ShareStatus
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

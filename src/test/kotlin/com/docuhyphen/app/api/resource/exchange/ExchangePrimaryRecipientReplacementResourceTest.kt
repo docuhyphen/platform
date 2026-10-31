@@ -1,28 +1,8 @@
 package com.docuhyphen.app.api.resource.exchange
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.entity.ExchangeShareRoleName
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.ExternalEmailRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.InternalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.InviteTrustedParticipantRequest
-import com.docuhyphen.app.api.resource.model.PersonalGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.RegisteredUserRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.ReplacePrimaryRecipientRequest
-import com.docuhyphen.app.api.resource.model.TrustedGroupRecipientSelectionRequest
-import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequest
-import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.exchange.ExchangeAccessManagementService
-import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
-import com.docuhyphen.app.api.service.exchange.ExchangeInitiationService
-import com.docuhyphen.app.api.service.exchange.ExchangeParticipantService
-import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
-import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
-import com.docuhyphen.app.api.service.exchange.ShareQueryService
-import com.docuhyphen.app.api.service.exchange.ShareService
-import com.docuhyphen.app.api.service.storage.FileStorageService
-import com.docuhyphen.app.api.service.workflow.WorkflowDefinitionService
+import com.docuhyphen.app.api.resource.model.*
+import com.docuhyphen.app.api.service.exchange.*
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -30,7 +10,7 @@ import org.junit.jupiter.api.assertAll
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
 class ExchangePrimaryRecipientReplacementResourceTest
 {
@@ -42,13 +22,9 @@ class ExchangePrimaryRecipientReplacementResourceTest
         exchangeUpdateService = mock<ExchangeUpdateService>(),
         exchangeParticipantService = mock<ExchangeParticipantService>(),
         shareQueryService = mock<ShareQueryService>(),
-        shareService = mock<ShareService>(),
         sessionAccessManagementService = accessManagementService,
-        authTokenContext = mock<AuthTokenContext>(),
-        fileStorageService = mock<FileStorageService>(),
-        appUserService = mock<AppUserService>(),
-        principalGroupRepository = mock<PrincipalGroupRepository>(),
-        workflowDefinitionService = mock<WorkflowDefinitionService>(),
+        exchangeDetailsViewService = mock<ExchangeDetailsViewService>(),
+        exchangeWorkflowStatusService = mock<ExchangeWorkflowStatusService>(),
     )
     private val exchangeId = UUID.randomUUID()
 

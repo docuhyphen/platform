@@ -1,29 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttribute
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAttributeRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceConformancePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceWaiverPolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCapturedAttribute
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceConformance
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFindingCode
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceInspectionFacts
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareFacts
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidencePolicy
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRequirementState
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceStanding
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionFacts
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidencePolicyEvaluatorTest
 {
@@ -49,7 +32,6 @@ class InformationRequestEvidencePolicyEvaluatorTest
             InformationRequestEvidenceMalwareOutcome.UNAVAILABLE,
             InformationRequestEvidenceMalwareOutcome.STALE_SIGNATURES,
             InformationRequestEvidenceMalwareOutcome.SKIPPED,
-            InformationRequestEvidenceMalwareOutcome.INDETERMINATE,
         ).forEach { outcome ->
             assertPending(file(malware = InformationRequestEvidenceMalwareFacts(outcome, true)), InformationRequestEvidenceFindingCode.SCAN_INCOMPLETE)
         }
@@ -215,18 +197,6 @@ class InformationRequestEvidencePolicyEvaluatorTest
     }
 
     @Test
-    fun `an external reference is judged on its captured attributes alone`()
-    {
-        val evaluation = InformationRequestEvidencePolicyEvaluator.evaluateVersion(
-            policy(requirements = mapOf(InformationRequestEvidenceCapturedAttribute.ISSUER to InformationRequestEvidenceAttributeRequirement.REQUIRED)),
-            external(InformationRequestEvidenceAttributes(issuer = "Process Registry")),
-            asOf,
-        )
-
-        assertEquals(InformationRequestEvidenceConformance.CONFORMING, evaluation.conformance)
-    }
-
-    @Test
     fun `a Requirement is satisfied only by enough conforming current files`()
     {
         val twoFiles = policy(minimumFiles = 2)
@@ -379,6 +349,38 @@ class InformationRequestEvidencePolicyEvaluatorTest
     }
 
     @Test
+    fun `a file still awaiting its scan counts toward coverage whichever file is scanned first`() {
+        val coverage = policy(
+            requirements = mapOf(InformationRequestEvidenceCapturedAttribute.COVERAGE_PERIOD to InformationRequestEvidenceAttributeRequirement.REQUIRED),
+            minimumCoverageDays = 45,
+            coverageContinuityRequired = true,
+        )
+        val january = covering(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31))
+        val unscannedFebruary = unscannedCovering(LocalDate.of(2026, 2, 1), LocalDate.of(2026, 2, 28))
+        val unscannedApril = unscannedCovering(LocalDate.of(2026, 4, 1), LocalDate.of(2026, 4, 30))
+        val coverageCodes = setOf(
+            InformationRequestEvidenceFindingCode.COVERAGE_TOO_SHORT,
+            InformationRequestEvidenceFindingCode.COVERAGE_NOT_CONTINUOUS,
+        )
+
+        val awaiting = evaluate(coverage, listOf(january, unscannedFebruary))
+        assertEquals(InformationRequestEvidenceRequirementState.PENDING_ASSESSMENT, awaiting.state)
+        assertTrue(awaiting.findings.none { it.code in coverageCodes })
+        assertEquals(
+            InformationRequestEvidenceRequirementState.PENDING_ASSESSMENT,
+            evaluate(coverage, listOf(unscannedFebruary, unscannedApril.copy(attributes = january.attributes))).state,
+        )
+
+        val gapped = evaluate(coverage, listOf(january, unscannedApril))
+        assertEquals(InformationRequestEvidenceRequirementState.DEFICIENT, gapped.state)
+        assertTrue(gapped.findings.any { it.code == InformationRequestEvidenceFindingCode.COVERAGE_NOT_CONTINUOUS })
+        assertEquals(
+            InformationRequestEvidenceRequirementState.DEFICIENT,
+            evaluate(coverage, listOf(unscannedFebruary)).state,
+        )
+    }
+
+    @Test
     fun `a satisfied substitute satisfies the Requirement it stands in for`()
     {
         val evaluation = InformationRequestEvidencePolicyEvaluator.evaluateRequirement(
@@ -499,6 +501,7 @@ class InformationRequestEvidencePolicyEvaluatorTest
         verification: DocumentVersionContentVerification = DocumentVersionContentVerification.VERIFIED,
         length: Long = 50,
         declaredType: String? = "application/pdf",
+        declaredName: String? = null,
         attributes: InformationRequestEvidenceAttributes = InformationRequestEvidenceAttributes.NONE,
         inspection: InformationRequestEvidenceInspectionFacts? = inspected(),
         malware: InformationRequestEvidenceMalwareFacts? =
@@ -508,29 +511,26 @@ class InformationRequestEvidencePolicyEvaluatorTest
         artifactId = UUID.randomUUID(),
         versionNumber = 1,
         standing = standing,
-        fileBacked = true,
         contentVerification = verification,
         contentLength = length,
         declaredMediaType = declaredType,
+        declaredFileName = declaredName,
         attributes = attributes,
         inspection = inspection,
         malware = malware,
     )
 
-    private fun external(attributes: InformationRequestEvidenceAttributes) = InformationRequestEvidenceVersionFacts(
-        versionId = UUID.randomUUID(),
-        artifactId = UUID.randomUUID(),
-        versionNumber = 1,
-        standing = InformationRequestEvidenceStanding.CURRENT,
-        fileBacked = false,
-        contentVerification = null,
-        contentLength = null,
-        declaredMediaType = null,
-        attributes = attributes,
-        inspection = null,
-        malware = null,
-    )
-
     private fun covering(startsOn: LocalDate, endsOn: LocalDate) =
         file(attributes = InformationRequestEvidenceAttributes(coverage = InformationRequestEvidenceCoverage(startsOn, endsOn)))
+
+    private fun unscannedCovering(startsOn: LocalDate, endsOn: LocalDate) =
+        file(
+            attributes = InformationRequestEvidenceAttributes(
+                coverage = InformationRequestEvidenceCoverage(
+                    startsOn,
+                    endsOn
+                )
+            ),
+            malware = null,
+        )
 }

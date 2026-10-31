@@ -8,10 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * An explicitly authorized external alias for an opaque subject identity. The alias never becomes
- * the subject's primary key and is unique only inside its owning tenant.
- */
 @Entity
 @Serializable
 @Table(name = "subject_identity_external_identifier")

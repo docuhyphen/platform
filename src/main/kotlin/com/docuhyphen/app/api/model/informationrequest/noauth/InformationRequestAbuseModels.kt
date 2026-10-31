@@ -10,6 +10,9 @@ enum class InformationRequestAbuseControl
     REMINDER_COOLDOWN,
     EXPORT_DAILY_CEILING,
     EVIDENCE_UPLOAD_LIMIT,
+    CONTACT_CODE_CHALLENGE_LIMIT,
+    CONTACT_CODE_LOCKOUT,
+    ACCESS_LINK_USE_LIMIT,
 }
 
 enum class InformationRequestNoAuthAttempt
@@ -25,6 +28,7 @@ data class InformationRequestAbuseLimits(
     val accessLinkUses: Int = 25,
     val reminderCooldown: Duration = Duration.ofHours(24),
     val exportDailyCeiling: Long = 100,
+    val exportMaxBytes: Long = 25L * 1024 * 1024,
 )
 
 data class InformationRequestExportWindow(

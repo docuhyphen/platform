@@ -7,11 +7,12 @@ import TextField from "../../shared/text-field/TextField.tsx";
 interface Props
 {
     busy: boolean;
+    error?: string | null;
     onConfirm: (request: RevokeInformationRequestAcceptedFactRequest) => void;
     onDismiss: () => void;
 }
 
-const RevokeFactDialog = ({busy, onConfirm, onDismiss}: Props) =>
+const RevokeFactDialog = ({busy, error, onConfirm, onDismiss}: Props) =>
 {
     const [reason, setReason] = useState("");
     const [note, setNote] = useState("");
@@ -22,6 +23,7 @@ const RevokeFactDialog = ({busy, onConfirm, onDismiss}: Props) =>
                       confirmLabel={"Revoke"}
                       dismissLabel={"Keep fact"}
                       busy={busy}
+                      error={error}
                       confirmDisabled={!reason.trim()}
                       onConfirm={() => onConfirm({reasonCode: reason.trim(), ...(note.trim() ? {narrative: note.trim()} : {})})}
                       onDismiss={onDismiss}>

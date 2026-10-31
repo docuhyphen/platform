@@ -5,13 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The stable identity of one thing a Template asks for, held at the
- * [InformationRequestTemplateDefinition] rather than at a Version. A response recorded against this
- * identity still means the same thing after later Versions change how it is asked, so neither the
- * key, the owning definition, nor the kind of thing being asked for may be rewritten. How a given
- * Version asks for it is stated by an [InformationRequestTemplateRequirementBinding].
- */
 @Entity
 @Table(name = "information_request_template_requirement")
 class InformationRequestTemplateRequirement

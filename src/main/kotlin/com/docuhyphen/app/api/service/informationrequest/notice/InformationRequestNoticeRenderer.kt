@@ -1,9 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.notice
 
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeIntent
-import com.docuhyphen.app.api.model.entity.InformationRequestNoticeSourceKind
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestNoticeContent
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestNoticeDefaults
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestRenderedNotice
@@ -15,7 +12,6 @@ import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
 import com.docuhyphen.app.api.service.variable.VariableResolutionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.security.MessageDigest
 import java.time.Clock
 
 @ApplicationScoped
@@ -35,7 +31,10 @@ class InformationRequestNoticeRenderer @Inject constructor(
     {
         val communication = intent.sourceCommunicationId?.let(communications::sourceOf)
         val source = communication?.let { InformationRequestNoticeContent(it.subject, it.body) }
-            ?: InformationRequestNoticeDefaults.contentOf(intent.noticeKind)
+            ?: InformationRequestNoticeDefaults.contentOf(
+                intent.noticeKind,
+                InformationRequestNoticeDefaults.DUE_AT in overrides
+            )
         val organization = request.ownerOrganizationId?.let(organizations::getOrganizationById)
         val allocations = organization?.let { owner ->
             sequenceKeysOf(source).mapNotNull { key -> interpolator.allocateSequence(owner.id, key) }
@@ -75,12 +74,11 @@ class InformationRequestNoticeRenderer @Inject constructor(
     }
 
     private fun senderOf(request: InformationRequest): AppUser =
-        (request.createdByAppUserId ?: request.ownerUserId)?.let(appUserService::getById) ?: AppUser()
+        (request.createdByPrincipalId.takeIf { request.createdByPrincipalKind == PrincipalKind.USER }
+            ?: request.ownerUserId)
+            ?.let(appUserService::getById) ?: AppUser().apply { email = "" }
 
-    private fun sha256(subject: String, body: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest("$subject\u0000$body".toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+    private fun sha256(subject: String, body: String): String = InformationRequestNoticeContentHash.of(subject, body)
 
     private companion object
     {

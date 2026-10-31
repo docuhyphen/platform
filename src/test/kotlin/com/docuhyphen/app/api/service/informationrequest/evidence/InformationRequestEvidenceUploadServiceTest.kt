@@ -1,43 +1,29 @@
 package com.docuhyphen.app.api.service.informationrequest.evidence
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.document.DocumentVersionContentDigests
-import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceAssessmentKind
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState
-import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceSourceKind
-import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAction
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributes
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceAttributesMapper
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceCoverage
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceFile
-import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceSurface
-import com.docuhyphen.app.api.model.informationrequest.evidence.UploadInformationRequestEvidenceCommand
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.informationrequest.evidence.*
+import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.Decision
 import com.docuhyphen.app.api.service.auth.authz.ResourceRef
-import com.docuhyphen.app.api.service.command.CommandPrecondition
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import io.quarkus.security.ForbiddenException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
-import org.mockito.kotlin.never
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.Mockito.mockingDetails
+import org.mockito.kotlin.*
+import java.io.File
+import java.nio.file.Files
 import java.time.LocalDate
-import java.util.UUID
+import java.util.*
 
 class InformationRequestEvidenceUploadServiceTest
 {
@@ -108,7 +94,7 @@ class InformationRequestEvidenceUploadServiceTest
 
         val transition = fixture.recordedTransitions().single()
         assertEquals(InformationRequestMutation.ADMINISTER_EVIDENCE, transition.mutation)
-        assertEquals(fixture.respondent, transition.actor)
+        assertEquals(fixture.respondent, transition.actor.principal)
         assertEquals(InformationRequestState.ISSUED, transition.fromState)
         assertEquals(InformationRequestState.ISSUED, transition.toState)
         val evidence = requireNotNull(transition.evidence)
@@ -116,7 +102,7 @@ class InformationRequestEvidenceUploadServiceTest
         assertEquals(fixture.artifacts.single().id, evidence.artifactId)
         assertEquals(1, evidence.versionNumber)
         assertEquals(InformationRequestEvidenceAction.UPLOAD, evidence.action)
-        assertTrue(requireNotNull(transition.idempotencyKey).startsWith("information_request.evidence|"))
+        assertTrue(requireNotNull(transition.auditIdempotencyKey).startsWith("information_request.evidence|"))
     }
 
     @Test
@@ -217,6 +203,18 @@ class InformationRequestEvidenceUploadServiceTest
     }
 
     @Test
+    fun `an upload is refused when the request's execution grant does not list uploads`() {
+        fixture.grant.continuationActions = InformationRequestContinuationAction.entries
+            .minus(InformationRequestContinuationAction.UPLOAD_WITHIN_ALLOWANCE)
+            .map { it.name }
+            .toTypedArray()
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) { service.upload(command()) }
+        assertEquals(InformationRequestErrorCatalog.CONTINUATION_NOT_GRANTED, refusal.reasonCode)
+        assertNothingRecorded()
+    }
+
+    @Test
     fun `a retried upload replays the recorded artifact without storing its content again`()
     {
         val file = fixture.evidenceFile()
@@ -256,6 +254,53 @@ class InformationRequestEvidenceUploadServiceTest
             service.upload(
                 command(
                     file = fixture.evidenceFile(content = "other content"),
+                    precondition = CommandPrecondition.Unconditioned,
+                ),
+            )
+        }
+        assertEquals(1, fixture.recordedUploads.size)
+    }
+
+    @Test
+    fun `a retried upload whose metadata moved a separator between two fields is refused as a conflict`() {
+        val file = fixture.evidenceFile()
+        service.upload(
+            command(
+                file = file,
+                attributes = InformationRequestEvidenceAttributes(issuer = "source|zone", jurisdiction = "area"),
+            ),
+        )
+
+        assertThrows(CommandReceiptConflictException::class.java)
+        {
+            service.upload(
+                command(
+                    file = file,
+                    attributes = InformationRequestEvidenceAttributes(issuer = "source", jurisdiction = "zone|area"),
+                    precondition = CommandPrecondition.Unconditioned,
+                ),
+            )
+        }
+        assertEquals(1, fixture.recordedUploads.size)
+    }
+
+    @Test
+    fun `a retried upload with the same metadata replays and changed metadata conflicts`() {
+        val file = fixture.evidenceFile()
+        val attributes = InformationRequestEvidenceAttributes(issuer = "source", jurisdiction = "area")
+        val first = service.upload(command(file = file, attributes = attributes))
+
+        val replayed = service.upload(
+            command(file = file, attributes = attributes, precondition = CommandPrecondition.Unconditioned),
+        )
+
+        assertEquals(first.artifact.artifact.id, replayed.artifact.artifact.id)
+        assertThrows(CommandReceiptConflictException::class.java)
+        {
+            service.upload(
+                command(
+                    file = file,
+                    attributes = attributes.copy(issuer = "different"),
                     precondition = CommandPrecondition.Unconditioned,
                 ),
             )
@@ -308,6 +353,64 @@ class InformationRequestEvidenceUploadServiceTest
     }
 
     @Test
+    fun `a file above the per-file limit is refused from its size before its bytes are read or the request is locked`() {
+        val unread = unreadFile(declaredSize = fixture.uploadLimits.maximumFileBytes + 1)
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            service.upload(command(file = unread, precondition = CommandPrecondition.Unconditioned))
+        }
+
+        assertEquals(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED, refusal.reasonCode)
+        verify(fixture.requestRepository, never()).findRequestByIdForUpdate(any())
+        assertTrue(fixture.receipts.receipts.isEmpty())
+        assertNothingRecorded()
+    }
+
+    @Test
+    fun `a file is inspected before the request and its Exchange are locked`() {
+        val lockedWhenInspected = mutableListOf<Boolean>()
+        doAnswer { invocation ->
+            lockedWhenInspected += mockingDetails(fixture.requestRepository).invocations
+                .any { it.method.name == "findRequestByIdForUpdate" } ||
+                    mockingDetails(fixture.exchangeLookup).invocations.any { it.method.name == "lockExchangeForUpdate" }
+            invocation.callRealMethod()
+        }.whenever(fixture.inspector).inspect(any())
+
+        service.upload(command())
+
+        assertEquals(listOf(false), lockedWhenInspected)
+        assertEquals(1, fixture.assessments.size)
+    }
+
+    @Test
+    fun `a replacement above its surface's per-file limit is refused from its size before its bytes are read`() {
+        val uploaded = service.upload(command())
+        val unread = unreadFile(declaredSize = fixture.uploadLimits.maximumNoAuthFileBytes + 1)
+
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java)
+        {
+            service.replace(
+                ReplaceInformationRequestEvidenceCommand(
+                    requestId = fixture.request.id,
+                    requirementId = fixture.documentRequirement.id,
+                    artifactId = uploaded.artifact.artifact.id,
+                    access = fixture.access,
+                    surface = InformationRequestEvidenceSurface.NO_AUTH,
+                    precondition = fixture.expectedArtifactETag(fixture.artifacts.single()),
+                    idempotencyKey = "oversized-replacement",
+                    file = unread,
+                    attributes = InformationRequestEvidenceAttributes.NONE,
+                ),
+            )
+        }
+
+        assertEquals(InformationRequestErrorCatalog.EVIDENCE_UPLOAD_LIMIT_EXCEEDED, refusal.reasonCode)
+        verify(fixture.requestRepository, times(1)).findRequestByIdForUpdate(any())
+        assertEquals(1, fixture.versions.size)
+    }
+
+    @Test
     fun `a new version's content inspection is recorded against the bytes that were stored`()
     {
         service.upload(command())
@@ -320,11 +423,14 @@ class InformationRequestEvidenceUploadServiceTest
     }
 
     @Test
-    fun `opaque content is stored for the record but never inspected`()
+    fun `content declared end-to-end encrypted is refused before any version is stored`()
     {
-        service.upload(command(file = fixture.evidenceFile(encryptionMode = DocumentEncryptionMode.END_TO_END)))
+        val refusal = assertThrows(InformationRequestLifecycleException::class.java) {
+            service.upload(command(file = fixture.evidenceFile(encryptionMode = DocumentEncryptionMode.END_TO_END)))
+        }
 
-        assertEquals(1, fixture.versions.size)
+        assertEquals(InformationRequestErrorCatalog.EVIDENCE_OPAQUE_CONTENT_REFUSED, refusal.reasonCode)
+        assertTrue(fixture.versions.isEmpty())
         assertTrue(fixture.assessments.isEmpty())
     }
 
@@ -345,6 +451,21 @@ class InformationRequestEvidenceUploadServiceTest
         file = file,
         attributes = attributes,
     )
+
+    private fun unreadFile(declaredSize: Long): InformationRequestEvidenceFile =
+        InformationRequestEvidenceFile(
+            DeclaredSizeFile(
+                Files.createTempDirectory("evidence-unread").resolve("never-written.pdf").toString(),
+                declaredSize
+            ),
+            "collected-record.pdf",
+            "application/pdf",
+            DocumentEncryptionMode.INTERNAL,
+        )
+
+    private class DeclaredSizeFile(path: String, private val declaredSize: Long) : File(path) {
+        override fun length(): Long = declaredSize
+    }
 
     private fun assertNothingRecorded()
     {

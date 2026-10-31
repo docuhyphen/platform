@@ -1,6 +1,11 @@
-import {useEffect, useState} from "react";
-import {getInformationRequestTemplate, listInformationRequestTemplates} from "../../../../services/informationRequestTemplateService.ts";
-import {BlueprintScope, InformationRequestTemplateScopeKind} from "../../../models/models.tsx";
+import {listInformationRequestTemplates} from "../../../../services/informationRequestTemplateService.ts";
+import {
+    BlueprintScope,
+    InformationRequestTemplateScopeKind,
+    InformationRequestTemplateStatus,
+    InformationRequestTemplateSummaryDto,
+} from "../../../models/models.tsx";
+import {useServerRead} from "../../../information-requests/shared/useServerRead.ts";
 
 export interface BlueprintTemplateChoice
 {
@@ -10,43 +15,46 @@ export interface BlueprintTemplateChoice
     versionNumber: number;
 }
 
-const scopesFor = (scope: BlueprintScope): InformationRequestTemplateScopeKind[] =>
+const CHOICES_FAILURE = "The Templates this Blueprint can use could not be loaded.";
+
+const NO_CHOICES: BlueprintTemplateChoice[] = [];
+
+const ownerScopeFor = (scope: BlueprintScope): InformationRequestTemplateScopeKind | null =>
 {
-    if (scope === "APP") return [InformationRequestTemplateScopeKind.PLATFORM];
-    const owner = scope === "ORG" ? InformationRequestTemplateScopeKind.ORGANIZATION : InformationRequestTemplateScopeKind.PERSONAL;
-    return [owner, InformationRequestTemplateScopeKind.PLATFORM];
+    if (scope === "ORG") return InformationRequestTemplateScopeKind.ORGANIZATION;
+    if (scope === "PERSONAL") return InformationRequestTemplateScopeKind.PERSONAL;
+    return null;
 };
+
+const choicesFrom = (templates: InformationRequestTemplateSummaryDto[]): BlueprintTemplateChoice[] =>
+    templates.flatMap(template =>
+        template.status !== InformationRequestTemplateStatus.RETIRED
+        && template.latestPublishedVersionId
+        && template.latestPublishedVersionNumber
+            ? [{
+                templateId: template.id,
+                displayName: template.displayName,
+                versionId: template.latestPublishedVersionId,
+                versionNumber: template.latestPublishedVersionNumber,
+            }]
+            : []);
 
 export const useBlueprintTemplateChoices = (scope: BlueprintScope) =>
 {
-    const [choices, setChoices] = useState<BlueprintTemplateChoice[]>([]);
-    const [loaded, setLoaded] = useState(false);
+    const ownerScope = ownerScopeFor(scope);
+    const read = useServerRead(
+        ownerScope ?? "none",
+        () => ownerScope === null
+            ? Promise.resolve(NO_CHOICES)
+            : listInformationRequestTemplates({scopeKind: ownerScope}).then(choicesFrom),
+        () => CHOICES_FAILURE,
+    );
 
-    useEffect(() =>
-    {
-        let active = true;
-        Promise.all(scopesFor(scope).map(scopeKind => listInformationRequestTemplates({scopeKind}).catch(() => [])))
-            .then(lists => lists.flat().filter(template => template.latestPublishedVersionNumber !== undefined))
-            .then(templates => Promise.all(templates.map(template => getInformationRequestTemplate(template.id).catch(() => null))))
-            .then(details =>
-            {
-                if (!active) return;
-                setChoices(details.flatMap(detail =>
-                    detail?.latestPublishedVersion
-                        ? [{
-                            templateId: detail.id,
-                            displayName: detail.displayName,
-                            versionId: detail.latestPublishedVersion.id,
-                            versionNumber: detail.latestPublishedVersion.versionNumber,
-                        }]
-                        : []));
-                setLoaded(true);
-            });
-        return () =>
-        {
-            active = false;
-        };
-    }, [scope]);
-
-    return {choices, loaded};
+    return {
+        choices: read.value ?? NO_CHOICES,
+        loaded: !read.loading,
+        error: read.error,
+        reload: read.reload,
+        available: ownerScope !== null,
+    };
 };

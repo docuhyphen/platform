@@ -27,6 +27,7 @@ const unavailable: InformationRequestCapabilitiesDto = {
     personalTemplatesAvailable: false,
     assignedWork: true,
     holdsRequests: false,
+    quotas: {openRequests: 0, committedEvidenceBytes: 0},
 };
 
 describe("InformationRequestScopeNotice", () =>
@@ -35,9 +36,14 @@ describe("InformationRequestScopeNotice", () =>
     {
         vi.stubGlobal("ResizeObserver", class
         {
-            observe() {}
-            unobserve() {}
-            disconnect() {}
+            observe() {
+            }
+
+            unobserve() {
+            }
+
+            disconnect() {
+            }
         });
     });
 

@@ -1,9 +1,6 @@
 import {AxiosProgressEvent} from "axios";
 import apiClient from "./apiClient.ts";
-import {
-    InformationRequestEvidenceCommandResultDto,
-    InformationRequestEvidenceListDto,
-} from "../app/models/models.tsx";
+import {InformationRequestEvidenceCommandResultDto, InformationRequestEvidenceListDto,} from "../app/models/models.tsx";
 import {
     informationRequestBasePath,
     informationRequestCommandHeaders,
@@ -160,6 +157,23 @@ export const openInformationRequestEvidenceContent = async (
     }
     catch (error: unknown)
     {
+        throw statedInformationRequestRefusal(error);
+    }
+};
+
+export const openInformationRequestSubmittedEvidenceContent = async (
+    requestId: string,
+    packageId: string,
+    versionId: string,
+    use: InformationRequestEvidenceContentUse,
+): Promise<Blob> => {
+    try {
+        const {data} = await apiClient.get<Blob>(
+            `${informationRequestBasePath(requestId)}/submissions/${packageId}/evidence/${versionId}/${use}`,
+            {responseType: "blob"},
+        );
+        return data;
+    } catch (error: unknown) {
         throw statedInformationRequestRefusal(error);
     }
 };

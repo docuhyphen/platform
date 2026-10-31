@@ -1,58 +1,27 @@
 package com.docuhyphen.app.api.service.fields
 
-import com.docuhyphen.app.api.model.entity.FieldContract
-import com.docuhyphen.app.api.model.entity.FieldDataClassification
-import com.docuhyphen.app.api.model.entity.FieldDefinition
-import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
-import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.model.entity.FieldValue
-import com.docuhyphen.app.api.model.entity.FieldValueProvenance
-import com.docuhyphen.app.api.model.entity.FieldValueSet
-import com.docuhyphen.app.api.model.entity.FieldValueSetKind
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.model.entity.SchemaDefinition
-import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
-import com.docuhyphen.app.api.model.entity.SchemaVersion
-import com.docuhyphen.app.api.repository.fields.FieldContractRepository
-import com.docuhyphen.app.api.repository.fields.FieldDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSelectionRepository
-import com.docuhyphen.app.api.repository.fields.FieldValueSetRepository
-import com.docuhyphen.app.api.repository.fields.SchemaAssignmentRepository
-import com.docuhyphen.app.api.repository.fields.SchemaDefinitionRepository
-import com.docuhyphen.app.api.repository.fields.SchemaFieldBindingRepository
-import com.docuhyphen.app.api.repository.fields.SchemaVersionRepository
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.*
+import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
+import com.docuhyphen.app.api.service.fields.model.RootValueSetFixture
 import kotlinx.serialization.json.JsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.util.UUID
+import java.util.*
 
-/**
- * Answers belong to a Value Set rather than to the assignment itself. A resource that is assigned a
- * schema answers as itself through one root set, which is what the existing Exchange surfaces and
- * the workflow evaluator must keep reading, while a set that holds a repetition of a group belongs
- * to whichever process created it and must stay out of those projections.
- *
- * The resource adapter is stubbed because these rules belong to the Fields engine rather than to any
- * one resource domain.
- */
 class RootFieldValueSetTest
 {
     private val resourceType = "EXCHANGE"
     private val resourceId = UUID.randomUUID()
 
-    /** The caller every command in this test acts for. */
     private val access = FieldsAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
     private val resource by lazy { FieldsResourceRef(resourceType, resourceId) }
     private val organizationId = UUID.randomUUID()
@@ -71,25 +40,12 @@ class RootFieldValueSetTest
     private val rootAnswer = "Answer given as the resource"
     private val occurrenceAnswer = "Answer given for one repetition"
 
-    private data class Fixture(
-        val service: SchemaAssignmentService,
-        val queryService: ExchangeFieldQueryService,
-        val storedByValueSet: MutableMap<UUID, MutableMap<UUID, FieldValue>>,
-        val savedSets: MutableList<FieldValueSet>,
-        val deletedSets: MutableList<FieldValueSet>,
-        val deletedValues: MutableList<FieldValue>,
-        val valueSetRepository: FieldValueSetRepository,
-    )
+    private fun RootValueSetFixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
 
-    /** Reads the answers the resource gives as itself. */
-    private fun Fixture.read() = service.getAssignment(FieldValueReadCommand(resource, access))
-
-    /** Saves answers into the set the resource answers with as itself. */
-    private fun Fixture.save(entries: List<FieldValueEntry>) =
+    private fun RootValueSetFixture.save(entries: List<FieldValueEntry>) =
         service.setValues(FieldValueWriteCommand(resource, access, entries))
 
-    /** Chooses the published Schema for the resource. */
-    private fun Fixture.assign() = requireNotNull(
+    private fun RootValueSetFixture.assign() = requireNotNull(
         service.applySchemaAssignment(
             SchemaAssignmentCommand(
                 resource, access, SchemaAssignmentOperation.ASSIGN, schemaDefinitionId,
@@ -97,28 +53,20 @@ class RootFieldValueSetTest
         ),
     )
 
-    /** Removes the Schema governing the resource. */
-    private fun Fixture.unassign()
+    private fun RootValueSetFixture.unassign()
     {
         service.applySchemaAssignment(
             SchemaAssignmentCommand(resource, access, SchemaAssignmentOperation.UNASSIGN),
         )
     }
 
-    /**
-     * @param assigned whether a Schema Assignment already exists for the resource.
-     * @param rootSetExists whether that assignment already owns its root Value Set.
-     * @param rootAnswers answers already stored in the root set, keyed by field contract.
-     * @param occurrenceAnswers answers already stored in a repetition set of the same assignment.
-     * @param configuredDefault a default configured on the count binding of the published version.
-     */
     private fun fixture(
         assigned: Boolean = true,
         rootSetExists: Boolean = true,
         rootAnswers: Map<UUID, String> = emptyMap(),
         occurrenceAnswers: Map<UUID, String> = emptyMap(),
         configuredDefault: String? = null,
-    ): Fixture
+    ): RootValueSetFixture
     {
         val adapter = mock<FieldResourceAdapter>()
         whenever(adapter.resourceType).thenReturn(resourceType)
@@ -232,7 +180,6 @@ class RootFieldValueSetTest
         }
         whenever(valueRepository.delete(any())).thenAnswer { invocation ->
             deletedValues += invocation.getArgument<FieldValue>(0)
-            Unit
         }
 
         val rootSet = FieldValueSet().apply {
@@ -264,13 +211,12 @@ class RootFieldValueSetTest
         }
         whenever(valueSetRepository.delete(any())).thenAnswer { invocation ->
             deletedSets += invocation.getArgument<FieldValueSet>(0)
-            Unit
         }
 
         val selectionRepository = mock<FieldValueSelectionRepository>()
         whenever(selectionRepository.findByValue(any())).thenReturn(emptyList())
 
-        return Fixture(
+        return RootValueSetFixture(
             SchemaAssignmentService(
                 adapterRegistry = registry,
                 assignmentRepository = assignmentRepository,
@@ -292,10 +238,11 @@ class RootFieldValueSetTest
             ),
             ExchangeFieldQueryService(
                 assignmentRepository = assignmentRepository,
-                fieldValueRepository = valueRepository,
                 fieldValueSetRepository = valueSetRepository,
-                fieldContractRepository = contractRepository,
-                selectionRepository = selectionRepository,
+                projectionLoader = FieldsProjectionLoader(
+                    bindingRepository, contractRepository, fieldDefinitionRepository,
+                    valueRepository, selectionRepository,
+                ),
             ),
             storedByValueSet,
             savedSets,
@@ -337,8 +284,6 @@ class RootFieldValueSetTest
 
     private fun entry(contractId: UUID, text: String) = FieldValueEntry(contractId, JsonPrimitive(text))
 
-    // ── The root set exists ────────────────────────────────────────────────────
-
     @Test
     fun `assigning a schema gives the assignment its root value set`()
     {
@@ -368,8 +313,6 @@ class RootFieldValueSetTest
             "The answers must be removed before the sets that hold them",
         )
     }
-
-    // ── Answers are written into the root set ──────────────────────────────────
 
     @Test
     fun `an answer is stored in the root value set of its assignment`()
@@ -410,14 +353,21 @@ class RootFieldValueSetTest
 
         assertEquals(rootAnswer, fixture.storedByValueSet[rootValueSetId]?.get(noteContractId)?.textValue)
         assertEquals(1, fixture.storedByValueSet[rootValueSetId]?.size)
-        // A repetition answers the same question separately and is not touched by a root write.
         assertEquals(
             occurrenceAnswer,
             fixture.storedByValueSet[occurrenceValueSetId]?.get(noteContractId)?.textValue,
         )
     }
 
-    // ── Existing resource projections keep reading the root set ────────────────
+    @Test
+    fun `a save for an assignment that has lost its root value set is refused rather than rebuilding it`() {
+        val fixture = fixture(rootSetExists = false)
+
+        assertThrows<IllegalStateException> { fixture.save(listOf(entry(noteContractId, rootAnswer))) }
+
+        assertTrue(fixture.savedSets.isEmpty(), "No set is created on the way to a save")
+        assertTrue(fixture.storedByValueSet.values.all { it.isEmpty() }, "Nothing is stored")
+    }
 
     @Test
     fun `the resource projection reads the answers of the root value set only`()
@@ -457,8 +407,6 @@ class RootFieldValueSetTest
         )
         verify(fixture.valueSetRepository).findRoot(assignmentId)
     }
-
-    // ── Provisioning a repetition's value set ───────────────────────────────────
 
     @Test
     fun `provisioning a repetition creates its value set when none exists yet`()

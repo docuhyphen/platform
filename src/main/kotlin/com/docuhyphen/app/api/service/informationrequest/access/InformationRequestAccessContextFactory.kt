@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.RequestAccessSession
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
@@ -14,6 +15,7 @@ import java.time.Instant
 @ApplicationScoped
 class InformationRequestAccessContextFactory @Inject constructor(
     private val authorizationContextFactory: AuthorizationContextFactory,
+    private val stepUpWindow: RequestAccessSessionStepUpWindow,
 )
 {
     fun currentAuthenticated(): RequestAccessContext
@@ -33,12 +35,14 @@ class InformationRequestAccessContextFactory @Inject constructor(
         {
             throw ForbiddenException("Session is not bound to this ShareLink")
         }
+        if (participant.kind != PrincipalKind.PARTICIPANT) {
+            throw ForbiddenException("An access link session acts only for a participant")
+        }
         if (session.revokedAt != null)
         {
             throw ForbiddenException("Session has been revoked")
         }
-        val expiresAt = session.expiresAt
-        if (expiresAt == null || !expiresAt.toInstant().isAfter(Instant.now()))
+        if (!session.expiresAt.toInstant().isAfter(Instant.now()))
         {
             throw ForbiddenException("Session has expired")
         }
@@ -46,7 +50,14 @@ class InformationRequestAccessContextFactory @Inject constructor(
         {
             throw ForbiddenException("Session is not bound to this recipient")
         }
-        return RequestAccessContext(participant, AuthorizationContext(sessionRef = session.id.toString()))
+        return RequestAccessContext(
+            participant,
+            AuthorizationContext(
+                mfaSatisfied = stepUpWindow.isVerified(session, Instant.now()),
+                sessionRef = session.id.toString(),
+            ),
+            accessSessionId = session.id,
+        )
     }
 }
 

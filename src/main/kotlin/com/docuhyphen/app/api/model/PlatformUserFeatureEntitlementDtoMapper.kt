@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
+import com.docuhyphen.app.api.model.subscription.UserFeatureEntitlementResult
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementDto
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsResponse
-import com.docuhyphen.app.api.service.subscription.UserFeatureEntitlementResult
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

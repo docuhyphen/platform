@@ -1,10 +1,13 @@
 package com.docuhyphen.app.api.service.workflow.actions
 
-import com.docuhyphen.app.api.model.entity.ExchangeStatus
-import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.model.entity.WorkflowInstance
-import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.exchange.ExchangeLifecycleActor
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
+import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleAudit
+import com.docuhyphen.app.api.service.exchange.ExchangeStatusTransitions
+import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
 import com.docuhyphen.app.api.service.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import com.docuhyphen.app.api.service.workflow.ActionResult
@@ -15,13 +18,8 @@ import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
+import java.util.*
 
-/**
- * Built-in action handler that advances a workflow subject exchange to
- * [ExchangeStatus.ACCEPTED_STARTED] and emits the `exchange.activated` domain event.
- *
- * Register via `actionHandlerKey = "exchange.auto-accept"` in a workflow step spec.
- */
 @ApplicationScoped
 class ExchangeAutoAcceptActionHandler : WorkflowActionHandler
 {
@@ -32,6 +30,12 @@ class ExchangeAutoAcceptActionHandler : WorkflowActionHandler
     private lateinit var exchangeRepository: ExchangeRepository
     @Inject
     private lateinit var eventPublisher: DomainEventPublisher
+
+    @Inject
+    private lateinit var lifecycleAudit: ExchangeLifecycleAudit
+
+    @Inject
+    private lateinit var requestParentLifecycle: InformationRequestParentLifecycleService
 
     override fun key() = "exchange.auto-accept"
 
@@ -49,8 +53,31 @@ class ExchangeAutoAcceptActionHandler : WorkflowActionHandler
             return ActionResult(true)
         }
 
+        if (exchange.isDeleted || !ExchangeStatusTransitions.permits(
+                exchange.status,
+                ExchangeStatus.ACCEPTED_STARTED
+            )
+        ) {
+            return ActionResult(false, "Exchange $exchangeId is ${exchange.status} and cannot be accepted")
+        }
+
+        val previousStatus = exchange.status
         exchange.status = ExchangeStatus.ACCEPTED_STARTED
         exchangeRepository.update(exchange)
+        lifecycleAudit.recordTransition(
+            exchangeId,
+            exchange.name,
+            previousStatus,
+            ExchangeStatus.ACCEPTED_STARTED,
+            ExchangeLifecycleActor.WORKFLOW,
+        )
+        requestParentLifecycle.apply(
+            exchangeId,
+            ExchangeStatus.ACCEPTED_STARTED,
+            false,
+            InformationRequestAuditActor.system(PrincipalRef(PrincipalKind.SERVICE_ACCOUNT, UUID(0, 0))),
+            previousStatus,
+        )
         logger.info("Exchange {} auto-accepted by workflow instance {}", exchangeId, instance.id)
 
         val payload = mutableMapOf("instanceId" to instance.id.toString())

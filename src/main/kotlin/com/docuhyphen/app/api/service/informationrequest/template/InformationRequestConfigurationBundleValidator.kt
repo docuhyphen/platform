@@ -1,13 +1,16 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.entity.InformationRequestClockType
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyPeriodTerms
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyProblem
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyTerm
+import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestClockPolicyTerms
 import com.docuhyphen.app.api.model.informationrequest.template.*
+import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockPolicyRules
 import jakarta.enterprise.context.ApplicationScoped
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.time.DateTimeException
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.regex.PatternSyntaxException
 
 @ApplicationScoped
@@ -46,14 +49,10 @@ class InformationRequestConfigurationBundleValidator
         return InformationRequestConfigurationBundleParse.Parsed(bundle)
     }
 
-    fun check(document: String): List<InformationRequestConfigurationBundleProblem> =
-        when (val parsed = parse(document))
-        {
-            is InformationRequestConfigurationBundleParse.Parsed -> validate(parsed.bundle)
-            is InformationRequestConfigurationBundleParse.Refused -> parsed.problems
-        }
-
-    fun validate(bundle: InformationRequestConfigurationBundle): List<InformationRequestConfigurationBundleProblem>
+    fun validate(
+        bundle: InformationRequestConfigurationBundle,
+        versions: Collection<InformationRequestTemplateVersionContent>,
+    ): List<InformationRequestConfigurationBundleProblem>
     {
         val problems = Problems()
         if (bundle.formatVersion != SUPPORTED_FORMAT_VERSION)
@@ -73,7 +72,7 @@ class InformationRequestConfigurationBundleValidator
         clocks(problems, bundle.clockPolicies)
         retention(problems, bundle.retentionDefaults)
         connectors(problems, bundle.connectorContracts)
-        templateVersions(problems, bundle)
+        templateVersions(problems, bundle, versions)
         return problems.all
     }
 
@@ -183,51 +182,8 @@ class InformationRequestConfigurationBundleValidator
         problems.uniqueKeys("clockPolicies", clocks.map { it.policyKey })
         clocks.forEachIndexed { index, clock ->
             val path = "clockPolicies[$index]"
-            if (!knownZone(clock.businessTimezone)) problems.add(
-                "$path.businessTimezone",
-                "timezone.unknown",
-                "The time zone is not a known region"
-            )
-            if (clock.standardDurationMinutes <= 0) problems.add(
-                "$path.standardDurationMinutes",
-                "duration.invalid",
-                "A duration is positive"
-            )
-            if (clock.urgentDurationMinutes <= 0 || clock.urgentDurationMinutes > clock.standardDurationMinutes)
-            {
-                problems.add(
-                    "$path.urgentDurationMinutes",
-                    "duration.invalid",
-                    "An urgent duration is positive and no longer than the standard one"
-                )
-            }
-            if (clock.escalationAfterMinutes?.let { it <= 0 } == true)
-            {
-                problems.add("$path.escalationAfterMinutes", "duration.invalid", "An escalation delay is positive")
-            }
-            if (clock.clockType == InformationRequestClockType.CALENDAR && clock.businessPeriods.isNotEmpty())
-            {
-                problems.add(
-                    "$path.businessPeriods",
-                    "period.not_applicable",
-                    "A calendar clock has no business periods"
-                )
-            }
-            if (clock.clockType == InformationRequestClockType.BUSINESS && clock.businessPeriods.isEmpty())
-            {
-                problems.add("$path.businessPeriods", "collection.empty", "A business clock names its business periods")
-            }
-            clock.businessPeriods.forEachIndexed { periodIndex, period ->
-                if (period.dayOfWeek !in 1..7 || period.startMinute !in 0 until MINUTES_PER_DAY ||
-                    period.endMinute !in 1..MINUTES_PER_DAY || period.endMinute <= period.startMinute
-                )
-                {
-                    problems.add(
-                        "$path.businessPeriods[$periodIndex]",
-                        "period.invalid",
-                        "A period is a day and an increasing minute range"
-                    )
-                }
+            InformationRequestClockPolicyRules.problemsOf(termsOf(clock)).forEach { problem ->
+                problems.add(clockPathOf(path, problem), problem.code, problem.message)
             }
             clock.holidays.forEachIndexed { holidayIndex, holiday ->
                 if (!isDate(holiday)) problems.add(
@@ -236,15 +192,33 @@ class InformationRequestConfigurationBundleValidator
                     "A holiday is an ISO calendar date"
                 )
             }
-            clock.reminderOffsetsMinutes.forEachIndexed { reminderIndex, offset ->
-                if (offset <= 0) problems.add(
-                    "$path.reminderOffsetsMinutes[$reminderIndex]",
-                    "duration.invalid",
-                    "A reminder offset is positive"
-                )
-            }
         }
     }
+
+    private fun termsOf(clock: BundleClockPolicy) = InformationRequestClockPolicyTerms(
+        clockType = clock.clockType,
+        businessTimezone = clock.businessTimezone,
+        standardDurationMinutes = clock.standardDurationMinutes,
+        urgentDurationMinutes = clock.urgentDurationMinutes,
+        escalationAfterMinutes = clock.escalationAfterMinutes,
+        workingPeriods = clock.businessPeriods.map {
+            InformationRequestClockPolicyPeriodTerms(it.dayOfWeek, it.startMinute, it.endMinute)
+        },
+        reminderMinutesBeforeDue = clock.reminderOffsetsMinutes,
+    )
+
+    private fun clockPathOf(path: String, problem: InformationRequestClockPolicyProblem): String =
+        when (problem.term) {
+            InformationRequestClockPolicyTerm.BUSINESS_TIMEZONE -> "$path.businessTimezone"
+            InformationRequestClockPolicyTerm.STANDARD_DURATION -> "$path.standardDurationMinutes"
+            InformationRequestClockPolicyTerm.URGENT_DURATION -> "$path.urgentDurationMinutes"
+            InformationRequestClockPolicyTerm.ESCALATION -> "$path.escalationAfterMinutes"
+            InformationRequestClockPolicyTerm.WORKING_PERIODS ->
+                problem.index?.let { "$path.businessPeriods[$it]" } ?: "$path.businessPeriods"
+
+            InformationRequestClockPolicyTerm.REMINDERS ->
+                problem.index?.let { "$path.reminderOffsetsMinutes[$it]" } ?: "$path.reminderOffsetsMinutes"
+        }
 
     private fun retention(problems: Problems, defaults: List<BundleRetentionDefault>)
     {
@@ -290,7 +264,11 @@ class InformationRequestConfigurationBundleValidator
         }
     }
 
-    private fun templateVersions(problems: Problems, bundle: InformationRequestConfigurationBundle)
+    private fun templateVersions(
+        problems: Problems,
+        bundle: InformationRequestConfigurationBundle,
+        versions: Collection<InformationRequestTemplateVersionContent>,
+    )
     {
         problems.uniqueKeys(
             "templateVersions",
@@ -299,13 +277,15 @@ class InformationRequestConfigurationBundleValidator
         )
         bundle.templateVersions.forEachIndexed { index, reference ->
             val path = "templateVersions[$index]"
+            val keyed = MACHINE_KEY.matches(reference.templateKey)
             problems.key("$path.templateKey", reference.templateKey)
             if (reference.versionNumber < 1) problems.add(
                 "$path.versionNumber",
                 "version.invalid",
                 "A version is a positive number"
             )
-            if (!SHA256.matches(reference.contentHashSha256))
+            val hashed = SHA256.matches(reference.contentHashSha256)
+            if (!hashed)
             {
                 problems.add(
                     "$path.contentHashSha256",
@@ -313,7 +293,34 @@ class InformationRequestConfigurationBundleValidator
                     "A content hash is 64 lowercase hexadecimal characters"
                 )
             }
+            if (keyed && hashed && reference.versionNumber >= 1) {
+                publishedContent(problems, path, reference, versions)
+            }
             references(problems, path, reference, bundle)
+        }
+    }
+
+    private fun publishedContent(
+        problems: Problems,
+        path: String,
+        reference: BundleTemplateVersionReference,
+        versions: Collection<InformationRequestTemplateVersionContent>,
+    ) {
+        val candidates = versions.filter {
+            it.templateKey == reference.templateKey && it.versionNumber == reference.versionNumber
+        }
+        when {
+            candidates.isEmpty() -> problems.add(
+                path,
+                "reference.unknown",
+                "No published version ${reference.versionNumber} of Template ${reference.templateKey} is available to you",
+            )
+
+            candidates.none { it.contentHashSha256 == reference.contentHashSha256 } -> problems.add(
+                "$path.contentHashSha256",
+                "hash.mismatch",
+                "Version ${reference.versionNumber} of Template ${reference.templateKey} has different content than this hash",
+            )
         }
     }
 
@@ -353,17 +360,6 @@ class InformationRequestConfigurationBundleValidator
             pattern.isNotEmpty()
         }
         catch (_: PatternSyntaxException)
-        {
-            false
-        }
-
-    private fun knownZone(zone: String): Boolean =
-        try
-        {
-            ZoneId.of(zone)
-            true
-        }
-        catch (_: DateTimeException)
         {
             false
         }
@@ -432,7 +428,6 @@ class InformationRequestConfigurationBundleValidator
     private companion object
     {
         const val SUPPORTED_FORMAT_VERSION = 1
-        const val MINUTES_PER_DAY = 1440
         const val MAXIMUM_LABEL_LENGTH = 200
         val MACHINE_KEY = Regex("^[a-z0-9][a-z0-9._-]{0,127}$")
         val SHA256 = Regex("^[0-9a-f]{64}$")

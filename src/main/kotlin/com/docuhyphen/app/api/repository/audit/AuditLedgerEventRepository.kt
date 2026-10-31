@@ -10,11 +10,6 @@ import java.util.*
 @RequestScoped
 class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerEvent::class.java)
 {
-    /**
-     * [LedgerProcessor] uses this before appending so re-draining an already-ledgered
-     * `audit_outbox` row is a no-op rather than a duplicate ledger row. The `event_id` unique
-     * constraint on `audit_ledger_event` is the authoritative belt-and-braces guard underneath.
-     */
     fun findByEventIds(eventIds: Collection<UUID>): List<AuditLedgerEvent>
     {
         if (eventIds.isEmpty()) return emptyList()
@@ -65,12 +60,6 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
             .resultList
     }
 
-    /**
-     * Retrieves every ledger event whose [targetType]
-     * matches and whose [targetId] is one of [targetIds], newest first. Used to back the Exchange
-     * "Audit" tab with a single request across all of an Exchange's documents instead of one
-     * request per document.
-     */
     fun findByTargetTypeAndTargetIds(targetType: String, targetIds: List<String>): List<AuditLedgerEvent>
     {
         if (targetIds.isEmpty())
@@ -89,15 +78,8 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
             .resultList
     }
 
-    /** Inserts [event] in the caller's active transaction (no `REQUIRES_NEW`). */
     fun insert(event: AuditLedgerEvent): AuditLedgerEvent = save(event)
 
-    /**
-     * Every distinct stream that currently has at least one ledger event. Used by
-     * [com.docuhyphen.app.api.service.audit.archive.AuditArchiver.closeReadySegments] to find
-     * which streams have candidate events to close into a segment, without needing a separate
-     * "streams" table.
-     */
     fun findDistinctStreamIds(): List<String>
     {
         return entityManager.createQuery(
@@ -248,12 +230,6 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         return query.resultList
     }
 
-    /**
-     * Every distinct stream that has at least one event for [organizationId] (or, when
-     * [platformOnly], every platform stream) within `[occurredAfter, occurredBefore]`. Used by
-     * [com.docuhyphen.app.api.service.audit.export.AuditExportBuilder] to know exactly which
-     * streams' archive segment chains must be verified before an export bundle is built.
-     */
     fun findDistinctStreamIdsForExport(
         organizationId: UUID?,
         platformOnly: Boolean,
@@ -299,12 +275,6 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         .setParameter("occurredBefore", occurredBefore)
         .resultList
 
-    /**
-     * Every distinct stream currently carrying at least one event for [organizationId] (or every
-     * platform stream when [platformOnly]), regardless of time range. Backs the
-     * `GET /organizations/{organizationId}/audit-integrity` report
-     * ([com.docuhyphen.app.api.service.audit.export.AuditIntegrityService]).
-     */
     fun findDistinctStreamIdsByOrganization(organizationId: UUID?, platformOnly: Boolean): List<String>
     {
         val jpql = if (platformOnly)
@@ -323,12 +293,6 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         return query.resultList
     }
 
-    /**
-     * Full, unpaginated ledger event range for export bundle construction, ordered by
-     * `(streamId, streamSequence)` so the same range always serializes identically regardless of
-     * query plan. Callers must bound the range using `maxRangeDays`; this method
-     * itself performs no pagination since an export bundle is materialized in one pass.
-     */
     fun findForExport(
         organizationId: UUID?,
         platformOnly: Boolean,
@@ -390,12 +354,6 @@ class AuditLedgerEventRepository : BaseRepository<AuditLedgerEvent>(AuditLedgerE
         return query.resultList
     }
 
-    /**
-     * Oldest-first batch of ledger events with no corresponding `audit_analytics_fact` row yet,
-     * ordered by the append-order [AuditLedgerEvent.id]'s underlying `global_sequence` column so
-     * [com.docuhyphen.app.api.service.audit.AuditAnalyticsProjector] can drain the ledger
-     * incrementally instead of rescanning the whole table every pass.
-     */
     @Suppress("UNCHECKED_CAST")
     fun findUnprojected(limit: Int): List<AuditLedgerEvent>
     {

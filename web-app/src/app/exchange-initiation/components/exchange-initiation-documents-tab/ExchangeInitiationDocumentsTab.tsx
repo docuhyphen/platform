@@ -2,9 +2,14 @@ import React, {useState} from 'react';
 import {Button} from "@fluentui/react-components";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
 import ExchangeInitiationDocumentsCard from "../exchange-initiation-documents-card/ExchangeInitiationDocumentsCard.tsx";
-import {AvailableVariablesDto, DocumentLibraryEntrySummaryDto, ExchangeRequestDocumentRequest} from "../../../models/models.tsx";
+import {
+    AvailableVariablesDto,
+    DocumentLibraryEntrySummaryDto,
+    ExchangeRequestDocumentRequest
+} from "../../../models/models.tsx";
 import {DocumentAddIcon, PickFromLibraryIcon} from "../../../components/IconBundles.tsx";
 import DocumentLibraryPicker from "../document-library-picker/DocumentLibraryPicker.tsx";
+import InformationRequestDocumentsNote from "../information-request-documents-note/InformationRequestDocumentsNote.tsx";
 
 interface ExchangeDocumentsTabProps
 {
@@ -20,6 +25,7 @@ interface ExchangeDocumentsTabProps
     availableVariables?: AvailableVariablesDto;
     locked?: boolean;
     canUseDocumentLibrary: boolean;
+    informationRequestCollectsDocuments?: boolean;
 }
 
 const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
@@ -36,6 +42,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
         availableVariables,
         locked,
         canUseDocumentLibrary,
+        informationRequestCollectsDocuments,
     }) =>
 {
     const styles = useExchangeInitiationStyles();
@@ -62,6 +69,7 @@ const ExchangeInitiationDocumentsTab: React.FC<ExchangeDocumentsTabProps> = (
             id="exchange-documents-tab"
             className={styles.exchangeDocumentsTabContent}
         >
+            {informationRequestCollectsDocuments && <InformationRequestDocumentsNote/>}
             {documents.map((document, index) => (
                 <ExchangeInitiationDocumentsCard
                     key={index}

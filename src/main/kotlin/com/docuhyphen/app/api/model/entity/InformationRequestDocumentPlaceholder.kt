@@ -18,9 +18,6 @@ class InformationRequestDocumentPlaceholder
     @Column(name = "information_request_id", nullable = false)
     lateinit var informationRequestId: UUID
 
-    @Column(name = "source_blueprint_document_default_id", nullable = false)
-    lateinit var sourceBlueprintDocumentDefaultId: UUID
-
     @Column(name = "title", nullable = false)
     lateinit var title: String
 

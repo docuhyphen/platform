@@ -1,17 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.acceptedfact
 
-import com.docuhyphen.app.api.model.entity.InformationRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFact
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactRevocation
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactEvidence
-import com.docuhyphen.app.api.model.entity.InformationRequestAcceptedFactVisibility
-import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.model.entity.InformationRequestParty
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.acceptedfact.InformationRequestAcceptedFactFreshness
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
@@ -19,6 +8,7 @@ import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.Informa
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRepository
 import com.docuhyphen.app.api.repository.informationrequest.acceptedfact.InformationRequestAcceptedFactRevocationRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
+import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateBindingDispositionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
@@ -27,18 +17,21 @@ import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementDisclosure
 import com.docuhyphen.app.api.service.informationrequest.privacy.InformationRequestSubjectRestrictionService
+import com.docuhyphen.app.api.service.recordpreservation.RecordDisposalService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 
 class InformationRequestAcceptedFactEligibilityTest
 {
@@ -47,7 +40,9 @@ class InformationRequestAcceptedFactEligibilityTest
     private val facts = mock<InformationRequestAcceptedFactRepository>()
     private val revocations = mock<InformationRequestAcceptedFactRevocationRepository>()
     private val evidenceReferences = mock<InformationRequestAcceptedFactEvidenceRepository>()
-    private val standing = InformationRequestAcceptedFactStanding(facts, revocations, evidenceReferences, clock)
+    private val disposals = mock<RecordDisposalService>()
+    private val standing =
+        InformationRequestAcceptedFactStanding(facts, revocations, evidenceReferences, disposals, clock)
     private val requests = mock<InformationRequestQueryService>()
     private val gate = mock<InformationRequestMutationGate>()
     private val parties = mock<InformationRequestPartyRepository>()
@@ -56,6 +51,7 @@ class InformationRequestAcceptedFactEligibilityTest
     private val templateRequirements = mock<InformationRequestTemplateRequirementRepository>()
     private val versions = mock<InformationRequestTemplateVersionRepository>()
     private val restrictions = mock<InformationRequestSubjectRestrictionService>()
+    private val dispositions = mock<InformationRequestTemplateBindingDispositionRepository>()
     private val access = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext())
     private val subjectId = UUID.randomUUID()
     private val fieldId = UUID.randomUUID()
@@ -71,6 +67,9 @@ class InformationRequestAcceptedFactEligibilityTest
     }
     private val query = InformationRequestAcceptedFactQueryService(
         requests, gate, standing, facts, parties, requirements, bindings, templateRequirements, versions, restrictions,
+        InformationRequestRequirementDisclosure(gate, requirements),
+        dispositions,
+        mock<InformationRequestFactValueFit> { on { fits(any(), any()) } doReturn true },
     )
     private val stored = mutableListOf<InformationRequestAcceptedFact>()
 
@@ -87,19 +86,27 @@ class InformationRequestAcceptedFactEligibilityTest
         whenever(bindings.findById(requirement.sourceTemplateBindingId)).thenReturn(
             InformationRequestTemplateRequirementBinding().apply { collectedFieldDefinitionId = fieldId },
         )
+        permit(InformationRequestResponseDisposition.PROVIDED)
         whenever(templateRequirements.findById(requirement.sourceTemplateRequirementId)).thenReturn(
             InformationRequestTemplateRequirement().apply { requirementKey = "recorded-answer" },
         )
-        whenever(gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, requirement.id)).thenReturn(true)
+        whenever(
+            gate.permitsRequirement(
+                access,
+                Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+                requirement.id
+            )
+        ).thenReturn(true)
         whenever(facts.findForKey(any(), any(), any(), any(), any())).thenAnswer { invocation ->
             stored.filter {
                 it.ownerType == invocation.getArgument<InformationRequestOwnerType>(0) &&
-                    (it.ownerOrganizationId ?: it.ownerUserId) == invocation.getArgument<UUID>(1) &&
-                    it.subjectIdentityRefId == invocation.getArgument<UUID>(2) &&
-                    it.fieldDefinitionId in invocation.getArgument<Collection<UUID>>(3) &&
-                    it.purposeKey == invocation.getArgument<String>(4)
+                        (it.ownerOrganizationId ?: it.ownerUserId) == invocation.getArgument<UUID>(1) &&
+                        it.subjectIdentityRefId == invocation.getArgument<UUID>(2) &&
+                        it.fieldDefinitionId in invocation.getArgument<Collection<UUID>>(3) &&
+                        it.purposeKey == invocation.getArgument<String>(4)
             }
         }
+        whenever(facts.reusableSourceRequestIds(any())).thenAnswer { it.getArgument<Collection<UUID>>(0).toSet() }
     }
 
     @Test
@@ -160,7 +167,7 @@ class InformationRequestAcceptedFactEligibilityTest
             supersedesFactId = prior.id
             expiresAt = Timestamp.from(now.minusSeconds(1))
         }
-        whenever(facts.findSuperseding(any())).thenReturn(listOf(successor))
+        whenever(facts.findSupersedingIds(any())).thenReturn(mapOf(prior.id to successor.id))
         assertTrue(query.offers(request.id, access).isEmpty())
     }
 
@@ -171,14 +178,16 @@ class InformationRequestAcceptedFactEligibilityTest
         {
             stored.clear()
             request.ownerType = ownerType
-            request.ownerOrganizationId = if (ownerType == InformationRequestOwnerType.ORGANIZATION) UUID.randomUUID() else null
+            request.ownerOrganizationId =
+                if (ownerType == InformationRequestOwnerType.ORGANIZATION) UUID.randomUUID() else null
             request.ownerUserId = if (ownerType == InformationRequestOwnerType.USER) UUID.randomUUID() else null
             val matching = fact()
             fact().subjectIdentityRefId = UUID.randomUUID()
             fact().fieldDefinitionId = UUID.randomUUID()
             fact().purposeKey = "profile.other"
             fact().apply {
-                ownerOrganizationId = if (ownerType == InformationRequestOwnerType.ORGANIZATION) UUID.randomUUID() else null
+                ownerOrganizationId =
+                    if (ownerType == InformationRequestOwnerType.ORGANIZATION) UUID.randomUUID() else null
                 ownerUserId = if (ownerType == InformationRequestOwnerType.USER) UUID.randomUUID() else null
             }
             val offer = query.offers(request.id, access).single()
@@ -199,16 +208,61 @@ class InformationRequestAcceptedFactEligibilityTest
         )
         assertTrue(query.offers(request.id, access).isEmpty())
         fact()
-        whenever(gate.permitsRequirement(access, Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, requirement.id)).thenReturn(false)
+        whenever(
+            gate.permitsRequirement(
+                access,
+                Action.INFORMATION_REQUEST_REQUIREMENT_VIEW,
+                requirement.id
+            )
+        ).thenReturn(false)
         assertTrue(query.offers(request.id, access).isEmpty())
+    }
+
+    @Test
+    fun `a Requirement whose answer cannot be given in full is offered no earlier accepted answer`() {
+        fact()
+        permit(
+            InformationRequestResponseDisposition.PARTIALLY_PROVIDED,
+            InformationRequestResponseDisposition.NOT_APPLICABLE
+        )
+
+        assertTrue(query.offers(request.id, access).isEmpty())
+
+        permit(InformationRequestResponseDisposition.PARTIALLY_PROVIDED, InformationRequestResponseDisposition.PROVIDED)
+        assertEquals(listOf(requirement.id), query.offers(request.id, access).map { it.requirementId })
     }
 
     @Test
     fun `restricted subjects have no reusable offers`()
     {
         fact()
-        whenever(restrictions.isRestricted(request.ownerType, requireNotNull(request.ownerOrganizationId), subjectId)).thenReturn(true)
+        whenever(
+            restrictions.isRestricted(
+                request.ownerType,
+                requireNotNull(request.ownerOrganizationId),
+                subjectId
+            )
+        ).thenReturn(true)
         assertTrue(query.offers(request.id, access).isEmpty())
+    }
+
+    @Test
+    fun `a fact kept to the requesting side is offered to nobody, not even a caller who may promote facts`() {
+        fact().visibility = InformationRequestAcceptedFactVisibility.REQUESTING_SIDE
+        whenever(gate.permitsRequest(access, Action.INFORMATION_REQUEST_PROMOTE_FACT, request.id)).thenReturn(true)
+        assertTrue(query.offers(request.id, access).isEmpty())
+    }
+
+    private fun permit(vararg permitted: InformationRequestResponseDisposition) {
+        whenever(dispositions.findForBinding(requirement.sourceTemplateBindingId)).thenReturn(
+            permitted.map { permittedDisposition ->
+                InformationRequestTemplateBindingDisposition().apply {
+                    templateBindingId = requirement.sourceTemplateBindingId
+                    templateVersionId = request.templateVersionId
+                    disposition = permittedDisposition
+                }
+            },
+        )
     }
 
     private fun fact(): InformationRequestAcceptedFact = InformationRequestAcceptedFact().apply {
@@ -218,7 +272,10 @@ class InformationRequestAcceptedFactEligibilityTest
         subjectIdentityRefId = subjectId
         fieldDefinitionId = fieldId
         purposeKey = "profile.reuse"
+        canonicalValue = "\"recorded answer\""
         sourceInformationRequestId = UUID.randomUUID()
+        sourceSubmissionItemId = UUID.randomUUID()
+        sourceRequirementId = requirement.id
         visibility = InformationRequestAcceptedFactVisibility.RESPONDING_PARTIES
         validFrom = Timestamp.from(now.minusSeconds(60))
         promotedAt = Timestamp.from(now.minusSeconds(60))

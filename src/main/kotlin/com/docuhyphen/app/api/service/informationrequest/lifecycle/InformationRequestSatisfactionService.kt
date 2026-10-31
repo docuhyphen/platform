@@ -1,11 +1,11 @@
 package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
+import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.LockedInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestTransitionHistoryCommand
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionStages
@@ -43,7 +43,7 @@ class InformationRequestSatisfactionService @Inject constructor(
     fun closeIfSatisfied(
         locked: LockedInformationRequest,
         completingPackageId: UUID,
-        actor: PrincipalRef,
+        actor: InformationRequestAuditActor,
         idempotencyKey: String,
     ): Boolean
     {
@@ -68,7 +68,7 @@ class InformationRequestSatisfactionService @Inject constructor(
                 toState = nextState,
                 mutation = InformationRequestMutation.CLOSE,
                 actor = actor,
-                idempotencyKey = "information_request.closure|${request.id}|$idempotencyKey",
+                auditIdempotencyKey = "information_request.closure|${request.id}|$idempotencyKey",
                 details = mapOf("satisfiedByPackageId" to completingPackageId.toString()),
             ),
         )

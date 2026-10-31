@@ -17,11 +17,14 @@ class InformationRequestHealthMonitorSchedulerTest
     @Test
     fun `a check reports exactly the breached indicators`()
     {
-        val breached = InformationRequestHealthIndicator(InformationRequestHealthIndicatorKey.EVENT_DELIVERY_BACKLOG, 4, 0)
+        val breached = InformationRequestHealthIndicator(InformationRequestHealthIndicatorKey.EVENT_DELIVERY_BACKLOG, 4)
         whenever(healthService.report()).thenReturn(
             InformationRequestHealthReport(
                 Instant.now(),
-                listOf(breached, InformationRequestHealthIndicator(InformationRequestHealthIndicatorKey.RESERVATIONS_ABOVE_CAP, 0, 0)),
+                listOf(
+                    breached,
+                    InformationRequestHealthIndicator(InformationRequestHealthIndicatorKey.RESERVATIONS_ABOVE_CAP, 0)
+                ),
             ),
         )
 

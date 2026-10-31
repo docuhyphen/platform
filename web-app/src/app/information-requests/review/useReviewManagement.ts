@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {getInformationRequestParties} from "../../../services/informationRequestAuthoringService.ts";
 import {
     assignInformationRequestReviewer,
@@ -8,79 +8,114 @@ import {
     reconsiderInformationRequestReview,
     recordInformationRequestReviewComment,
 } from "../../../services/informationRequestReviewService.ts";
-import {RuntimeCommandResult} from "../../../services/informationRequestRuntimeService.ts";
+import {RuntimeCommandOptions, RuntimeCommandResult} from "../../../services/informationRequestRuntimeService.ts";
 import {
     AssignInformationRequestReviewerRequest,
     ChangeInformationRequestReviewAssignmentRequest,
-    InformationRequestPartyDto,
     InformationRequestReviewCommandResultDto,
     InformationRequestReviewDto,
+    InformationRequestReviewSummaryDto,
     OverrideInformationRequestReviewItemRequest,
     RecordInformationRequestReviewCommentRequest,
 } from "../../models/models.tsx";
+import {useScopeGuard} from "../shared/useScopeGuard.ts";
+import {useServerRead} from "../shared/useServerRead.ts";
+import {useStableIdempotencyKey} from "../shared/useStableIdempotencyKey.ts";
 import {submissionErrorMessage} from "../submission/submissionLabels.ts";
-import {ReviewMessage} from "./useInformationRequestReview.ts";
+import {reviewScopeOf} from "./useInformationRequestReview.ts";
+import {ReviewFeedback, ReviewMessage, useReviewFeedback} from "./useReviewFeedback.ts";
 
-const STALE: ReviewMessage = {intent: "warning", text: "This review changed while you were working. The latest review is shown; try again."};
+const STALE: ReviewMessage = {
+    intent: "warning",
+    text: "This review changed while you were working. The latest review is shown; try again."
+};
 
-export const useReviewManagement = (requestId: string, review: InformationRequestReviewDto | null, reload: () => Promise<void>) =>
-{
-    const [parties, setParties] = useState<InformationRequestPartyDto[]>([]);
-    const [busy, setBusy] = useState(false);
-    const [message, setMessage] = useState<ReviewMessage | null>(null);
+type ReviewCommandOutcome = RuntimeCommandResult<InformationRequestReviewCommandResultDto>;
 
-    useEffect(() =>
+export const useReviewManagement = (
+    requestId: string,
+    review: InformationRequestReviewDto | null,
+    reload: () => Promise<void>,
+    sharedFeedback?: ReviewFeedback,
+) => {
+    const managed = review?.review.informationRequestId === requestId ? review.review : null;
+    const scopeKey = reviewScopeOf(managed?.informationRequestId, managed?.id);
+    const reviewGuard = useScopeGuard(scopeKey);
+    const parties = useServerRead(requestId, () => getInformationRequestParties(requestId).then(listing => listing.parties),
+        caught => submissionErrorMessage(caught, "Reviewer parties could not be loaded."));
+    const [busyScope, setBusyScope] = useState("");
+    const ownFeedback = useReviewFeedback(scopeKey);
+    const feedback = sharedFeedback ?? ownFeedback;
+    const keyed = useStableIdempotencyKey();
+
+    const run = async (owner: string, command: () => Promise<ReviewCommandOutcome>, done: string): Promise<boolean> =>
     {
-        let active = true;
-        getInformationRequestParties(requestId)
-            .then(listing =>
-            {
-                if (active) setParties(listing.parties);
-            })
-            .catch(() => undefined);
-        return () =>
-        {
-            active = false;
-        };
-    }, [requestId]);
-
-    const run = async (command: () => Promise<RuntimeCommandResult<InformationRequestReviewCommandResultDto>>, done: string) =>
-    {
-        setBusy(true);
-        setMessage(null);
+        setBusyScope(owner);
+        feedback.clear(owner);
         try
         {
             const outcome = await command();
-            setMessage(outcome.outcome === "STALE" ? STALE : {intent: "success", text: done});
+            if (!reviewGuard.isCurrent(owner)) return false;
+            feedback.say(owner, outcome.outcome === "STALE" ? STALE : {intent: "success", text: done});
             await reload();
+            return outcome.outcome !== "STALE";
         }
         catch (caught: unknown)
         {
-            setMessage({intent: "error", text: submissionErrorMessage(caught, "The change could not be made.")});
+            if (reviewGuard.isCurrent(owner)) {
+                feedback.say(owner, {
+                    intent: "error",
+                    text: submissionErrorMessage(caught, "The change could not be made.")
+                });
+            }
+            return false;
         }
         finally
         {
-            setBusy(false);
+            setBusyScope(current => current === owner ? "" : current);
         }
     };
 
-    const options = () => ({expectedETag: review?.review.reviewETag ?? "", idempotencyKey: crypto.randomUUID()});
-    const reviewId = review?.review.id ?? "";
+    const command = (
+        action: string,
+        body: unknown,
+        send: (target: InformationRequestReviewSummaryDto, options: RuntimeCommandOptions) => Promise<ReviewCommandOutcome>,
+        done: string,
+    ): Promise<boolean> => {
+        if (!managed) return Promise.resolve(false);
+        const target = managed;
+        const owner = reviewScopeOf(target.informationRequestId, target.id);
+        return run(owner, () => keyed(`${action}|${owner}`, {body, expectedETag: target.reviewETag}, idempotencyKey =>
+            send(target, {expectedETag: target.reviewETag, idempotencyKey})), done);
+    };
 
     return {
-        parties,
-        busy,
-        message,
+        parties: parties.value ?? [],
+        partiesLoading: parties.loading,
+        partiesError: parties.error,
+        retryParties: parties.reload,
+        busy: busyScope !== "" && busyScope === scopeKey,
+        message: feedback.message,
         assign: (request: AssignInformationRequestReviewerRequest) =>
-            run(() => assignInformationRequestReviewer(requestId, reviewId, request, options()), "The reviewer was assigned."),
+            command("assign", request, (target, options) =>
+                assignInformationRequestReviewer(target.informationRequestId, target.id, request, options), "The reviewer was assigned."),
         changeAssignment: (assignmentId: string, change: InformationRequestReviewAssignmentChange, request: ChangeInformationRequestReviewAssignmentRequest) =>
-            run(() => changeInformationRequestReviewAssignment(requestId, reviewId, assignmentId, change, request, options()), "The assignment was changed."),
+            command(`change|${assignmentId}|${change}`, request, (target, options) =>
+                    changeInformationRequestReviewAssignment(target.informationRequestId, target.id, assignmentId, change, request, options),
+                "The assignment was changed."),
         override: (request: OverrideInformationRequestReviewItemRequest) =>
-            run(() => overrideInformationRequestReviewItem(requestId, reviewId, request, options()), "The decision was overridden."),
+            command("override", request, (target, options) =>
+                overrideInformationRequestReviewItem(target.informationRequestId, target.id, request, options), "The decision was overridden."),
         reconsider: (reason: string) =>
-            run(() => reconsiderInformationRequestReview(requestId, reviewId, {reason}, options()), "A reconsideration was opened."),
-        comment: (request: RecordInformationRequestReviewCommentRequest) =>
-            run(() => recordInformationRequestReviewComment(requestId, reviewId, request, crypto.randomUUID()), "The comment was recorded."),
+            command("reconsider", {reason}, (target, options) =>
+                reconsiderInformationRequestReview(target.informationRequestId, target.id, {reason}, options), "A reconsideration was opened."),
+        comment: (request: RecordInformationRequestReviewCommentRequest): Promise<boolean> => {
+            if (!managed) return Promise.resolve(false);
+            const target = managed;
+            const owner = reviewScopeOf(target.informationRequestId, target.id);
+            return run(owner, () => keyed(`comment|${owner}`, request, key =>
+                recordInformationRequestReviewComment(target.informationRequestId, target.id, request, key)), "The comment was recorded.");
+        },
     };
 };
 

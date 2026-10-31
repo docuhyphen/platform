@@ -21,6 +21,8 @@ data class InformationRequestAuditEventDto(
     @Serializable(with = TimestampSerializer::class) val recordedAt: Timestamp,
     val actorKind: String? = null,
     @Serializable(with = UUIDSerializer::class) val actorId: UUID? = null,
+    val targetType: String? = null,
+    val targetId: String? = null,
     val requestId: String? = null,
     val businessTransactionId: String? = null,
     val sealed: Boolean,
@@ -82,5 +84,7 @@ data class InformationRequestRecordExportDto(
     @Serializable(with = UUIDSerializer::class) val requestedByPrincipalId: UUID,
     @Serializable(with = TimestampSerializer::class) val requestedAt: Timestamp,
     val verified: Boolean,
+    val containsConfidentialContent: Boolean,
+    val withheldRelatedRequestCount: Int = 0,
     val content: JsonElement? = null,
 )

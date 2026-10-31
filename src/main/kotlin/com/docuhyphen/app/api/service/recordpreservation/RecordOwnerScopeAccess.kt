@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.recordpreservation
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.entity.RecordOwnerKind
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
@@ -30,21 +31,29 @@ class RecordOwnerScopeAccess @Inject constructor(
         throw ForbiddenException("Access denied to this owner's records")
     }
 
-    fun permits(principal: PrincipalRef, owner: RecordOwnerRef, action: Action): Boolean = when (owner.kind)
+    fun permits(principal: PrincipalRef, owner: RecordOwnerRef, action: Action): Boolean =
+        permits(principal, owner, action, authorizationContextFactory.currentContext())
+
+    fun permits(
+        principal: PrincipalRef,
+        owner: RecordOwnerRef,
+        action: Action,
+        context: AuthorizationContext
+    ): Boolean = when (owner.kind)
     {
         RecordOwnerKind.USER -> principal.kind == PrincipalKind.USER && principal.id == owner.id
         RecordOwnerKind.ORGANIZATION ->
         {
             val organizationId = requireNotNull(owner.id)
             principal.kind == PrincipalKind.USER &&
-                    authorizationContextFactory.currentContext().activeOrgId == organizationId &&
+                    context.activeOrgId == organizationId &&
                     userRoleService.orgRolesIn(principal.id, organizationId)
                         .any { action.required in RoleCapabilities.forOrganizationRole(it) } &&
                     authorizationService.authorize(
                         principal,
                         action,
                         ResourceRef.organization(organizationId),
-                        authorizationContextFactory.currentContext(),
+                        context
                     ) is Decision.Allow
         }
 

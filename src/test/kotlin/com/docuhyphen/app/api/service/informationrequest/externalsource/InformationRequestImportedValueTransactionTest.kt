@@ -4,18 +4,9 @@ import com.docuhyphen.app.api.exception.InformationRequestCommandRequestExceptio
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryInt
 import com.docuhyphen.app.api.migration.queryString
-import com.docuhyphen.app.api.model.entity.FieldValueType
-import com.docuhyphen.app.api.model.entity.InformationRequestDiscrepancyResolution
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueDecisionKind
-import com.docuhyphen.app.api.model.entity.InformationRequestImportedValueSource
-import com.docuhyphen.app.api.model.entity.InformationRequestSourceConfidence
+import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.model.informationrequest.externalsource.DecideInformationRequestImportedValueCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestReconciliationOutcome
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ProposeInformationRequestImportedValueCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ReconcileInformationRequestImportedValuesCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.RecordInformationRequestGeneratedOutputCommand
-import com.docuhyphen.app.api.model.informationrequest.externalsource.ResolveInformationRequestDiscrepancyCommand
+import com.docuhyphen.app.api.model.informationrequest.externalsource.*
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
@@ -25,10 +16,10 @@ import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
-import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeServices
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
-import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequest
 import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequestSupport
+import com.docuhyphen.app.api.service.informationrequest.conformance.model.ConformanceRequest
+import com.docuhyphen.app.api.service.informationrequest.externalsource.model.ImportedValueSetup
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.record.InformationRequestRecordAssembler
 import io.quarkus.narayana.jta.QuarkusTransaction
@@ -36,37 +27,67 @@ import io.quarkus.security.ForbiddenException
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import kotlinx.serialization.json.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
+import java.time.*
 import java.time.temporal.ChronoUnit
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 @QuarkusTest
 @QuarkusTestResource(DocumentVersionStoragePostgreSQLResource::class)
 class InformationRequestImportedValueTransactionTest
 {
-    @Inject lateinit var dataSource: DataSource
-    @Inject lateinit var runtime: InformationRequestRuntimeTestServices
-    @Inject lateinit var requestRepository: InformationRequestRepository
-    @Inject lateinit var transitionRepository: InformationRequestTransitionRepository
-    @Inject lateinit var authorizationService: AuthorizationService
-    @Inject lateinit var assembler: InformationRequestRecordAssembler
+    @Inject
+    lateinit var dataSource: DataSource
+
+    @Inject
+    lateinit var runtime: InformationRequestRuntimeTestServices
+
+    @Inject
+    lateinit var requestRepository: InformationRequestRepository
+
+    @Inject
+    lateinit var transitionRepository: InformationRequestTransitionRepository
+
+    @Inject
+    lateinit var authorizationService: AuthorizationService
+
+    @Inject
+    lateinit var assembler: InformationRequestRecordAssembler
+
+    @Test
+    fun `external verification allows five minutes of clock skew and refuses any later instant`() {
+        val setup = setup()
+        val boundary = setup.clock.instant().plus(Duration.ofMinutes(5))
+        val accepted = QuarkusTransaction.requiringNew().call {
+            setup.services.importedValueIntake.propose(
+                proposal(
+                    setup,
+                    "clock-skew-boundary",
+                    JsonPrimitive("Recorded value"),
+                    verified = true,
+                    verifiedAt = boundary
+                )
+            )
+        }
+        assertEquals(boundary, accepted.value.verifiedAt?.toInstant())
+        assertThrows(InformationRequestCommandRequestException::class.java) {
+            QuarkusTransaction.requiringNew().call {
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "beyond-clock-skew",
+                        JsonPrimitive("Recorded value"),
+                        verified = true,
+                        verifiedAt = boundary.plusNanos(1)
+                    )
+                )
+            }
+        }
+    }
 
     private val support by lazy { ConformanceRequestSupport(dataSource, runtime, requestRepository) }
 
@@ -78,7 +99,7 @@ class InformationRequestImportedValueTransactionTest
         val before = answerState(setup.request)
 
         val command = proposal(setup, "manual-once", JsonPrimitive("Recorded answer"), verified = true)
-        val view = QuarkusTransaction.requiringNew().call { setup.services.importedValues.propose(command) }
+        val view = QuarkusTransaction.requiringNew().call { setup.services.importedValueIntake.propose(command) }
 
         val value = view.value
         assertEquals(InformationRequestImportedValueSource.MANUAL, value.sourceKind)
@@ -98,11 +119,17 @@ class InformationRequestImportedValueTransactionTest
             assertTrue(InformationRequestMutation.RECORD_EXTERNAL_VALUE in mutations, mutations.toString())
         }
 
-        val replayed = QuarkusTransaction.requiringNew().call { setup.services.importedValues.propose(command) }
+        val replayed = QuarkusTransaction.requiringNew().call { setup.services.importedValueIntake.propose(command) }
         assertEquals(value.id, replayed.value.id)
         assertThrows(CommandReceiptConflictException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.propose(proposal(setup, "manual-once", JsonPrimitive("Another answer")))
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "manual-once",
+                        JsonPrimitive("Another answer")
+                    )
+                )
             }
         }
         assertEquals(1, importedValues(setup.request))
@@ -118,22 +145,48 @@ class InformationRequestImportedValueTransactionTest
             proposal(setup, "blank-source", JsonPrimitive("value"), source = " "),
             proposal(setup, "blank-provenance", JsonPrimitive("value"), provenance = " "),
             proposal(setup, "bad-key", JsonPrimitive("value"), resultKey = "Recorded Value"),
-            proposal(setup, "unverified", JsonPrimitive("value"), confidence = InformationRequestSourceConfidence.MATCHED),
-            proposal(setup, "future", JsonPrimitive("value"), verified = true, verifiedAt = now.plus(Duration.ofDays(1))),
-            proposal(setup, "expiry-first", JsonPrimitive("value"), verified = true, expiresAt = now.minus(Duration.ofHours(2))),
+            proposal(
+                setup,
+                "unverified",
+                JsonPrimitive("value"),
+                confidence = InformationRequestSourceConfidence.MATCHED
+            ),
+            proposal(
+                setup,
+                "future",
+                JsonPrimitive("value"),
+                verified = true,
+                verifiedAt = now.plus(Duration.ofDays(1))
+            ),
+            proposal(
+                setup,
+                "expiry-first",
+                JsonPrimitive("value"),
+                verified = true,
+                expiresAt = now.minus(Duration.ofHours(2))
+            ),
             proposal(setup, "already-expired", JsonPrimitive("value"), expiresAt = now.minus(Duration.ofMinutes(1))),
             proposal(setup, "wrong-type", JsonPrimitive("12.5"), valueType = FieldValueType.DECIMAL),
             proposal(setup, "empty", JsonPrimitive(" ")),
         ).forEach { command ->
-            val refused = runCatching { QuarkusTransaction.requiringNew().call { setup.services.importedValues.propose(command) } }.exceptionOrNull()
+            val refused = runCatching {
+                QuarkusTransaction.requiringNew().call { setup.services.importedValueIntake.propose(command) }
+            }.exceptionOrNull()
             assertTrue(refused is InformationRequestCommandRequestException, "${command.idempotencyKey}: $refused")
         }
-        val foreign = assertThrows(InformationRequestLifecycleException::class.java) {
+        val foreign = assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.propose(proposal(setup, "foreign", JsonPrimitive("value"), requirementId = UUID.randomUUID()))
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "foreign",
+                        JsonPrimitive("value"),
+                        requirementId = UUID.randomUUID()
+                    )
+                )
             }
         }
-        assertEquals(InformationRequestErrorCatalog.NOT_FOUND, foreign.reasonCode)
+        assertEquals("Access denied to this Information Request Requirement", foreign.message)
         assertEquals(0, importedValues(setup.request))
     }
 
@@ -144,27 +197,52 @@ class InformationRequestImportedValueTransactionTest
         val contributor = support.contributor(setup.request)
         assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.propose(proposal(setup, "by-contributor", JsonPrimitive("value"), access = contributor))
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "by-contributor",
+                        JsonPrimitive("value"),
+                        access = contributor
+                    )
+                )
             }
         }
         assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.propose(proposal(setup, "by-reviewer", JsonPrimitive("value"), access = setup.reviewer))
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "by-reviewer",
+                        JsonPrimitive("value"),
+                        access = setup.reviewer
+                    )
+                )
             }
         }
         val value = QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.propose(proposal(setup, "by-owner", JsonPrimitive("value")))
+            setup.services.importedValueIntake.propose(proposal(setup, "by-owner", JsonPrimitive("value")))
         }.value
         assertThrows(ForbiddenException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.importedValues.values(setup.request.requestId, contributor) }
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.importedValueRecords.values(setup.request.requestId, contributor) }
         }
         assertEquals(
             listOf(value.id),
-            QuarkusTransaction.requiringNew().call { setup.services.importedValues.values(setup.request.requestId, setup.reviewer) }.map { it.value.id },
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.importedValueRecords.values(setup.request.requestId, setup.reviewer) }
+                .map { it.value.id },
         )
         assertThrows(ForbiddenException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.decide(decision(setup, value.id, InformationRequestImportedValueDecisionKind.ACCEPTED, "owner-decides", setup.owner))
+                setup.services.importedValueDecisions.decide(
+                    decision(
+                        setup,
+                        value.id,
+                        InformationRequestImportedValueDecisionKind.ACCEPTED,
+                        "owner-decides",
+                        setup.owner
+                    )
+                )
             }
         }
     }
@@ -176,30 +254,61 @@ class InformationRequestImportedValueTransactionTest
         support.answerField(setup.services, setup.request, "Recorded answer", "answer")
         val before = answerState(setup.request)
         val proposed = QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.propose(proposal(setup, "to-decide", JsonPrimitive("Recorded answer")))
+            setup.services.importedValueIntake.propose(proposal(setup, "to-decide", JsonPrimitive("Recorded answer")))
         }.value
 
         val own = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.decide(decision(setup, proposed.id, InformationRequestImportedValueDecisionKind.ACCEPTED, "self", setup.owner))
+                setup.services.importedValueDecisions.decide(
+                    decision(
+                        setup,
+                        proposed.id,
+                        InformationRequestImportedValueDecisionKind.ACCEPTED,
+                        "self",
+                        setup.owner
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.REVIEW_SEPARATION_OF_DUTIES, own.reasonCode)
         assertThrows(InformationRequestCommandRequestException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.decide(
-                    decision(setup, proposed.id, InformationRequestImportedValueDecisionKind.ACCEPTED, "long-reason", setup.reviewer, reason = "r".repeat(129)),
+                setup.services.importedValueDecisions.decide(
+                    decision(
+                        setup,
+                        proposed.id,
+                        InformationRequestImportedValueDecisionKind.ACCEPTED,
+                        "long-reason",
+                        setup.reviewer,
+                        reason = "r".repeat(129)
+                    ),
                 )
             }
         }
         val accepted = QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.decide(decision(setup, proposed.id, InformationRequestImportedValueDecisionKind.ACCEPTED, "accept", setup.reviewer))
+            setup.services.importedValueDecisions.decide(
+                decision(
+                    setup,
+                    proposed.id,
+                    InformationRequestImportedValueDecisionKind.ACCEPTED,
+                    "accept",
+                    setup.reviewer
+                )
+            )
         }
         assertEquals(InformationRequestImportedValueDecisionKind.ACCEPTED, accepted.decision?.decision)
         assertEquals("matches the record", accepted.decision?.reasonCode)
         val twice = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.decide(decision(setup, proposed.id, InformationRequestImportedValueDecisionKind.REJECTED, "again", setup.reviewer))
+                setup.services.importedValueDecisions.decide(
+                    decision(
+                        setup,
+                        proposed.id,
+                        InformationRequestImportedValueDecisionKind.REJECTED,
+                        "again",
+                        setup.reviewer
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.IMPORTED_VALUE_ALREADY_DECIDED, twice.reasonCode)
@@ -207,19 +316,40 @@ class InformationRequestImportedValueTransactionTest
         assertEquals(0, acceptedFacts(setup.request))
 
         val lapsing = QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.propose(
-                proposal(setup, "lapsing", JsonPrimitive("Recorded answer"), expiresAt = setup.clock.instant().plus(Duration.ofHours(1))),
+            setup.services.importedValueIntake.propose(
+                proposal(
+                    setup,
+                    "lapsing",
+                    JsonPrimitive("Recorded answer"),
+                    expiresAt = setup.clock.instant().plus(Duration.ofHours(1))
+                ),
             )
         }.value
         setup.clock.instant = setup.clock.instant().plus(Duration.ofHours(2))
         val expired = assertThrows(InformationRequestLifecycleException::class.java) {
             QuarkusTransaction.requiringNew().call {
-                setup.services.importedValues.decide(decision(setup, lapsing.id, InformationRequestImportedValueDecisionKind.ACCEPTED, "accept-expired", setup.reviewer))
+                setup.services.importedValueDecisions.decide(
+                    decision(
+                        setup,
+                        lapsing.id,
+                        InformationRequestImportedValueDecisionKind.ACCEPTED,
+                        "accept-expired",
+                        setup.reviewer
+                    )
+                )
             }
         }
         assertEquals(InformationRequestErrorCatalog.IMPORTED_VALUE_EXPIRED, expired.reasonCode)
         QuarkusTransaction.requiringNew().run {
-            setup.services.importedValues.decide(decision(setup, lapsing.id, InformationRequestImportedValueDecisionKind.REJECTED, "reject-expired", setup.reviewer))
+            setup.services.importedValueDecisions.decide(
+                decision(
+                    setup,
+                    lapsing.id,
+                    InformationRequestImportedValueDecisionKind.REJECTED,
+                    "reject-expired",
+                    setup.reviewer
+                )
+            )
         }
     }
 
@@ -237,10 +367,23 @@ class InformationRequestImportedValueTransactionTest
             setup, "record", JsonPrimitive("2026-09-01"),
             requirementId = setup.request.runtime.documentRequirementId, valueType = FieldValueType.DATE,
         )
-        val lapsing = propose(setup, "lapsing", JsonPrimitive("Recorded answer"), expiresAt = setup.clock.instant().plus(Duration.ofHours(1)))
+        val lapsing = propose(
+            setup,
+            "lapsing",
+            JsonPrimitive("Recorded answer"),
+            expiresAt = setup.clock.instant().plus(Duration.ofHours(1))
+        )
         val rejected = propose(setup, "rejected", JsonPrimitive("Rejected answer"))
         QuarkusTransaction.requiringNew().run {
-            setup.services.importedValues.decide(decision(setup, rejected, InformationRequestImportedValueDecisionKind.REJECTED, "reject", setup.reviewer))
+            setup.services.importedValueDecisions.decide(
+                decision(
+                    setup,
+                    rejected,
+                    InformationRequestImportedValueDecisionKind.REJECTED,
+                    "reject",
+                    setup.reviewer
+                )
+            )
         }
         setup.clock.instant = setup.clock.instant().plus(Duration.ofHours(2))
 
@@ -284,28 +427,100 @@ class InformationRequestImportedValueTransactionTest
     }
 
     @Test
+    fun `a retried reconciliation returns its original outcomes after the answer changes and records nothing new`() {
+        val setup = setup()
+        support.answerField(setup.services, setup.request, "Recorded answer", "answer")
+        val differing = propose(setup, "differing", JsonPrimitive("Another answer"))
+        val first = reconcile(setup, "reconcile-once")
+        val discrepanciesBefore = discrepancies(setup.request)
+        val transitionsBefore = transitions(setup.request)
+        val runsBefore = count("information_request_imported_value_reconciliation", setup.request)
+
+        support.answerField(setup.services, setup.request, "Another answer", "revised-answer")
+        val transitionsAfterAnswer = transitions(setup.request)
+        val replayed = reconcile(setup, "reconcile-once")
+
+        assertEquals(first, replayed)
+        assertEquals(
+            InformationRequestReconciliationOutcome.DIFFERS,
+            replayed.single { it.importedValueId == differing }.outcome
+        )
+        assertEquals(discrepanciesBefore, discrepancies(setup.request))
+        assertEquals(transitionsAfterAnswer, transitions(setup.request))
+        assertTrue(transitionsAfterAnswer > transitionsBefore)
+        assertEquals(runsBefore, count("information_request_imported_value_reconciliation", setup.request))
+        assertEquals(
+            InformationRequestReconciliationOutcome.MATCHES,
+            reconcile(setup, "reconcile-after-revision").single { it.importedValueId == differing }.outcome,
+        )
+    }
+
+    @Test
+    fun `an Idempotency-Key already used for another reconciliation request is refused before anything is compared`() {
+        val setup = setup()
+        support.answerField(setup.services, setup.request, "Recorded answer", "answer")
+        propose(setup, "differing", JsonPrimitive("Another answer"))
+        dataSource.connection.use { connection ->
+            execute(
+                connection,
+                """
+                INSERT INTO command_receipt
+                    (id, resource_type, resource_id, operation_name, actor_kind, actor_id, idempotency_key,
+                     request_fingerprint_sha256, result_resource_type, result_resource_id)
+                VALUES (?, 'INFORMATION_REQUEST', ?, 'reconcile-information-request-imported-values', 'USER', ?, 'reused-key', ?,
+                        'INFORMATION_REQUEST_EXTERNAL_SOURCE', ?)
+                """.trimIndent(),
+                UUID.randomUUID(),
+                setup.request.requestId,
+                setup.reviewer.principal.id,
+                "f".repeat(64),
+                UUID.randomUUID(),
+            )
+        }
+
+        assertThrows(CommandReceiptConflictException::class.java) { reconcile(setup, "reused-key") }
+
+        assertEquals(0, discrepancies(setup.request))
+        assertEquals(0, count("information_request_imported_value_reconciliation", setup.request))
+    }
+
+    @Test
     fun `a discrepancy is resolved once with its reason and the answer stands`()
     {
         val setup = setup()
         support.answerField(setup.services, setup.request, "Recorded answer", "answer")
         val differing = propose(setup, "differing", JsonPrimitive("Another answer"))
-        val discrepancyId = requireNotNull(reconcile(setup, "reconcile").single { it.importedValueId == differing }.discrepancyId)
+        val discrepancyId =
+            requireNotNull(reconcile(setup, "reconcile").single { it.importedValueId == differing }.discrepancyId)
         val before = answerState(setup.request)
 
         assertThrows(InformationRequestCommandRequestException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.importedValues.resolve(resolution(setup, discrepancyId, "blank", reason = " ")) }
+            QuarkusTransaction.requiringNew().call {
+                setup.services.importedValueReconciliation.resolve(
+                    resolution(
+                        setup,
+                        discrepancyId,
+                        "blank",
+                        reason = " "
+                    )
+                )
+            }
         }
-        val resolved = QuarkusTransaction.requiringNew().call { setup.services.importedValues.resolve(resolution(setup, discrepancyId, "resolve")) }
+        val resolved = QuarkusTransaction.requiringNew()
+            .call { setup.services.importedValueReconciliation.resolve(resolution(setup, discrepancyId, "resolve")) }
         assertEquals(InformationRequestDiscrepancyResolution.RESPONSE_STANDS, resolved.resolution?.resolution)
         assertEquals("answer confirmed", resolved.resolution?.reasonCode)
-        val replayed = QuarkusTransaction.requiringNew().call { setup.services.importedValues.resolve(resolution(setup, discrepancyId, "resolve")) }
+        val replayed = QuarkusTransaction.requiringNew()
+            .call { setup.services.importedValueReconciliation.resolve(resolution(setup, discrepancyId, "resolve")) }
         assertEquals(resolved.resolution?.id, replayed.resolution?.id)
         val twice = assertThrows(InformationRequestLifecycleException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.importedValues.resolve(resolution(setup, discrepancyId, "again")) }
+            QuarkusTransaction.requiringNew()
+                .call { setup.services.importedValueReconciliation.resolve(resolution(setup, discrepancyId, "again")) }
         }
         assertEquals(InformationRequestErrorCatalog.DISCREPANCY_ALREADY_RESOLVED, twice.reasonCode)
         assertEquals(before, answerState(setup.request))
-        val view = QuarkusTransaction.requiringNew().call { setup.services.importedValues.values(setup.request.requestId, setup.reviewer) }
+        val view = QuarkusTransaction.requiringNew()
+            .call { setup.services.importedValueRecords.values(setup.request.requestId, setup.reviewer) }
             .single { it.value.id == differing }
         assertEquals(listOf(discrepancyId), view.discrepancies.map { it.discrepancy.id })
     }
@@ -317,25 +532,49 @@ class InformationRequestImportedValueTransactionTest
         support.answerField(setup.services, setup.request, "Recorded answer", "answer")
         val differing = propose(setup, "differing", JsonPrimitive("Another answer"))
         QuarkusTransaction.requiringNew().run {
-            setup.services.importedValues.decide(decision(setup, differing, InformationRequestImportedValueDecisionKind.REJECTED, "reject", setup.reviewer))
+            setup.services.importedValueDecisions.decide(
+                decision(
+                    setup,
+                    differing,
+                    InformationRequestImportedValueDecisionKind.REJECTED,
+                    "reject",
+                    setup.reviewer
+                )
+            )
         }
         val other = propose(setup, "other", JsonPrimitive("Other answer"))
-        val discrepancyId = requireNotNull(reconcile(setup, "reconcile").single { it.importedValueId == other }.discrepancyId)
-        QuarkusTransaction.requiringNew().run { setup.services.importedValues.resolve(resolution(setup, discrepancyId, "resolve")) }
+        val discrepancyId =
+            requireNotNull(reconcile(setup, "reconcile").single { it.importedValueId == other }.discrepancyId)
+        QuarkusTransaction.requiringNew()
+            .run { setup.services.importedValueReconciliation.resolve(resolution(setup, discrepancyId, "resolve")) }
         val output = QuarkusTransaction.requiringNew().call {
             setup.services.generatedOutputs.record(
                 RecordInformationRequestGeneratedOutputCommand(
-                    setup.request.requestId, null, "summary-output", "external://outputs/summary-1", null, "application/pdf",
-                    "summary-service", setup.clock.instant().minus(Duration.ofMinutes(5)), setup.owner, "output",
+                    setup.request.requestId,
+                    null,
+                    "summary-output",
+                    "external://outputs/summary-1",
+                    null,
+                    "application/pdf",
+                    "summary-service",
+                    setup.clock.instant().minus(Duration.ofMinutes(5)),
+                    setup.owner,
+                    "output",
                 ),
             )
         }
 
-        val record = QuarkusTransaction.requiringNew().call { assembler.assemble(requireNotNull(requestRepository.findById(setup.request.requestId))) }
-        assertEquals(2, record.getValue("schemaVersion").jsonPrimitive.int)
+        val record = QuarkusTransaction.requiringNew()
+            .call { assembler.assemble(requireNotNull(requestRepository.findById(setup.request.requestId))) { true } }
+        assertEquals(4, record.getValue("schemaVersion").jsonPrimitive.int)
         val external = record.getValue("externalSources").jsonObject
-        val values = external.getValue("importedValues").jsonArray.map { it.jsonObject }.associateBy { it.getValue("importedValueId").jsonPrimitive.content }
+        val values = external.getValue("importedValues").jsonArray.map { it.jsonObject }
+            .associateBy { it.getValue("importedValueId").jsonPrimitive.content }
         val rejected = values.getValue(differing.toString())
+        assertEquals(
+            currentRevisionOfValue(differing),
+            rejected.getValue("requirementRevisionId").jsonPrimitive.content
+        )
         assertEquals("MANUAL", rejected.getValue("sourceKind").jsonPrimitive.content)
         assertEquals("registry-extract", rejected.getValue("sourceReference").jsonPrimitive.content)
         assertEquals("extract-2026-09", rejected.getValue("provenanceReference").jsonPrimitive.content)
@@ -344,7 +583,10 @@ class InformationRequestImportedValueTransactionTest
         val discrepancy = values.getValue(other.toString()).getValue("discrepancies").jsonArray.single().jsonObject
         assertEquals(discrepancyId.toString(), discrepancy.getValue("discrepancyId").jsonPrimitive.content)
         assertEquals(JsonPrimitive("Recorded answer"), discrepancy.getValue("responseValue"))
-        assertEquals("RESPONSE_STANDS", discrepancy.getValue("resolution").jsonObject.getValue("resolution").jsonPrimitive.content)
+        assertEquals(
+            "RESPONSE_STANDS",
+            discrepancy.getValue("resolution").jsonObject.getValue("resolution").jsonPrimitive.content
+        )
         assertEquals(
             listOf(output.id.toString()),
             external.getValue("generatedOutputs").jsonArray.map { it.jsonObject.getValue("generatedOutputId").jsonPrimitive.content },
@@ -357,21 +599,36 @@ class InformationRequestImportedValueTransactionTest
     {
         val setup = setup()
         dataSource.connection.use { connection ->
-            execute(connection, "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?", setup.request.requestId)
+            execute(
+                connection,
+                "UPDATE information_request SET state = 'CANCELLED', cancelled_at = now() WHERE id = ?",
+                setup.request.requestId
+            )
         }
         val refused = assertThrows(InformationRequestLifecycleException::class.java) {
-            QuarkusTransaction.requiringNew().call { setup.services.importedValues.propose(proposal(setup, "cancelled", JsonPrimitive("value"))) }
+            QuarkusTransaction.requiringNew().call {
+                setup.services.importedValueIntake.propose(
+                    proposal(
+                        setup,
+                        "cancelled",
+                        JsonPrimitive("value")
+                    )
+                )
+            }
         }
         assertEquals(InformationRequestErrorCatalog.STATE_INVALID, refused.reasonCode)
     }
 
-    private fun setup(ownerAlsoReviews: Boolean = false): ExternalSourceSetup
+    private fun setup(ownerAlsoReviews: Boolean = false): ImportedValueSetup
     {
         lateinit var reviewerId: UUID
-        val request = support.fieldRequest(prepare = { connection, prepared -> reviewerId = requestingSide(connection, prepared, ownerAlsoReviews) })
+        val request = support.fieldRequest(prepare = { connection, prepared ->
+            reviewerId = requestingSide(connection, prepared, ownerAlsoReviews)
+        })
         val clock = MutableClock(Instant.now().truncatedTo(ChronoUnit.MICROS))
-        val services = runtime.build(request.requestId, centralAuthorization = authorizationService, externalClock = clock)
-        return ExternalSourceSetup(
+        val services =
+            runtime.build(request.requestId, centralAuthorization = authorizationService, externalClock = clock)
+        return ImportedValueSetup(
             request,
             services,
             clock,
@@ -382,7 +639,7 @@ class InformationRequestImportedValueTransactionTest
 
     @Suppress("LongParameterList")
     private fun proposal(
-        setup: ExternalSourceSetup,
+        setup: ImportedValueSetup,
         key: String,
         value: JsonElement,
         requirementId: UUID = setup.request.answers.requirementId,
@@ -416,7 +673,7 @@ class InformationRequestImportedValueTransactionTest
 
     @Suppress("LongParameterList")
     private fun propose(
-        setup: ExternalSourceSetup,
+        setup: ImportedValueSetup,
         key: String,
         value: JsonElement,
         requirementId: UUID = setup.request.answers.requirementId,
@@ -424,12 +681,21 @@ class InformationRequestImportedValueTransactionTest
         expiresAt: Instant? = null,
     ): UUID =
         QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.propose(proposal(setup, key, value, requirementId, valueType, expiresAt = expiresAt))
+            setup.services.importedValueIntake.propose(
+                proposal(
+                    setup,
+                    key,
+                    value,
+                    requirementId,
+                    valueType,
+                    expiresAt = expiresAt
+                )
+            )
         }.value.id
 
     @Suppress("LongParameterList")
     private fun decision(
-        setup: ExternalSourceSetup,
+        setup: ImportedValueSetup,
         valueId: UUID,
         kind: InformationRequestImportedValueDecisionKind,
         key: String,
@@ -437,14 +703,30 @@ class InformationRequestImportedValueTransactionTest
         reason: String = "matches the record",
     ) = DecideInformationRequestImportedValueCommand(setup.request.requestId, valueId, kind, reason, access, key)
 
-    private fun resolution(setup: ExternalSourceSetup, discrepancyId: UUID, key: String, reason: String = "answer confirmed") =
+    private fun resolution(
+        setup: ImportedValueSetup,
+        discrepancyId: UUID,
+        key: String,
+        reason: String = "answer confirmed"
+    ) =
         ResolveInformationRequestDiscrepancyCommand(
-            setup.request.requestId, discrepancyId, InformationRequestDiscrepancyResolution.RESPONSE_STANDS, reason, setup.reviewer, key,
+            setup.request.requestId,
+            discrepancyId,
+            InformationRequestDiscrepancyResolution.RESPONSE_STANDS,
+            reason,
+            setup.reviewer,
+            key,
         )
 
-    private fun reconcile(setup: ExternalSourceSetup, key: String, access: RequestAccessContext = setup.reviewer) =
+    private fun reconcile(setup: ImportedValueSetup, key: String, access: RequestAccessContext = setup.reviewer) =
         QuarkusTransaction.requiringNew().call {
-            setup.services.importedValues.reconcile(ReconcileInformationRequestImportedValuesCommand(setup.request.requestId, access, key))
+            setup.services.importedValueReconciliation.reconcile(
+                ReconcileInformationRequestImportedValuesCommand(
+                    setup.request.requestId,
+                    access,
+                    key
+                )
+            )
         }
 
     private fun answerState(request: ConformanceRequest): String =
@@ -464,11 +746,33 @@ class InformationRequestImportedValueTransactionTest
 
     private fun importedValues(request: ConformanceRequest): Int = count("information_request_imported_value", request)
 
-    private fun discrepancies(request: ConformanceRequest): Int = count("information_request_imported_value_discrepancy", request)
+    private fun currentRevisionOfValue(valueId: UUID): String? =
+        dataSource.connection.use { connection ->
+            queryString(
+                connection,
+                """
+                SELECT current.current_revision_id::text
+                FROM information_request_imported_value imported
+                JOIN information_request_requirement_current current
+                     ON current.information_request_requirement_id = imported.information_request_requirement_id
+                WHERE imported.id = ?
+                """.trimIndent(),
+                valueId,
+            )
+        }
+
+    private fun transitions(request: ConformanceRequest): Int = count("information_request_transition", request)
+
+    private fun discrepancies(request: ConformanceRequest): Int =
+        count("information_request_imported_value_discrepancy", request)
 
     private fun acceptedFacts(request: ConformanceRequest): Int =
         dataSource.connection.use { connection ->
-            queryInt(connection, "SELECT COUNT(*) FROM information_request_accepted_fact WHERE source_information_request_id = ?", request.requestId)
+            queryInt(
+                connection,
+                "SELECT COUNT(*) FROM information_request_accepted_fact WHERE source_information_request_id = ?",
+                request.requestId
+            )
         }
 
     private fun count(table: String, request: ConformanceRequest): Int =
@@ -512,14 +816,6 @@ class InformationRequestImportedValueTransactionTest
         )
         execute(connection, "UPDATE information_request_party SET share_id = ? WHERE id = ?", shareId, partyId)
     }
-
-    private data class ExternalSourceSetup(
-        val request: ConformanceRequest,
-        val services: InformationRequestRuntimeServices,
-        val clock: MutableClock,
-        val owner: RequestAccessContext,
-        val reviewer: RequestAccessContext,
-    )
 }
 
 internal class MutableClock(var instant: Instant) : Clock()

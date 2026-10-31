@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.audit.archive
 
+import com.docuhyphen.app.api.model.audit.archive.ArchiveCoverageState
+import com.docuhyphen.app.api.model.audit.archive.ArchivedLedgerEventRecord
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditArchiveSegmentRepository
@@ -9,45 +11,47 @@ import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
-/**
- * Gate for [AuditArchiveVerifier]:
- *  - a genuine (untampered) segment verifies successfully end to end (merkle root, segment
- *    digest, manifest signature, and every protected event field's recomputed hash).
- *  - mutating any single hash-participating field of an archived record while leaving its
- *    recorded `eventHash` untouched must be detected - the verifier must independently recompute
- *    the event hash from the archived fields, never trust the archived `eventHash` at face value.
- *  - malformed content (bad JSON, a missing field, duplicate/out-of-order sequence numbers, a
- *    broken `prevHash` link) is reported as a structured failure, not an uncaught exception.
- *  - mutating the archived segment content, the archived manifest, or the signature all break
- *    verification independently.
- *  - deleting/reordering a segment in a stream's chain is detected via [AuditArchiveVerifier.verifyStreamChain]
- *    even when every individual segment still verifies in isolation.
- */
 class AuditArchiveVerifierTest
 {
-    /**
-     * Builds [sequences] as a real, hash-chained run of ledger events - each field below
-     * participates in [LedgerProcessor.canonicalEnvelopeJson], so a test that tampers one field in
-     * the archived record while keeping the recorded `eventHash` unchanged only proves anything if
-     * the fixture's `eventHash` was genuinely bound to every one of these fields in the first
-     * place, exactly like production's [com.docuhyphen.app.api.service.audit.LedgerProcessor.appendOne].
-     */
+    @Test
+    fun `a signed personal archive verifies with matching owner metadata`(@TempDir tempDir: Path) {
+        val storage = InMemoryAuditArchiveStorage()
+        val (segment, repository, signing) = archiveOneSegment("user:${UUID.randomUUID()}:2026-01", tempDir, storage)
+        val result = AuditArchiveVerifier(repository, storage, signing).verifySegment(segment)
+        assertTrue(result.valid, result.note)
+    }
+
+    @Test
+    fun `signed personal archive refuses owner metadata inconsistent with its stream`(@TempDir tempDir: Path) {
+        val streamId = "user:${UUID.randomUUID()}:2026-01"
+        val events = ledgerEvents(streamId, 1L..3L).onEach {
+            it.ownerType = "USER"
+            it.ownerId = UUID.randomUUID()
+        }
+        val ledger = mock<AuditLedgerEventRepository>()
+        whenever(ledger.findByStreamOrderBySequence(streamId)).thenReturn(events)
+        val segments = mock<AuditArchiveSegmentRepository>()
+        whenever(segments.insert(any())).thenAnswer { it.getArgument(0) }
+        val config = configService(3, tempDir)
+        val storage = InMemoryAuditArchiveStorage()
+        val signing = LocalAuditArchiveSigningKeyProvider(config)
+        assertTrue(AuditArchiver(ledger, segments, storage, signing, config).closeSegmentIfReady(streamId, false))
+        val captured = argumentCaptor<AuditArchiveSegment>()
+        verify(segments).insert(captured.capture())
+        val result = AuditArchiveVerifier(segments, storage, signing).verifySegment(captured.firstValue)
+        assertFalse(result.valid, result.note)
+    }
+
     private fun ledgerEvents(streamId: String, sequences: LongRange, firstPrevHash: String? = null): List<AuditLedgerEvent>
     {
         var prevHash = firstPrevHash
@@ -77,6 +81,25 @@ class AuditArchiveVerifierTest
                 targetLabel = "Q1 Filing"
                 reason = "scheduled review"
                 payloadJson = """{"field":"value-$sequence"}"""
+                when (val owner = LedgerProcessor.ownerOfStream(streamId)) {
+                    com.docuhyphen.app.api.service.audit.AuditOwnerScope.Platform -> {
+                        ownerType = "PLATFORM"
+                        ownerId = null
+                        organizationId = null
+                    }
+
+                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Personal -> {
+                        ownerType = "USER"
+                        ownerId = owner.userId
+                        organizationId = null
+                    }
+
+                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Organization -> {
+                        ownerType = "ORGANIZATION"
+                        ownerId = owner.organizationId
+                        organizationId = owner.organizationId
+                    }
+                }
                 this.prevHash = prevHash
             }
             event.eventHash = LedgerProcessor.computeHash(canonicalJsonFor(event), sequence, prevHash)
@@ -139,7 +162,6 @@ class AuditArchiveVerifierTest
         return Triple(captor.firstValue, segmentRepo, signingProvider)
     }
 
-    /** Reads record at [index] out of the archived segment content, replaces it with [mutate]'s result, and writes it back - the manifest/merkle root/signature are left exactly as originally archived, so only the content changed. */
     private fun mutateRecord(segment: AuditArchiveSegment, storage: InMemoryAuditArchiveStorage, index: Int = 0, mutate: (ArchivedLedgerEventRecord) -> ArchivedLedgerEventRecord)
     {
         val lines = String(storage.objects[segment.segmentObjectKey]!!, StandardCharsets.UTF_8)
@@ -161,7 +183,11 @@ class AuditArchiveVerifierTest
     fun `a genuine segment verifies successfully`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
 
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
         val result = verifier.verifySegment(segment)
@@ -173,7 +199,11 @@ class AuditArchiveVerifierTest
     fun `mutating the archived segment content breaks verification`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
 
         mutateRecord(segment, storage) { it.copy(payloadJson = """{"field":"TAMPERED"}""") }
 
@@ -187,7 +217,11 @@ class AuditArchiveVerifierTest
     fun `mutating the archived manifest breaks signature verification`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
 
         val tamperedManifest = String(storage.objects[segment.manifestObjectKey]!!, StandardCharsets.UTF_8)
             .replace(segment.merkleRoot, "0".repeat(segment.merkleRoot.length))
@@ -203,7 +237,11 @@ class AuditArchiveVerifierTest
     fun `a missing archived object is reported as a verification failure, not an exception`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         storage.objects.remove(segment.segmentObjectKey)
 
         val verifier = AuditArchiveVerifier(segmentRepo, storage, signingProvider)
@@ -212,14 +250,15 @@ class AuditArchiveVerifierTest
         assertFalse(result.valid)
     }
 
-    // --- Field-tampering-while-retaining-eventHash: each protected field must be rebound to the
-    // --- archived eventHash, not merely present in the record. ---
-
     @Test
     fun `tampering payload while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(payloadJson = """{"field":"TAMPERED"}""") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -230,7 +269,11 @@ class AuditArchiveVerifierTest
     fun `tampering reason while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(reason = "TAMPERED reason") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -241,7 +284,11 @@ class AuditArchiveVerifierTest
     fun `tampering the actor id while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(actorId = UUID.randomUUID().toString()) }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -252,7 +299,11 @@ class AuditArchiveVerifierTest
     fun `tampering the actor label while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(actorLabel = "TAMPERED Actor") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -263,7 +314,11 @@ class AuditArchiveVerifierTest
     fun `tampering the organization label while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(organizationLabel = "TAMPERED Org") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -274,7 +329,11 @@ class AuditArchiveVerifierTest
     fun `tampering the target id while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(targetId = "TAMPERED-target") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -285,7 +344,11 @@ class AuditArchiveVerifierTest
     fun `tampering the target label while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(targetLabel = "TAMPERED Target") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -296,7 +359,11 @@ class AuditArchiveVerifierTest
     fun `tampering the occurredAt timestamp while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(occurredAt = "2030-01-01T00:00:00Z") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -307,7 +374,11 @@ class AuditArchiveVerifierTest
     fun `tampering the recordedAt timestamp while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(recordedAt = "2030-01-01T00:00:00Z") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -318,7 +389,11 @@ class AuditArchiveVerifierTest
     fun `tampering the outcome while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(outcome = "FAILURE") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -329,7 +404,11 @@ class AuditArchiveVerifierTest
     fun `tampering the category while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(category = "DOCUMENT") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -340,7 +419,11 @@ class AuditArchiveVerifierTest
     fun `tampering the schema version while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(schemaVersion = it.schemaVersion + 1) }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -351,7 +434,11 @@ class AuditArchiveVerifierTest
     fun `tampering the stream id while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage) { it.copy(streamId = "org-2:2026-01") }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -362,21 +449,26 @@ class AuditArchiveVerifierTest
     fun `tampering the sequence while keeping the original eventHash is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage, index = 2) { it.copy(streamSequence = 99L) }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
         assertFalse(result.valid)
     }
 
-    // --- Malformed / structurally invalid content: reported as a structured failure, never an
-    // --- uncaught exception that would abort the rest of a scheduler pass. ---
-
     @Test
     fun `malformed JSON in an archived record is reported as a verification failure, not an exception`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         setRawLine(segment, storage, 0, "{ not valid json")
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -387,7 +479,11 @@ class AuditArchiveVerifierTest
     fun `a record missing a required field is reported as a verification failure, not an exception`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
 
         val lines = String(storage.objects[segment.segmentObjectKey]!!, StandardCharsets.UTF_8)
             .lineSequence().filter { it.isNotBlank() }.toMutableList()
@@ -404,7 +500,11 @@ class AuditArchiveVerifierTest
     fun `a duplicate sequence number across two records is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage, index = 1) { it.copy(streamSequence = it.streamSequence - 1) }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -415,7 +515,11 @@ class AuditArchiveVerifierTest
     fun `a broken prevHash link between two records is detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
         mutateRecord(segment, storage, index = 1) { it.copy(prevHash = "0".repeat(64)) }
 
         val result = AuditArchiveVerifier(segmentRepo, storage, signingProvider).verifySegment(segment)
@@ -426,7 +530,11 @@ class AuditArchiveVerifierTest
     fun `out-of-order records within a segment are detected`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
 
         val lines = String(storage.objects[segment.segmentObjectKey]!!, StandardCharsets.UTF_8)
             .lineSequence().filter { it.isNotBlank() }.toMutableList()
@@ -440,16 +548,13 @@ class AuditArchiveVerifierTest
     @Test
     fun `verifyStreamChain detects a deleted segment even though the remaining segments individually still hash correctly`()
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val segmentA = AuditArchiveSegment().apply {
             this.streamId = streamId; firstSequence = 1; lastSequence = 3; segmentDigest = "digest-a"; prevSegmentDigest = null
         }
         val segmentB = AuditArchiveSegment().apply {
             this.streamId = streamId; firstSequence = 4; lastSequence = 6; segmentDigest = "digest-b"; prevSegmentDigest = "digest-a"
         }
-        // segmentC's prevSegmentDigest should chain from segmentB, but here we simulate segmentB
-        // having been deleted from the DB: segmentC's prevSegmentDigest still says "digest-b",
-        // which no longer matches any segment actually present in the (segmentA, segmentC) list.
         val segmentC = AuditArchiveSegment().apply {
             this.streamId = streamId; firstSequence = 7; lastSequence = 9; segmentDigest = "digest-c"; prevSegmentDigest = "digest-b"
         }
@@ -466,7 +571,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `verifyStreamChain accepts a contiguous, correctly-linked chain`()
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val segmentA = AuditArchiveSegment().apply {
             this.streamId = streamId; firstSequence = 1; lastSequence = 3; segmentDigest = "digest-a"; prevSegmentDigest = null
         }
@@ -484,11 +589,6 @@ class AuditArchiveVerifierTest
         assertEquals(2, result.segmentsChecked)
     }
 
-    // --- Range coverage: does every ledger event in a requested [fromSequence,toSequence] range
-    // --- sit inside a contiguous run of independently-verified archive segments? A requested
-    // --- export range must never be reported COMPLETE unless that is actually true. ---
-
-    /** Archives [segmentCount] segments of 3 events each (sequences 1..3*segmentCount) for [streamId], sharing one stateful segment repository so multi-segment coverage scenarios (missing/broken segments) can be simulated by mutating the returned list. */
     private fun archiveSegments(streamId: String, tempDir: Path, storage: InMemoryAuditArchiveStorage, segmentCount: Int): Pair<AuditArchiveSegmentRepository, MutableList<AuditArchiveSegment>>
     {
         val segments = mutableListOf<AuditArchiveSegment>()
@@ -517,10 +617,20 @@ class AuditArchiveVerifierTest
     fun `checkRangeCoverage reports COMPLETE when the full requested range is archived and verifies`(@TempDir tempDir: Path)
     {
         val storage = InMemoryAuditArchiveStorage()
-        val (segment, segmentRepo, signingProvider) = archiveOneSegment("org-1:2026-01", tempDir, storage)
-        whenever(segmentRepo.findByStreamOrderBySequence("org-1:2026-01")).thenReturn(listOf(segment))
+        val (segment, segmentRepo, signingProvider) = archiveOneSegment(
+            "00000000-0000-0000-0000-000000000001:2026-01",
+            tempDir,
+            storage
+        )
+        whenever(segmentRepo.findByStreamOrderBySequence("00000000-0000-0000-0000-000000000001:2026-01")).thenReturn(
+            listOf(segment)
+        )
 
-        val report = AuditArchiveVerifier(segmentRepo, storage, signingProvider).checkRangeCoverage("org-1:2026-01", 1L, 3L)
+        val report = AuditArchiveVerifier(
+            segmentRepo,
+            storage,
+            signingProvider
+        ).checkRangeCoverage("00000000-0000-0000-0000-000000000001:2026-01", 1L, 3L)
 
         assertEquals(ArchiveCoverageState.COMPLETE, report.state, report.note)
     }
@@ -529,7 +639,11 @@ class AuditArchiveVerifierTest
     fun `checkRangeCoverage reports COMPLETE for an empty requested range without consulting archive state`()
     {
         val segmentRepo = mock<AuditArchiveSegmentRepository>()
-        val report = AuditArchiveVerifier(segmentRepo, mock(), mock()).checkRangeCoverage("org-1:2026-01", 5L, 3L)
+        val report = AuditArchiveVerifier(
+            segmentRepo,
+            mock(),
+            mock()
+        ).checkRangeCoverage("00000000-0000-0000-0000-000000000001:2026-01", 5L, 3L)
 
         assertEquals(ArchiveCoverageState.COMPLETE, report.state)
     }
@@ -538,9 +652,15 @@ class AuditArchiveVerifierTest
     fun `checkRangeCoverage reports PARTIAL when the stream has no archived segments yet`()
     {
         val segmentRepo = mock<AuditArchiveSegmentRepository>()
-        whenever(segmentRepo.findByStreamOrderBySequence("org-1:2026-01")).thenReturn(emptyList())
+        whenever(segmentRepo.findByStreamOrderBySequence("00000000-0000-0000-0000-000000000001:2026-01")).thenReturn(
+            emptyList()
+        )
 
-        val report = AuditArchiveVerifier(segmentRepo, mock(), mock()).checkRangeCoverage("org-1:2026-01", 1L, 3L)
+        val report = AuditArchiveVerifier(
+            segmentRepo,
+            mock(),
+            mock()
+        ).checkRangeCoverage("00000000-0000-0000-0000-000000000001:2026-01", 1L, 3L)
 
         assertEquals(ArchiveCoverageState.PARTIAL, report.state)
     }
@@ -548,10 +668,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `checkRangeCoverage reports FAILED when the earliest archived segment starts after the requested range begins`()
     {
-        // A chain-valid stream (prevSegmentDigest is genuinely null - no prior segment ever
-        // existed) whose first segment simply does not reach back to sequence 1: the requested
-        // range's earliest events are not covered by any archive checkpoint at all.
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val onlySegment = AuditArchiveSegment().apply {
             this.streamId = streamId; firstSequence = 4; lastSequence = 6; segmentDigest = "digest-a"; prevSegmentDigest = null
             segmentObjectKey = "archive/$streamId/4-6.jsonl"; manifestObjectKey = "archive/$streamId/4-6.manifest.json"
@@ -567,7 +684,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `checkRangeCoverage reports FAILED when a middle segment is missing from the chain`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val storage = InMemoryAuditArchiveStorage()
         val (_, segments) = archiveSegments(streamId, tempDir, storage, segmentCount = 3)
         segments.removeAt(1)
@@ -584,7 +701,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `checkRangeCoverage reports PARTIAL when trailing events beyond the last archived segment are not archived yet`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val storage = InMemoryAuditArchiveStorage()
         val (segmentRepo, _) = archiveSegments(streamId, tempDir, storage, segmentCount = 1)
 
@@ -597,7 +714,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `checkRangeCoverage reports FAILED when an archived segment inside the requested range fails verification`(@TempDir tempDir: Path)
     {
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val storage = InMemoryAuditArchiveStorage()
         val (segmentRepo, segments) = archiveSegments(streamId, tempDir, storage, segmentCount = 2)
         mutateRecord(segments[0], storage) { it.copy(payloadJson = """{"field":"TAMPERED"}""") }
@@ -611,10 +728,7 @@ class AuditArchiveVerifierTest
     @Test
     fun `checkRangeCoverage reports FAILED when storage holds an archived object no current segment row references`(@TempDir tempDir: Path)
     {
-        // Simulates a segment row deleted from the database (to hide tampering or a coverage gap)
-        // while the archived object itself remains in storage - reconciliation must not trust the
-        // mutable segment metadata rows alone to discover what has actually been archived.
-        val streamId = "org-1:2026-01"
+        val streamId = "00000000-0000-0000-0000-000000000001:2026-01"
         val storage = InMemoryAuditArchiveStorage()
         val (_, _, signingProvider) = archiveOneSegment(streamId, tempDir, storage)
 

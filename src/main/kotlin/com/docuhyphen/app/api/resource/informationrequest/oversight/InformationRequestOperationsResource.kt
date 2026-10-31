@@ -33,7 +33,7 @@ class InformationRequestOperationsResource @Inject constructor(
             val filter = InformationRequestOperationsFilter(
                 states = states.orEmpty().map { parse<InformationRequestState>(it, "state") }.toSet(),
                 exchangeId = exchangeId?.takeIf { it.isNotBlank() }
-                    ?.let { InformationRequestCommandHttp.uuid(it, "exchange id") },
+                    ?.let { InformationRequestCommandHttp.uuid(it, "Exchange id") },
                 search = search?.trim()?.takeIf { it.isNotEmpty() },
                 assigneeId = assigneeId?.takeIf { it.isNotBlank() }
                     ?.let { InformationRequestCommandHttp.uuid(it, "assignee id") },

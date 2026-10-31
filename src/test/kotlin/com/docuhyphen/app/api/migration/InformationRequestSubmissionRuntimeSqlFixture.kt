@@ -1,7 +1,9 @@
 package com.docuhyphen.app.api.migration
 
+import com.docuhyphen.app.api.migration.model.NextSubmissionVersion
 import java.sql.Connection
-import java.util.UUID
+import java.time.LocalDate
+import java.util.*
 
 internal class SubmissionRuntimeSqlFixture(
     private val connection: Connection,
@@ -9,10 +11,12 @@ internal class SubmissionRuntimeSqlFixture(
     sequential: Boolean = false,
     reviewed: Boolean = false,
     optionalRecord: Boolean = false,
+    evidenceExpiresOn: LocalDate? = null,
+    sharedOrganizationId: UUID? = null,
     beforePublish: (SubmissionRuntimeSqlFixture) -> Unit = {},
 )
 {
-    val template = SubmissionTemplateSqlFixture(connection)
+    val template = SubmissionTemplateSqlFixture(connection, sharedOrganizationId)
     val exchangeId: UUID = UUID.randomUUID()
     val requestId: UUID = UUID.randomUUID()
     val documentTemplateRequirementId: UUID = UUID.randomUUID()
@@ -61,8 +65,19 @@ internal class SubmissionRuntimeSqlFixture(
         }
         else template.sectionId
         template.insertRequirement(documentTemplateRequirementId, "supporting-record", "DOCUMENT")
-        template.insertBinding(documentBindingId, template.versionId, documentTemplateRequirementId, template.sectionId, 1)
-        template.insertEvidencePolicy(UUID.randomUUID(), documentBindingId, template.versionId)
+        template.insertBinding(
+            documentBindingId,
+            template.versionId,
+            documentTemplateRequirementId,
+            template.sectionId,
+            1
+        )
+        template.insertEvidencePolicy(
+            UUID.randomUUID(),
+            documentBindingId,
+            template.versionId,
+            expiryDateRequirement = if (evidenceExpiresOn == null) "NOT_CAPTURED" else "OPTIONAL",
+        )
         template.insertDisposition(documentBindingId, template.versionId, "PROVIDED")
         if (reviewed)
         {
@@ -96,7 +111,13 @@ internal class SubmissionRuntimeSqlFixture(
         if (optionalRecord)
         {
             template.insertRequirement(optionalTemplateRequirementId, "optional-record", "DOCUMENT")
-            template.insertBinding(optionalBindingId, template.versionId, optionalTemplateRequirementId, template.sectionId, 3)
+            template.insertBinding(
+                optionalBindingId,
+                template.versionId,
+                optionalTemplateRequirementId,
+                template.sectionId,
+                3
+            )
             template.insertEvidencePolicy(UUID.randomUUID(), optionalBindingId, template.versionId)
             template.insertDisposition(optionalBindingId, template.versionId, "PROVIDED")
             execute(
@@ -143,7 +164,12 @@ internal class SubmissionRuntimeSqlFixture(
         )
         insertParty(contributorPartyId, "CONTRIBUTOR", contributorUserId)
         insertParty(attestorPartyId, "ATTESTOR", attestorUserId)
-        insertRuntimeRequirement(documentRequirementId, documentRevisionId, documentTemplateRequirementId, documentBindingId)
+        insertRuntimeRequirement(
+            documentRequirementId,
+            documentRevisionId,
+            documentTemplateRequirementId,
+            documentBindingId
+        )
         insertRuntimeRequirement(
             attestationRequirementId,
             attestationRevisionId,
@@ -152,7 +178,12 @@ internal class SubmissionRuntimeSqlFixture(
         )
         if (optionalRecord)
         {
-            insertRuntimeRequirement(optionalRequirementId, optionalRevisionId, optionalTemplateRequirementId, optionalBindingId)
+            insertRuntimeRequirement(
+                optionalRequirementId,
+                optionalRevisionId,
+                optionalTemplateRequirementId,
+                optionalBindingId
+            )
         }
         execute(
             connection,
@@ -217,8 +248,9 @@ internal class SubmissionRuntimeSqlFixture(
             """
             INSERT INTO information_request_evidence_version
                 (id, evidence_artifact_id, information_request_id, version_number, source_kind, document_version_id,
-                 created_at, created_by_principal_kind, created_by_principal_id, declared_file_name, declared_media_type)
-            VALUES (?, ?, ?, 1, 'DOCUMENT_VERSION', ?, ?, 'USER', ?, 'process-record.pdf', 'application/pdf')
+                 created_at, created_by_principal_kind, created_by_principal_id, declared_file_name, declared_media_type,
+                 expires_on)
+            VALUES (?, ?, ?, 1, 'DOCUMENT_VERSION', ?, ?, 'USER', ?, 'process-record.pdf', 'application/pdf', ?)
             """.trimIndent(),
             evidenceVersionId,
             artifactId,
@@ -226,6 +258,7 @@ internal class SubmissionRuntimeSqlFixture(
             documentVersionId,
             now,
             contributorUserId,
+            evidenceExpiresOn,
         )
         execute(
             connection,
@@ -534,7 +567,13 @@ internal class SubmissionRuntimeSqlFixture(
         )
     }
 
-    fun insertEvidenceMember(id: UUID, packageId: UUID, itemId: UUID, artifact: UUID = artifactId, version: UUID = evidenceVersionId)
+    fun insertEvidenceMember(
+        id: UUID,
+        packageId: UUID,
+        itemId: UUID,
+        artifact: UUID = artifactId,
+        version: UUID = evidenceVersionId
+    )
     {
         execute(
             connection,
@@ -598,10 +637,3 @@ internal class SubmissionRuntimeSqlFixture(
         )
     }
 }
-
-internal data class NextSubmissionVersion(
-    val versionId: UUID,
-    val sectionId: UUID,
-    val documentBindingId: UUID,
-    val attestationBindingId: UUID,
-)

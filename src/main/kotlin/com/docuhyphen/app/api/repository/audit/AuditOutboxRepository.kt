@@ -11,11 +11,6 @@ import java.sql.Timestamp
 @RequestScoped
 class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry::class.java)
 {
-    /**
-     * Looks up an existing outbox row by idempotency key. [AuditRecorder] uses this before
-     * inserting so a retried capture attempt for the same occurrence does not write a duplicate
-     * row; the `idempotency_key` unique constraint is the authoritative belt-and-braces guard.
-     */
     fun findByIdempotencyKey(idempotencyKey: String): AuditOutboxEntry?
     {
         return try
@@ -33,29 +28,8 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
         }
     }
 
-    /**
-     * Inserts [entry] in the caller's active transaction (no `REQUIRES_NEW`): it must commit or
-     * roll back atomically with the business mutation that produced it. Intentionally does not
-     * reuse [BaseRepository.save]'s own `@Transactional` semantics beyond the default `REQUIRED`
-     * propagation already provided there.
-     */
     fun insert(entry: AuditOutboxEntry): AuditOutboxEntry = save(entry)
 
-    /**
-     * Batch of the oldest [limit] not-yet-ledgered outbox rows by `recorded_at`, for
-     * [com.docuhyphen.app.api.service.audit.LedgerProcessor] to drain. `audit_outbox` rows are
-     * never mutated to mark them "processed" (append-only trigger denies it - see
-     * `V41__audit_outbox.sql`), so "already drained" is determined by a `NOT EXISTS` check against
-     * `audit_ledger_event` directly in this query rather than by an outbox status flag.
-     *
-     * This exclusion is load-bearing, not an optimization: without it, a batch of already-ledgered
-     * rows sitting at the head of the queue would permanently occupy
-     * every drain pass's fixed-size batch, starving every newer row behind them forever, since nothing
-     * ever advances a cursor/offset - each pass re-fetches the same unconditional "oldest N" rows.
-     * [com.docuhyphen.app.api.service.audit.LedgerProcessor.appendOne]'s own
-     * `existsByEventId` recheck stays in place as the authoritative concurrent-drain guard; this
-     * query's exclusion only needs to be good enough to keep a drain pass making forward progress.
-     */
     fun findOldestUnledgeredByRecordedAt(limit: Int): List<AuditOutboxEntry>
     {
         return entityManager.createQuery(
@@ -70,12 +44,12 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
 
     fun findForTargets(
         owner: AuditOwnerScope?,
-        targetType: String,
+        targetTypes: Set<String>,
         targetIds: Set<String>,
         query: AuditTargetQuery
     ): List<AuditOutboxEntry>
     {
-        val (clauses, parameters) = targetClauses(owner, targetType, targetIds, query)
+        val (clauses, parameters) = targetClauses(owner, targetTypes, targetIds, query)
         val order = if (query.newestFirst) "DESC" else "ASC"
         val typed = entityManager.createQuery(
             "SELECT a FROM AuditOutboxEntry a WHERE ${clauses.joinToString(" AND ")} ORDER BY a.occurredAt $order, a.recordedAt $order, a.eventId $order",
@@ -87,12 +61,12 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
 
     fun countForTargets(
         owner: AuditOwnerScope?,
-        targetType: String,
+        targetTypes: Set<String>,
         targetIds: Set<String>,
         query: AuditTargetQuery
     ): Long
     {
-        val (clauses, parameters) = targetClauses(owner, targetType, targetIds, query)
+        val (clauses, parameters) = targetClauses(owner, targetTypes, targetIds, query)
         val typed = entityManager.createQuery(
             "SELECT COUNT(a) FROM AuditOutboxEntry a WHERE ${clauses.joinToString(" AND ")}",
             Long::class.javaObjectType,
@@ -103,13 +77,14 @@ class AuditOutboxRepository : BaseRepository<AuditOutboxEntry>(AuditOutboxEntry:
 
     private fun targetClauses(
         owner: AuditOwnerScope?,
-        targetType: String,
+        targetTypes: Set<String>,
         targetIds: Set<String>,
         query: AuditTargetQuery,
     ): Pair<List<String>, Map<String, Any>>
     {
-        val clauses = mutableListOf("a.targetType = :targetType")
-        val parameters = mutableMapOf<String, Any>("targetType" to targetType)
+        require(targetTypes.isNotEmpty()) { "A target search names at least one target type" }
+        val clauses = mutableListOf("a.targetType IN :targetTypes")
+        val parameters = mutableMapOf<String, Any>("targetTypes" to targetTypes)
         when (owner)
         {
             null -> Unit

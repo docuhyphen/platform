@@ -1,32 +1,95 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateAttestationPolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredicateRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConfigurationRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateEvidencePolicyRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateGroupRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateRequirementRequest
-import com.docuhyphen.app.api.model.dto.InformationRequestTemplateSectionRequest
-import com.docuhyphen.app.api.model.entity.InformationRequestAttestationOrdering
-import com.docuhyphen.app.api.model.entity.InformationRequestAuthenticationStrength
-import com.docuhyphen.app.api.model.entity.InformationRequestContributorRole
-import com.docuhyphen.app.api.model.entity.InformationRequestExternalSignatureReferencePolicy
-import com.docuhyphen.app.api.model.entity.InformationRequestRequiredness
-import com.docuhyphen.app.api.model.entity.InformationRequestRequirementType
-import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionMode
-import com.docuhyphen.app.api.model.entity.InformationRequestSubmissionStageOrdering
-import com.docuhyphen.app.api.service.fields.FieldOperator
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
+import org.junit.jupiter.params.provider.ValueSource
+import java.util.*
 
 class InformationRequestTemplateSubmissionPolicyValidationTest
 {
     private val validator = InformationRequestTemplateConfigurationValidator()
+
+    @ParameterizedTest
+    @EnumSource(InformationRequestResponseMode::class)
+    fun `a subject identity cannot be nominated as a Requirement contributor`(mode: InformationRequestResponseMode) {
+        val requirement = document("supporting-record").copy(
+            contributorRole = InformationRequestContributorRole.SUBJECT,
+            responseMode = mode,
+            requiredness = InformationRequestRequiredness.OPTIONAL,
+        )
+
+        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(configuration(section("records", requirement)))
+        }
+
+        assertEquals("records", refusal.sectionKey)
+        assertEquals("supporting-record", refusal.requirementKey)
+        assertTrue(refusal.message.contains("SUBJECT"))
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = InformationRequestRequirementType::class, names = ["FIELD", "DOCUMENT"])
+    fun `the attestor role cannot answer a Requirement that asks for typed data or files`(type: InformationRequestRequirementType) {
+        val requirement = document("supporting-record").copy(
+            requirementType = type,
+            contributorRole = InformationRequestContributorRole.ATTESTOR,
+            evidencePolicy = InformationRequestTemplateEvidencePolicyRequest().takeIf { type == InformationRequestRequirementType.DOCUMENT },
+            collectedFieldDefinitionId = UUID.randomUUID().takeIf { type == InformationRequestRequirementType.FIELD },
+        )
+
+        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(configuration(section("records", requirement)))
+        }
+
+        assertEquals("records", refusal.sectionKey)
+        assertEquals("supporting-record", refusal.requirementKey)
+        assertTrue(refusal.message.contains("ATTESTOR"))
+    }
+
+    @Test
+    fun `the attestor role still answers a response attestation`() {
+        validator.normalize(configuration(section("confirmations", attestation("recorded-assertion"))))
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = [false, true])
+    fun `confirmation roles cannot include a subject identity even alongside acting roles`(mixed: Boolean) {
+        val roles = if (mixed)
+            listOf(InformationRequestContributorRole.ATTESTOR, InformationRequestContributorRole.SUBJECT)
+        else
+            listOf(InformationRequestContributorRole.SUBJECT)
+        val requirement = attestation("recorded-assertion").copy(
+            attestationPolicy = InformationRequestTemplateAttestationPolicyRequest(requiredRoles = roles),
+        )
+
+        val refusal = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(configuration(section("confirmations", requirement)))
+        }
+
+        assertEquals("confirmations", refusal.sectionKey)
+        assertEquals("recorded-assertion", refusal.requirementKey)
+        assertTrue(refusal.message.contains("SUBJECT"))
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = InformationRequestContributorRole::class, names = ["CONTRIBUTOR", "PREPARER"])
+    fun `answering roles can provide documents and confirm recorded information`(role: InformationRequestContributorRole) {
+        val normalized = validator.normalize(
+            configuration(
+                section("records", document("supporting-record").copy(contributorRole = role)),
+                section("confirmations", attestation("recorded-assertion").copy(contributorRole = role)),
+            )
+        )
+
+        assertEquals(role, normalized.sections.first().requirements.single().contributorRole)
+        assertEquals(listOf(role), normalized.sections.last().requirements.single().attestationPolicy!!.requiredRoles)
+    }
 
     @Test
     fun `a whole-package version names no stage and has no stage order`()
@@ -84,7 +147,7 @@ class InformationRequestTemplateSubmissionPolicyValidationTest
     }
 
     @Test
-    fun `a condition only reads answers its conditional requirement's stage cannot outlive`()
+    fun `a condition only reads answers from its own stage, whatever the stage order`()
     {
         val rule = InformationRequestTemplateConditionRuleRequest(
             ruleKey = "when-note-applies",
@@ -112,16 +175,29 @@ class InformationRequestTemplateSubmissionPolicyValidationTest
         }
         assertEquals("recorded-assertion", acrossAnyOrder.requirementKey)
 
-        val earlierSequential = validator.normalize(
+        val earlierSequential = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(
+                configuration(
+                    section("records", document("supporting-record"), stage = "record-stage"),
+                    section("confirmations", conditional, stage = "confirmation-stage"),
+                    mode = InformationRequestSubmissionMode.STAGED,
+                    ordering = InformationRequestSubmissionStageOrdering.SEQUENTIAL,
+                    rules = listOf(rule),
+                ),
+            )
+        }
+        assertEquals("recorded-assertion", earlierSequential.requirementKey)
+
+        val sameStage = validator.normalize(
             configuration(
-                section("records", document("supporting-record"), stage = "record-stage"),
-                section("confirmations", conditional, stage = "confirmation-stage"),
+                section("records", document("supporting-record"), conditional, stage = "record-stage"),
+                section("confirmations", attestation("closing-assertion"), stage = "confirmation-stage"),
                 mode = InformationRequestSubmissionMode.STAGED,
                 ordering = InformationRequestSubmissionStageOrdering.SEQUENTIAL,
                 rules = listOf(rule),
             ),
         )
-        assertEquals(2, earlierSequential.sections.size)
+        assertEquals(listOf("record-stage", "confirmation-stage"), sameStage.sections.map { it.submissionStageKey })
 
         assertThrows<InformationRequestTemplateValidationException> {
             validator.normalize(
@@ -168,6 +244,59 @@ class InformationRequestTemplateSubmissionPolicyValidationTest
             ),
         )
         assertEquals(setOf("record-stage"), sameStage.sections.mapNotNull { it.submissionStageKey }.toSet())
+    }
+
+    @Test
+    fun `a staged document is completed only by an alternative answered in its own stage`() {
+        val primary = document("supporting-record").copy(substituteRequirementKeys = listOf("alternate-record"))
+        val alternate = document("alternate-record").copy(requiredness = InformationRequestRequiredness.OPTIONAL)
+        val supported =
+            attestation("recorded-assertion").copy(supportingEvidenceRequirementKeys = listOf("alternate-record"))
+
+        val substitute = assertThrows<InformationRequestTemplateValidationException> {
+            validator.normalize(
+                configuration(
+                    section("records", primary, stage = "record-stage"),
+                    section("alternates", alternate, stage = "alternate-stage"),
+                    mode = InformationRequestSubmissionMode.STAGED,
+                ),
+            )
+        }
+        assertEquals("supporting-record", substitute.requirementKey)
+        assertTrue(substitute.message.contains("alternate-stage"), substitute.message)
+
+        val supportedAcross = validator.normalize(
+            configuration(
+                section("confirmations", supported, stage = "confirmation-stage"),
+                section("alternates", alternate, stage = "alternate-stage"),
+                mode = InformationRequestSubmissionMode.STAGED,
+            ),
+        )
+        assertEquals(
+            listOf("alternate-record"),
+            supportedAcross.sections.first().requirements.single().supportingEvidenceRequirementKeys,
+        )
+
+        val sameStage = validator.normalize(
+            configuration(
+                section("records", primary, supported, stage = "record-stage"),
+                section("alternates", alternate, stage = "record-stage"),
+                section("closing", attestation("closing-assertion"), stage = "closing-stage"),
+                mode = InformationRequestSubmissionMode.STAGED,
+            ),
+        )
+        assertEquals(
+            listOf("alternate-record"),
+            sameStage.sections.first().requirements.first().substituteRequirementKeys
+        )
+
+        val wholePackage = validator.normalize(
+            configuration(section("records", primary, supported), section("alternates", alternate)),
+        )
+        assertEquals(
+            listOf("alternate-record"),
+            wholePackage.sections.first().requirements.last().supportingEvidenceRequirementKeys,
+        )
     }
 
     @Test

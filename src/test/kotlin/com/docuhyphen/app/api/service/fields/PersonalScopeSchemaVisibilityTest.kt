@@ -1,25 +1,13 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.auth.authz.ScopeReference
+import com.docuhyphen.app.api.model.entity.FieldLifecycleStatus
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
-import com.docuhyphen.app.api.service.auth.authz.ScopeReference
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 
-/**
- * Which Schemas a resource may be governed by, now that a person can own one.
- *
- * The rule is a single question asked of two owners: the Schema's owner must be the resource's own
- * owner, or the platform, which publishes for everybody. Reading it as an organization question
- * instead turned every other ownership into a refusal, so a resource one person held could never be
- * given that person's own Schema no matter who owned it.
- *
- * Both directions are covered. A person's Schema must not reach an organization's resource any more
- * than an organization's Schema reaches a person's, because ownership is not a hierarchy: neither
- * owner is inside the other.
- */
 class PersonalScopeSchemaVisibilityTest
 {
     private val holder: UUID = UUID.randomUUID()
@@ -121,22 +109,29 @@ class PersonalScopeSchemaVisibilityTest
         assertNothingWasAssigned(organizationSchema)
     }
 
-    /**
-     * A refused assignment leaves nothing behind. The Schema is checked before anything is written,
-     * so a refusal is not a partial assignment that later reads would have to explain.
-     */
+    @Test
+    fun `another owner's retired Schema is refused as another owner's without describing its lifecycle`() {
+        val foreign = SchemaAssignmentFieldsFixture(
+            assigned = false,
+            rootSetExists = false,
+            schemaScope = ScopeReference.Organization(UUID.randomUUID()),
+            schemaStatus = FieldLifecycleStatus.RETIRED,
+        )
+
+        listOf({ foreign.assign() }, { foreign.assignForCreation() }).forEach { attempt ->
+            val refusal = assertThrows<FieldValidationException> { attempt() }.message.orEmpty()
+            assertTrue(refusal.contains("different owner"), refusal)
+            assertFalse(refusal.contains("retired"), refusal)
+        }
+        assertNothingWasAssigned(foreign)
+    }
+
     private fun assertNothingWasAssigned(fixture: SchemaAssignmentFieldsFixture)
     {
         assertEquals(emptyList<Any>(), fixture.savedAssignments)
         assertEquals(emptyList<Any>(), fixture.savedSets)
     }
 
-    /**
-     * @param resourceOwner null leaves the resource with the fixture's own organization as holder.
-     * @param schemaOwner null leaves the Schema owned by that same organization.
-     * @param ownerlessResource records no holder at all, which is what the adapter reports for a
-     *   resource whose ownership it cannot resolve.
-     */
     private fun fixture(
         resourceOwner: ScopeReference?,
         schemaOwner: ScopeReference?,

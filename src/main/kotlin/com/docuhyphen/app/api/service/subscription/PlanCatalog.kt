@@ -1,14 +1,9 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * The fixed, code-owned definition of every plan DocuHyphen sells.
- *
- * Plan defaults never change per tenant, so they live here rather than in the database.
- * Subscription status, purchased seat quantity, billing periods, and platform-admin feature
- * overrides are tenant state and are persisted instead.
- */
 object PlanCatalog
 {
+    const val POLICY_VERSION = "1"
+
     private const val MEBIBYTE = 1024L * 1024L
     private const val GIBIBYTE = 1024L * MEBIBYTE
 
@@ -34,15 +29,6 @@ object PlanCatalog
         upgradePlanCode = PlanCode.PERSONAL,
     )
 
-    /**
-     * Reminders are deliberately absent from this set.
-     *
-     * A reminder only exists as an addon on a step of a full workflow definition, so an
-     * individual could not be given reminders without also being given the ability to author
-     * workflows that run arbitrary actions, call out to external systems, and evaluate
-     * organization-scoped conditions. Until a reminder can be expressed on its own terms, an
-     * individual plan does not sell one.
-     */
     private val PERSONAL = PlanDefinition(
         planCode = PlanCode.PERSONAL,
         ownerType = SubscriptionOwnerType.USER,
@@ -80,7 +66,6 @@ object PlanCatalog
         features = PERSONAL.features + setOf(
             PlanFeature.BUSINESS_FIELDS_AND_SCHEMAS,
             PlanFeature.WORKFLOW_AUTOMATION,
-            // Reminders are step addons on a workflow, so they arrive with workflow authoring.
             PlanFeature.PERSONAL_REMINDERS,
             PlanFeature.ORGANIZATION_ADMINISTRATION,
             PlanFeature.AUDIT_GOVERNANCE,
@@ -107,10 +92,8 @@ object PlanCatalog
         PlanCode.BUSINESS to BUSINESS,
     )
 
-    /** Plan assigned to a newly registered individual account. */
     val DEFAULT_USER_PLAN: PlanCode = PlanCode.FREE
 
-    /** Plan assigned to an organization once it becomes active. */
     val DEFAULT_ORGANIZATION_PLAN: PlanCode = PlanCode.BUSINESS
 
     fun definitionOf(planCode: PlanCode): PlanDefinition
@@ -133,11 +116,6 @@ object PlanCatalog
         return definitionOf(planCode).ownerType == ownerType
     }
 
-    /**
-     * Validates that a plan may be assigned to the given kind of owner. Free and Personal are
-     * individual plans, Business is the organization plan, and mixing them is rejected here so
-     * the same rule applies to migrations, admin tooling, and provisioning code paths.
-     */
     fun requireAssignableTo(planCode: PlanCode, ownerType: SubscriptionOwnerType)
     {
         if (!isAssignableTo(planCode, ownerType))

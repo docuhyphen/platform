@@ -13,5 +13,6 @@ object InformationRequestParticipantAccountUpgradeDtoMapper
             linkedAt = upgrade.participantAccountLink.linkedAt,
             grantedShareId = upgrade.grantedShare.id,
             grantedRoleName = upgrade.grantedShare.roleName,
+            respondentKey = upgrade.accountRespondentKey,
         )
 }

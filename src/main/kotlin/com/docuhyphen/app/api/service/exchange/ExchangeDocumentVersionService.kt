@@ -3,9 +3,9 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.document.*
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.repository.exchange.DocumentVersionRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -14,6 +14,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.document.DocumentVersionRecordingService
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
+import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
@@ -24,7 +25,6 @@ import java.util.*
 @ApplicationScoped
 class ExchangeDocumentVersionService @Inject constructor(
     private val exchangeRepository: ExchangeRepository,
-    private val documentVersionRepository: DocumentVersionRepository,
     private val documentAuditService: ExchangeDocumentAuditService,
     private val authTokenContext: AuthTokenContext,
     private val authorizationService: AuthorizationService,
@@ -39,6 +39,9 @@ class ExchangeDocumentVersionService @Inject constructor(
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeDocumentVersionService::class.java)
+        private const val UPLOAD_REFUSAL = "Permission to upload document version not granted"
+        private const val VIEW_REFUSAL = "Permission to view document versions not granted"
+        private const val DOWNLOAD_REFUSAL = "Permission to download document version not granted"
     }
 
     @Transactional
@@ -49,10 +52,10 @@ class ExchangeDocumentVersionService @Inject constructor(
         encryptionMode: DocumentEncryptionMode?,
     ): DocumentVersionView
     {
-        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchangeUuid = UUID.fromString(exchangeId)
+        val creator = requireExchangePermission(exchangeUuid, Action.DOCUMENT_UPLOAD, UPLOAD_REFUSAL)
+        val exchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
-
-        val creator = validateUploadPermission(exchange)
         exchangeFeatureSubscriptionGuard.requireDocumentVersionHistory(exchange)
 
         val document = exchangeDocument(exchange, documentId)
@@ -65,16 +68,6 @@ class ExchangeDocumentVersionService @Inject constructor(
         return view(persistVersion(document, file, creator, encryptionMode ?: DocumentEncryptionMode.INTERNAL))
     }
 
-    /**
-     * Records a stored version snapshot for a document whose file has just been uploaded through
-     * the document upload flow. The upload flow has already validated permissions, so no
-     * additional authorization check is performed here. This keeps every uploaded file (including
-     * the very first one) visible in the document's version history.
-     *
-     * No commercial check runs here either. The snapshot belongs to the upload the caller has
-     * already been allowed to make, and dropping it would silently discard the only stored copy
-     * of that file.
-     */
     @Transactional
     fun recordUploadedFileAsVersion(
         document: Document,
@@ -120,27 +113,27 @@ class ExchangeDocumentVersionService @Inject constructor(
 
     fun getDocumentVersions(exchangeId: String, documentId: String): List<DocumentVersionView>
     {
-        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchangeUuid = UUID.fromString(exchangeId)
+        requireExchangePermission(exchangeUuid, Action.DOCUMENT_VIEW, VIEW_REFUSAL)
+        val exchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
-
-        validateViewPermission(exchange)
 
         val document = exchangeDocument(exchange, documentId)
 
-        return documentVersionRepository.findByDocumentId(document.id).map(::view)
+        return documentVersionRecordingService.versionsOf(document.id).map(::view)
     }
 
     fun getVersionContent(exchangeId: String, documentId: String, versionId: String): DocumentVersionContent
     {
-        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchangeUuid = UUID.fromString(exchangeId)
+        requireExchangePermission(exchangeUuid, Action.DOCUMENT_DOWNLOAD, DOWNLOAD_REFUSAL)
+        val exchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
-
-        validateDownloadPermission(exchange)
 
         val document = exchangeDocument(exchange, documentId)
 
-        val version = documentVersionRepository.findById(UUID.fromString(versionId))
-            ?.takeIf { it.document.id == document.id }
+        val version = documentVersionRecordingService.findVersion(UUID.fromString(versionId))
+            ?.takeIf { it.document?.id == document.id }
             ?: throw IllegalArgumentException("Version not found")
 
         recordVersionDownloadEvent(exchange, document.id, document.title, version.id)
@@ -150,14 +143,14 @@ class ExchangeDocumentVersionService @Inject constructor(
 
     fun getLatestVersion(exchangeId: String, documentId: String): DocumentVersionView?
     {
-        val exchange = exchangeRepository.findById(UUID.fromString(exchangeId))
+        val exchangeUuid = UUID.fromString(exchangeId)
+        requireExchangePermission(exchangeUuid, Action.DOCUMENT_VIEW, VIEW_REFUSAL)
+        val exchange = exchangeRepository.findById(exchangeUuid)
             ?: throw ExchangeNotFoundException("Exchange not found")
-
-        validateViewPermission(exchange)
 
         val document = exchangeDocument(exchange, documentId)
 
-        return documentVersionRepository.findLatestByDocumentId(document.id)?.let(::view)
+        return documentVersionRecordingService.latestVersionOf(document.id)?.let(::view)
     }
 
     private fun exchangeDocument(exchange: Exchange, documentId: String): Document =
@@ -171,80 +164,36 @@ class ExchangeDocumentVersionService @Inject constructor(
     {
         if (versionId == null)
         {
-            return documentVersionRepository.findLatestByDocumentId(documentId)
+            return documentVersionRecordingService.latestVersionOf(documentId)
         }
 
         val parsedVersionId = runCatching { UUID.fromString(versionId) }
             .getOrElse { throw IllegalArgumentException("Invalid document version identifier") }
-        val version = documentVersionRepository.findById(parsedVersionId)
+        val version = documentVersionRecordingService.findVersion(parsedVersionId)
             ?: throw IllegalArgumentException("Document version not found")
-        require(version.document.id == documentId) { "Document version does not belong to this document" }
+        require(version.document?.id == documentId) { "Document version does not belong to this document" }
         return version
     }
 
-    private fun validateUploadPermission(exchange: Exchange): PrincipalRef
+    private fun requireExchangePermission(exchangeId: UUID, action: Action, refusal: String): PrincipalRef
     {
         val appUser = authTokenContext.authToken.appUser
-            ?: throw IllegalArgumentException("Permission to upload document version not granted")
+            ?: throw ExchangeNotFoundException("Exchange not found")
         val principal = PrincipalRef.user(appUser.id)
+        val context = authorizationContextFactory.currentContext()
+        val exchange = ResourceRef.exchange(exchangeId)
 
-        val decision = authorizationService.authorize(
-            principal = principal,
-            action = Action.DOCUMENT_UPLOAD,
-            resource = ResourceRef.exchange(exchange.id),
-            context = authorizationContextFactory.currentContext(),
-        )
-
-        if (decision is Decision.Deny)
+        if (authorizationService.authorize(principal, action, exchange, context) is Decision.Allow)
         {
-            throw IllegalArgumentException("Permission to upload document version not granted")
+            return principal
         }
-
-        return principal
+        if (authorizationService.authorize(principal, Action.EXCHANGE_VIEW, exchange, context) is Decision.Allow)
+        {
+            throw ForbiddenException(refusal)
+        }
+        throw ExchangeNotFoundException("Exchange not found")
     }
 
-    private fun validateViewPermission(exchange: Exchange)
-    {
-        val appUser = authTokenContext.authToken.appUser
-            ?: throw IllegalArgumentException("Permission to view document versions not granted")
-
-        val decision = authorizationService.authorize(
-            principal = PrincipalRef.user(appUser.id),
-            action = Action.DOCUMENT_VIEW,
-            resource = ResourceRef.exchange(exchange.id),
-            context = authorizationContextFactory.currentContext(),
-        )
-
-        if (decision is Decision.Deny)
-        {
-            throw IllegalArgumentException("Permission to view document versions not granted")
-        }
-    }
-
-    private fun validateDownloadPermission(exchange: Exchange)
-    {
-        val appUser = authTokenContext.authToken.appUser
-            ?: throw IllegalArgumentException("Permission to download document version not granted")
-
-        val decision = authorizationService.authorize(
-            principal = PrincipalRef.user(appUser.id),
-            action = Action.DOCUMENT_DOWNLOAD,
-            resource = ResourceRef.exchange(exchange.id),
-            context = authorizationContextFactory.currentContext(),
-        )
-
-        if (decision is Decision.Deny)
-        {
-            throw IllegalArgumentException("Permission to download document version not granted")
-        }
-    }
-
-    /**
-     * Records historical-version downloads. Failures
-     * are caught and logged, never propagated, so audit plumbing can never break an actual
-     * version-file download - same catch-and-log style as
-     * [ExchangeDocumentAuditService.recordOnRecorder].
-     */
     private fun recordVersionDownloadEvent(
         exchange: Exchange,
         documentId: UUID,

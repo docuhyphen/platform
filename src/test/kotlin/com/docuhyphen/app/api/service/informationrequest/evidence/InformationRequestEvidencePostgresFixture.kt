@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 internal class InformationRequestEvidencePostgresFixture(
@@ -164,7 +164,7 @@ internal class InformationRequestEvidencePostgresFixture(
             connection,
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
             now,

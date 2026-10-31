@@ -3,11 +3,9 @@ package com.docuhyphen.app.api.service.exchange.permutation
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientAttestationService
-import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
-import com.docuhyphen.app.api.service.exchange.ExternalEmailAcceptancePolicyService
-import com.docuhyphen.app.api.service.exchange.ShareService
+import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.organization.*
+import jakarta.enterprise.inject.Instance
 import org.mockito.kotlin.*
 import java.util.*
 
@@ -68,6 +66,9 @@ internal class ExchangeRecipientDecisionFixture(
         validationService,
         externalEmailPolicyService,
         auditService,
+        mock<Instance<ExchangeRecipientReferenceHolder>>().also {
+            whenever(it.iterator()).thenAnswer { mutableListOf<ExchangeRecipientReferenceHolder>().iterator() }
+        },
     )
 
     init

@@ -48,6 +48,9 @@ data class AuditLegalHoldDto(
     val releasedAt: String? = null,
     val releaseReason: String? = null,
     val holdRevision: Long,
+    val organizationId: String? = null,
+    val placedByUserId: String? = null,
+    val releasedByUserId: String? = null,
 )
 
 @Serializable

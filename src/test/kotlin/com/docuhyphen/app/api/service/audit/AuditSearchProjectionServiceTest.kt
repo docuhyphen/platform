@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
@@ -17,6 +18,15 @@ import java.util.*
 
 class AuditSearchProjectionServiceTest
 {
+    @Test
+    fun `personal security search records its personal owner`() {
+        val caller = actor()
+        service().listPersonalSecurityEvents(caller, null, 50)
+        val drafts = argumentCaptor<AuditEventDraft>()
+        verify(auditRecorder).record(drafts.capture())
+        assertEquals(AuditOwnerScope.Personal(caller.principal.id), drafts.firstValue.owner)
+    }
+
     private val ledgerRepository: AuditLedgerEventRepository = mock()
     private val engagementService: AuditEngagementService = mock()
     private val exchangeRetrievalService: ExchangeRetrievalService = mock()
@@ -32,8 +42,8 @@ class AuditSearchProjectionServiceTest
     private fun actor(
         vararg capabilities: Capability,
         userId: UUID = UUID.randomUUID()
-    ): AuditSearchProjectionService.AuditAccessActor =
-        AuditSearchProjectionService.AuditAccessActor(
+    ): AuditAccessActor =
+        AuditAccessActor(
             principal = PrincipalRef.user(userId),
             context = AuthorizationContext(mfaSatisfied = true),
             capabilities = capabilities.toSet(),

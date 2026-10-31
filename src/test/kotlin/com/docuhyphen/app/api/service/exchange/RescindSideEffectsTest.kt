@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
@@ -14,20 +15,6 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Rescind side effects and document-parent path validation.
- *
- * Rules verified:
- *  - An authorized rescind invokes shareService.revokeAllForResource (shares revoked after auth).
- *  - An authorized rescind with running workflow instances invokes workflowEngineService.cancel
- *    for each instance (workflows cancelled after auth).
- *  - A denied rescind produces NO share revocation and NO workflow cancellation.
- *  - Rescinding a ENDED exchange throws IllegalArgumentException after auth passes; side effects
- *    do not occur (authorization does not imply side effects when business rules block the action).
- *  - Rescinding a REJECTED exchange throws IllegalArgumentException after auth passes.
- *  - A document that belongs to Exchange A is denied when accessed via Exchange B's path, even
- *    when both IDs exist (document-parent path mismatch denial).
- */
 class RescindSideEffectsTest
 {
     private val exchangeId: UUID = UUID.randomUUID()
@@ -113,11 +100,8 @@ class RescindSideEffectsTest
         documentThumbnailService = mock(),
         requestParentLifecycle = mock(),
         requestCompletion = mock(),
+        endingIntents = mock(),
     )
-
-    // -------------------------------------------------------------------------
-    // Authorized rescind side effects
-    // -------------------------------------------------------------------------
 
     @Test
     fun `rescindExchange - authorized - revokes all shares on the exchange`()
@@ -168,10 +152,6 @@ class RescindSideEffectsTest
         verify(workflowEngineService).cancel(instanceId, "Exchange rescinded")
     }
 
-    // -------------------------------------------------------------------------
-    // Denied rescind: no side effects
-    // -------------------------------------------------------------------------
-
     @Test
     fun `rescindExchange - denied - does not revoke shares`()
     {
@@ -183,7 +163,7 @@ class RescindSideEffectsTest
         val shareService = mock<ShareService>()
 
         val svc = makeService(
-            authSvc = makeAuthService(),
+            authSvc = makeAuthService(Action.EXCHANGE_VIEW),
             exchangeRepo = repo,
             shareService = shareService,
         )
@@ -192,10 +172,6 @@ class RescindSideEffectsTest
 
         verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
     }
-
-    // -------------------------------------------------------------------------
-    // Terminal-status exchanges: auth passes but business rules block side effects
-    // -------------------------------------------------------------------------
 
     @Test
     fun `rescindExchange ENDED - throws IllegalArgumentException after auth passes`()
@@ -238,8 +214,6 @@ class RescindSideEffectsTest
 
         verify(shareService, never()).revokeAllForResource(any(), any(), anyOrNull(), anyOrNull())
     }
-
-    // Audit capture failure behavior during rescind operations.
 
     @Test
     fun `rescindExchange - audit capture fails closed - propagates and does not revoke shares or cancel workflows`()
@@ -300,10 +274,6 @@ class RescindSideEffectsTest
 
         verify(shareService).revokeAllForResource(ResourceType.EXCHANGE, exchangeId)
     }
-
-    // -------------------------------------------------------------------------
-    // Document-parent path validation
-    // -------------------------------------------------------------------------
 
     @Test
     fun `downloadDocument - document belonging to different exchange throws ExchangeDocumentNotFoundException`()

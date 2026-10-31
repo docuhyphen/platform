@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.content
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest

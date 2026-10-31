@@ -32,7 +32,11 @@ data class InformationRequestLineageViewDto(
     val source: InformationRequestLineageDto? = null,
     val successors: List<InformationRequestLineageDto> = emptyList(),
     val recurrence: InformationRequestRecurrenceDto? = null,
+    val series: InformationRequestRecurrenceDto? = null,
     @Serializable(with = TimestampSerializer::class) val nextOccurrenceDueAt: Timestamp? = null,
+    val everyOccurrenceCreated: Boolean = false,
+    val nextOccurrenceCreatable: Boolean = false,
+    val refreshRules: List<InformationRequestRefreshRuleDto> = emptyList(),
 )
 
 @Serializable
@@ -75,4 +79,7 @@ data class InformationRequestRefreshRuleDto(
     val requirementKey: String,
     val leadDays: Int,
     @Serializable(with = TimestampSerializer::class) val createdAt: Timestamp,
+    val refreshDueOn: String? = null,
+    val refreshDue: Boolean = false,
+    val refreshed: Boolean = false,
 )

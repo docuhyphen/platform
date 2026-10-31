@@ -7,13 +7,13 @@ import com.docuhyphen.app.api.resource.informationrequest.InformationRequestComm
 import com.docuhyphen.app.api.resource.informationrequest.externalsource.operations.InformationRequestDiscrepancyResolutionResourceOperations
 import com.docuhyphen.app.api.resource.model.ResolveInformationRequestDiscrepancyRequest
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
-import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueService
+import com.docuhyphen.app.api.service.informationrequest.externalsource.InformationRequestImportedValueReconciliationService
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
 class InformationRequestDiscrepancyResolutionResource @Inject constructor(
-    private val importedValues: InformationRequestImportedValueService,
+    private val importedValueReconciliation: InformationRequestImportedValueReconciliationService,
     private val accessContextFactory: InformationRequestAccessContextFactory,
 ) : InformationRequestDiscrepancyResolutionResourceOperations
 {
@@ -32,7 +32,7 @@ class InformationRequestDiscrepancyResolutionResource @Inject constructor(
                 request ?: throw InformationRequestCommandRequestException("A resolution states its outcome and reason")
             val key = InformationRequestCommandHttp.idempotencyKey(idempotencyKey)
             val access = accessContextFactory.currentAuthenticated()
-            val view = importedValues.resolve(
+            val view = importedValueReconciliation.resolve(
                 ResolveInformationRequestDiscrepancyCommand(
                     requestId,
                     discrepancy,

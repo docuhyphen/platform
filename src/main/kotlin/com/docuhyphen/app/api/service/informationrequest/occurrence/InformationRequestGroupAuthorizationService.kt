@@ -1,10 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.occurrence
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.InformationRequest
+import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
+import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementPolicyEvaluator
@@ -17,32 +20,93 @@ import java.util.*
 class InformationRequestGroupAuthorizationService @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val requirementRepository: InformationRequestRequirementRepository,
+    private val occurrenceRepository: InformationRequestGroupOccurrenceRepository,
     private val contextProvider: InformationRequestRequirementAuthorizationContextProvider,
     private val requirementPolicyEvaluator: InformationRequestRequirementPolicyEvaluator,
 )
 {
-    fun authorizeOccurrenceScope(
-        access: RequestAccessContext,
-        requestId: UUID,
-        occurrencePaths: Set<String>,
-    )
-    {
-        if (occurrencePaths.isEmpty()) return
-        requirementRepository.findForRequest(requestId)
-            .filter { it.occurrencePath in occurrencePaths }
-            .forEach { requirement -> authorizeAgainstRequirement(access, requirement.id) }
-    }
-
-    fun authorizeMaterializedBindings(
+    fun authorizeGroupCreation(
         access: RequestAccessContext,
         request: InformationRequest,
-        bindings: Collection<InformationRequestTemplateRequirementBinding>,
+        materializedBindings: Collection<InformationRequestTemplateRequirementBinding>,
+        groupBindings: Collection<InformationRequestTemplateRequirementBinding>,
+    ) {
+        val scope = materializedBindings.ifEmpty { groupBindings }.distinctBy { it.id }
+        if (scope.isEmpty()) throw changeRefused()
+        scope.forEach { binding -> authorizeAgainstAuthoredBinding(access, request, binding) }
+    }
+
+    fun authorizeGroupChange(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        groupBindings: Collection<InformationRequestTemplateRequirementBinding>,
+    ) {
+        val authored = groupBindings.distinctBy { it.id }
+        if (authored.isEmpty()) throw changeRefused()
+        authored.forEach { binding -> authorizeAgainstAuthoredBinding(access, request, binding) }
+    }
+
+    fun permitsGroupCreation(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        materializedBindings: Collection<InformationRequestTemplateRequirementBinding>,
+        groupBindings: Collection<InformationRequestTemplateRequirementBinding>,
+    ): Boolean = try {
+        authorizeGroupCreation(access, request, materializedBindings, groupBindings)
+        true
+    } catch (_: ForbiddenException) {
+        false
+    }
+
+    fun authorizeOccurrenceChange(
+        access: RequestAccessContext,
+        request: InformationRequest,
+        occurrencePaths: Set<String>,
+        groupBindings: Collection<InformationRequestTemplateRequirementBinding>,
     )
     {
-        bindings.distinctBy { it.id }.forEach { binding ->
-            authorizeAgainstAuthoredBinding(access, request, binding)
+        val held = activeRequirements(request.id).filter { requirement ->
+            occurrencePaths.any { InformationRequestOccurrencePath.isWithin(requirement.occurrencePath, it) }
+        }
+        val authored = groupBindings.distinctBy { it.id }
+        if (held.isEmpty() && authored.isEmpty()) throw changeRefused()
+        held.forEach { requirement -> authorizeAgainstRequirement(access, requirement.id) }
+        authored.forEach { binding -> authorizeAgainstAuthoredBinding(access, request, binding) }
+    }
+
+    fun visibleOccurrences(
+        access: RequestAccessContext,
+        requestId: UUID,
+        occurrences: List<InformationRequestGroupOccurrence>,
+    ): List<InformationRequestGroupOccurrence>
+    {
+        if (occurrences.isEmpty()) return occurrences
+        val held = activeRequirements(requestId).filter { requirement ->
+            occurrences.any { InformationRequestOccurrencePath.isWithin(requirement.occurrencePath, it.occurrencePath) }
+        }
+        val disclosedPaths = held.filter { mayRead(access, it.id) }.map { it.occurrencePath }
+        return occurrences.filter { occurrence ->
+            val within = { path: String -> InformationRequestOccurrencePath.isWithin(path, occurrence.occurrencePath) }
+            disclosedPaths.any(within) || held.none { within(it.occurrencePath) }
         }
     }
+
+    private fun activeRequirements(requestId: UUID) =
+        occurrenceRepository.findForRequest(requestId).map { it.occurrencePath }.toSet().let { activePaths ->
+            requirementRepository.findForRequest(requestId).filter { requirement ->
+                InformationRequestOccurrencePath.isActiveOccurrence(requirement.occurrencePath, activePaths)
+            }
+        }
+
+    private fun mayRead(access: RequestAccessContext, requirementId: UUID): Boolean =
+        READ_ACTIONS.any { action ->
+            authorizationService.authorize(
+                access.principal,
+                action,
+                ResourceRef.informationRequestRequirement(requirementId),
+                access.authorization,
+            ) !is Decision.Deny
+        }
 
     private fun authorizeAgainstRequirement(access: RequestAccessContext, requirementId: UUID)
     {
@@ -52,10 +116,7 @@ class InformationRequestGroupAuthorizationService @Inject constructor(
             ResourceRef.informationRequestRequirement(requirementId),
             access.authorization,
         )
-        if (decision is Decision.Deny)
-        {
-            throw ForbiddenException("Access denied to change this Information Request group occurrence")
-        }
+        if (decision is Decision.Deny) throw changeRefused()
     }
 
     private fun authorizeAgainstAuthoredBinding(
@@ -64,8 +125,7 @@ class InformationRequestGroupAuthorizationService @Inject constructor(
         binding: InformationRequestTemplateRequirementBinding,
     )
     {
-        val context = contextProvider.authoredContextFor(request, binding)
-            ?: throw ForbiddenException("Access denied to change Information Request group occurrences")
+        val context = contextProvider.authoredContextFor(request, binding) ?: throw changeRefused()
         val facts = context.policyFacts as InformationRequestRequirementPolicyFacts
         val outcome = requirementPolicyEvaluator.evaluate(
             ResourcePolicyRequest(
@@ -77,9 +137,14 @@ class InformationRequestGroupAuthorizationService @Inject constructor(
                 authorizationContext = access.authorization,
             ),
         )
-        if (outcome !is ResourcePolicyOutcome.Permit)
-        {
-            throw ForbiddenException("Access denied to change Information Request group occurrences")
-        }
+        if (outcome !is ResourcePolicyOutcome.Permit) throw changeRefused()
+    }
+
+    private fun changeRefused() = ForbiddenException(CHANGE_REFUSAL)
+
+    companion object {
+        private val READ_ACTIONS =
+            listOf(Action.INFORMATION_REQUEST_REQUIREMENT_VIEW, Action.INFORMATION_REQUEST_REQUIREMENT_RESPOND)
+        const val CHANGE_REFUSAL = "Access denied to change Information Request group occurrences"
     }
 }

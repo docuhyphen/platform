@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.migration
 
 import org.junit.jupiter.api.Test
 import java.sql.Connection
-import java.util.UUID
+import java.util.*
 
 class InformationRequestOutboundNoticeContractTest
 {
@@ -48,8 +48,13 @@ class InformationRequestOutboundNoticeContractTest
             }
             val noticeId = UUID.randomUUID()
             notices.insertNotice(noticeId, intentId)
-            refusedBy(connection, "ux_information_request_outbound_notice_intent") {
+            refusedBy(connection, "ux_information_request_outbound_notice_intent_recipient") {
                 notices.insertNotice(UUID.randomUUID(), intentId)
+            }
+            val member = UUID.randomUUID()
+            notices.insertNotice(UUID.randomUUID(), intentId, recipient = member)
+            refusedBy(connection, "ux_information_request_outbound_notice_intent_recipient") {
+                notices.insertNotice(UUID.randomUUID(), intentId, recipient = member)
             }
             refusedBy(connection, "information request history is append-only") {
                 execute(connection, "UPDATE information_request_outbound_notice SET rendered_body = 'changed' WHERE id = ?", noticeId)
@@ -86,6 +91,32 @@ class InformationRequestOutboundNoticeContractTest
             }
             refusedBy(connection, "information request history is append-only") {
                 execute(connection, "UPDATE information_request_notice_delivery_attempt SET outcome = 'FAILED' WHERE outbound_notice_id = ?", noticeId)
+            }
+        }
+    }
+
+    @Test
+    fun `a failed render is numbered once per intent, names its failure, and is never rewritten`() {
+        withNotices { connection, notices ->
+            val intentId = UUID.randomUUID()
+            notices.insertClockIntent(intentId, "RESPONSE_REMINDER", notices.clockEventId)
+            val failureId = UUID.randomUUID()
+            notices.renderFailure(failureId, intentId, 1, "RENDER_FAILED")
+            refusedBy(connection, "ux_information_request_notice_render_failure_attempt") {
+                notices.renderFailure(UUID.randomUUID(), intentId, 1, "RENDER_FAILED")
+            }
+            refusedBy(connection, "ck_information_request_notice_render_failure_attempt") {
+                notices.renderFailure(UUID.randomUUID(), intentId, 0, "RENDER_FAILED")
+            }
+            refusedBy(connection, "ck_information_request_notice_render_failure_code") {
+                notices.renderFailure(UUID.randomUUID(), intentId, 2, " ")
+            }
+            refusedBy(connection, "information request history is append-only") {
+                execute(
+                    connection,
+                    "UPDATE information_request_notice_render_failure SET failure_code = 'OTHER' WHERE id = ?",
+                    failureId
+                )
             }
         }
     }
@@ -181,21 +212,25 @@ internal class NoticeSqlFixture(
         endpointState: String = "RESOLVED",
         sourceKind: String = "PLATFORM_DEFAULT",
         renderedHash: String = "a".repeat(64),
+        recipient: UUID? = null,
     )
     {
         execute(
             connection,
             """
             INSERT INTO information_request_outbound_notice
-                (id, notice_intent_id, information_request_id, party_id, channel, recipient_endpoint, endpoint_state,
+                (id, notice_intent_id, information_request_id, party_id, recipient_principal_kind, recipient_principal_id,
+                 channel, recipient_endpoint, endpoint_state,
                  rendered_subject, rendered_body, content_hash_algorithm, rendered_content_hash, source_kind,
                  source_communication_id, source_content_hash, idempotency_key, rendered_at)
-            VALUES (?, ?, ?, ?, 'EMAIL', ?, ?, 'Subject', 'Body', 'SHA_256', ?, ?, NULL, ?, ?, now())
+            VALUES (?, ?, ?, ?, ?, ?, 'EMAIL', ?, ?, 'Subject', 'Body', 'SHA_256', ?, ?, NULL, ?, ?, now())
             """.trimIndent(),
             id,
             intentId,
             clocks.runtime.requestId,
             clocks.runtime.contributorPartyId,
+            recipient?.let { "USER" },
+            recipient,
             endpoint,
             endpointState,
             renderedHash,
@@ -218,6 +253,22 @@ internal class NoticeSqlFixture(
             key,
             value,
             "N-$value",
+        )
+    }
+
+    fun renderFailure(id: UUID, intentId: UUID, number: Int, code: String) {
+        execute(
+            connection,
+            """
+            INSERT INTO information_request_notice_render_failure
+                (id, notice_intent_id, information_request_id, attempt_number, failure_code, failed_at)
+            VALUES (?, ?, ?, ?, ?, now())
+            """.trimIndent(),
+            id,
+            intentId,
+            clocks.runtime.requestId,
+            number,
+            code,
         )
     }
 

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
@@ -34,8 +35,22 @@ data class InformationRequestSummaryPermissionsDto(
 )
 
 @Serializable
+data class InformationRequestOwnerDto(
+    val ownerType: InformationRequestOwnerType,
+    @Serializable(with = UUIDSerializer::class) val ownerOrganizationId: UUID? = null,
+    @Serializable(with = UUIDSerializer::class) val ownerUserId: UUID? = null,
+)
+
+@Serializable
+data class InformationRequestAssignedWorkDto(
+    val request: InformationRequestSummaryDto,
+    val exchangeName: String? = null,
+)
+
+@Serializable
 data class InformationRequestExchangeListingDto(
     val requests: List<InformationRequestSummaryDto>,
     val canCreate: Boolean,
     val creationUnavailableReason: InformationRequestStandingReason? = null,
+    val creationOwner: InformationRequestOwnerDto? = null,
 )

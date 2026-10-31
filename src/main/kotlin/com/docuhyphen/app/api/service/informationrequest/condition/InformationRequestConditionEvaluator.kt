@@ -4,11 +4,11 @@ import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionPredi
 import com.docuhyphen.app.api.model.dto.InformationRequestTemplateConditionRuleRequest
 import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseDisposition
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
+import com.docuhyphen.app.api.model.fields.FieldOperator
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.service.fields.CanonicalDateTime
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
-import com.docuhyphen.app.api.service.fields.FieldOperator
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
 import jakarta.enterprise.context.ApplicationScoped
 import kotlinx.serialization.json.JsonArray

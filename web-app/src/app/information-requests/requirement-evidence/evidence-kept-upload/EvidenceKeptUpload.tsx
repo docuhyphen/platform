@@ -7,11 +7,12 @@ interface Props
     id: string;
     fileName: string;
     busy: boolean;
+    canRetry: boolean;
     onRetry: () => void;
     onDiscard: () => void;
 }
 
-const EvidenceKeptUpload = ({id, fileName, busy, onRetry, onDiscard}: Props) =>
+const EvidenceKeptUpload = ({id, fileName, busy, canRetry, onRetry, onDiscard}: Props) =>
 {
     const styles = useEvidenceKeptUploadStyles();
 
@@ -30,7 +31,7 @@ const EvidenceKeptUpload = ({id, fileName, busy, onRetry, onDiscard}: Props) =>
                     size={"small"}
                     icon={<ArrowClockwiseRegular/>}
                     aria-label={`Retry uploading ${fileName}`}
-                    disabled={busy}
+                    disabled={busy || !canRetry}
                     onClick={onRetry}>
                 Retry
             </Button>

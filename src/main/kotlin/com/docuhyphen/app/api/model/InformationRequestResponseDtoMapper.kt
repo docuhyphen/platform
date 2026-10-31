@@ -4,9 +4,19 @@ import com.docuhyphen.app.api.model.dto.InformationRequestResponseDto
 import com.docuhyphen.app.api.model.dto.SchemaAssignmentDto
 import com.docuhyphen.app.api.model.entity.InformationRequestRequirement
 import com.docuhyphen.app.api.model.entity.InformationRequestResponse
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponseDraftResult
 
 object InformationRequestResponseDtoMapper
 {
+    fun toDtos(result: InformationRequestResponseDraftResult): List<InformationRequestResponseDto> =
+        result.responses.map { response ->
+            toDto(
+                response,
+                result.requirementsById.getValue(response.informationRequestRequirementId),
+                result.fieldValueProjectionsByRequirementId[response.informationRequestRequirementId],
+            )
+        }
+
     fun toDto(
         response: InformationRequestResponse,
         requirement: InformationRequestRequirement,

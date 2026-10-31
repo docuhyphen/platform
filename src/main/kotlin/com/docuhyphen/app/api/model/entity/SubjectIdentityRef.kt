@@ -8,10 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Stable, opaque identity for what an Information Request concerns. Mutable names, contact details,
- * and external identifiers are deliberately stored outside this primary identity.
- */
 @Entity
 @Serializable
 @Table(name = "subject_identity_ref")
@@ -34,6 +30,7 @@ class SubjectIdentityRef
     var ownerUserId: UUID? = null
 
     @Column(name = "owner_id", insertable = false, updatable = false)
+    @org.hibernate.annotations.Generated(event = [org.hibernate.generator.EventType.INSERT])
     @Serializable(with = UUIDSerializer::class)
     lateinit var ownerId: UUID
 

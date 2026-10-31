@@ -2,31 +2,18 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.FieldDataClassification
 import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
+import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.util.UUID
+import java.util.*
 
-/**
- * What a caller may do with one question of an assigned Schema is decided by the resource that owns
- * it, through one policy that both the projection and the save consult.
- *
- * One policy rather than two matters more than it first appears. A projection that hid a question
- * for one reason while a save refused it for another would eventually disagree, and the shape of
- * that disagreement is either a question a caller can see but not answer with no explanation, or a
- * question a caller can answer without ever having been shown it. Asking the same policy for both
- * makes the two answers the same answer.
- *
- * It is also where a resource whose access narrows over time says so. An Exchange has no such
- * narrowing, so its policy is the shared audience and configuration rules and nothing more.
- */
 class FieldBindingPolicyTest
 {
     private val author = PrincipalRef.user(UUID.randomUUID())
 
-    /** A policy that closes one question outright, as a resource with its own scope rule would. */
     private class ClosedBinding(private val contractId: () -> UUID) : FieldBindingPolicy
     {
         override fun decide(request: FieldBindingAccess): FieldBindingDecision =
@@ -36,7 +23,6 @@ class FieldBindingPolicyTest
                 FieldBindingDecision.Allow
     }
 
-    /** A policy that shows one question but refuses every attempt to change it. */
     private class ReadOnlyBinding(private val contractId: () -> UUID) : FieldBindingPolicy
     {
         override fun decide(request: FieldBindingAccess): FieldBindingDecision = when
@@ -111,8 +97,6 @@ class FieldBindingPolicyTest
 
         assertEquals("Answer to an open question", allowed.rootAnswer(allowed.noteContractId)?.textValue)
     }
-
-    // ── The rules every resource shares ───────────────────────────────────────
 
     @Test
     fun `the shared rules keep an outside caller to the questions classified for everyone`()

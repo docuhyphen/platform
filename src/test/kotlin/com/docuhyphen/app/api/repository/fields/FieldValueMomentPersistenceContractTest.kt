@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.repository.fields
 
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueType
+import com.docuhyphen.app.api.model.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.service.fields.CanonicalDateTime
-import com.docuhyphen.app.api.service.fields.CanonicalFieldValue
 import com.docuhyphen.app.api.service.fields.CanonicalValueCodec
 import io.quarkus.narayana.jta.QuarkusTransaction
 import io.quarkus.test.common.QuarkusTestResource
@@ -17,7 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import javax.sql.DataSource
 
 private class FieldValueMomentPostgreSQLContainer(imageName: String) :
@@ -49,11 +49,6 @@ class FieldValueMomentPostgreSQLResource : QuarkusTestResourceLifecycleManager
     }
 }
 
-/**
- * A date-time answer travels through the mapped entity, not only through the codec. This proves the
- * moment a responder submitted survives the round trip to PostgreSQL and back, that the offset they
- * submitted comes back with it, and that a reading which carried no offset stays that way.
- */
 @QuarkusTest
 @QuarkusTestResource(FieldValueMomentPostgreSQLResource::class, restrictToAnnotatedClass = true)
 class FieldValueMomentPersistenceContractTest
@@ -137,7 +132,6 @@ class FieldValueMomentPersistenceContractTest
         )
     }
 
-    /** Each answer gets its own assignment because one value per set and contract is an invariant. */
     private fun store(canonical: CanonicalFieldValue): UUID
     {
         val resourceId = UUID.randomUUID()

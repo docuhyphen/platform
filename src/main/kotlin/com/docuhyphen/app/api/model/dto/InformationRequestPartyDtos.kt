@@ -8,12 +8,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-/**
- * One request-scoped party as shown to one caller. [principalId], [principalKind],
- * [subjectIdentityRefId], and [exchangeRecipientId] are only populated for the caller's own party
- * row or for a caller holding party-management capability; every other caller sees a party's role
- * and status without learning who holds it.
- */
 @Serializable
 data class InformationRequestPartyDto(
     @Serializable(with = UUIDSerializer::class) val id: UUID,
@@ -30,4 +24,6 @@ data class InformationRequestPartyDto(
     val partyETag: String,
     val label: String? = null,
     val trustSuspended: Boolean = false,
+    val accountLinked: Boolean = false,
+    val processingRestricted: Boolean = false,
 )

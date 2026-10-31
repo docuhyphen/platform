@@ -2,6 +2,7 @@ import {describe, expect, it} from "vitest";
 import {FieldOperator, FieldValueType, SchemaFieldBindingDto} from "../../../../models/models.tsx";
 import {
     defaultConditionFor,
+    literalForOperator,
     operatorIsMultiValue,
     operatorNeedsValue,
     operatorsForType,
@@ -69,6 +70,13 @@ describe("applicabilityOperators", () =>
         expect(operatorIsMultiValue(FieldOperator.IN)).toBe(true);
         expect(operatorIsMultiValue(FieldOperator.NOT_IN)).toBe(true);
         expect(operatorIsMultiValue(FieldOperator.EQUALS)).toBe(false);
+    });
+
+    it("keeps the literal a newly chosen operator can use", () => {
+        expect(literalForOperator(FieldOperator.IS_EMPTY, "alpha")).toBeUndefined();
+        expect(literalForOperator(FieldOperator.IN, "alpha")).toEqual([]);
+        expect(literalForOperator(FieldOperator.NOT_IN, ["alpha", 2])).toEqual(["alpha", "2"]);
+        expect(literalForOperator(FieldOperator.EQUALS, "alpha")).toBe("alpha");
     });
 
     it("defaultConditionFor uses the field's first supported operator and no value", () =>

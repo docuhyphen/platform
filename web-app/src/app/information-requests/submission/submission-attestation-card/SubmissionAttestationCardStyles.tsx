@@ -20,9 +20,4 @@ export const useSubmissionAttestationCardStyles = makeStyles({
     detail: {
         color: tokens.colorNeutralForeground3,
     },
-    actions: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        flexWrap: "wrap",
-    },
 });

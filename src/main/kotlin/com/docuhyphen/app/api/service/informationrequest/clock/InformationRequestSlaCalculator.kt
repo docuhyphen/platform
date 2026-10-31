@@ -16,6 +16,7 @@ object InformationRequestSlaCalculator
         InformationRequestSlaStatus.ON_TRACK,
         InformationRequestSlaStatus.MET,
     )
+    private val PAUSE_EVENTS = setOf(InformationRequestClockEventKind.PAUSED, InformationRequestClockEventKind.RESUMED)
 
     fun standing(clocks: List<InformationRequestSlaClock>, now: Instant): InformationRequestSlaStanding
     {
@@ -24,7 +25,7 @@ object InformationRequestSlaCalculator
             status = clocks.map { statusOf(it, now) }.minBy(URGENCY::indexOf),
             nearestDueAt = clocks.filter { it.clock.state == InformationRequestClockState.RUNNING }
                 .minOfOrNull { it.clock.dueAt.toInstant() },
-            reminderCount = clocks.sumOf { input -> input.events.count { it.eventKind == InformationRequestClockEventKind.REMINDED } },
+            reminderCount = clocks.sumOf { input -> input.events.count { it.eventKind == InformationRequestClockEventKind.REMINDED && it.reasonCode != "REMINDER_SUPERSEDED" } },
             openEscalationCount = clocks.filter { it.clock.state != InformationRequestClockState.STOPPED }
                 .sumOf { input ->
                     input.events.count { it.eventKind == InformationRequestClockEventKind.ESCALATED && it.dueCycle == input.clock.dueCycle }
@@ -38,9 +39,12 @@ object InformationRequestSlaCalculator
         val due = clock.dueAt.toInstant()
         return when (clock.state)
         {
-            InformationRequestClockState.STOPPED ->
-                if (requireNotNull(clock.stoppedAt).toInstant().isAfter(due)) InformationRequestSlaStatus.OVERDUE
-                else InformationRequestSlaStatus.MET
+            InformationRequestClockState.STOPPED -> when {
+                clock.overdueAt != null -> InformationRequestSlaStatus.OVERDUE
+                stoppedWhilePaused(input) -> InformationRequestSlaStatus.MET
+                requireNotNull(clock.stoppedAt).toInstant().isAfter(due) -> InformationRequestSlaStatus.OVERDUE
+                else -> InformationRequestSlaStatus.MET
+            }
 
             InformationRequestClockState.PAUSED ->
                 if (clock.overdueAt != null) InformationRequestSlaStatus.OVERDUE else InformationRequestSlaStatus.PAUSED
@@ -53,4 +57,10 @@ object InformationRequestSlaCalculator
             }
         }
     }
+
+    private fun stoppedWhilePaused(input: InformationRequestSlaClock): Boolean =
+        input.events
+            .filter { it.eventKind in PAUSE_EVENTS }
+            .maxByOrNull { it.eventNumber }
+            ?.eventKind == InformationRequestClockEventKind.PAUSED
 }

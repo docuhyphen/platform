@@ -33,6 +33,15 @@ export const scopeStandingNotice = (capabilities: InformationRequestCapabilities
                 + "You can still respond to and review Information Requests shared with you, and everything recorded stays readable.",
         };
     }
+    if (capabilities.newWorkUnavailableReason === InformationRequestStandingReason.OPEN_REQUEST_LIMIT_REACHED) {
+        const {openRequests, maxOpenRequests} = capabilities.quotas;
+        return {
+            intent: "info",
+            text: `${organization ? "This organization has" : "You have"} ${openRequests} of ${organization ? "its" : "your"} `
+                + `${maxOpenRequests ?? openRequests} open Information Requests. A new request can be created once one is finished `
+                + "or cancelled. Templates can still be created and edited.",
+        };
+    }
     const reason = capabilities.newWorkUnavailableReason ? lapseSentence[capabilities.newWorkUnavailableReason] : undefined;
     return {
         intent: "warning",

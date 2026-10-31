@@ -15,10 +15,9 @@ enum class InformationRequestHealthIndicatorKey
 data class InformationRequestHealthIndicator(
     val key: InformationRequestHealthIndicatorKey,
     val count: Long,
-    val threshold: Long,
 )
 {
-    val breached: Boolean get() = count > threshold
+    val breached: Boolean get() = count > 0
 }
 
 data class InformationRequestHealthReport(
@@ -28,10 +27,3 @@ data class InformationRequestHealthReport(
 {
     val healthy: Boolean get() = indicators.none { it.breached }
 }
-
-data class InformationRequestHealthWindows(
-    val noticeIntentMinutes: Long,
-    val disposalClaimHours: Long,
-    val eventBacklogMinutes: Long,
-    val connectorFailureHours: Long,
-)

@@ -1,20 +1,22 @@
 import apiClient from "./apiClient.ts";
 import {PlatformApiError} from "./platformOrganizationApi.ts";
 import {
+    PlatformUserFeatureEntitlements,
+    PlatformUserFeatureEntitlementsRequest,
     PlatformUserSubscriptionPolicy,
     PlatformUserSubscriptionPolicyList,
     PlatformUserSubscriptionPolicyRequest,
 } from "./types/platformUserSubscriptions.ts";
 import {
-    PlatformSubscriptionTrialExtensionRequest,
     PlatformSubscriptionTrialEndRequest,
+    PlatformSubscriptionTrialExtensionRequest,
     PlatformSubscriptionTrialResponse,
     PlatformSubscriptionTrialTransitionResponse,
     PlatformUserTrialConversionRequest,
     PlatformUserTrialStartRequest,
 } from "./types/platformSubscriptionTrials.ts";
 
-const execute = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
+const execute = async <T>(request: () => Promise<{ data: T }>): Promise<T> =>
 {
     try
     {
@@ -22,7 +24,7 @@ const execute = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        const value = error as {message?: string; response?: {status?: number; data?: {errorMessage?: string}}};
+        const value = error as { message?: string; response?: { status?: number; data?: { errorMessage?: string } } };
         throw {
             status: value.response?.status,
             errorMessage: value.response?.data?.errorMessage || value.message || "Request failed",
@@ -44,6 +46,20 @@ export const updatePlatformUserSubscription = (
     request: PlatformUserSubscriptionPolicyRequest,
 ): Promise<PlatformUserSubscriptionPolicy> => execute(() => apiClient.patch(
     `/platform/users/${appUserId}/subscription-policy`,
+    request,
+));
+
+export const fetchPlatformUserFeatureEntitlements = (
+    appUserId: string,
+): Promise<PlatformUserFeatureEntitlements> => execute(() => apiClient.get(
+    `/platform/users/${appUserId}/feature-entitlements`,
+));
+
+export const updatePlatformUserFeatureEntitlements = (
+    appUserId: string,
+    request: PlatformUserFeatureEntitlementsRequest,
+): Promise<PlatformUserFeatureEntitlements> => execute(() => apiClient.put(
+    `/platform/users/${appUserId}/feature-entitlements`,
     request,
 ));
 

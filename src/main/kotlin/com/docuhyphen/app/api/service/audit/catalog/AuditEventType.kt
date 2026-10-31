@@ -1,20 +1,7 @@
 package com.docuhyphen.app.api.service.audit.catalog
 
-/**
- * Canonical, versioned catalog of audit event types.
- *
- * Every entry has a stable, namespaced [key] (e.g. `auth.sign_in.completion`,
- * `document.download`) that is safe to persist, index, and rely on across releases. The enum
- * constant name mirrors the authentication action string emitted by [AuthAuditService]
- * or [DocumentAuditAction] so capture sites can be mapped onto the catalog without
- * guessing, but the [key] is what gets persisted and read going forward.
- *
- * This catalog contains the event types emitted by authentication, document, administration,
- * Exchange, and governance services. Owning services use these stable keys when recording events.
- */
 enum class AuditEventType(val key: String, val category: AuditCategory)
 {
-    // Authentication / session lifecycle.
     REQUEST_AUTH("auth.session.request_auth", AuditCategory.AUTHENTICATION),
     SIGN_IN_INITIATE("auth.sign_in.initiate", AuditCategory.AUTHENTICATION),
     SIGN_IN_LOOKUP("auth.sign_in.lookup", AuditCategory.AUTHENTICATION),
@@ -35,7 +22,6 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     DIRECTORY_LOOKUP("auth.directory.lookup", AuditCategory.AUTHENTICATION),
     RECIPIENT_RESOLVE("auth.recipient.resolve", AuditCategory.AUTHENTICATION),
 
-    // Administration.
     ADMIN_APPROVAL_INITIATE("admin.approval.initiate", AuditCategory.ADMINISTRATION),
     ADMIN_APPROVAL_APPROVE("admin.approval.approve", AuditCategory.ADMINISTRATION),
     APP_ADMIN_CANDIDATE_SEARCH("admin.app_admin.candidate_search", AuditCategory.ADMINISTRATION),
@@ -44,10 +30,8 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     APP_ADMIN_OPERATION_DENIED("admin.app_admin.operation_denied", AuditCategory.ADMINISTRATION),
     APP_ADMIN_REVOKE("admin.app_admin.revoke", AuditCategory.ADMINISTRATION),
 
-    // Security.
     SECURITY_INCIDENT("security.incident.raised", AuditCategory.SECURITY),
 
-    // Organization.
     ORG_UPDATE("organization.update", AuditCategory.ORGANIZATION),
     ORG_APP_USER_ADD("organization.app_user.add", AuditCategory.ORGANIZATION),
     ORG_APP_USER_UPDATE("organization.app_user.update", AuditCategory.ORGANIZATION),
@@ -160,21 +144,16 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     SHARE_REVOKE("authorization.share.revoke", AuditCategory.AUTHORIZATION),
     AUTHORIZATION_DENIED("authorization.decision.denied", AuditCategory.AUTHORIZATION),
 
-    // Additional Exchange lifecycle transitions beyond EXCHANGE_RESCINDED.
     EXCHANGE_ACCEPTED("exchange.lifecycle.accepted", AuditCategory.EXCHANGE),
     EXCHANGE_REJECTED("exchange.lifecycle.rejected", AuditCategory.EXCHANGE),
     EXCHANGE_ENDED("exchange.lifecycle.ended", AuditCategory.EXCHANGE),
     EXCHANGE_DELETED("exchange.lifecycle.deleted", AuditCategory.EXCHANGE),
 
-    // Workflow definition mutations with the highest audit value: create, update, and
-    // delete/publish; instance start/step decisions already flow through
-    // WorkflowEngineService.recordDecision's own concerns and are deferred, see handoff).
     WORKFLOW_DEFINITION_CREATE("workflow.definition.create", AuditCategory.WORKFLOW),
     WORKFLOW_DEFINITION_UPDATE("workflow.definition.update", AuditCategory.WORKFLOW),
     WORKFLOW_DEFINITION_DELETE("workflow.definition.delete", AuditCategory.WORKFLOW),
     WORKFLOW_DEFINITION_PUBLISH("workflow.definition.publish", AuditCategory.WORKFLOW),
 
-    // Field and schema mutations.
     FIELD_DEFINITION_CREATE("field_schema.field_definition.create", AuditCategory.FIELD_SCHEMA),
     FIELD_DEFINITION_RETIRE("field_schema.field_definition.retire", AuditCategory.FIELD_SCHEMA),
     SCHEMA_DEFINITION_CREATE("field_schema.schema_definition.create", AuditCategory.FIELD_SCHEMA),
@@ -184,7 +163,6 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     SCHEMA_ASSIGNMENT_UNASSIGN("field_schema.schema_assignment.unassign", AuditCategory.FIELD_SCHEMA),
     FIELD_VALUE_UPDATE("field_schema.field_value.update", AuditCategory.FIELD_SCHEMA),
 
-    // Reusable, versioned configuration for what a request for information asks for.
     INFORMATION_REQUEST_TEMPLATE_CREATE(
         "information_request.template.create", AuditCategory.INFORMATION_REQUEST,
     ),
@@ -201,9 +179,6 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
         "information_request.template.retire", AuditCategory.INFORMATION_REQUEST,
     ),
 
-    // Runtime request lifecycle. Namespaced under "information_request.request" so the
-    // transactional-event idempotency namespace derived from the leading key segment
-    // ("information_request") never collides with a Workflow event's "workflow" segment.
     INFORMATION_REQUEST_CREATE(
         "information_request.request.create", AuditCategory.INFORMATION_REQUEST,
     ),
@@ -230,6 +205,45 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ),
     INFORMATION_REQUEST_PARTY_ASSIGN("information_request.party.assign", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_PARTY_REVOKE("information_request.party.revoke", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_DELEGATED_AUTHORITY_GRANT(
+        "information_request.delegated_authority.grant",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_DELEGATED_AUTHORITY_REVOKE(
+        "information_request.delegated_authority.revoke",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_ACCESS_LINK_ISSUE("information_request.access_link.issue", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_ACCESS_LINK_ROTATE("information_request.access_link.rotate", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_ACCESS_LINK_REPLACE(
+        "information_request.access_link.replace",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_ACCESS_LINK_REVOKE("information_request.access_link.revoke", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_ACCESS_SESSION_REVOKE(
+        "information_request.access_session.revoke",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_ACCESS_SESSION_ISSUE(
+        "information_request.access_session.issue",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_ACCESS_SESSION_STEP_UP(
+        "information_request.access_session.step_up",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_CONTACT_CHALLENGE_ISSUE(
+        "information_request.contact_challenge.issue",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_CONTACT_CHALLENGE_REFUSE(
+        "information_request.contact_challenge.refuse",
+        AuditCategory.INFORMATION_REQUEST
+    ),
+    INFORMATION_REQUEST_PARTICIPANT_ACCOUNT_LINK(
+        "information_request.participant_account.link",
+        AuditCategory.INFORMATION_REQUEST
+    ),
     INFORMATION_REQUEST_REMIND("information_request.request.remind", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_CLOSE(
         "information_request.request.close", AuditCategory.INFORMATION_REQUEST,
@@ -244,7 +258,6 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
         "information_request.request.follow_up", AuditCategory.INFORMATION_REQUEST,
     ),
 
-    // Runtime Requirement occurrence actions.
     INFORMATION_REQUEST_REQUIREMENT_RESPOND(
         "information_request.requirement.respond", AuditCategory.INFORMATION_REQUEST,
     ),
@@ -299,11 +312,29 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     INFORMATION_REQUEST_EXTERNAL_SOURCE_REQUEST(
         "information_request.external.request", AuditCategory.INFORMATION_REQUEST,
     ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_ATTEMPT(
+        "information_request.external.attempt", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_RETRY(
+        "information_request.external.retry", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_PENDING(
+        "information_request.external.pending", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_COMPLETE(
+        "information_request.external.complete", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_SOURCE_FAIL(
+        "information_request.external.fail", AuditCategory.INFORMATION_REQUEST,
+    ),
     INFORMATION_REQUEST_EXTERNAL_VALUE_RECORD(
         "information_request.external.record", AuditCategory.INFORMATION_REQUEST,
     ),
     INFORMATION_REQUEST_EXTERNAL_VALUE_DECIDE(
         "information_request.external.decide", AuditCategory.INFORMATION_REQUEST,
+    ),
+    INFORMATION_REQUEST_EXTERNAL_VALUES_RECONCILE(
+        "information_request.external_value.reconciled", AuditCategory.INFORMATION_REQUEST,
     ),
     INFORMATION_REQUEST_GENERATED_OUTPUT_RECORD(
         "information_request.output.record", AuditCategory.INFORMATION_REQUEST,
@@ -329,13 +360,16 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     ),
     INFORMATION_REQUEST_NOTICE_RENDER("information_request.notice.render", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_NOTICE_DELIVER("information_request.notice.deliver", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_NOTICE_READ("information_request.notice.read", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_PRIVACY_RECORD("information_request.privacy.record", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_PRIVACY_COMPLETE("information_request.privacy.complete", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_PRIVACY_REFUSE("information_request.privacy.refuse", AuditCategory.INFORMATION_REQUEST),
+    INFORMATION_REQUEST_PRIVACY_RESTRICTION_LIFT(
+        "information_request.privacy.restriction_lift", AuditCategory.INFORMATION_REQUEST,
+    ),
     INFORMATION_REQUEST_ITEM_CORRECT("information_request.item.correct", AuditCategory.INFORMATION_REQUEST),
     INFORMATION_REQUEST_EXPORT_READ("information_request.request.export_read", AuditCategory.INFORMATION_REQUEST),
 
-    // Organization membership and role changes.
     ORG_MEMBERSHIP_ROLE_ASSIGN("organization.membership.role_assign", AuditCategory.ORGANIZATION),
     ORG_MEMBERSHIP_ROLE_REMOVE("organization.membership.role_remove", AuditCategory.ORGANIZATION),
     ORG_MEMBERSHIP_REMOVE("organization.membership.remove", AuditCategory.ORGANIZATION),
@@ -373,18 +407,14 @@ enum class AuditEventType(val key: String, val category: AuditCategory)
     RECORD_DISPOSAL_DENIED("record.disposal.denied", AuditCategory.AUDIT_GOVERNANCE),
     RECORD_DISPOSAL_OBJECT_DELETED("record.disposal.object_deleted", AuditCategory.AUDIT_GOVERNANCE),
     RECORD_DISPOSAL_FINALIZED("record.disposal.finalized", AuditCategory.AUDIT_GOVERNANCE),
+    RECORD_DISPOSAL_ATTEMPT_FAILED("record.disposal.attempt_failed", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_IDENTITY_KEY_SHREDDED("audit.identity_key.shredded", AuditCategory.AUDIT_GOVERNANCE),
     AUDIT_ANALYTICS_RECONCILED("audit.analytics.reconciled", AuditCategory.AUDIT_GOVERNANCE),
     ;
 
     companion object
     {
-        /**
-         * Bumped whenever event types are added, removed, or reinterpreted so downstream
-         * consumers (ledger, exports, projections) can reason about which catalog shape produced
-         * a given event.
-         */
-        const val CATALOG_VERSION: Int = 30
+        const val CATALOG_VERSION: Int = 37
 
         private val byKey: Map<String, AuditEventType> = entries.associateBy { it.key }
 

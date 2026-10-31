@@ -7,19 +7,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-/**
- * One recorded change to a [FieldValue], kept beside the live answer so history is never rewritten.
- * [revisionNumber] counts within [fieldValueSetId] and [fieldContractId], so a repetition of a group
- * numbers its own answers independently of the root set's.
- *
- * The answer, its set, and its assignment are held as identities rather than as associations: a
- * revision outlives all three, because removing a Schema Assignment removes the live answer while
- * what was answered remains part of the record.
- *
- * [isCleared] distinguishes a revision that emptied the answer from one that stored a value, so
- * clearing an answer is recorded rather than erased. Chosen option codes for a select-typed answer
- * live in [FieldValueRevisionSelection].
- */
 @Entity
 @Table(name = "field_value_revision")
 class FieldValueRevision
@@ -81,7 +68,6 @@ class FieldValueRevision
     @Column(name = "recorded_by_principal_id", nullable = true)
     var recordedByPrincipalId: UUID? = null
 
-    /** Non-secret reference to the access session the change was made in, never the credential. */
     @Column(name = "recorded_by_session_ref", nullable = true, length = 64)
     var recordedBySessionRef: String? = null
 

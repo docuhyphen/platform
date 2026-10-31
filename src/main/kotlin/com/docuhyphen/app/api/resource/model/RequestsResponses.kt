@@ -1,8 +1,8 @@
 ﻿package com.docuhyphen.app.api.resource.model
 
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.serializer.UUIDSerializer
-import com.docuhyphen.app.api.service.fields.FieldValueEntry
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.util.*
@@ -14,11 +14,6 @@ data class ResponseError(
     var retryAfterSeconds: Long? = null,
 )
 
-/**
- * Public "Speak to Sales" enquiry submitted from the marketing site. The [website] field is a
- * honeypot: it is hidden from real users and must stay empty. Any submission that fills it is
- * treated as automated spam and silently discarded.
- */
 @Serializable
 data class SalesEnquiryRequest(
     val firstName: String? = null,
@@ -135,7 +130,6 @@ data class ApplicationTokenResponse(
 data class SetupPasswordRequest(
     val password: String? = null,
     val confirmationPassword: String? = null,
-    /** Required only when the account already has a password, so a change proves knowledge of it. */
     val currentPassword: String? = null,
 )
 
@@ -177,7 +171,6 @@ data class SignUpRegenerationRequest(var email: String? = null)
 @Serializable
 data class SignUpRegenerationResponse(var message: String? = null)
 
-/** Request body for POST /auth/sign-up/email-confirm,  the opaque-token completion path. */
 @Serializable
 data class SignUpEmailConfirmRequest(
     val token: String? = null,
@@ -185,11 +178,9 @@ data class SignUpEmailConfirmRequest(
     val confirmationPassword: String? = null
 )
 
-/** Response from POST /auth/sign-up/email-confirm. */
 @Serializable
 data class SignUpEmailConfirmResponse(var message: String? = null)
 
-/** Response from GET /auth/sign-up/email-confirm/{token},  token introspection (no consumption). */
 @Serializable
 data class SignUpEmailConfirmCheckResponse(var email: String? = null)
 
@@ -242,13 +233,11 @@ data class UpdateOrganizationRequest(
     var registrationNumber: String? = null
 )
 
-/** POST /admin/roles/app-admins, promote a user to App Admin. */
 @Serializable
 data class GrantAppAdminRequest(
     var appUserId: String? = null,
 )
 
-/** A single App Admin in the GET /admin/roles/app-admins listing. */
 @Serializable
 data class AppAdminDto(
     val assignmentId: String,
@@ -260,10 +249,6 @@ data class AppAdminDto(
     val grantedAt: String? = null,
 )
 
-/**
- * An app-user search hit, returned by `GET /admin/users/search?q=…`. Used by the
- * App Admins picker since app-admin is a global role and isn't constrained to the caller's org.
- */
 @Serializable
 data class AppUserSearchResultDto(
     val id: String,
@@ -330,7 +315,8 @@ data class ExchangeInitiationDto(
     var schemaDefinitionId: String? = null,
     var fieldValues: List<FieldValueEntry>? = null,
     var schemaAssignmentSource: SchemaAssignmentSource? = null,
-    //ToDo: add accepted by, rejected by, ended by
+    @Serializable(with = UUIDSerializer::class)
+    var blueprintDefinitionId: UUID? = null,
 )
 
 @Serializable
@@ -739,7 +725,6 @@ data class UserSessionDto(
     val revokedAt: String? = null,
     val revocationReasonCode: String? = null,
     val isActive: Boolean = true,
-    /** True for the session that issued the access token used to make the current request. */
     val isCurrent: Boolean = false,
 )
 
@@ -759,7 +744,6 @@ data class OrgMemberCapacityResponse(
     val nearCap: Boolean,
 )
 
-/** Grant access on a exchange to a principal (manage-access write API). */
 @Serializable
 data class GrantSessionShareRequest(
     val principalKind: String,
@@ -769,7 +753,6 @@ data class GrantSessionShareRequest(
     val expiresAtEpochMillis: Long? = null,
 )
 
-/** Invite a verified Trusted Organization person or published group as an additional participant. */
 @Serializable
 data class InviteTrustedParticipantRequest(
     val selection: ExchangeRecipientSelectionRequest,
@@ -778,18 +761,12 @@ data class InviteTrustedParticipantRequest(
     val expiresAtEpochMillis: Long? = null,
 )
 
-/** Change the role on an existing session share. */
 @Serializable
 data class UpdateSessionShareRoleRequest(
     val roleName: ExchangeShareRoleName,
     val constraintsJson: String? = null,
 )
 
-/**
- * Replace the pending primary recipient of an Exchange with a freshly resolved selection. Used by
- * the Exchange owner to recover an invitation whose trusted verification, membership, relationship,
- * or policy is no longer valid.
- */
 @Serializable
 data class ReplacePrimaryRecipientRequest(
     val selection: ExchangeRecipientSelectionRequest,

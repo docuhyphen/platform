@@ -1,14 +1,21 @@
 package com.docuhyphen.app.api.service.informationrequest.response
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.fields.FieldConstraints
+import com.docuhyphen.app.api.model.fields.FieldOperator
+import com.docuhyphen.app.api.model.fields.FieldValueReadCommand
+import com.docuhyphen.app.api.model.fields.FieldValueSetRef
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationProjection
 import com.docuhyphen.app.api.model.informationrequest.condition.InformationRequestConditionEvaluationState
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStanding
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestExecutionStandingKind
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
-import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestNoAuthAccess
+import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot
+import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestWorkspacePurpose
+import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestResponseEditLock
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRequirementRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestSupportingEvidenceLinkRepository
 import com.docuhyphen.app.api.repository.informationrequest.occurrence.InformationRequestGroupOccurrenceRepository
@@ -19,18 +26,26 @@ import com.docuhyphen.app.api.repository.informationrequest.template.Information
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestNoAuthRequestResource
 import com.docuhyphen.app.api.resource.informationrequest.InformationRequestResource
 import com.docuhyphen.app.api.service.auth.authz.*
-import com.docuhyphen.app.api.service.fields.*
+import com.docuhyphen.app.api.service.exchange.ExchangeLifecycleStateService
+import com.docuhyphen.app.api.service.fields.SchemaAssignmentService
+import com.docuhyphen.app.api.service.informationrequest.InformationRequestHeaderProjectionService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestTitleReader
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
+import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAuthorActionService
 import com.docuhyphen.app.api.service.informationrequest.condition.InformationRequestConditionEvaluationService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceDeploymentPolicy
+import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceQueryService
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestSupportingEvidenceLinkService
+import com.docuhyphen.app.api.service.informationrequest.execution.ExecutionStandingTestDoubles
 import com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionStandingService
-import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthReadAccessService
+import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestFirstViewService
+import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestNoAuthAccessDoubles
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestGroupAuthorizationService
 import com.docuhyphen.app.api.service.informationrequest.occurrence.InformationRequestOccurrencePath
+import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestSubmissionLockService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestTemplateProjectionLoader
+import io.quarkus.security.ForbiddenException
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -112,6 +127,65 @@ class InformationRequestResponseWorkspaceServiceTest
     }
 
     @Test
+    fun `each answer carries the lock its submission places on it and an open answer carries none`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.lockService.editLocks(eq(fixture.request.id), any())).thenAnswer {
+            val asked = it.getArgument<Collection<UUID>>(1)
+            assertTrue(fixture.visible.id in asked) { "the locks are read for the answers shown" }
+            mapOf(fixture.visible.id to InformationRequestResponseEditLock.NOT_RETURNED_FOR_CORRECTION)
+        }
+
+        val result = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertEquals(
+            InformationRequestResponseEditLock.NOT_RETURNED_FOR_CORRECTION,
+            result.responses.single { it.informationRequestRequirementId == fixture.visible.id }.editLock,
+        )
+        assertTrue(
+            result.responses.filter { it.informationRequestRequirementId != fixture.visible.id }
+                .all { it.editLock == null },
+        )
+    }
+
+    @Test
+    fun `a Document answer carries how many files are attached to it and other answers carry no count`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(
+            fixture.evidenceQueries.attachedFileCounts(
+                eq(fixture.request.id),
+                any(),
+                eq(fixture.access)
+            )
+        ).thenAnswer {
+            it.getArgument<Collection<UUID>>(1).associateWith { 2 }
+        }
+
+        val fieldOnly = fixture.service.load(fixture.request.id, fixture.access)
+        assertNull(fieldOnly.responses.single { it.informationRequestRequirementId == fixture.visible.id }.evidenceFileCount)
+
+        fixture.updateTemplate { version ->
+            version.copy(sections = version.sections.map { section ->
+                section.copy(requirements = section.requirements.map { requirement ->
+                    if (requirement.id == fixture.visible.sourceTemplateBindingId)
+                        requirement.copy(
+                            requirementType = InformationRequestRequirementType.DOCUMENT,
+                            collectedFieldDefinitionId = null
+                        )
+                    else requirement
+                })
+            })
+        }
+        val withDocument = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertEquals(
+            2,
+            withDocument.responses.single { it.informationRequestRequirementId == fixture.visible.id }.evidenceFileCount
+        )
+    }
+
+    @Test
     fun `the workspace states whether this deployment accepts evidence uploads and scans them for malware`()
     {
         val fixture = Fixture()
@@ -131,6 +205,25 @@ class InformationRequestResponseWorkspaceServiceTest
     }
 
     @Test
+    fun `a management read is refused to a caller who does not manage the request and never records a first view`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+
+        fixture.managesRequest(false)
+        assertThrows(ForbiddenException::class.java) {
+            fixture.service.load(fixture.request.id, fixture.access, InformationRequestWorkspacePurpose.MANAGEMENT)
+        }
+        fixture.managesRequest(true)
+        val managed =
+            fixture.service.load(fixture.request.id, fixture.access, InformationRequestWorkspacePurpose.MANAGEMENT)
+        verify(fixture.firstViews, never()).recordIfFirst(any(), any())
+        fixture.service.load(fixture.request.id, fixture.access)
+
+        assertEquals(fixture.request.id, managed.request.id)
+        verify(fixture.firstViews).recordIfFirst(fixture.request.id, fixture.access)
+    }
+
+    @Test
     fun `the workspace states why changes are paused only to a caller who manages the request`()
     {
         val fixture = Fixture()
@@ -145,7 +238,7 @@ class InformationRequestResponseWorkspaceServiceTest
         whenever(
             fixture.authorization.authorize(
                 fixture.access.principal,
-                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 ResourceRef.informationRequest(fixture.request.id),
                 fixture.access.authorization,
             ),
@@ -154,7 +247,7 @@ class InformationRequestResponseWorkspaceServiceTest
         whenever(
             fixture.authorization.authorize(
                 fixture.access.principal,
-                Action.INFORMATION_REQUEST_MANAGE_PARTIES,
+                Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
                 ResourceRef.informationRequest(fixture.request.id),
                 fixture.access.authorization,
             ),
@@ -168,6 +261,84 @@ class InformationRequestResponseWorkspaceServiceTest
     }
 
     @Test
+    fun `both access surfaces disclose owner identifiers only to a caller who manages the request and the Template identifiers to every reader`() {
+        val fixture = Fixture()
+        fixture.request.ownerOrganizationId = UUID.randomUUID()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+
+        fixture.managesRequest(false)
+        val participantHeaders = fixture.loadRequests() + fixture.loadWorkspaces().map { it.request }
+        val participantTemplates = fixture.loadWorkspaces().map { it.templateVersion }
+        fixture.managesRequest(true)
+        val managerHeaders = fixture.loadRequests() + fixture.loadWorkspaces().map { it.request }
+        val managerTemplates = fixture.loadWorkspaces().map { it.templateVersion }
+
+        assertEquals(4, participantHeaders.size)
+        participantHeaders.forEach {
+            assertEquals(null, it.ownerOrganizationId)
+            assertEquals(null, it.ownerUserId)
+            assertEquals(fixture.request.templateVersionId, it.templateVersionId)
+            assertEquals(fixture.request.ownerType, it.ownerType)
+        }
+        managerHeaders.forEach {
+            assertEquals(fixture.request.ownerOrganizationId, it.ownerOrganizationId)
+            assertEquals(fixture.request.templateVersionId, it.templateVersionId)
+        }
+        assertEquals(
+            managerTemplates.map { it.id to it.templateDefinitionId },
+            participantTemplates.map { it.id to it.templateDefinitionId })
+        participantTemplates.forEach { assertEquals(fixture.request.templateVersionId, it.id) }
+    }
+
+    @Test
+    fun `a participant's workspace leaves out the Template's reuse purpose and content hash that managers see`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        val version = requireNotNull(fixture.versions.findById(fixture.request.templateVersionId))
+        val authored = fixture.templates.loadVersion(version)
+        whenever(fixture.templates.loadVersion(version)).thenReturn(
+            authored.copy(contentHashSha256 = "a".repeat(64), factReusePurposeKey = "reuse.records"),
+        )
+
+        fixture.managesRequest(false)
+        val participant = fixture.loadWorkspaces().map { it.templateVersion }
+        fixture.managesRequest(true)
+        val manager = fixture.loadWorkspaces().map { it.templateVersion }
+
+        participant.forEach {
+            assertEquals(null, it.contentHashSha256)
+            assertEquals(null, it.factReusePurposeKey)
+            assertEquals(null, it.schemaVersionId)
+        }
+        manager.forEach {
+            assertEquals("a".repeat(64), it.contentHashSha256)
+            assertEquals("reuse.records", it.factReusePurposeKey)
+        }
+    }
+
+    @Test
+    fun `the workspace offers a supplemental request only to a caller who may ask for one`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.authorization.authorize(any(), any(), any(), any()))
+            .thenReturn(Decision.Deny(Decision.REASON_NO_GRANT, "not granted"))
+        val respondent = fixture.service.load(fixture.request.id, fixture.access)
+
+        whenever(
+            fixture.authorization.authorize(
+                fixture.access.principal,
+                Action.INFORMATION_REQUEST_REQUEST_SUPPLEMENT,
+                ResourceRef.informationRequest(fixture.request.id),
+                fixture.access.authorization,
+            ),
+        ).thenReturn(Decision.Allow())
+        val requester = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertFalse(respondent.canRequestSupplement)
+        assertTrue(requester.canRequestSupplement)
+    }
+
+    @Test
     fun `both workspace surfaces carry the request's title`()
     {
         val fixture = Fixture()
@@ -175,6 +346,22 @@ class InformationRequestResponseWorkspaceServiceTest
         whenever(fixture.titleReader.titleOf(fixture.request)).thenReturn("Periodic records request")
 
         fixture.loadWorkspaces().forEach { assertEquals("Periodic records request", it.title) }
+    }
+
+    @Test
+    fun `both workspace surfaces name the respondent they were read for, and another respondent gets another key`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        val account = RequestAccessContext(PrincipalRef.user(UUID.randomUUID()), AuthorizationContext.ANONYMOUS)
+        whenever(fixture.query.findById(fixture.request.id, account)).thenReturn(fixture.request)
+
+        val keys = fixture.loadWorkspaces().map { it.respondentKey }
+        val accountKey = fixture.service.load(fixture.request.id, account).respondentKey
+
+        assertTrue(keys.all { it.isNotBlank() })
+        assertEquals(listOf(InformationRequestRespondentKey.of(fixture.access.principal)), keys.distinct())
+        assertEquals(InformationRequestRespondentKey.of(account.principal), accountKey)
+        assertNotEquals(keys.first(), accountKey)
     }
 
     @Test
@@ -240,6 +427,50 @@ class InformationRequestResponseWorkspaceServiceTest
     }
 
     @Test
+    fun `protected requirements the caller could see after verifying again are counted but not disclosed`() {
+        val fixture = Fixture()
+        fixture.requireRecentVerificationFor(fixture.hidden)
+        fixture.conditionHolds(InformationRequestConditionEvaluationState.TRUE)
+        val verifiedAccess = fixture.access.copy(authorization = AuthorizationContext(mfaSatisfied = true))
+        whenever(fixture.query.findById(fixture.request.id, verifiedAccess)).thenReturn(fixture.request)
+
+        val locked = fixture.service.load(fixture.request.id, fixture.access)
+        val verified = fixture.service.load(fixture.request.id, verifiedAccess)
+
+        assertEquals(1, locked.requirementsAwaitingStepUp)
+        assertEquals(listOf(fixture.visible.id), locked.responses.map { it.informationRequestRequirementId })
+        assertEquals(
+            listOf("item-${fixture.visible.id}"),
+            locked.templateVersion.sections.flatMap { it.requirements }.map { it.requirementKey })
+        assertEquals(0, verified.requirementsAwaitingStepUp)
+        assertEquals(
+            setOf(fixture.hidden.id, fixture.visible.id),
+            verified.responses.map { it.informationRequestRequirementId }.toSet()
+        )
+    }
+
+    @Test
+    fun `requirements that are inactive or denied for other reasons are not counted as awaiting verification`() {
+        val fixture = Fixture()
+        fixture.requireRecentVerificationFor(fixture.hidden)
+        fixture.conditionHolds(InformationRequestConditionEvaluationState.FALSE)
+
+        val inactive = fixture.service.load(fixture.request.id, fixture.access)
+
+        fixture.conditionHolds(InformationRequestConditionEvaluationState.TRUE)
+        whenever(fixture.authorization.authorize(any(), any(), any(), any())).thenAnswer {
+            if (it.getArgument<ResourceRef>(2).id == fixture.hidden.id) Decision.Deny(
+                Decision.REASON_NO_GRANT,
+                "Not assigned"
+            ) else Decision.Allow()
+        }
+        val denied = fixture.service.load(fixture.request.id, fixture.access)
+
+        assertEquals(0, inactive.requirementsAwaitingStepUp)
+        assertEquals(0, denied.requirementsAwaitingStepUp)
+    }
+
+    @Test
     fun `workspace configuration keeps authorized zero occurrence group controls without exposing unmaterialized requirements`()
     {
         val fixture = Fixture()
@@ -250,11 +481,136 @@ class InformationRequestResponseWorkspaceServiceTest
         assertTrue(result.templateVersion.groups.any { it.groupKey == "optional-items" })
         assertFalse(result.occurrences.any { it.sourceTemplateGroupId == fixture.zeroGroupId })
         assertFalse(requirements.any { it.requirementKey == fixture.zeroRequirementKey })
-        verify(fixture.groupAuthorization).authorizeMaterializedBindings(
+        verify(fixture.groupAuthorization).authorizeGroupCreation(
             fixture.access,
             fixture.request,
             listOf(fixture.zeroBinding),
+            listOf(fixture.zeroBinding),
         )
+    }
+
+    @Test
+    fun `a container group whose own bindings are all in optional child groups offers its control by its subtree`() {
+        val fixture = Fixture()
+        fixture.updateTemplate { template ->
+            template.copy(
+                groups = template.groups.map { group ->
+                    if (group.id == fixture.zeroGroupId) group.copy(parentGroupKey = "protected-items") else group
+                },
+            )
+        }
+
+        fixture.service.load(fixture.request.id, fixture.access)
+
+        verify(fixture.groupAuthorization).authorizeGroupCreation(
+            fixture.access,
+            fixture.request,
+            emptyList(),
+            listOf(fixture.zeroBinding),
+        )
+    }
+
+    @Test
+    fun `both workspace surfaces name only the groups the caller may add entries to`() {
+        val fixture = Fixture()
+
+        fixture.loadWorkspaces().forEach { result ->
+            assertEquals(listOf("optional-items"), result.creatableGroupKeys)
+        }
+
+        doThrow(ForbiddenException("Denied")).whenever(fixture.groupAuthorization)
+            .authorizeGroupCreation(eq(fixture.access), eq(fixture.request), any(), eq(listOf(fixture.zeroBinding)))
+        fixture.loadWorkspaces().forEach { result ->
+            assertEquals(emptyList<String>(), result.creatableGroupKeys)
+        }
+    }
+
+    @Test
+    fun `review stages and their ordering reach only a caller who manages the request on both access surfaces`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        fixture.updateTemplate { template ->
+            template.copy(
+                reviewStageOrdering = InformationRequestReviewStageOrdering.PARALLEL,
+                sections = template.sections + InformationRequestTemplateSectionDto(
+                    UUID.randomUUID(), "withheld-section", "Withheld",
+                    requirements = listOf(
+                        InformationRequestTemplateRequirementDto(
+                            UUID.randomUUID(),
+                            UUID.randomUUID(),
+                            "withheld-entry",
+                            InformationRequestRequirementType.FIELD,
+                            "Provide withheld data",
+                            responseMode = InformationRequestResponseMode.PROVIDE,
+                            requiredness = InformationRequestRequiredness.REQUIRED,
+                            contributorRole = InformationRequestContributorRole.CONTRIBUTOR,
+                            reviewPolicy = InformationRequestReviewPolicy.REQUIRED
+                        ),
+                    )
+                ),
+                reviewStages = listOf(
+                    InformationRequestTemplateReviewStageDto(
+                        id = UUID.randomUUID(),
+                        stageKey = "entry-check-stage",
+                        title = "Entry check stage",
+                        aggregation = InformationRequestReviewAggregation.QUORUM,
+                        quorumCount = 2,
+                        minimumReviewerCount = 3,
+                        tieResolution = InformationRequestReviewTieResolution.REQUIRE_OVERRIDE,
+                        overridePermitted = true,
+                        excludesResponseParties = true,
+                        excludesPriorReviewers = true,
+                        sectionKeys = listOf("data", "withheld-section"),
+                    ),
+                ),
+            )
+        }
+
+        fixture.managesRequest(false)
+        val participantJson = fixture.loadWorkspaces()
+            .map {
+                kotlinx.serialization.json.Json.encodeToString(
+                    InformationRequestResponseWorkspaceDto.serializer(),
+                    it
+                )
+            }
+        fixture.managesRequest(true)
+        val managerWorkspaces = fixture.loadWorkspaces()
+
+        assertEquals(2, participantJson.size)
+        participantJson.forEach { json ->
+            assertFalse(json.contains("entry-check-stage"), json)
+            assertFalse(json.contains("Entry check stage"), json)
+            assertFalse(json.contains("withheld-section"), json)
+            assertFalse(json.contains("PARALLEL"), json)
+            assertFalse(json.contains("REQUIRE_OVERRIDE"), json)
+        }
+        managerWorkspaces.forEach { workspace ->
+            assertEquals(listOf("entry-check-stage"), workspace.templateVersion.reviewStages.map { it.stageKey })
+            assertEquals(InformationRequestReviewStageOrdering.PARALLEL, workspace.templateVersion.reviewStageOrdering)
+        }
+    }
+
+    @Test
+    fun `a Requirement that keeps a condition rule without being conditional stays visible while that rule is false`() {
+        val fixture = Fixture()
+        fixture.updateTemplate { template ->
+            template.copy(
+                sections = template.sections.map { section ->
+                    section.copy(requirements = section.requirements.map {
+                        if (it.id == fixture.hidden.sourceTemplateBindingId) it.copy(requiredness = InformationRequestRequiredness.REQUIRED) else it
+                    })
+                },
+            )
+        }
+        fixture.conditionHolds(InformationRequestConditionEvaluationState.FALSE)
+
+        fixture.loadWorkspaces().forEach { workspace ->
+            assertTrue(workspace.responses.any { it.informationRequestRequirementId == fixture.hidden.id })
+            val requirement = workspace.templateVersion.sections.flatMap { it.requirements }
+                .single { it.id == fixture.hidden.sourceTemplateBindingId }
+            assertEquals(null, requirement.conditionalRuleKey)
+        }
     }
 
     @Test
@@ -388,10 +744,34 @@ class InformationRequestResponseWorkspaceServiceTest
         }
 
         doThrow(io.quarkus.security.ForbiddenException("Denied")).whenever(fixture.groupAuthorization)
-            .authorizeMaterializedBindings(fixture.access, fixture.request, listOf(fixture.zeroBinding))
+            .authorizeGroupCreation(eq(fixture.access), eq(fixture.request), any(), eq(listOf(fixture.zeroBinding)))
         fixture.loadWorkspaces().forEach { result ->
             assertTrue(result.occurrences.isEmpty())
             assertTrue(result.templateVersion.groups.isEmpty())
+        }
+    }
+
+    @Test
+    fun `a parent occurrence holding another party's answers is still shown to the party that adds its nested rows`() {
+        val fixture = Fixture()
+        fixture.updateTemplate { template ->
+            template.copy(groups = template.groups.map { group ->
+                if (group.id == fixture.zeroGroupId) group.copy(parentGroupKey = "items") else group
+            })
+        }
+        val parent = fixture.occurrence("items[0]", fixture.visibleGroupId)
+        whenever(fixture.requirements.findForRequest(fixture.request.id)).thenReturn(listOf(fixture.hidden))
+        whenever(fixture.occurrenceRepository.findForRequest(fixture.request.id)).thenReturn(listOf(parent))
+        whenever(fixture.authorization.authorize(any(), any(), any(), any())).thenAnswer {
+            if (it.getArgument<ResourceRef>(2).id == fixture.hidden.id) Decision.Deny(
+                Decision.REASON_NO_GRANT,
+                "Denied"
+            ) else Decision.Allow()
+        }
+
+        fixture.loadWorkspaces().forEach { result ->
+            assertEquals(listOf(parent.id), result.occurrences.map { it.id })
+            assertTrue(result.responses.none { it.informationRequestRequirementId == fixture.hidden.id })
         }
     }
 
@@ -413,7 +793,11 @@ class InformationRequestResponseWorkspaceServiceTest
         }
         fixture.updateTemplate { template -> template.copy(
             sections = template.sections.map { section -> section.copy(requirements = section.requirements.map {
-                it.copy(conditionalRuleKey = if (it.id == fixture.visible.sourceTemplateBindingId) "conditional-data" else null)
+                it.copy(
+                    conditionalRuleKey = if (it.id == fixture.visible.sourceTemplateBindingId) "conditional-data" else null,
+                    requiredness = if (it.id == fixture.visible.sourceTemplateBindingId) InformationRequestRequiredness.CONDITIONAL
+                    else it.requiredness,
+                )
             }) },
             conditionRules = listOf(InformationRequestTemplateConditionRuleDto(UUID.randomUUID(), "conditional-data", 1,
                 predicates = listOf(InformationRequestTemplateConditionPredicateDto(UUID.randomUUID(),
@@ -423,7 +807,10 @@ class InformationRequestResponseWorkspaceServiceTest
             InformationRequestConditionEvaluationProjection("conditional-data", 1, InformationRequestConditionEvaluationState.TRUE,
                 sourceRequirementKeys = emptySet(), fieldDefinitionIds = setOf(fixture.hiddenFieldId), occurrencePath = "items[0]")))
 
-        fixture.loadWorkspaces().forEach { assertTrue(it.request.conditionEvaluations.isEmpty()) }
+        fixture.loadWorkspaces().forEach { result ->
+            assertTrue(result.request.conditionEvaluations.isEmpty())
+            assertTrue(fixture.visible.id in result.responses.map { it.informationRequestRequirementId })
+        }
         fixture.loadRequests().forEach { assertTrue(it.conditionEvaluations.isEmpty()) }
 
         whenever(fixture.authorization.authorize(any(), any(), any(), any())).thenReturn(Decision.Allow())
@@ -433,6 +820,21 @@ class InformationRequestResponseWorkspaceServiceTest
         fixture.loadRequests().forEach { result ->
             assertEquals(listOf("items[0]"), result.conditionEvaluations.map { it.occurrencePath })
         }
+    }
+
+    @Test
+    fun `the workspace says whether the Exchange was accepted so answers can be saved`() {
+        val fixture = Fixture()
+        whenever(fixture.conditions.evaluate(fixture.request.id)).thenReturn(emptyList())
+        whenever(fixture.parentState.snapshot(fixture.request.exchangeId))
+            .thenReturn(InformationRequestParentSnapshot(ExchangeStatus.INITIATED))
+
+        assertFalse(fixture.service.load(fixture.request.id, fixture.access).exchangeAccepted)
+
+        whenever(fixture.parentState.snapshot(fixture.request.exchangeId))
+            .thenReturn(InformationRequestParentSnapshot(ExchangeStatus.ACCEPTED_STARTED))
+
+        assertTrue(fixture.service.load(fixture.request.id, fixture.access).exchangeAccepted)
     }
 
     private class Fixture
@@ -475,11 +877,22 @@ class InformationRequestResponseWorkspaceServiceTest
             on { findForRequest(any()) }.thenAnswer { storedLinks.toList() }
         }
         val templateLinks = mock<InformationRequestTemplateBindingEvidenceLinkRepository>()
-        val supportingLinks = InformationRequestSupportingEvidenceLinkService(templateLinks, requirements, linkRepository)
+        val supportingLinks =
+            InformationRequestSupportingEvidenceLinkService(
+                templateLinks,
+                requirements,
+                linkRepository,
+                occurrenceRepository
+            )
         val evidenceUpload = mock<InformationRequestEvidenceDeploymentPolicy>()
         val titleReader = mock<InformationRequestTitleReader>()
         val standing = mock<InformationRequestExecutionStandingService>()
-        val service = InformationRequestResponseWorkspaceService(query, versions, templates, occurrenceRepository, requirements,
+        val lockService = mock<InformationRequestSubmissionLockService>()
+        val evidenceQueries = mock<InformationRequestEvidenceQueryService>()
+        val firstViews = mock<InformationRequestFirstViewService>()
+        val parentState = mock<ExchangeLifecycleStateService>()
+        val service = InformationRequestResponseWorkspaceService(
+            query, versions, templates, occurrenceRepository, requirements,
             responses,
             bindingRepository,
             fields,
@@ -488,10 +901,47 @@ class InformationRequestResponseWorkspaceServiceTest
             groupAuthorization,
             supportingLinks,
             evidenceUpload,
-            mock(),
+            firstViews,
             titleReader,
             standing,
+            InformationRequestHeaderProjectionService(authorization, ExecutionStandingTestDoubles.active()),
+            lockService,
+            evidenceQueries,
+            InformationRequestAuthorActionService(authorization, parentState),
+            parentState,
         )
+
+        fun requireRecentVerificationFor(requirement: InformationRequestRequirement) {
+            whenever(authorization.authorize(any(), any(), any(), any())).thenAnswer {
+                val protectedTarget = it.getArgument<ResourceRef>(2).id == requirement.id
+                if (protectedTarget && !it.getArgument<AuthorizationContext>(3).mfaSatisfied)
+                    Decision.Deny(Decision.REASON_NO_GRANT, "Recent verification required")
+                else
+                    Decision.Allow()
+            }
+        }
+
+        fun managesRequest(manages: Boolean) {
+            whenever(
+                authorization.authorize(
+                    access.principal,
+                    Action.INFORMATION_REQUEST_VIEW_OPERATIONS,
+                    ResourceRef.informationRequest(request.id),
+                    access.authorization,
+                ),
+            ).thenReturn(if (manages) Decision.Allow() else Decision.Deny(Decision.REASON_NO_GRANT, "not a manager"))
+        }
+
+        fun conditionHolds(state: InformationRequestConditionEvaluationState) {
+            whenever(conditions.evaluate(request.id)).thenReturn(
+                listOf(
+                    InformationRequestConditionEvaluationProjection(
+                        "conditional-data", 1, state,
+                        sourceRequirementKeys = emptySet(), fieldDefinitionIds = emptySet(), occurrencePath = "items[0]"
+                    )
+                )
+            )
+        }
 
         fun updateTemplate(transform: (InformationRequestTemplateVersionDto) -> InformationRequestTemplateVersionDto)
         {
@@ -512,12 +962,20 @@ class InformationRequestResponseWorkspaceServiceTest
             val accessFactory = mock<InformationRequestAccessContextFactory>()
             whenever(accessFactory.currentAuthenticated()).thenReturn(access)
             val authenticated =
-                InformationRequestResource(query, mock(), mock(), accessFactory, service, mock(), mock())
-            val resolver = mock<InformationRequestNoAuthReadAccessService>()
-            whenever(resolver.resolve("bootstrap", "session")).thenReturn(InformationRequestNoAuthAccess(access, request.id))
+                InformationRequestResource(
+                    mock(),
+                    mock(),
+                    accessFactory,
+                    service,
+                    mock(),
+                    mock(),
+                    InformationRequestHeaderProjectionService(authorization, ExecutionStandingTestDoubles.active())
+                )
+            val resolver = InformationRequestNoAuthAccessDoubles.current()
+            whenever(resolver.resolve(request.id, "bootstrap", "session")).thenReturn(access)
             val noAuth = InformationRequestNoAuthRequestResource(resolver, mock(), mock(), mock(), service)
             return listOf(
-                authenticated.responseWorkspace(request.id.toString()),
+                authenticated.responseWorkspace(request.id.toString(), null),
                 noAuth.responseWorkspace(request.id.toString(), "bootstrap", "session"),
             ).map { response ->
                 assertEquals(200, response.status)
@@ -530,9 +988,17 @@ class InformationRequestResponseWorkspaceServiceTest
             val accessFactory = mock<InformationRequestAccessContextFactory>()
             whenever(accessFactory.currentAuthenticated()).thenReturn(access)
             val authenticated =
-                InformationRequestResource(query, mock(), mock(), accessFactory, service, mock(), mock())
-            val resolver = mock<InformationRequestNoAuthReadAccessService>()
-            whenever(resolver.resolve("bootstrap", "session")).thenReturn(InformationRequestNoAuthAccess(access, request.id))
+                InformationRequestResource(
+                    mock(),
+                    mock(),
+                    accessFactory,
+                    service,
+                    mock(),
+                    mock(),
+                    InformationRequestHeaderProjectionService(authorization, ExecutionStandingTestDoubles.active())
+                )
+            val resolver = InformationRequestNoAuthAccessDoubles.current()
+            whenever(resolver.resolve(request.id, "bootstrap", "session")).thenReturn(access)
             val noAuth = InformationRequestNoAuthRequestResource(resolver, mock(), mock(), mock(), service)
             return listOf(
                 authenticated.get(request.id.toString()),
@@ -627,7 +1093,8 @@ class InformationRequestResponseWorkspaceServiceTest
         private fun template(requirement: InformationRequestRequirement, fieldId: UUID, rule: String?) =
             InformationRequestTemplateRequirementDto(requirement.sourceTemplateBindingId, requirement.sourceTemplateRequirementId,
                 "item-${requirement.id}", InformationRequestRequirementType.FIELD, "Provide data",
-                responseMode = InformationRequestResponseMode.PROVIDE, requiredness = InformationRequestRequiredness.OPTIONAL,
+                responseMode = InformationRequestResponseMode.PROVIDE,
+                requiredness = if (rule == null) InformationRequestRequiredness.OPTIONAL else InformationRequestRequiredness.CONDITIONAL,
                 contributorRole = InformationRequestContributorRole.CONTRIBUTOR, reviewPolicy = InformationRequestReviewPolicy.NOT_REQUIRED,
                 conditionalRuleKey = rule, occurrenceAnchorKey = occurrenceAnchorKey(requirement),
                 collectedFieldDefinitionId = fieldId,

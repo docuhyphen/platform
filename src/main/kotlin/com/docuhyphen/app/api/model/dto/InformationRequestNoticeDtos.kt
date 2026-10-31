@@ -31,6 +31,7 @@ data class InformationRequestNoticeHistoryDto(
     @Serializable(with = UUIDSerializer::class) val noticeId: UUID? = null,
     val channel: InformationRequestNoticeChannel? = null,
     val maskedEndpoint: String? = null,
+    val recipientWithheld: Boolean = false,
     val endpointState: InformationRequestNoticeEndpointState? = null,
     val renderedSubject: String? = null,
     val renderedBody: String? = null,

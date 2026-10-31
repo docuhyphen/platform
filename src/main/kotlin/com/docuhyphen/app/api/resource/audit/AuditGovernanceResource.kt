@@ -1,30 +1,21 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.*
+import com.docuhyphen.app.api.service.auth.authz.Action
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
+import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import java.util.*
 
-/**
- * Thin REST adapter for platform-scope retention, legal hold, analytics, and assurance operations. All business logic lives in
- * [AuditRetentionPolicyService]/[AuditLegalHoldService]/[AuditAnalyticsReconciliationService];
- * this class only validates input, authorizes, and maps results. The organization-scope routes
- * live in [AuditOrganizationRetentionPolicyResource]/[AuditOrganizationLegalHoldResource]/
- * [AuditOrganizationAnalyticsResource] instead of here, so that no two resource classes share a
- * leading path-param segment with different literal suffixes (see
- * AuditOrganizationEventsResource for why that matters).
- */
-@Path("/")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
+@jakarta.enterprise.context.RequestScoped
 class AuditGovernanceResource @Inject constructor(
     private val authorizationService: AuthorizationService,
     private val authorizationContextFactory: AuthorizationContextFactory,
@@ -32,105 +23,137 @@ class AuditGovernanceResource @Inject constructor(
     private val auditLegalHoldService: AuditLegalHoldService,
     private val auditAnalyticsReconciliationService: AuditAnalyticsReconciliationService,
     private val auditEngagementService: AuditEngagementService,
-)
-{
-    @GET
-    @Path("/platform/audit-retention-policies")
-    fun listPlatformRetentionPolicies(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-        Response.ok(
-            auditRetentionPolicyService.listEffectivePolicies(PLATFORM_POLICY_SCOPE)
-                .map(AuditGovernanceDtoMapper::toDto)
-        ).build()
+) : com.docuhyphen.app.api.resource.audit.operations.AuditGovernanceResourceOperations {
+    private val legalHolds =
+        com.docuhyphen.app.api.resource.audit.handler.AuditLegalHoldRequestHandler(auditLegalHoldService)
+
+    override fun listPlatformRetentionPolicies(): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                Response.ok(
+                    auditRetentionPolicyService.listEffectivePolicies(PLATFORM_POLICY_SCOPE)
+                        .map(AuditGovernanceDtoMapper::toDto)
+                ).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource listPlatformRetentionPolicies failed", exception)
+        }
     }
 
-    @PUT
-    @Path("/platform/audit-retention-policies/{category}")
-    fun upsertPlatformRetentionPolicy(
-        @PathParam("category") category: String,
+    override fun upsertPlatformRetentionPolicy(
+        category: String,
         body: AuditRetentionPolicyUpdateRequestDto,
-    ): Response = withAuthorizedPlatform(Action.AUDIT_RETENTION_MANAGE) { principal ->
-        val spec = auditRetentionPolicyService.upsertOverride(
-            organizationId = PLATFORM_POLICY_SCOPE,
-            category = parseCategory(category),
-            ledgerRetentionDays = body.ledgerRetentionDays,
-            archiveRetentionDays = body.archiveRetentionDays,
-            legalHoldEligible = body.legalHoldEligible,
-            identityTreatment = parseIdentityTreatment(body.identityTreatment),
-            updatedByUserId = principal,
-        )
-        Response.ok(AuditGovernanceDtoMapper.toDto(spec)).build()
+    ): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_RETENTION_MANAGE) { principal ->
+                val spec = auditRetentionPolicyService.upsertOverride(
+                    organizationId = PLATFORM_POLICY_SCOPE,
+                    category = parseCategory(category),
+                    ledgerRetentionDays = body.ledgerRetentionDays,
+                    archiveRetentionDays = body.archiveRetentionDays,
+                    legalHoldEligible = body.legalHoldEligible,
+                    identityTreatment = parseIdentityTreatment(body.identityTreatment),
+                    updatedByUserId = principal,
+                )
+                Response.ok(AuditGovernanceDtoMapper.toDto(spec)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource upsertPlatformRetentionPolicy failed", exception)
+        }
     }
 
-    @POST
-    @Path("/platform/audit-legal-holds")
-    fun placePlatformLegalHold(body: AuditLegalHoldCreateRequestDto): Response =
-        withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
-            val hold = auditLegalHoldService.placeHold(
-                null,
-                body.resourceType,
-                body.resourceId,
-                body.reason,
-                body.caseReference,
-                principal
-            )
-            Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
+    override fun placePlatformLegalHold(body: AuditLegalHoldCreateRequestDto): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
+                legalHolds.place(null, principal, body)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource placePlatformLegalHold failed", exception)
         }
-
-    @GET
-    @Path("/platform/audit-legal-holds")
-    fun listPlatformLegalHolds(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-        Response.ok(auditLegalHoldService.listActiveHolds(null).map(AuditGovernanceDtoMapper::toDto)).build()
     }
 
-    @POST
-    @Path("/platform/audit-legal-holds/{holdId}/release")
-    fun releasePlatformLegalHold(@PathParam("holdId") holdId: String): Response =
-        withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
-            val hold = auditLegalHoldService.releaseHold(parseUuid(holdId), null, principal)
-            Response.ok(AuditGovernanceDtoMapper.toDto(hold)).build()
+    override fun listPlatformLegalHolds(): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                legalHolds.list(null)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource listPlatformLegalHolds failed", exception)
         }
-
-    @GET
-    @Path("/platform/audit-analytics/reconciliation")
-    fun getPlatformAnalyticsReconciliation(): Response =
-        withAuthorizedPlatform(Action.AUDIT_INTEGRITY_VERIFY) { principal ->
-            val report =
-                auditAnalyticsReconciliationService.reconcile(null, platformOnly = true, requestedByUserId = principal)
-            Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
-        }
-
-    @POST
-    @Path("/platform/audit-engagements")
-    fun requestPlatformEngagement(body: AuditEngagementCreateRequestDto): Response =
-        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
-            val engagement = auditEngagementService.requestEngagement(
-                request = AuditEngagementDtoMapper.toRequest(null, body),
-                requestedByUserId = principal,
-            )
-            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
-        }
-
-    @GET
-    @Path("/platform/audit-engagements")
-    fun listPlatformEngagements(): Response = withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
-        Response.ok(auditEngagementService.listForOrganization(null).map(AuditEngagementDtoMapper::toDto)).build()
     }
 
-    @POST
-    @Path("/platform/audit-engagements/{engagementId}/approve")
-    fun approvePlatformEngagement(@PathParam("engagementId") engagementId: String): Response =
-        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
-            val engagement = auditEngagementService.approveEngagement(parseUuid(engagementId), null, principal)
-            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+    override fun releasePlatformLegalHold(holdId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_LEGAL_HOLD_MANAGE) { principal ->
+                legalHolds.release(null, parseUuid(holdId), principal)
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource releasePlatformLegalHold failed", exception)
         }
+    }
 
-    @POST
-    @Path("/platform/audit-engagements/{engagementId}/revoke")
-    fun revokePlatformEngagement(@PathParam("engagementId") engagementId: String): Response =
-        withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
-            val engagement = auditEngagementService.revokeEngagement(parseUuid(engagementId), null, principal)
-            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+    override fun getPlatformAnalyticsReconciliation(): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_INTEGRITY_VERIFY) { principal ->
+                val report =
+                    auditAnalyticsReconciliationService.reconcile(
+                        null,
+                        platformOnly = true,
+                        requestedByUserId = principal
+                    )
+                Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource getPlatformAnalyticsReconciliation failed", exception)
         }
+    }
+
+    override fun requestPlatformEngagement(body: AuditEngagementCreateRequestDto): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+                val engagement = auditEngagementService.requestEngagement(
+                    request = AuditEngagementDtoMapper.toRequest(null, body),
+                    requestedByUserId = principal,
+                )
+                Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource requestPlatformEngagement failed", exception)
+        }
+    }
+
+    override fun listPlatformEngagements(): Response {
+        return try {
+            withAuthorizedPlatform(Action.APP_READ_AUDIT) { _ ->
+                Response.ok(auditEngagementService.listForOrganization(null).map(AuditEngagementDtoMapper::toDto))
+                    .build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource listPlatformEngagements failed", exception)
+        }
+    }
+
+    override fun approvePlatformEngagement(engagementId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+                val engagement = auditEngagementService.approveEngagement(parseUuid(engagementId), null, principal)
+                Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource approvePlatformEngagement failed", exception)
+        }
+    }
+
+    override fun revokePlatformEngagement(engagementId: String): Response {
+        return try {
+            withAuthorizedPlatform(Action.AUDIT_ENGAGEMENT_MANAGE) { principal ->
+                val engagement = auditEngagementService.revokeEngagement(parseUuid(engagementId), null, principal)
+                Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+            }
+        } catch (exception: Exception) {
+            failedAuditRequest("AuditGovernanceResource revokePlatformEngagement failed", exception)
+        }
+    }
 
     private fun parseCategory(raw: String): AuditCategory = runCatching { AuditCategory.valueOf(raw.uppercase()) }
         .getOrElse { throw IllegalArgumentException("Unknown audit category: $raw") }
@@ -169,6 +192,10 @@ class AuditGovernanceResource @Inject constructor(
                 Response.Status.BAD_REQUEST
             }
             Response.status(status).entity(ResponseError(e.message)).build()
+        } catch (e: com.docuhyphen.app.api.exception.RecordPreservationException) {
+            com.docuhyphen.app.api.resource.recordpreservation.RecordPreservationHttp.refused(
+                logger, "Platform audit legal-hold conflict refused", e,
+            )
         }
     }
 
@@ -178,7 +205,15 @@ class AuditGovernanceResource @Inject constructor(
 
     companion object
     {
-        /** Platform-scope retention overrides are keyed under this fixed sentinel id, mirroring [platformRef]. */
+        private val logger = org.slf4j.LoggerFactory.getLogger(AuditGovernanceResource::class.java)
         private val PLATFORM_POLICY_SCOPE: UUID = UUID(0, 0)
     }
+
+    private fun failedAuditRequest(message: String, exception: Exception): Response {
+        if (exception is jakarta.ws.rs.WebApplicationException) throw exception
+        if (exception is com.docuhyphen.app.api.exception.SubscriptionDenialException) throw exception
+        logger.error(message, exception)
+        return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(ResponseError("Request failed")).build()
+    }
+
 }

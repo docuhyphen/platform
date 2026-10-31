@@ -7,7 +7,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -117,12 +117,6 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
         }
     }
 
-    /**
-     * Mirrors [com.docuhyphen.app.api.service.informationrequest.execution.InformationRequestExecutionUsageReservationService.reserve]'s
-     * lock-then-check-then-insert sequence directly in SQL so the pessimistic lock's actual
-     * serialization can be exercised by real concurrent transactions, something a mocked
-     * repository cannot prove.
-     */
     private fun reserveUnderGrantLock(
         connection: Connection,
         grantId: UUID,
@@ -234,7 +228,14 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
             insertVersion(connection, versionId, definitionId)
             insertTemplateSection(connection, sectionId, versionId)
             insertTemplateRequirement(connection, templateRequirementId, definitionId)
-            insertTemplateBinding(connection, templateBindingId, versionId, definitionId, templateRequirementId, sectionId)
+            insertTemplateBinding(
+                connection,
+                templateBindingId,
+                versionId,
+                definitionId,
+                templateRequirementId,
+                sectionId
+            )
             publishVersion(connection, versionId, userId)
             insertRequest(connection, requestId, exchangeId, versionId, organizationId)
         }
@@ -412,7 +413,7 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
             connection.prepareStatement(
                 """
                 UPDATE information_request_template_version
-                SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+                SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
                 WHERE id = ?
                 """.trimIndent(),
             ).use { statement ->

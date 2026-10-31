@@ -116,7 +116,9 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
     });
     const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
-    const [selectedItems, setSelectedItems] = useState<string[]>([]);
+    const [selectedItems, setSelectedItems] = useState<string[]>(
+        () => controlledSelectedId ? [controlledSelectedId] : [],
+    );
 
     const [activeTab, setActiveTab] = useState<ExchangeListTab>(controlledActiveTab ?? 'active');
     const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
@@ -140,10 +142,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const selectedItemsRef = useRef(selectedItems);
     const inboxRoleRef = useRef(inboxRole);
 
-    // Guards for the debounced search/initiator effect. It must skip its own first run and any
-    // run triggered purely by a tab / inbox-role switch (those are handled by the immediate
-    // navigation effect). Without these, a second debounced fetch fires ~500ms later, flipping
-    // loadingExchanges off->on->off and making the empty-state message flash twice.
     const isFirstSearchEffectRef = useRef(true);
     const searchEffectTabRef = useRef(activeTab);
     const searchEffectRoleRef = useRef(inboxRole);
@@ -256,20 +254,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                     setArchiveCount(response.totalElements);
                 }
 
-                // Desktop convenience: pre-select the first exchange so the
-                // details pane isn't blank when a tab loads. On mobile we use
-                // a master/detail navigation (the list is hidden as soon as a
-                // exchange is selected), so auto-selecting the first item
-                // would hide the just-loaded list before the user can even
-                // see it exch- they'd be unable to pick a different exchange
-                // without first hitting "back". Skip the auto-selection
-                // entirely on phones and let the user tap to choose.
-                if (response.content.length > 0 && selectedItems.length === 0 && !isMobile)
+                if (response.content.length > 0 && selectedItemsRef.current.length === 0 && !isMobile)
                 {
                     setSelectedItems([response.content[0].id]);
                     onSelectionChange(response.content[0].id);
-                }
-                else if (response.content.length === 0 && selectedItems.length > 0)
+                } else if (response.content.length === 0 && selectedItemsRef.current.length > 0)
                 {
                     setSelectedItems([]);
                     onSelectionChange(null);
@@ -296,7 +285,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
     useEffect(() =>
     {
-        // Inbox count reflects "incoming" items that require recipient action.
         onTabCountsChange?.({inbox: incomingCount, active: activeCount, archive: archiveCount});
     }, [incomingCount, activeCount, archiveCount, onTabCountsChange]);
 
@@ -319,11 +307,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 setActiveCount(activeResponse && !('error' in activeResponse) ? activeResponse.totalElements : 0);
                 setArchiveCount(archiveResponse && !('error' in archiveResponse) ? archiveResponse.totalElements : 0);
 
-                // Always refresh inbox counts regardless of the current tab so the inbox badge
-                // is accurate on initial load and the first-visit auto-tab-switch works correctly
-                // for users whose only visible exchanges are in draft (INITIATED) state, e.g. when
-                // they have been added as a manager to an existing exchange that hasn't been
-                // accepted or declined yet.
                 await fetchInboxRoleCounts();
             }
             catch (error)
@@ -355,7 +338,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     {
         if (!controlledActiveTab || controlledActiveTab === activeTab) return;
 
-        // Avoid one-frame empty-state flashes while the controlled tab transition triggers a fetch.
         beginListScopeLoading();
         setActiveTab(controlledActiveTab);
         setCurrentPage(0);
@@ -365,8 +347,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         setSortDirection('DESC');
         if (controlledActiveTab === 'inbox')
         {
-            // Respect the role requested by the parent (e.g. an outgoing draft opened
-            // via deep-link/View Exchange). Fall back to incoming when unspecified.
             const nextRole = controlledInboxRole ?? 'incoming';
             setInboxRole(nextRole);
             onInboxRoleChange?.(nextRole);
@@ -384,8 +364,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         onTabChange?.(controlledActiveTab);
     }, [controlledActiveTab, controlledSelectedId]);
 
-    // Sync the inbox role when the parent changes it while the inbox tab is already active
-    // (e.g. a deep-linked outgoing draft resolves its role after the tab has switched).
     useEffect(() =>
     {
         if (activeTab !== 'inbox') return;
@@ -396,7 +374,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         setCurrentPage(0);
     }, [controlledInboxRole, activeTab]);
 
-    // Initial mount: fetch + subscriptions
     useEffect(() =>
     {
         fetchExchanges();
@@ -410,7 +387,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
                 if (isCurrentTab)
                 {
-                    // Exchange belongs to current tab - insert directly into the list
                     setExchanges(prevExchanges => [exchange, ...prevExchanges]);
                     if (targetTab === 'inbox')
                     {
@@ -420,8 +396,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                 }
                 else
                 {
-                    // Switch to the correct tab. Set state directly (not via controlledActiveTab)
-                    // so the inbox role is not reset to 'incoming' by that effect.
                     beginListScopeLoading();
                     setActiveTab(targetTab);
                     setCurrentPage(0);
@@ -431,16 +405,12 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                     setSortDirection('DESC');
                     if (targetTab === 'inbox')
                     {
-                        // A newly created exchange is always initiated by the current user -> outgoing
                         setInboxRole('outgoing');
                         onInboxRoleChange?.('outgoing');
                     }
                     onTabChange?.(targetTab);
                 }
 
-                // Do not auto-open the newly created exchange. The user opens it
-                // explicitly via the "View Exchange" action shown after starting it.
-                // Clear any prior selection so no detail pane is left open behind it.
                 setSelectedItems([]);
                 onSelectionChange(null);
             }
@@ -477,55 +447,45 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         {
             if (updatedExchange)
             {
-                setExchanges(prevExchanges =>
-                {
-                    const shouldRemainVisible = isStatusInTab(updatedExchange.status, activeTabRef.current);
-                    const currentIndex = prevExchanges.findIndex(exchange => exchange.id === updatedExchange.id);
+                setExchanges(prevExchanges => {
+                        const shouldRemainVisible = isStatusInTab(updatedExchange.status, activeTabRef.current);
+                        const currentIndex = prevExchanges.findIndex(exchange => exchange.id === updatedExchange.id);
 
-                    if (currentIndex === -1)
-                    {
-                        if (shouldRemainVisible)
-                        {
-                            return [updatedExchange, ...prevExchanges];
+                        if (currentIndex === -1) {
+                            if (shouldRemainVisible) {
+                                return [updatedExchange, ...prevExchanges];
+                            }
+                            return prevExchanges;
                         }
-                        return prevExchanges;
-                    }
 
-                    const previousStatus = prevExchanges[currentIndex].status;
-                    const previousTab = statusToTab(previousStatus);
-                    const nextTab = statusToTab(updatedExchange.status);
+                        const previousStatus = prevExchanges[currentIndex].status;
+                        const previousTab = statusToTab(previousStatus);
+                        const nextTab = statusToTab(updatedExchange.status);
 
-                    if (previousTab !== nextTab)
-                    {
-                        if (previousTab === 'inbox')
-                        {
-                            if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => Math.max(0, prev - 1));
-                            else setOutgoingCount(prev => Math.max(0, prev - 1));
+                        if (previousTab !== nextTab) {
+                            if (previousTab === 'inbox') {
+                                if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => Math.max(0, prev - 1));
+                                else setOutgoingCount(prev => Math.max(0, prev - 1));
+                            }
+                            if (previousTab === 'active') setActiveCount(prev => Math.max(0, prev - 1));
+                            if (previousTab === 'archive') setArchiveCount(prev => Math.max(0, prev - 1));
+
+                            if (nextTab === 'inbox') {
+                                if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => prev + 1);
+                                else setOutgoingCount(prev => prev + 1);
+                            }
+                            if (nextTab === 'active') setActiveCount(prev => prev + 1);
+                            if (nextTab === 'archive') setArchiveCount(prev => prev + 1);
                         }
-                        if (previousTab === 'active') setActiveCount(prev => Math.max(0, prev - 1));
-                        if (previousTab === 'archive') setArchiveCount(prev => Math.max(0, prev - 1));
 
-                        if (nextTab === 'inbox')
-                        {
-                            if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => prev + 1);
-                            else setOutgoingCount(prev => prev + 1);
+                        if (!shouldRemainVisible) {
+                            return prevExchanges.filter(exchange => exchange.id !== updatedExchange.id);
                         }
-                        if (nextTab === 'active') setActiveCount(prev => prev + 1);
-                        if (nextTab === 'archive') setArchiveCount(prev => prev + 1);
-                    }
 
-                    if (!shouldRemainVisible)
-                    {
-                        // Preserve the selected Exchange while the controlled tab moves to its
-                        // destination list. Clearing it here races the lifecycle callback and can
-                        // leave an ended Exchange unselected after Archive becomes active.
-                        return prevExchanges.filter(exchange => exchange.id !== updatedExchange.id);
+                        return prevExchanges.map(exchange =>
+                            exchange.id === updatedExchange.id ? updatedExchange : exchange
+                        );
                     }
-
-                    return prevExchanges.map(exchange =>
-                        exchange.id === updatedExchange.id ? updatedExchange : exchange
-                    );
-                }
                 );
             }
         });
@@ -538,7 +498,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         };
     }, []);
 
-    // Re-fetch when tab, page, or sort changes
     useEffect(() =>
     {
         if (isFirstRenderRef.current)
@@ -549,11 +508,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
         fetchExchanges();
     }, [activeTab, inboxRole, currentPage, sortBy, sortDirection, realtimeRefreshVersion]);
 
-    // Debounced re-fetch on search / initiator-filter changes only. Tab and inbox-role changes
-    // are already handled immediately by the navigation effect above; they remain in this
-    // effect's deps solely so it can detect them, resync, and skip  -  otherwise a second
-    // debounced fetch would flash the empty state. This effect must NOT share the navigation
-    // effect's first-render ref (the navigation effect flips it before this one reads it).
     useEffect(() =>
     {
         if (isFirstSearchEffectRef.current)
@@ -566,7 +520,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
         if (searchEffectTabRef.current !== activeTab || searchEffectRoleRef.current !== inboxRole)
         {
-            // Tab / inbox-role switch: the navigation effect already refetched. Just resync.
             searchEffectTabRef.current = activeTab;
             searchEffectRoleRef.current = inboxRole;
             return;
@@ -583,7 +536,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
 
     const handleTabChange = (tab: ExchangeListTab) =>
     {
-        // Enter loading immediately so empty states do not flash before fetchExchanges sets loading.
         beginListScopeLoading();
         setActiveTab(tab);
         setCurrentPage(0);
@@ -632,7 +584,6 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     {
         if (isSidebarCollapsed)
         {
-            // Explicit expand: pin open until user collapses again.
             setIsSidebarCollapsed(false);
             setIsSidebarHoverExpanded(false);
             return;
@@ -690,16 +641,11 @@ const ExchangeList: React.FC<ExchangeListProps> = (
     const hasActiveFilters = !!searchQuery || selectedInitiator !== null;
     const isInboxMode = activeTab === 'inbox';
     const requestsCount = incomingCount + outgoingCount;
-    // The collapse/expand sidebar affordance only makes sense on tablet
-    // and larger viewports where the list shares horizontal space with
-    // the details pane. On phones we use a master-detail navigation, so
-    // collapsing the list to a 2.8rem rail has no value and would just
-    // confuse users. Force the sidebar fully expanded on mobile and hide
-    // its toggle button further down.
     const isSidebarVisuallyCollapsed = !isMobile && isSidebarCollapsed && !isSidebarHoverExpanded;
 
     return (
         <section
+            id={"exchange-list-exchanges-list-container-collapsed"}
             className={isSidebarVisuallyCollapsed ? styles.exchangesListContainerCollapsed : styles.exchangesListContainer}
             onMouseEnter={handleSidebarMouseEnter}
             onMouseLeave={handleSidebarMouseLeave}>
@@ -712,7 +658,8 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             />
 
             {!isSidebarVisuallyCollapsed && isInboxMode && (
-                <div className={mergeClasses(
+                <div id={"exchange-list-exchanges-list-header"}
+                     className={mergeClasses(
                     styles.exchangesListHeader,
                     hasListScrolled && styles.exchangesListHeaderElevated
                 )}>
@@ -722,16 +669,29 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                         onTabSelect={(_, data) => handleInboxRoleChange(data.value as InboxRole)}
                         size="small"
                         className={styles.inboxRoleTabList}>
-                        <Tab id="exchange-list-inbox-role-incoming" value="incoming">
-                            <span className={styles.tabContentFlex}>
+                        <Tab id="exchange-list-inbox-role-incoming"
+                             value="incoming">
+                            <span id={"exchange-list-tab-content-flex"}
+                                  className={styles.tabContentFlex}>
                                 Incoming
-                                {incomingCount > 0 && <CounterBadge count={incomingCount} size="small" appearance="filled" color="danger"/>}
+                                {incomingCount > 0 &&
+                                    <CounterBadge id={"exchange-list-tab-content-flex-counter-badge"}
+                                                  count={incomingCount}
+                                                  size="small"
+                                                  appearance="filled"
+                                                  color="danger"/>}
                             </span>
                         </Tab>
-                        <Tab id="exchange-list-inbox-role-outgoing" value="outgoing">
-                            <span className={styles.tabContentFlex}>
+                        <Tab id="exchange-list-inbox-role-outgoing"
+                             value="outgoing">
+                            <span id={"exchange-list-tab-content-flex-2"}
+                                  className={styles.tabContentFlex}>
                                 Outgoing
-                                {outgoingCount > 0 && <CounterBadge count={outgoingCount} size="small" appearance="filled"/>}
+                                {outgoingCount > 0 &&
+                                    <CounterBadge id={"exchange-list-tab-content-flex-counter-badge-2"}
+                                                  count={outgoingCount}
+                                                  size="small"
+                                                  appearance="filled"/>}
                             </span>
                         </Tab>
                     </TabList>
@@ -739,7 +699,8 @@ const ExchangeList: React.FC<ExchangeListProps> = (
             )}
 
             {!isSidebarVisuallyCollapsed && !isInboxMode && (
-                <div className={mergeClasses(
+                <div id={"exchange-list-exchanges-list-header-2"}
+                     className={mergeClasses(
                     styles.exchangesListHeader,
                     hasListScrolled && styles.exchangesListHeaderElevated
                 )}>
@@ -780,20 +741,23 @@ const ExchangeList: React.FC<ExchangeListProps> = (
                     ))}
 
                     {!loadingExchanges && exchanges.length === 0 && (
-                        <div className={styles.emptyState}>
-                            <Text align={"center"}>
+                        <div id={"exchange-list-empty-state"}
+                             className={styles.emptyState}>
+                            <Text id={"exchange-list-filters-text"}
+                                  align={"center"}>
                                 {isInboxMode
                                     ? (inboxRole === 'incoming'
                                         ? 'No incoming requests are waiting for your decision.'
                                         : 'No outgoing requests are awaiting recipient response.')
-                                    : 'No exchanges match your search. Try adjusting your filters!'}
+                                    : 'No Exchanges match your search. Try adjusting your filters!'}
                             </Text>
                         </div>
                     )}
                 </List>
             )}
 
-            <div className={mergeClasses(
+            <div id={"exchange-list-exchanges-list-footer"}
+                 className={mergeClasses(
                 styles.exchangesListFooter,
                 hasListScrolled && styles.exchangesListFooterElevated
             )}>

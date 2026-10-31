@@ -3,15 +3,6 @@ package com.docuhyphen.app.api.model.entity
 import jakarta.persistence.*
 import java.util.*
 
-/**
- * One answer an [InformationRequestTemplateRequirementBinding] permits a respondent to give. A
- * binding permits each disposition at most once, and never
- * [InformationRequestResponseDisposition.NOT_ANSWERED], which is the state a requirement starts in
- * rather than a way of resolving it.
- *
- * The Version is carried alongside the binding so this set freezes with the configuration that
- * holds it.
- */
 @Entity
 @Table(name = "information_request_template_binding_disposition")
 class InformationRequestTemplateBindingDisposition

@@ -1,11 +1,12 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
 import com.docuhyphen.app.api.repository.audit.AuditExportRepository
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.AuditAccessActor
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
 import com.docuhyphen.app.api.service.audit.archive.MerkleTree
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
@@ -77,7 +78,7 @@ class AuditExportServiceTest
         )
     }
 
-    private fun request(organizationId: UUID? = UUID.randomUUID()): AuditExportService.ExportRequest = AuditExportService.ExportRequest(
+    private fun request(organizationId: UUID? = UUID.randomUUID()): AuditExportRequest = AuditExportRequest(
         organizationId = organizationId,
         categories = setOf(AuditCategory.EXCHANGE),
         occurredAfter = Instant.parse("2026-01-01T00:00:00Z"),

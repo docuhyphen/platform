@@ -18,7 +18,7 @@ interface InformationRequestSuccessorResourceOperations
     @POST
     fun create(
         @PathParam("id") id: String,
-        request: CreateInformationRequestSuccessorRequest,
+        request: CreateInformationRequestSuccessorRequest?,
         @HeaderParam(IF_MATCH) ifMatch: String?,
         @HeaderParam(IDEMPOTENCY_KEY_HEADER) idempotencyKey: String?,
     ): Response

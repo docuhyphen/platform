@@ -1,14 +1,9 @@
-import {Button, Dropdown, Input, Option, Select, Switch, Text} from "@fluentui/react-components";
-import {
-    FieldOperator,
-    FieldValueType,
-    SchemaFieldBindingDto,
-    WorkflowFieldConditionDraft,
-} from "../../../../models/models.tsx";
+import {Button, Select, Text} from "@fluentui/react-components";
+import {FieldOperator, SchemaFieldBindingDto, WorkflowFieldConditionDraft,} from "../../../../models/models.tsx";
 import {useApplicabilityEditorStyles} from "./ApplicabilityEditorStyles.tsx";
-import {operatorIsMultiValue, operatorLabel, operatorNeedsValue, operatorsForType,} from "./applicabilityOperators.ts";
+import {literalForOperator, operatorLabel, operatorNeedsValue, operatorsForType} from "./applicabilityOperators.ts";
 import {DeleteIcon} from "../../../../components/IconBundles.tsx";
-import {toConditionLiteral, toConditionLiteralInputValue} from "./conditionLiteral.ts";
+import ConditionValueInput from "../condition-value-input/ConditionValueInput.tsx";
 
 interface Props
 {
@@ -19,127 +14,83 @@ interface Props
     onRemove: () => void;
 }
 
-const asStringArray = (value: unknown): string[] =>
-    Array.isArray(value) ? value.map(v => String(v)) : [];
-
 const ApplicabilityConditionRow = ({index, condition, binding, onChange, onRemove}: Props) =>
 {
     const styles = useApplicabilityEditorStyles();
-    const type = condition.valueType;
-    const isSelect = type === FieldValueType.SINGLE_SELECT || type === FieldValueType.MULTI_SELECT;
-    const options = binding?.options ?? [];
+    const id = `applicability-condition-${index}`;
+    const operators = operatorsForType(condition.valueType);
 
-    const setOperator = (op: FieldOperator) =>
+    const setOperator = (value: string) =>
     {
-        const needsValue = operatorNeedsValue(op);
-        const multi = operatorIsMultiValue(op);
-        onChange({
-            ...condition,
-            operator: op,
-            value: !needsValue ? undefined : multi ? asStringArray(condition.value) : condition.value,
-        });
-    };
-
-    const setValue = (value: unknown) => onChange({...condition, value});
-
-    const renderValueInput = () =>
-    {
-        if (!operatorNeedsValue(condition.operator)) return null;
-        const multi = operatorIsMultiValue(condition.operator);
-
-        if (isSelect && multi)
-        {
-            const selected = asStringArray(condition.value);
-            const selectedLabels = selected
-                .map(code => options.find(o => o.code === code)?.label ?? code)
-                .join(", ");
-            return (
-                <Dropdown
-                    size={"small"}
-                    id={`applicability-condition-${index}-values`}
-                    multiselect
-                    selectedOptions={selected}
-                    value={selectedLabels}
-                    placeholder="Select options"
-                    onOptionSelect={(_, d) => setValue(d.selectedOptions)}
-                >
-                    {options.map(o => (
-                        <Option key={o.code} value={o.code} text={o.label}>
-                            {o.label}
-                        </Option>
-                    ))}
-                </Dropdown>
-            );
-        }
-
-        if (isSelect)
-            return (
-                <Select
-                    size={"small"}
-                    id={`applicability-condition-${index}-value`}
-                    value={typeof condition.value === "string" ? condition.value : ""}
-                    onChange={(_, d) => setValue(d.value)}
-                >
-                    <option value="">Select an option</option>
-                    {options.map(o => <option key={o.code} value={o.code}>{o.label}</option>)}
-                </Select>
-            );
-
-        if (type === FieldValueType.BOOLEAN)
-            return (
-                <Switch
-                    id={`applicability-condition-${index}-bool`}
-                    checked={condition.value === true}
-                    onChange={(_, d) => setValue(d.checked)}
-                />
-            );
-
-        const inputType = type === FieldValueType.INTEGER || type === FieldValueType.DECIMAL ? "number"
-            : type === FieldValueType.DATE ? "date"
-                : type === FieldValueType.DATE_TIME ? "datetime-local" : "text";
-
-        return (
-            <Input
-                size={"small"}
-                id={`applicability-condition-${index}-value`}
-                type={inputType}
-                value={toConditionLiteralInputValue(type, condition.value)}
-                onChange={(_, d) => setValue(toConditionLiteral(type, d.value))}
-            />
-        );
+        const operator = operators.find(candidate => candidate === value);
+        if (operator) onChange({...condition, operator, value: literalForOperator(operator, condition.value)});
     };
 
     return (
-        <div className={styles.row}>
-            <div className={styles.rowField}>
-                <Text size={200} weight="semibold">Field</Text>
-                <Text size={300}>{binding?.label ?? condition.fieldKey ?? "Unknown field"}</Text>
+        <div id={id}
+             className={styles.row}>
+            <div id={`${id}-field`}
+                 className={styles.rowField}>
+                <Text id={`${id}-field-label`}
+                      size={200}
+                      weight="semibold">
+                    Field
+                </Text>
+                <Text id={`${id}-field-name`}
+                      size={300}>
+                    {binding?.label ?? condition.fieldKey ?? "Unknown field"}
+                </Text>
             </div>
-            <div className={styles.rowField}>
-                <Text size={200} weight="semibold">Condition</Text>
-                <Select
-                    size={"small"}
-                    id={`applicability-condition-${index}-operator`}
-                    value={condition.operator}
-                    onChange={(_, d) => setOperator(d.value as FieldOperator)}
-                >
-                    {operatorsForType(type).map(op =>
-                        <option key={op} value={op}>{operatorLabel(op)}</option>)}
+            <div id={`${id}-condition`}
+                 className={styles.rowField}>
+                <Text id={`${id}-operator-label`}
+                      size={200}
+                      weight="semibold">
+                    Condition
+                </Text>
+                <Select size={"small"}
+                        id={`${id}-operator`}
+                        aria-labelledby={`${id}-operator-label`}
+                        value={condition.operator}
+                        onChange={(_, data) => setOperator(data.value)}>
+                    {operators.map((operator: FieldOperator) => (
+                        <option key={operator}
+                                id={`${id}-operator-${operator.toLowerCase()}`}
+                                value={operator}>
+                            {operatorLabel(operator)}
+                        </option>
+                    ))}
                 </Select>
             </div>
-            <div className={styles.rowField}>
-                <Text size={200} weight="semibold">Value</Text>
-                {renderValueInput() ?? <Text size={200} className={styles.hint}>No value needed</Text>}
+            <div id={`${id}-value-field`}
+                 className={styles.rowField}>
+                <Text id={`${id}-value-label`}
+                      size={200}
+                      weight="semibold">
+                    Value
+                </Text>
+                <ConditionValueInput idPrefix={id}
+                                     label={"Value"}
+                                     valueType={condition.valueType}
+                                     operator={condition.operator}
+                                     value={condition.value}
+                                     options={binding?.options ?? []}
+                                     onChange={value => onChange({...condition, value})}/>
+                {!operatorNeedsValue(condition.operator) && (
+                    <Text id={`${id}-no-value`}
+                          size={200}
+                          className={styles.hint}>
+                        No value needed
+                    </Text>
+                )}
             </div>
-            <Button
-                size={"small"}
-                id={`applicability-condition-${index}-remove`}
-                appearance="subtle"
-                shape="circular"
-                icon={<DeleteIcon/>}
-                aria-label="Remove condition"
-                onClick={onRemove}
-            />
+            <Button size={"small"}
+                    id={`${id}-remove`}
+                    appearance="subtle"
+                    shape="circular"
+                    icon={<DeleteIcon/>}
+                    aria-label="Remove condition"
+                    onClick={onRemove}/>
         </div>
     );
 };

@@ -34,6 +34,21 @@ class InformationRequestReviewRepository :
     }
 
     fun nextReviewNumber(requestId: UUID): Int = findForRequest(requestId).maxOfOrNull { it.reviewNumber }?.plus(1) ?: 1
+
+    fun existsForPackage(requestId: UUID, packageId: UUID): Boolean =
+        entityManager.createQuery(
+            """
+            SELECT COUNT(review)
+            FROM InformationRequestReview review
+            WHERE review.informationRequestId = :requestId
+              AND review.packageId = :packageId
+            """.trimIndent(),
+            java.lang.Long::class.java,
+        )
+            .setParameter("requestId", requestId)
+            .setParameter("packageId", packageId)
+            .singleResult
+            .toLong() > 0
 }
 
 @ApplicationScoped
@@ -58,22 +73,22 @@ class InformationRequestReviewAssignmentRepository :
             .resultList
     }
 
-    fun findActiveForPrincipal(kind: PrincipalKind, principalId: UUID): List<InformationRequestReviewAssignment> =
-        entityManager.createQuery(
+    fun findActiveForReviewerParties(partyIds: Collection<UUID>): List<InformationRequestReviewAssignment> {
+        if (partyIds.isEmpty()) return emptyList()
+        return entityManager.createQuery(
             """
             SELECT assignment
             FROM InformationRequestReviewAssignment assignment
-            WHERE assignment.reviewerPrincipalKind = :kind
-              AND assignment.reviewerPrincipalId = :principalId
+            WHERE assignment.reviewerPartyId IN :partyIds
               AND assignment.state = :state
             ORDER BY assignment.assignedAt, assignment.id
             """.trimIndent(),
             InformationRequestReviewAssignment::class.java,
         )
-            .setParameter("kind", kind)
-            .setParameter("principalId", principalId)
+            .setParameter("partyIds", partyIds)
             .setParameter("state", InformationRequestReviewAssignmentState.ACTIVE)
             .resultList
+    }
 }
 
 @ApplicationScoped

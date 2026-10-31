@@ -10,21 +10,11 @@ import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 private class InformationRequestTemplatePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<InformationRequestTemplatePostgreSQLContainer>(imageName)
 
-/**
- * Reusable request configuration is a stable identity, an immutable published version of that
- * identity, the ordered sections of that version, the stable requirements of the identity, and the
- * bindings that place those requirements into one version.
- *
- * The rules that matter here cannot be recovered later: a key belongs to one owner, a version
- * number belongs to one definition, a binding may only reach the sections of its own version and
- * the requirements of its own definition, a stable requirement key is never rewritten, and a
- * published version and everything it holds stop changing.
- */
 class InformationRequestTemplateContractTest
 {
     @Test
@@ -167,8 +157,18 @@ class InformationRequestTemplateContractTest
                 insertSection(connection, fixture.sectionId, fixture.draftVersionId, "collected-data", 1)
                 insertSection(connection, fixture.otherOwnerSectionId, fixture.otherOwnerVersionId, "collected-data", 1)
                 insertRequirement(connection, fixture.requirementId, fixture.organizationDefinitionId, "recorded-note")
-                insertRequirement(connection, fixture.secondRequirementId, fixture.organizationDefinitionId, "supporting-note")
-                insertRequirement(connection, fixture.otherOwnerRequirementId, fixture.personalDefinitionId, "recorded-note")
+                insertRequirement(
+                    connection,
+                    fixture.secondRequirementId,
+                    fixture.organizationDefinitionId,
+                    "supporting-note"
+                )
+                insertRequirement(
+                    connection,
+                    fixture.otherOwnerRequirementId,
+                    fixture.personalDefinitionId,
+                    "recorded-note"
+                )
 
                 insertBinding(
                     connection,
@@ -246,7 +246,12 @@ class InformationRequestTemplateContractTest
                     fixture.namespace,
                 )
                 insertRequirement(connection, fixture.requirementId, fixture.organizationDefinitionId, "recorded-note")
-                insertRequirement(connection, fixture.otherOwnerRequirementId, fixture.personalDefinitionId, "recorded-note")
+                insertRequirement(
+                    connection,
+                    fixture.otherOwnerRequirementId,
+                    fixture.personalDefinitionId,
+                    "recorded-note"
+                )
 
                 assertEquals(2, requirementCount(connection, "recorded-note"))
                 refused(connection, "ux_request_template_requirement_key") {
@@ -256,7 +261,7 @@ class InformationRequestTemplateContractTest
                     updateStatement(
                         connection,
                         "UPDATE information_request_template_requirement SET requirement_key = 'renamed-note' " +
-                            "WHERE id = ?",
+                                "WHERE id = ?",
                         fixture.requirementId,
                     )
                 }
@@ -358,7 +363,7 @@ class InformationRequestTemplateContractTest
                     updateStatement(
                         connection,
                         "UPDATE information_request_template_definition SET origin_kind = 'AD_HOC_REQUEST' " +
-                            "WHERE id = ?",
+                                "WHERE id = ?",
                         fixture.organizationDefinitionId,
                     )
                 }
@@ -651,16 +656,6 @@ class InformationRequestTemplateContractTest
         }
     }
 
-    /**
-     * The requirement type is immaterial to the structural rules under test here, and a requested
-     * document needs no typed-data contract, so these versions stay publishable without one.
-     */
-    /**
-     * These tests are about structure, ownership, and immutability rather than about what is being
-     * asked for, so they use the one requirement type that owes publication nothing further: a typed
-     * answer needs the Schema Version it resolves against, and a requested document needs the
-     * evidence policy it is judged by.
-     */
     private fun insertRequirement(
         connection: Connection,
         id: UUID,
@@ -713,19 +708,13 @@ class InformationRequestTemplateContractTest
         }
     }
 
-    /**
-     * Publication requires the version to have recorded the runtime capabilities its configuration
-     * needs, which is not what these tests are about, so the set is derived and recorded here.
-     * Nothing is recorded once the version has left draft, so a refused publication still refuses
-     * for its own reason.
-     */
     private fun publish(connection: Connection, versionId: UUID, actorId: UUID)
     {
         recordRequiredCapabilities(connection, versionId)
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'PUBLISHED', published_at = ?, published_by_app_user_id = ?
+            SET status = 'PUBLISHED', published_at = ?, published_by_principal_kind = 'USER', published_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
@@ -763,7 +752,7 @@ class InformationRequestTemplateContractTest
         connection.prepareStatement(
             """
             UPDATE information_request_template_version
-            SET status = 'RETIRED', retired_at = ?, retired_by_app_user_id = ?
+            SET status = 'RETIRED', retired_at = ?, retired_by_principal_kind = 'USER', retired_by_principal_id = ?
             WHERE id = ?
             """.trimIndent(),
         ).use { statement ->
@@ -807,7 +796,7 @@ class InformationRequestTemplateContractTest
         countOf(
             connection,
             "SELECT COUNT(*) FROM information_request_template_definition " +
-                "WHERE scope_org_id = ? AND namespace = '$namespace' AND origin_kind = 'REUSABLE'",
+                    "WHERE scope_org_id = ? AND namespace = '$namespace' AND origin_kind = 'REUSABLE'",
             organizationId,
         )
 
@@ -815,7 +804,7 @@ class InformationRequestTemplateContractTest
         countOf(
             connection,
             "SELECT COUNT(*) FROM information_request_template_definition " +
-                "WHERE scope_org_id = ? AND namespace = '$namespace' AND origin_kind = 'AD_HOC_REQUEST'",
+                    "WHERE scope_org_id = ? AND namespace = '$namespace' AND origin_kind = 'AD_HOC_REQUEST'",
             organizationId,
         )
 
@@ -830,7 +819,7 @@ class InformationRequestTemplateContractTest
         countOf(
             connection,
             "SELECT COUNT(*) FROM information_request_template_requirement_binding " +
-                "WHERE template_version_id = ?",
+                    "WHERE template_version_id = ?",
             versionId,
         )
 
@@ -855,7 +844,7 @@ class InformationRequestTemplateContractTest
 
     private fun publishedBy(connection: Connection, versionId: UUID): UUID? =
         connection.prepareStatement(
-            "SELECT published_by_app_user_id FROM information_request_template_version WHERE id = ?",
+            "SELECT published_by_principal_id FROM information_request_template_version WHERE id = ?",
         ).use { statement ->
             statement.setObject(1, versionId)
             statement.executeQuery().use { rows ->
