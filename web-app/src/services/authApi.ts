@@ -1,4 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     OAuthLinkConfirmRequest,
     OAuthTokenExchangeResponse,
@@ -28,7 +29,7 @@ export const lookupSignInMethod = async (request: SignInLookupRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -41,7 +42,7 @@ export const refreshTokens = async () =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -54,11 +55,9 @@ export const confirmOAuthLink = async (request: OAuthLinkConfirmRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
-
-// ── Identity Provider Management ──
 
 export const getIdentityProviders = async () =>
 {
@@ -69,7 +68,7 @@ export const getIdentityProviders = async () =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -82,7 +81,7 @@ export const initiateLinkProvider = async (provider: string) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -95,7 +94,7 @@ export const unlinkProvider = async (provider: string) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -108,7 +107,7 @@ export const setupPassword = async (request: SetupPasswordRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -121,7 +120,7 @@ export const initiateSignUp = async (request: SignUpInitiationRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -134,15 +133,10 @@ export const completeSignUp = async (request: SignUpCompletionRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
-/**
- * GET /auth/sign-up/email-confirm/{token},  peek at the email a confirmation
- * token belongs to without consuming the token. Used to validate the link
- * and show context on the email-confirm page before the user submits.
- */
 export const checkSignUpEmailConfirmToken = async (token: string): Promise<SignUpEmailConfirmCheckResponse> =>
 {
     try
@@ -152,14 +146,10 @@ export const checkSignUpEmailConfirmToken = async (token: string): Promise<SignU
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
-/**
- * POST /auth/sign-up/email-confirm,  complete sign-up via the opaque-token flow.
- * The token is consumed atomically server-side on success.
- */
 export const confirmSignUpEmail = async (request: SignUpEmailConfirmRequest): Promise<SignUpEmailConfirmResponse> =>
 {
     try
@@ -169,7 +159,7 @@ export const confirmSignUpEmail = async (request: SignUpEmailConfirmRequest): Pr
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -182,7 +172,7 @@ export const initiatePasswordReset = async (request: PasswordResetInitiationRequ
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -195,7 +185,7 @@ export const completePasswordReset = async (request: PasswordResetCompletionRequ
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -208,7 +198,7 @@ export const regenerateSignUpOtp = async (request: SignUpOtpRegenerationRequest)
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -221,7 +211,7 @@ export const regeneratePasswordResetOtp = async (request: SignUpOtpRegenerationR
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -234,7 +224,7 @@ export const regenerateSignInOtp = async (request: SignInOtpRegenerationRequest)
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -247,7 +237,7 @@ export const initiateSignIn = async (request: SignInInitiationRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -260,7 +250,7 @@ export const completeSignIn = async (request: SignInCompletionRequest) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -277,11 +267,9 @@ export const signOut = async (outOfAllDevices: boolean, token: string) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
-
-// ── Session Management ──
 
 export const listUserSessions = async (): Promise<UserSessionListResponse> =>
 {
@@ -292,7 +280,7 @@ export const listUserSessions = async (): Promise<UserSessionListResponse> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -304,7 +292,7 @@ export const revokeUserSession = async (sessionId: string): Promise<void> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -320,7 +308,7 @@ export const createSignInEmailFallbackChallenge = async (email: string, mfaSessi
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -346,11 +334,9 @@ export const deleteUserSessionRecord = async (sessionId: string): Promise<void> 
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
-
-// ── Org Capacity ──
 
 export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapacityResponse> =>
 {
@@ -361,7 +347,7 @@ export const getOrgMemberCapacity = async (orgId: string): Promise<OrgMemberCapa
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };// -- Step-up Re-Auth --
 
@@ -426,8 +412,6 @@ export const regenerateStepUpOtp = async (mfaSessionId: string): Promise<StepUpR
     }
 };
 
-// ── Org Auth Session Policy (per-IdP source of truth) ──
-
 export interface OrgAuthSessionPolicyEffective
 {
     accessTokenExpiryMinutes: number;
@@ -485,7 +469,7 @@ export const getOrgAuthSessionPolicy = async (orgId: string): Promise<OrgAuthSes
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -505,7 +489,7 @@ export const updateOrgIdpAuthSessionPolicy = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

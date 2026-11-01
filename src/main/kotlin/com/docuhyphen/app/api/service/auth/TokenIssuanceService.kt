@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.TokenTriple
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.RequestScoped
@@ -9,13 +10,6 @@ import jakarta.ws.rs.core.NewCookie
 import org.eclipse.microprofile.config.ConfigProvider
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
-
-data class TokenTriple(
-    val accessToken: String,
-    val idToken: String,
-    val refreshToken: String,
-    val refreshTokenJti: String,
-)
 
 @RequestScoped
 class TokenIssuanceService @Inject constructor(
@@ -155,4 +149,3 @@ class TokenIssuanceService @Inject constructor(
             ?: throw IllegalStateException("Cannot issue tokens for a user that no longer exists")
     }
 }
-

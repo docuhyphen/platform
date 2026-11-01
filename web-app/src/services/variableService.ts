@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     AvailableVariablesDto,
     CreateSequenceRequest,
@@ -17,19 +18,14 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const {data} = await fn();
         return data;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
-// ── Available variables ───────────────────────────────────────────────────────
-
 export const getAvailableVariables = (): Promise<AvailableVariablesDto> =>
     executeRequest(() => apiClient.get('/variables/available'));
-
-// ── Sequences ─────────────────────────────────────────────────────────────────
 
 export const listSequences = (isActive?: boolean): Promise<SequenceDefinitionDto[]> =>
     executeRequest(() => apiClient.get('/sequences', {params: isActive !== undefined ? {isActive} : undefined}));
@@ -45,8 +41,6 @@ export const deleteSequence = (id: string): Promise<void> =>
 
 export const resetSequenceCounter = (id: string): Promise<SequenceDefinitionDto> =>
     executeRequest(() => apiClient.patch(`/sequences/${id}/reset`));
-
-// ── Variables ─────────────────────────────────────────────────────────────────
 
 export const listVariables = (scope: VariableScope): Promise<VariableDefinitionDto[]> =>
     executeRequest(() => apiClient.get('/variables', {params: {scope}}));

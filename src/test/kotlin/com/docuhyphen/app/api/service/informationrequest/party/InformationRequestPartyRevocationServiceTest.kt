@@ -10,11 +10,11 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestCredentialCutoff
 import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
@@ -539,7 +539,7 @@ class InformationRequestPartyRevocationServiceTest {
             val existingParty = fixture.activeActingParty()
             whenever(fixture.auditRecorder.record(any()))
                 .thenReturn(
-                    com.docuhyphen.app.api.service.audit.AuditCaptureResult.Degraded(
+                    com.docuhyphen.app.api.model.audit.AuditCaptureResult.Degraded(
                         UUID.randomUUID(),
                         "unavailable"
                     )

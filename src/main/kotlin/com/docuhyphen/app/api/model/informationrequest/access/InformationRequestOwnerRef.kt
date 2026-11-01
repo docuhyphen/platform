@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.informationrequest.access
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import java.util.*
 
 data class InformationRequestOwnerRef(

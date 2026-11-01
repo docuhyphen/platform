@@ -1,10 +1,3 @@
-/**
- * Renderer-specific presentation mapping for the workflow graph.
- *
- * Centralises the step-kind icon and edge visual treatment so nodes, edges,
- * and the legend all share one source of truth. Colour is never the only
- * signal: every state also differs by width, dash pattern, or icon.
- */
 
 import {CSSProperties} from "react";
 import {tokens} from "@fluentui/react-components";
@@ -38,8 +31,6 @@ export function stepKindIcon(kind: WorkflowGraphStepKind | undefined): FluentIco
 
 const EDGE_STYLES: Record<WorkflowGraphEdgeState, CSSProperties> = {
     DEFAULT:       { stroke: tokens.colorNeutralStroke1, strokeWidth: 1.5 },
-    // Same thickness as the other edge states; only the colour communicates
-    // that this connector was the one actually traversed.
     TRAVERSED:     { stroke: tokens.colorStatusSuccessBorder1, strokeWidth: 1.5 },
     NOT_TRAVERSED: { stroke: tokens.colorNeutralStroke2, strokeWidth: 1.5, strokeDasharray: "2 3", opacity: 0.6 },
     INACTIVE:      { stroke: tokens.colorNeutralStroke3, strokeWidth: 1, opacity: 0.45 },

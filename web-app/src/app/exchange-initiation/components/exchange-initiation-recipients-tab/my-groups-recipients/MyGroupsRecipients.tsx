@@ -11,11 +11,6 @@ interface MyGroupsRecipientsProps
     setRecipientOrgGroup: (group: OrganizationGroupBasicDto | undefined) => void;
 }
 
-/**
- * Lets the user pick one of their personal groups as the exchange recipient.
- * The selected PrincipalGroupDto is cast to OrganizationGroupBasicDto so the
- * parent form can submit the selected personal group through the typed initiation contract.
- */
 const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGroup, setRecipientOrgGroup}) =>
 {
     const styles = useExchangeInitiationRecipientsTabStyles();
@@ -49,7 +44,6 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
         };
     }, []);
 
-    // Keep combobox text in sync with external selection resets
     useEffect(() =>
     {
         if (!recipientOrgGroup)
@@ -64,7 +58,9 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
 
     if (loading)
     {
-        return <Spinner size="small" label="Loading personal groups..."/>;
+        return <Spinner id={"my-groups-recipients-spinner-1"}
+                        size="small"
+                        label="Loading personal groups..."/>;
     }
 
     const activeGroups = groups.filter(g => g.isActive);
@@ -72,14 +68,17 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
     if (activeGroups.length === 0)
     {
         return (
-            <Text size={200} italic>
-                No personal groups yet. Create one in <strong>Settings  to  My Groups</strong> and then come back here.
+            <Text id={"my-groups-recipients-text-1"}
+                  size={200}
+                  italic>
+                No personal groups yet. Create one in <strong id={"my-groups-recipients-strong-1"}>Settings  to  My Groups</strong> and then come back here.
             </Text>
         );
     }
 
     return (
-        <Field label="Select a personal group">
+        <Field id={"my-groups-recipients-field-1"}
+               label="Select a personal group">
             <Combobox
                 id={"my-groups-recipient-combobox"}
                 placeholder="Choose a group..."
@@ -90,7 +89,6 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
                     const selected = activeGroups.find(g => g.id === data.optionValue);
                     if (selected)
                     {
-                        // Cast to OrganizationGroupBasicDto exch- only id and name are consumed downstream
                         setRecipientOrgGroup(selected as unknown as OrganizationGroupBasicDto);
                         setQuery(selected.name);
                     }
@@ -102,11 +100,18 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
                 }}
             >
                 {activeGroups.map(g => (
-                    <Option key={g.id} value={g.id} text={g.name}>
-                        <div className={styles.myGroupsOptionContent}>
-                            <Text weight="semibold">{g.name}</Text>
-                            {g.description && <Text size={200}>{g.description}</Text>}
-                            <Text size={200}>{g.members.filter(m => m.groupRole !== 'OWNER').length} member{g.members.filter(m => m.groupRole !== 'OWNER').length !== 1 ? 's' : ''}</Text>
+                    <Option id={`my-groups-recipients-option-1-${g.id}`}
+                            key={g.id}
+                            value={g.id}
+                            text={g.name}>
+                        <div id={"my-groups-recipients-div-1"}
+                             className={styles.myGroupsOptionContent}>
+                            <Text id={"my-groups-recipients-text-2"}
+                                  weight="semibold">{g.name}</Text>
+                            {g.description && <Text id={"my-groups-recipients-text-3"}
+                                                    size={200}>{g.description}</Text>}
+                            <Text id={"my-groups-recipients-text-4"}
+                                  size={200}>{g.members.filter(m => m.groupRole !== 'OWNER').length} member{g.members.filter(m => m.groupRole !== 'OWNER').length !== 1 ? 's' : ''}</Text>
                         </div>
                     </Option>
                 ))}
@@ -116,5 +121,4 @@ const MyGroupsRecipients: React.FC<MyGroupsRecipientsProps> = ({recipientOrgGrou
 };
 
 export default MyGroupsRecipients;
-
 

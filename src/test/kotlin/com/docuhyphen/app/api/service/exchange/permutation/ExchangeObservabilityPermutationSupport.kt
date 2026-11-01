@@ -1,10 +1,10 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.service.communication.EmailService
-import com.docuhyphen.app.api.service.exchange.ExchangeEmailDelivery
-import com.docuhyphen.app.api.service.exchange.ExchangeInAppDelivery
+import com.docuhyphen.app.api.model.exchange.ExchangeEmailDelivery
+import com.docuhyphen.app.api.model.exchange.ExchangeInAppDelivery
 import com.docuhyphen.app.api.service.exchange.ExchangeNotificationDeliveryService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
@@ -12,7 +12,6 @@ import com.docuhyphen.app.api.service.notification.UserNotificationPreferenceSer
 import jakarta.transaction.Status
 import jakarta.transaction.Synchronization
 import jakarta.transaction.TransactionSynchronizationRegistry
-import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify

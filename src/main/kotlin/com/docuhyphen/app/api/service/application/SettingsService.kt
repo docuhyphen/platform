@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.dto.OrganizationSettingsDto
 import com.docuhyphen.app.api.model.entity.AppUserSettings
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.model.entity.OrganizationSettings
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.ServiceActionAuthorizationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
@@ -131,7 +131,6 @@ class SettingsService @Inject constructor(
             settings.notifyDocUpload = notifyDocUploadChannels.isNotEmpty()
         }
 
-        // Theme is a personal preference and requires no admin validation.
         val requestedTheme = settingsDto.theme.lowercase()
         if (requestedTheme !in setOf("light", "dark", "system"))
         {
@@ -139,10 +138,8 @@ class SettingsService @Inject constructor(
         }
         settings.theme = requestedTheme
 
-        // Tour completion is a personal preference, no admin check needed.
         settings.tourCompleted = settingsDto.tourCompleted
 
-        // View mode preferences are personal preferences, no admin validation needed.
         val validViewModes = setOf("cards", "table")
         if (settingsDto.documentLibraryView in validViewModes) settings.documentLibraryView =
             settingsDto.documentLibraryView
@@ -183,20 +180,16 @@ class SettingsService @Inject constructor(
             throw UnauthorizedException("User does not have permission to update organization settings")
         }
 
-        // Get the organization
         val organization = organizationService.getOrganizationById(orgUuid)
         subscriptionGuard.requireMutation(organization.id, PlanFeature.ORGANIZATION_ADMINISTRATION)
 
-        // Get existing settings or create new ones if null
         val settings = organization.settings ?: OrganizationSettings().also {
             organization.settings = it
             it.organization = organization
         }
 
-        // Update timestamp
         settings.updatedDate = Timestamp.from(Instant.now())
 
-        // Apply updates with proper validations
         if (settings.requireTrustedOrganizationForB2b != settingsDto.requireTrustedOrganizationForB2b)
         {
             authorizationService.validateUpdateTrustedOrganizationB2bSetting(currentUser)

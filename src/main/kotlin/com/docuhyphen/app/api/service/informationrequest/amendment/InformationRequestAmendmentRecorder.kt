@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.repository.informationrequest.amendment.Informatio
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponseFiles
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

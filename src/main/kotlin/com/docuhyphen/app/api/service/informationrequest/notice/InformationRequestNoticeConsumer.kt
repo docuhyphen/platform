@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.notice
 
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionResult
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventConsumer
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

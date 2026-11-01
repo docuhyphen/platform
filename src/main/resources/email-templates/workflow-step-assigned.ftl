@@ -4,9 +4,9 @@
 <p style="margin:0 0 14px 0;"><strong>You have a pending approval that requires your attention.</strong></p>
 
 <#if initiatorName??>
-<p style="margin:0 0 14px 0;">${initiatorName} has submitted an exchange that requires your approval before it can proceed.</p>
+<p style="margin:0 0 14px 0;">${initiatorName} has submitted an Exchange that requires your approval before it can proceed.</p>
 <#else>
-<p style="margin:0 0 14px 0;">An exchange has been submitted and requires your approval before it can proceed.</p>
+<p style="margin:0 0 14px 0;">An Exchange has been submitted and requires your approval before it can proceed.</p>
 </#if>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0; border:1px solid #dddddd; background-color:#f0f2f5;">
@@ -33,7 +33,7 @@
     </tr>
 </table>
 
-<p style="margin:0 0 14px 0;color:#555555;font-size:13px;">You can approve or reject this exchange by signing in to ${appName!'DocuHyphen'} and opening the Pending Approvals panel.</p>
+<p style="margin:0 0 14px 0;color:#555555;font-size:13px;">You can approve or reject this Exchange by signing in to ${appName!'DocuHyphen'} and opening the Pending Approvals panel.</p>
 
 <p style="margin:0 0 14px 0;color:#555555;font-size:13px;">If you believe you received this email in error, contact <a href="mailto:support@docuhyphen.com" style="color:#1f73b7;">support@docuhyphen.com</a>.</p>
 

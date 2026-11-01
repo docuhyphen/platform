@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.PlanDefinition
+import com.docuhyphen.app.api.model.subscription.PlanLimits
+
 object PlanCatalog
 {
     const val POLICY_VERSION = "1"

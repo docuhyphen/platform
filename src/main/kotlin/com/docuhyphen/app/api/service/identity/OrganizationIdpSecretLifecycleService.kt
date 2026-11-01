@@ -2,14 +2,17 @@ package com.docuhyphen.app.api.service.identity
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
+import com.docuhyphen.app.api.model.identity.OrganizationIdpSecretRollbackOutcome
+import com.docuhyphen.app.api.model.identity.OrganizationIdpSecretRotationOutcome
+import com.docuhyphen.app.api.model.identity.OrganizationIdpSecretStatusOutcome
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.ConfigurationService
-import com.docuhyphen.app.api.service.config.SecretLifecycleStatus
-import com.docuhyphen.app.api.service.config.SecretRotationResult
+import com.docuhyphen.app.api.model.config.SecretLifecycleStatus
+import com.docuhyphen.app.api.model.config.SecretRotationResult
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import io.quarkus.security.UnauthorizedException
@@ -19,30 +22,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-data class OrganizationIdpSecretRotationOutcome(
-    val secretRef: String,
-    val previousVersionId: String?,
-    val activeVersionId: String,
-    val overlapUntilEpochMillis: Long? = null,
-)
-
-data class OrganizationIdpSecretStatusOutcome(
-    val secretRef: String,
-    val disabled: Boolean,
-    val currentVersionId: String? = null,
-    val previousVersionId: String? = null,
-    val pendingVersionId: String? = null,
-    val overlapUntilEpochMillis: Long? = null,
-    val rotationPhase: String? = null,
-    val overlapActive: Boolean,
-)
-
-data class OrganizationIdpSecretRollbackOutcome(
-    val secretRef: String,
-    val rolledBackToVersionId: String,
-    val previousCurrentVersionId: String? = null,
-)
 
 @RequestScoped
 class OrganizationIdpSecretLifecycleService @Inject constructor(
@@ -374,9 +353,3 @@ class OrganizationIdpSecretLifecycleService @Inject constructor(
         return config
     }
 }
-
-
-
-
-
-

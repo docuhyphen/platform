@@ -5,11 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * An immutable published contract of a [SchemaDefinition]. Publishing a changed draft creates a
- * new version; it never rewrites an existing published version. Field bindings live in
- * [SchemaFieldBinding]. See FIELDS-FEATURE.md "Schema Version".
- */
 @Entity
 @Table(name = "schema_version")
 class SchemaVersion
@@ -31,7 +26,6 @@ class SchemaVersion
     @Enumerated(EnumType.STRING)
     var compatibility: SchemaCompatibility? = null
 
-    /** JSON array of schema-level validation rules (reserved; empty in first release). */
     @Column(name = "schema_rules_json", nullable = false, columnDefinition = "text")
     var schemaRulesJson: String = "[]"
 

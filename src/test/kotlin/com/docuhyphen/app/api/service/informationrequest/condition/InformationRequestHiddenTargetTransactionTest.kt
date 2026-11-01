@@ -12,8 +12,8 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.*
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestResponsePatch
 import com.docuhyphen.app.api.model.informationrequest.response.PatchInformationRequestResponsesCommand
 import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativePatch
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.exchange.ShareLinkService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog

@@ -47,8 +47,6 @@ export interface AuditEventSearchParams extends AuditCursorParams
 const toCategoriesParam = (categories?: string[]): string | undefined =>
     categories && categories.length > 0 ? categories.join(',') : undefined;
 
-// ── Event search ───────────────────────────────────────────────────────────────
-
 export const fetchOrganizationAuditEvents = (
     organizationId: string,
     params?: AuditEventSearchParams,
@@ -122,8 +120,6 @@ export const fetchPlatformAuditEvents = (params?: AuditEventSearchParams): Promi
         })
     );
 
-// ── Organization exports ────────────────────────────────────────────────────────
-
 export const requestOrganizationAuditExport = (
     organizationId: string,
     request: AuditExportCreateRequestDto,
@@ -168,8 +164,6 @@ export const getOrganizationAuditIntegrity = (organizationId: string): Promise<A
     executeRequest(() =>
         apiClient.get(`/organizations/${organizationId}/audit-integrity`)
     );
-
-// ── Platform exports ────────────────────────────────────────────────────────────
 
 export const requestPlatformAuditExport = (request: AuditExportCreateRequestDto): Promise<AuditExportDto> =>
     executeRequest(() =>

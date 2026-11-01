@@ -1,4 +1,4 @@
-import {ReactNode} from "react";
+import {ReactElement} from "react";
 import {
     Button,
     Checkbox,
@@ -14,7 +14,7 @@ import {useOrganizationPeopleToolbarStyles} from "./OrganizationPeopleToolbarSty
 
 interface OrganizationPeopleFilterPopoverProps
 {
-    icon: ReactNode;
+    icon: ReactElement;
     statusFilters: Set<OrganizationPeopleStatus>;
     roleFilters: Set<OrganizationRoleName>;
     onStatusToggle: (value: OrganizationPeopleStatus) => void;
@@ -47,10 +47,14 @@ const OrganizationPeopleFilterPopover = ({
                     />
                 </Tooltip>
             </PopoverTrigger>
-            <PopoverSurface className={styles.filterPopover}>
-                <div className={styles.filterSection}>
-                    <Text className={styles.filterSectionTitle}>Status</Text>
-                    <div className={styles.filterSectionList}>
+            <PopoverSurface id={"organization-people-filter-popover-popover-surface-1"}
+                            className={styles.filterPopover}>
+                <div id={"organization-people-filter-popover-div-1"}
+                     className={styles.filterSection}>
+                    <Text id={"organization-people-filter-popover-text-1"}
+                          className={styles.filterSectionTitle}>Status</Text>
+                    <div id={"organization-people-filter-popover-div-2"}
+                         className={styles.filterSectionList}>
                         <Checkbox
                             id="organization-people-filter-status-active"
                             label="Active"
@@ -65,10 +69,14 @@ const OrganizationPeopleFilterPopover = ({
                         />
                     </div>
                 </div>
-                <hr className={styles.filterDivider}/>
-                <div className={styles.filterSection}>
-                    <Text className={styles.filterSectionTitle}>Role</Text>
-                    <div className={styles.filterSectionList}>
+                <hr id={"organization-people-filter-popover-hr-1"}
+                    className={styles.filterDivider}/>
+                <div id={"organization-people-filter-popover-div-3"}
+                     className={styles.filterSection}>
+                    <Text id={"organization-people-filter-popover-text-2"}
+                          className={styles.filterSectionTitle}>Role</Text>
+                    <div id={"organization-people-filter-popover-div-4"}
+                         className={styles.filterSectionList}>
                         {Object.values(OrganizationRoleName).map(role => (
                             <Checkbox
                                 id={`organization-people-filter-role-${role.toLocaleLowerCase()}`}

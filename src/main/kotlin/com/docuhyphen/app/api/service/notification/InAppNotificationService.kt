@@ -6,7 +6,9 @@ import com.docuhyphen.app.api.model.dto.NotificationListResponse
 import com.docuhyphen.app.api.model.dto.NotificationPageCursorDto
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.notification.NotificationReadCriteria
+import com.docuhyphen.app.api.model.notification.NotificationReadResult
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -198,15 +200,3 @@ class InAppNotificationService @Inject constructor(
         return dto
     }
 }
-
-data class NotificationReadCriteria(
-    val all: Boolean = false,
-    val notificationIds: Set<UUID> = emptySet(),
-    val eventTypes: Set<String> = emptySet(),
-    val data: Map<String, String> = emptyMap(),
-)
-
-data class NotificationReadResult(
-    val readNotificationIds: List<UUID>,
-    val unreadCount: Long,
-)

@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.model.fields
 import com.docuhyphen.app.api.model.entity.FieldValue
 import com.docuhyphen.app.api.model.entity.FieldValueRevision
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 
 data class FieldPrincipalProvenance(
     val principal: PrincipalRef,

@@ -9,8 +9,8 @@ const BADGE_APPEARANCE: Record<string, "filled" | "ghost" | "outline" | "tint"> 
     BLOCKED: "filled",
 };
 
-const BADGE_COLOR: Record<string, "neutral" | "informative" | "success" | "important" | "severe" | "warning" | "subtle" | "brand"> = {
-    NONE: "neutral",
+const BADGE_COLOR: Record<string, "informative" | "informative" | "success" | "important" | "severe" | "warning" | "subtle" | "brand"> = {
+    NONE: "informative",
     RUNNING: "informative",
     CLEARED: "success",
     BLOCKED: "important",
@@ -47,7 +47,7 @@ const ClearanceStatusCard = ({ clearance }: Props) =>
                 {myStatus !== "NONE" && (
                     <Badge id="clearance-badge-my-org"
                            appearance={BADGE_APPEARANCE[myStatus] ?? "ghost"}
-                           color={BADGE_COLOR[myStatus] ?? "neutral"}>
+                           color={BADGE_COLOR[myStatus] ?? "informative"}>
                         My Organization: {formatClearanceStatus(myStatus)}
                     </Badge>
                 )}
@@ -56,7 +56,7 @@ const ClearanceStatusCard = ({ clearance }: Props) =>
                         <Badge id={`clearance-badge-counterparty-${i}`}
                                key={i}
                                appearance={BADGE_APPEARANCE[cp.status] ?? "ghost"}
-                               color={BADGE_COLOR[cp.status] ?? "neutral"}>
+                               color={BADGE_COLOR[cp.status] ?? "informative"}>
                             Counterparty: {formatClearanceStatus(cp.status)}
                         </Badge>
                     )

@@ -32,15 +32,16 @@ const ExchangeDocumentComments: React.FC<ExchangeDocumentCommentsProps> = (props
                     id={prefix ? `${prefix}-comments-load-error` : "exchange-document-comments-load-error"}
                     intent={"error"}
                 >
-                    <MessageBarBody>{state.loadError}</MessageBarBody>
+                    <MessageBarBody id={"exchange-document-comments-message-bar-body-1"}>{state.loadError}</MessageBarBody>
                     <MessageBarActions
+                        id={"exchange-document-comments-message-bar-actions-1"}
                         containerAction={
                             <Button
                                 id={prefix ? `${prefix}-comments-retry` : "exchange-document-comments-retry"}
                                 appearance={"transparent"}
                                 shape={"circular"}
                                 aria-label={"Retry loading notes and comments"}
-                                onClick={() => void state.fetchComments()}
+                                onClick={() => { void state.fetchComments(); }}
                             >
                                 Retry
                             </Button>

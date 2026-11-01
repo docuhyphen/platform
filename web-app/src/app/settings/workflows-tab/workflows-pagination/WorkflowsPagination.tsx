@@ -45,7 +45,8 @@ const WorkflowsPagination = ({
                 id={"workflows-pagination-actions"}
                 className={styles.actions}
             >
-                <Tooltip content={"First page"} relationship={"description"}>
+                <Tooltip content={"First page"}
+                         relationship={"description"}>
                     <Button
                         id={"workflows-pagination-first"}
                         icon={<FirstPageIcon/>}
@@ -55,7 +56,8 @@ const WorkflowsPagination = ({
                         onClick={() => onPageChange(0)}
                     />
                 </Tooltip>
-                <Tooltip content={"Previous page"} relationship={"description"}>
+                <Tooltip content={"Previous page"}
+                         relationship={"description"}>
                     <Button
                         id={"workflows-pagination-previous"}
                         icon={<PreviousPageIcon/>}
@@ -73,7 +75,8 @@ const WorkflowsPagination = ({
                         ? `Page ${currentPage + 1}`
                         : `${currentPage + 1} / ${totalPages}`}
                 </Text>
-                <Tooltip content={"Next page"} relationship={"description"}>
+                <Tooltip content={"Next page"}
+                         relationship={"description"}>
                     <Button
                         id={"workflows-pagination-next"}
                         icon={<NextPageIcon/>}
@@ -83,7 +86,8 @@ const WorkflowsPagination = ({
                         onClick={() => onPageChange(currentPage + 1)}
                     />
                 </Tooltip>
-                <Tooltip content={"Last page"} relationship={"description"}>
+                <Tooltip content={"Last page"}
+                         relationship={"description"}>
                     <Button
                         id={"workflows-pagination-last"}
                         icon={<LastPageIcon/>}

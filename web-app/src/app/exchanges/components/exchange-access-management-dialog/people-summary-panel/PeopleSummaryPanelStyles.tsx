@@ -6,42 +6,4 @@ export const usePeopleSummaryPanelStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingHorizontalM,
     },
-    personCard: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: tokens.borderRadiusMedium,
-        padding: `${tokens.spacingVerticalMNudge} ${tokens.spacingHorizontalM}`,
-        gap: tokens.spacingHorizontalS,
-        "@media (max-width: 640px)": {
-            flexDirection: "column",
-            alignItems: "flex-start",
-        },
-    },
-    personDetails: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalXS,
-        minWidth: 0,
-    },
-    secondaryText: {
-        color: tokens.colorNeutralForeground3,
-        overflowWrap: "anywhere",
-    },
-    replacementActions: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: tokens.spacingVerticalXS,
-    },
-    replacementActionRow: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalXS,
-        flexWrap: "wrap",
-    },
-    replacementInfoPopover: {
-        maxWidth: "18rem",
-    },
 });

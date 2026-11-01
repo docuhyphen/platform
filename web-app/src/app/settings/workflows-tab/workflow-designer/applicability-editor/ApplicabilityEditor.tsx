@@ -1,16 +1,11 @@
-import {useEffect, useState} from "react";
-import {Select, Spinner, Text} from "@fluentui/react-components";
-import {
-    SchemaDefinitionDto,
-    SchemaFieldBindingDto,
-    FieldScopeKind,
-    WorkflowApplicabilityDraft,
-    WorkflowFieldConditionDraft,
-} from "../../../../models/models.tsx";
-import {getResolvedSchema, listSchemas} from "../../../../../services/fieldsService.ts";
+import {Spinner, Text} from "@fluentui/react-components";
+import {WorkflowApplicabilityDraft, WorkflowFieldConditionDraft} from "../../../../models/models.tsx";
 import {useApplicabilityEditorStyles} from "./ApplicabilityEditorStyles.tsx";
 import {defaultConditionFor} from "./applicabilityOperators.ts";
-import ApplicabilityConditionRow from "./ApplicabilityConditionRow.tsx";
+import ApplicabilityConditionRow from "./applicability-condition-row/ApplicabilityConditionRow.tsx";
+import ApplicabilityFieldPicker from "./applicability-field-picker/ApplicabilityFieldPicker.tsx";
+import ApplicabilitySchemaSelect from "./applicability-schema-select/ApplicabilitySchemaSelect.tsx";
+import {useApplicabilitySchemaFields} from "./useApplicabilitySchemaFields.ts";
 
 interface Props
 {
@@ -18,35 +13,12 @@ interface Props
     onChange: (next?: WorkflowApplicabilityDraft) => void;
 }
 
-const EXCHANGE_RESOURCE = "EXCHANGE";
-
 const ApplicabilityEditor = ({applicability, onChange}: Props) =>
 {
     const styles = useApplicabilityEditorStyles();
-    const [schemas, setSchemas] = useState<SchemaDefinitionDto[]>([]);
-    const [selectedSchemaId, setSelectedSchemaId] = useState<string>("");
-    const [fields, setFields] = useState<SchemaFieldBindingDto[]>([]);
-    const [loadingFields, setLoadingFields] = useState(false);
+    const {schemas, selectedSchemaId, setSelectedSchemaId, fields, loadingFields} = useApplicabilitySchemaFields();
 
     const conditions = applicability?.fieldConditions ?? [];
-
-    useEffect(() =>
-    {
-        listSchemas()
-            .then(all => setSchemas(all.filter(s =>
-                s.scopeKind === FieldScopeKind.ORGANIZATION && s.targetResourceType === EXCHANGE_RESOURCE)))
-            .catch(() => setSchemas([]));
-    }, []);
-
-    useEffect(() =>
-    {
-        if (!selectedSchemaId) { setFields([]); return; }
-        setLoadingFields(true);
-        getResolvedSchema(selectedSchemaId)
-            .then(resolved => setFields(resolved.fields))
-            .catch(() => setFields([]))
-            .finally(() => setLoadingFields(false));
-    }, [selectedSchemaId]);
 
     const emit = (next: WorkflowFieldConditionDraft[]) =>
         onChange(next.length > 0 ? {fieldConditions: next} : undefined);
@@ -65,33 +37,23 @@ const ApplicabilityEditor = ({applicability, onChange}: Props) =>
     };
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <Text size={200} className={styles.hint}>
+        <div id={"applicability-editor-div-1"}
+             className={styles.container}>
+            <div id={"applicability-editor-div-2"}
+                 className={styles.header}>
+                <Text id={"applicability-editor-text-1"}
+                      size={200}
+                      className={styles.hint}>
                     The workflow runs only when every condition matches (AND). Leave empty to always run.
                 </Text>
             </div>
 
-            <div className={styles.schemaPicker}>
-                <Text size={200} weight="semibold">Schema</Text>
-                <Select
-                    id="applicability-schema-select"
-                    size={"small"}
-                    value={selectedSchemaId}
-                    onChange={(_, d) => setSelectedSchemaId(d.value)}
-                >
-                    <option value="">Select a schema to add field conditions</option>
-                    {schemas.map(s =>
-                        <option key={s.id} value={s.id}>{s.displayName}</option>)}
-                </Select>
-                {schemas.length === 0 && (
-                    <Text size={200} className={styles.hint}>
-                        No organization Exchange schemas are available yet.
-                    </Text>
-                )}
-            </div>
+            <ApplicabilitySchemaSelect schemas={schemas}
+                                       value={selectedSchemaId}
+                                       onChange={setSelectedSchemaId}/>
 
-            <div className={styles.conditionList}>
+            <div id={"applicability-editor-div-4"}
+                 className={styles.conditionList}>
                 {conditions.map((condition, i) => (
                     <ApplicabilityConditionRow
                         key={`${condition.fieldDefinitionId}-${i}`}
@@ -103,31 +65,21 @@ const ApplicabilityEditor = ({applicability, onChange}: Props) =>
                     />
                 ))}
                 {conditions.length === 0 && (
-                    <Text size={200} className={styles.emptyText}>
+                    <Text id={"applicability-editor-text-4"}
+                          size={200}
+                          className={styles.emptyText}>
                         No conditions. This workflow runs for every matching trigger.
                     </Text>
                 )}
             </div>
 
-            {loadingFields && <Spinner size="tiny" label="Loading fields..."/>}
+            {loadingFields && <Spinner id={"applicability-editor-spinner-1"}
+                                       size="tiny"
+                                       label="Loading fields..."/>}
 
             {selectedSchemaId && !loadingFields && (
-                <div className={styles.schemaPicker}>
-                    <Text size={200} weight="semibold">Add condition</Text>
-                    <Select
-                        size={"small"}
-                        id="applicability-add-field-select"
-                        value=""
-                        onChange={(_, d) => { if (d.value) addField(d.value); }}
-                        disabled={availableFields.length === 0}
-                    >
-                        <option value="">
-                            {availableFields.length === 0 ? "All fields added" : "Choose a field"}
-                        </option>
-                        {availableFields.map(f =>
-                            <option key={f.fieldDefinitionId} value={f.fieldDefinitionId}>{f.label}</option>)}
-                    </Select>
-                </div>
+                <ApplicabilityFieldPicker availableFields={availableFields}
+                                          onAdd={addField}/>
             )}
         </div>
     );

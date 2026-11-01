@@ -28,7 +28,7 @@ export const useOrganizationGroupTabStyles = makeStyles({
         color: tokens.colorStatusDangerForeground1,
         ...shorthands.padding(tokens.spacingHorizontalMNudge),
         backgroundColor: tokens.colorStatusDangerBackground1,
-        ...shorthands.borderRadius("4px"),
+        ...shorthands.borderRadius(tokens.borderRadiusMedium),
         flexShrink: 0
     },
     loading: {

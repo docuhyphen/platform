@@ -4,10 +4,10 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -15,13 +15,6 @@ import org.mockito.kotlin.*
 import java.io.File
 import java.util.*
 
-/**
- * Every uploaded file is recorded as a version attributed to the principal the upload was
- * authorized as. An authenticated upload is attributed to the authenticated principal. An upload
- * made with the Exchange no-auth access token is authorized under the primary recipient's Share, so
- * it is attributed to that Share's principal, and one that has no active primary recipient to be
- * attributed to is refused before any content is stored.
- */
 class ExchangeDocumentUploadVersionCreatorTest
 {
     private val exchangeId = UUID.randomUUID()

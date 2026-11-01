@@ -157,7 +157,7 @@ export const useExchangeOrchestrationCanvasStyles = makeStyles({
             content: "\"\"",
             position: "absolute",
             zIndex: -1,
-            inset: "-1.25rem",
+            inset: `calc(-1 * ${tokens.spacingHorizontalXL})`,
             borderRadius: tokens.borderRadiusXLarge,
             backgroundColor: tokens.colorBrandBackground2,
             opacity: 0.45,

@@ -1,31 +1,14 @@
-﻿import React, {useCallback, useEffect, useState} from "react";
-import {
-    Badge,
-    Button,
-    Dialog,
-    DialogBody,
-    DialogContent,
-    DialogSurface,
-    Menu,
-    MenuItem,
-    MenuList,
-    MenuPopover,
-    MenuTrigger,
-    Spinner,
-    Text,
-} from "@fluentui/react-components";
-import {ArrowDownloadRegular, EyeRegular, ArrowUploadRegular, MoreVerticalRegular, DismissRegular} from "@fluentui/react-icons";
-import {DocumentDetailedDto, DocumentVersion, ExchangeDetailedDto} from "../../../../models/models";
-import {
-    downloadDocumentVersion,
-    getDocumentVersions,
-} from "../../../../../services/exchangeApi";
-import {formatDate} from "../../../../helpers.ts";
+﻿import React, {useState} from "react";
+import {Button, Spinner, Text} from "@fluentui/react-components";
+import {ArrowUploadRegular} from "@fluentui/react-icons";
+import {DocumentDetailedDto, ExchangeDetailedDto} from "../../../../models/models";
 import {useExchangeDocumentVersionsStyles} from "./ExchangeDocumentVersionsStyles.tsx";
 import ExchangeDocumentUploadDialog
     from "../../exchange-document-upload-dialog/ExchangeDocumentUploadDialog.tsx";
-import ExchangeDocumentPreviewer
-    from "../../exchange-document-preview/ExchangeDocumentPreviewer.tsx";
+import ExchangeDocumentVersionCard from "./exchange-document-version-card/ExchangeDocumentVersionCard.tsx";
+import ExchangeDocumentVersionPreviewDialog
+    from "./exchange-document-version-preview-dialog/ExchangeDocumentVersionPreviewDialog.tsx";
+import {useExchangeDocumentVersions} from "./useExchangeDocumentVersions.ts";
 
 interface ExchangeDocumentVersionsProps
 {
@@ -46,215 +29,88 @@ const ExchangeDocumentVersions: React.FC<ExchangeDocumentVersionsProps> = (
     }) =>
 {
     const styles = useExchangeDocumentVersionsStyles();
-    const [versions, setVersions] = useState<DocumentVersion[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<string | null>(null);
     const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-    const [actionInProgress, setActionInProgress] = useState<string | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewVersionId, setPreviewVersionId] = useState<string | null>(null);
-
-    const fetchVersions = useCallback(async () =>
-    {
-        try
-        {
-            setLoading(true);
-            const result = await getDocumentVersions(exchangeId, exchangeDocument.id);
-            setVersions(result as DocumentVersion[]);
-            setError(null);
-        }
-        catch (err: unknown)
-        {
-            setError("Failed to load document versions");
-            console.error("Error fetching document versions:", err);
-        }
-        finally
-        {
-            setLoading(false);
-        }
-    }, [exchangeId, exchangeDocument]);
-
-    useEffect(() =>
-    {
-        fetchVersions();
-    }, [fetchVersions]);
-
-    const closePreview = () =>
-    {
-        if (previewUrl)
-        {
-            window.URL.revokeObjectURL(previewUrl);
-        }
-        setPreviewUrl(null);
-        setPreviewVersionId(null);
-    };
-
-    const openVersionBlob = async (versionId: string, forDownload: boolean) =>
-    {
-        setActionInProgress(versionId);
-        try
-        {
-            const blob = await downloadDocumentVersion(exchangeId, exchangeDocument.id, versionId);
-            const url = window.URL.createObjectURL(blob as Blob);
-            if (forDownload)
-            {
-                const versionLabel = versions.find(v => v.id === versionId)?.version || "document";
-                const a = document.createElement("a");
-                a.style.display = "none";
-                a.href = url;
-                a.download = `${exchangeDocument.title}_v${versionLabel}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }
-            else
-            {
-                setPreviewVersionId(versionId);
-                setPreviewUrl(url);
-            }
-        }
-        catch (err)
-        {
-            setError(forDownload ? "Failed to download version" : "Failed to preview version");
-            console.error("Error opening document version:", err);
-        }
-        finally
-        {
-            setActionInProgress(null);
-        }
-    };
+    const {
+        versions,
+        loading,
+        error,
+        actionInProgress,
+        previewUrl,
+        previewVersionId,
+        fetchVersions,
+        closePreview,
+        previewVersion,
+        downloadVersion,
+    } = useExchangeDocumentVersions(exchangeId, exchangeDocument);
 
     if (loading)
     {
-        return <Spinner size="small"/>;
+        return <Spinner id={"exchange-document-versions-spinner-1"}
+                        size="small"/>;
     }
 
     return (
-        <div className={styles.container}>
+        <div id={"exchange-document-versions-div-1"}
+             className={styles.container}>
             {error && (
-                <Text className={styles.errorText}>{error}</Text>
+                <Text id={"exchange-document-versions-text-1"}
+                      className={styles.errorText}>{error}</Text>
             )}
 
-            <div className={styles.versionList}>
+            <div id={"exchange-document-versions-div-2"}
+                 className={styles.versionList}>
                 {versions.length === 0 ? (
-                    <div className={styles.noVersions}>
-                        <Text align="center">No versions available</Text>
-                        <Text size={200} align="center">
+                    <div id={"exchange-document-versions-div-3"}
+                         className={styles.noVersions}>
+                        <Text id={"exchange-document-versions-text-2"}
+                              align="center">No versions available</Text>
+                        <Text id={"exchange-document-versions-text-3"}
+                              size={200}
+                              align="center">
                             Upload a version to see it here
                         </Text>
                     </div>
                 ) : (
                     versions.map((version) => (
-                        <div key={version.id} className={styles.versionCard}>
-                            <div className={styles.versionCardHeader}>
-                                <Badge appearance="filled" color="informative">
-                                    v{version.version}
-                                </Badge>
-                                {canDownload && (
-                                <Menu>
-                                    <MenuTrigger disableButtonEnhancement>
-                                        <Button
-                                            id={`version-actions-trigger-${version.id}`}
-                                            icon={actionInProgress === version.id
-                                                ? <Spinner size="tiny"/>
-                                                : <MoreVerticalRegular/>}
-                                            appearance="subtle"
-                                            shape={"circular"}
-                                            size="small"
-                                            disabled={actionInProgress === version.id}
-                                        />
-                                    </MenuTrigger>
-                                    <MenuPopover>
-                                        <MenuList>
-                                            <MenuItem
-                                                icon={<EyeRegular/>}
-                                                onClick={() => openVersionBlob(version.id, false)}
-                                            >
-                                                Preview
-                                            </MenuItem>
-                                            <MenuItem
-                                                icon={<ArrowDownloadRegular/>}
-                                                onClick={() => openVersionBlob(version.id, true)}
-                                            >
-                                                Download
-                                            </MenuItem>
-                                        </MenuList>
-                                    </MenuPopover>
-                                </Menu>
-                                )}
-                            </div>
-                            <div className={styles.versionCardMeta}>
-                                <Text size={200}>{formatDate(version.createdAt)}</Text>
-                                <Text size={200}>{version.createdByEmail || "Unknown"}</Text>
-                            </div>
-                            {version.fileName && (
-                                <Text size={200} className={styles.versionFileName}>
-                                    {version.fileName}
-                                </Text>
-                            )}
-                        </div>
+                        <ExchangeDocumentVersionCard key={version.id}
+                                                     version={version}
+                                                     canDownload={canDownload}
+                                                     actionInProgress={actionInProgress === version.id}
+                                                     onPreview={previewVersion}
+                                                     onDownload={downloadVersion}/>
                     ))
                 )}
             </div>
 
             {canUpload && (
-                <div className={styles.uploadButtonRow}>
-                    <Button
-                        id={"exchange-document-version-upload-btn"}
-                        appearance="secondary"
-                        shape="circular"
-                        size="small"
-                        icon={<ArrowUploadRegular/>}
-                        onClick={() => setIsUploadDialogOpen(true)}
-                    >
+                <div id={"exchange-document-versions-div-7"}
+                     className={styles.uploadButtonRow}>
+                    <Button id={"exchange-document-version-upload-btn"}
+                            appearance="secondary"
+                            shape="circular"
+                            size="small"
+                            icon={<ArrowUploadRegular/>}
+                            onClick={() => setIsUploadDialogOpen(true)}>
                         Upload Version
                     </Button>
                 </div>
             )}
 
-            <ExchangeDocumentUploadDialog
-                isOpen={isUploadDialogOpen}
-                exchangeId={exchangeId}
-                exchangeDocument={exchangeDocument}
-                onDismiss={() => setIsUploadDialogOpen(false)}
-                onDocumentUploaded={() =>
-                {
-                    setIsUploadDialogOpen(false);
-                    fetchVersions();
-                }}
-            />
+            <ExchangeDocumentUploadDialog isOpen={isUploadDialogOpen}
+                                          exchangeId={exchangeId}
+                                          exchangeDocument={exchangeDocument}
+                                          onDismiss={() => setIsUploadDialogOpen(false)}
+                                          onDocumentUploaded={() =>
+                                          {
+                                              setIsUploadDialogOpen(false);
+                                              fetchVersions();
+                                          }}/>
 
-            {/* Version preview dialog using ExchangeDocumentPreviewer */}
-            <Dialog
-                open={!!previewUrl}
-                onOpenChange={(_e, data) => { if (!data.open) closePreview(); }}
-            >
-                <DialogSurface className={styles.previewDialogSurface}>
-                    <Button
-                        id="version-preview-close-btn"
-                        appearance="subtle"
-                        shape="circular"
-                        size="small"
-                        icon={<DismissRegular/>}
-                        className={styles.previewCloseButton}
-                        onClick={closePreview}
-                    />
-                    <DialogBody className={styles.previewDialogBody}>
-                        <DialogContent className={styles.previewDialogContent}>
-                            {previewUrl && (
-                                <ExchangeDocumentPreviewer
-                                    document={exchangeDocument}
-                                    exchange={exchange}
-                                    overridePdfUrl={previewUrl}
-                                    documentVersionId={previewVersionId ?? undefined}
-                                    hideEnlarge
-                                />
-                            )}
-                        </DialogContent>
-                    </DialogBody>
-                </DialogSurface>
-            </Dialog>
+            <ExchangeDocumentVersionPreviewDialog previewUrl={previewUrl}
+                                                  previewVersionId={previewVersionId}
+                                                  exchangeDocument={exchangeDocument}
+                                                  exchange={exchange}
+                                                  onClose={closePreview}/>
         </div>
     );
 };

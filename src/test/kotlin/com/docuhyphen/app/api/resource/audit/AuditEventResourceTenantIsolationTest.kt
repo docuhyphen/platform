@@ -1,7 +1,13 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
+import com.docuhyphen.app.api.service.audit.AuditProjectionAccessService
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
 import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.ws.rs.core.Response
@@ -54,11 +60,7 @@ class AuditEventResourceTenantIsolationTest
     @Test
     fun `organization event route authorizes the organization from the path`()
     {
-        val resource = AuditOrganizationEventsResource(
-            authorizationService,
-            contextFactory,
-            projectionService,
-        )
+        val resource = AuditOrganizationEventsResource(projectionAccessService(), projectionService)
 
         val response = resource.listOrganizationEvents(
             foreignOrganizationId.toString(),
@@ -80,9 +82,7 @@ class AuditEventResourceTenantIsolationTest
         val exchangeId = UUID.randomUUID()
         stubOrganizationOwner(ResourceRef.exchange(exchangeId))
         val resource = AuditExchangeEventsResource(
-            authorizationService,
-            contextFactory,
-            resourceContextRegistry,
+            projectionAccessService(),
             projectionService,
         )
 
@@ -98,9 +98,7 @@ class AuditEventResourceTenantIsolationTest
         val exchangeId = UUID.randomUUID()
         stubOrganizationOwner(ResourceRef.exchange(exchangeId))
         val resource = AuditExchangeDocumentEventsResource(
-            authorizationService,
-            contextFactory,
-            resourceContextRegistry,
+            projectionAccessService(),
             projectionService,
         )
 
@@ -122,9 +120,7 @@ class AuditEventResourceTenantIsolationTest
         val definitionId = UUID.randomUUID()
         stubOrganizationOwner(ResourceRef.workflowDefinition(definitionId))
         val resource = AuditWorkflowDefinitionEventsResource(
-            authorizationService,
-            contextFactory,
-            resourceContextRegistry,
+            projectionAccessService(),
             projectionService,
         )
 
@@ -133,6 +129,12 @@ class AuditEventResourceTenantIsolationTest
         assertDeniedWithoutEvidenceQuery(response)
         verifyOrganizationAuthorization()
     }
+
+    private fun projectionAccessService(): AuditProjectionAccessService = AuditProjectionAccessService(
+        AuditAccessAuthorizer(authorizationService, contextFactory),
+        projectionService,
+        resourceContextRegistry,
+    )
 
     private fun stubOrganizationOwner(resource: ResourceRef)
     {

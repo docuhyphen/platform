@@ -9,11 +9,11 @@ import com.docuhyphen.app.api.resource.informationrequest.noauth.InformationRequ
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpgradeInformationRequestParticipantAccountRequest
 import com.docuhyphen.app.api.service.audit.AuditCaptureFailedException
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.command.OverlappingCommandRace
 import com.docuhyphen.app.api.service.command.RevisionETag

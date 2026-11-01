@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model.audit
 
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.time.Instant
 import java.util.*
 

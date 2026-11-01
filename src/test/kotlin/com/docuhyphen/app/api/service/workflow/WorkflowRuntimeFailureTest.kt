@@ -6,8 +6,8 @@ import com.docuhyphen.app.api.model.workflow.StepOutcomeSpec
 import com.docuhyphen.app.api.model.workflow.WorkflowSpec
 import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
 import com.docuhyphen.app.api.repository.workflow.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

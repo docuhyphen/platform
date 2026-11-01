@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialGrant
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialMutation
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialPolicyMutation
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialGrantRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

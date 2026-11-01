@@ -1,5 +1,5 @@
 import {Route} from "react-router-dom";
-import ProtectedRoute from "../components/ProtectedRoutes.tsx";
+import ProtectedRoute from "../components/protected-routes/ProtectedRoutes.tsx";
 import RecordPreservation from "../record-preservation/record-preservation-page/RecordPreservation.tsx";
 import InformationRequestAssignedWork from "./assigned-work/assigned-work-page/InformationRequestAssignedWork.tsx";
 import InformationRequestAuthorWorkspace from "./authoring/author-workspace/InformationRequestAuthorWorkspace.tsx";

@@ -2,25 +2,25 @@ export const informationRequestTemplatePublishingArticle = (
     <>
         <h3 id={"information-request-templates-publish-heading"}>Saving and publishing</h3>
         <p id={"information-request-templates-publish-help"}>
-            <b>Save draft</b> keeps your changes. <b>Before publishing</b> lists anything that would stop the draft from
+            <b id={"information-request-template-publishing-article-b-1"}>Save draft</b> keeps your changes. <b id={"information-request-template-publishing-article-b-2"}>Before publishing</b> lists anything that would stop the draft from
             being
-            published, each with <b>Show</b> to open the part it names, and <b>Publish</b> stays unavailable until
+            published, each with <b id={"information-request-template-publishing-article-b-3"}>Show</b> to open the part it names, and <b id={"information-request-template-publishing-article-b-4"}>Publish</b> stays unavailable until
             nothing is listed.
             If the server still refuses the draft, its message explains the problem. When it names a section, item,
             group, condition,
-            or review stage, <b>Show</b> opens that part. Publishing checks that the selected Schema is still available
+            or review stage, <b id={"information-request-template-publishing-article-b-5"}>Show</b> opens that part. Publishing checks that the selected Schema is still available
             to this Template,
             supports Information Requests, and holds every Field the draft collects. If not, the Version stays a draft
             so you can
             choose an eligible Schema. Publishing freezes the Version; later changes need a new draft.
             If someone else saved or published the draft after you opened it, your save or publish is refused rather
             than overwriting their
-            work: <b>Keep my changes</b> saves yours over the latest draft, and <b>Open latest draft</b> discards them.
+            work: <b id={"information-request-template-publishing-article-b-6"}>Keep my changes</b> saves yours over the latest draft, and <b id={"information-request-template-publishing-article-b-7"}>Open latest draft</b> discards them.
             Going back to Templates
-            or another Settings tab with unsaved changes asks first. The <b>Versions</b> tab starts drafts from, retires
+            or another Settings tab with unsaved changes asks first. The <b id={"information-request-template-publishing-article-b-8"}>Versions</b> tab starts drafts from, retires
             and copies published Versions; see
             Template Versions and copies. A platform Template is a starting point that requests never use directly: open
-            it, select <b>Copy as a new Template</b>, and copy it into My Templates or the organization.
+            it, select <b id={"information-request-template-publishing-article-b-9"}>Copy as a new Template</b>, and copy it into My Templates or the organization.
         </p>
 
         <h3 id={"information-request-conditional-answers-heading"}>Conditional answers</h3>
@@ -72,12 +72,12 @@ export const informationRequestTemplatePublishingArticle = (
             contracts. A connector contract names the connector, its kind, its version, the result keys
             it returns, and an optional result age limit; its results are always reviewed. DocuHyphen
             ships no bundle of its own. A bundle names each Template Version by its Template key, its
-            version number, and its content hash, which the <b>Versions</b> tab shows for a published
+            version number, and its content hash, which the <b id={"information-request-template-publishing-article-b-10"}>Versions</b> tab shows for a published
             Version. Integrations can check a bundle before
-            using it with <code>POST /information-request-configuration-bundles/validations</code>, which
+            using it with <code id={"information-request-template-publishing-article-code-1"}>POST /information-request-configuration-bundles/validations</code>, which
             lists every problem with the place it was found, including a Version you cannot see or whose
             content no longer matches the hash. A due date policy in a bundle is checked by the same rules as
-            <b> Due date policies</b>: 0 minutes before escalating is valid, while overlapping working hours on one day,
+            <b id={"information-request-template-publishing-article-b-11"}> Due date policies</b>: 0 minutes before escalating is valid, while overlapping working hours on one day,
             a repeated reminder, or working hours on a calendar-time policy are problems.
         </p>
     </>

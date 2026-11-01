@@ -27,10 +27,13 @@ const NoAuthExchangeOverview: React.FC<NoAuthExchangeOverviewProps> = ({exchange
             id={"no-auth-exchange-overview"}
             className={mergeClasses(styles.container, collapsed && styles.collapsedContainer)}
         >
-            <div className={styles.summaryHeader}>
-                <div className={styles.eyebrow}>
+            <div id={"no-auth-exchange-overview-div-1"}
+                 className={styles.summaryHeader}>
+                <div id={"no-auth-exchange-overview-div-2"}
+                     className={styles.eyebrow}>
                     <ManageAccessIcon/>
-                    <Text weight={"semibold"}>Secure Exchange details</Text>
+                    <Text id={"no-auth-exchange-overview-text-1"}
+                          weight={"semibold"}>Secure Exchange details</Text>
                 </div>
                 <Button
                     id={"no-auth-exchange-overview-toggle"}
@@ -38,16 +41,20 @@ const NoAuthExchangeOverview: React.FC<NoAuthExchangeOverviewProps> = ({exchange
                     shape={"circular"}
                     size={"small"}
                     icon={collapsed ? <ToggleHeaderDownIcon/> : <ToggleHeaderUpIcon/>}
-                    aria-label={collapsed ? "Show exchange details" : "Hide exchange details"}
+                    aria-label={collapsed ? "Show Exchange details" : "Hide Exchange details"}
                     aria-expanded={!collapsed}
                     onClick={() => setCollapsed((current) => !current)}
                 />
             </div>
             {!collapsed && (
-                <div className={styles.details}>
-                    <div className={styles.heading}>
-                        <Text className={styles.requestedBy}>Shared by {requesterName || "your contact"}</Text>
+                <div id={"no-auth-exchange-overview-div-3"}
+                     className={styles.details}>
+                    <div id={"no-auth-exchange-overview-div-4"}
+                         className={styles.heading}>
+                        <Text id={"no-auth-exchange-overview-text-2"}
+                              className={styles.requestedBy}>Shared by {requesterName || "your contact"}</Text>
                         <Text
+                            id={"no-auth-exchange-overview-text-3"}
                             size={700}
                             weight={"semibold"}
                             className={styles.exchangeName}
@@ -55,41 +62,59 @@ const NoAuthExchangeOverview: React.FC<NoAuthExchangeOverviewProps> = ({exchange
                             {exchange.name}
                         </Text>
                         {exchange.recipientOrganizationName && (
-                            <Text className={styles.recipientOrganization}>
+                            <Text id={"no-auth-exchange-overview-text-4"}
+                                  className={styles.recipientOrganization}>
                                 For {exchange.recipientOrganizationName}
                             </Text>
                         )}
                     </div>
                     {exchange.initialShareMessage && (
-                        <div className={styles.message}>
-                            <Text className={styles.messageLabel}>Exchange message</Text>
-                            <Text className={styles.messageText}>{exchange.initialShareMessage}</Text>
+                        <div id={"no-auth-exchange-overview-div-5"}
+                             className={styles.message}>
+                            <Text id={"no-auth-exchange-overview-text-5"}
+                                  className={styles.messageLabel}>Exchange message</Text>
+                            <Text id={"no-auth-exchange-overview-text-6"}
+                                  className={styles.messageText}>{exchange.initialShareMessage}</Text>
                         </div>
                     )}
-                    <div className={styles.assuranceList}>
-                        <div className={styles.assuranceItem}>
+                    <div id={"no-auth-exchange-overview-div-6"}
+                         className={styles.assuranceList}>
+                        <div id={"no-auth-exchange-overview-div-7"}
+                             className={styles.assuranceItem}>
                             <ManageAccessIcon className={styles.assuranceIcon}/>
-                            <div className={styles.assuranceText}>
-                                <Text weight={"semibold"}>Access protected</Text>
-                                <Text size={300}>This private link is tied to your verified access.</Text>
+                            <div id={"no-auth-exchange-overview-div-8"}
+                                 className={styles.assuranceText}>
+                                <Text id={"no-auth-exchange-overview-text-7"}
+                                      weight={"semibold"}>Access protected</Text>
+                                <Text id={"no-auth-exchange-overview-text-8"}
+                                      size={300}>This private link is tied to your verified access.</Text>
                             </div>
                         </div>
-                        <div className={styles.assuranceItem}>
+                        <div id={"no-auth-exchange-overview-div-9"}
+                             className={styles.assuranceItem}>
                             <DocumentsIcon className={styles.assuranceIcon}/>
-                            <div className={styles.assuranceText}>
-                                <Text weight={"semibold"}>Files stay with this Exchange</Text>
-                                <Text size={300}>Use this workspace to view or provide exchange documents.</Text>
+                            <div id={"no-auth-exchange-overview-div-10"}
+                                 className={styles.assuranceText}>
+                                <Text id={"no-auth-exchange-overview-text-9"}
+                                      weight={"semibold"}>Files stay with this Exchange</Text>
+                                <Text id={"no-auth-exchange-overview-text-10"}
+                                      size={300}>Use this workspace to view or provide Exchange documents.</Text>
                             </div>
                         </div>
-                        <div className={styles.assuranceItem}>
+                        <div id={"no-auth-exchange-overview-div-11"}
+                             className={styles.assuranceItem}>
                             <CheckmarkIcon className={styles.assuranceIcon}/>
-                            <div className={styles.assuranceText}>
-                                <Text weight={"semibold"}>{accessWindowDays}-day verified access</Text>
-                                <Text size={300}>Return while your verified access remains valid.</Text>
+                            <div id={"no-auth-exchange-overview-div-12"}
+                                 className={styles.assuranceText}>
+                                <Text id={"no-auth-exchange-overview-text-11"}
+                                      weight={"semibold"}>{accessWindowDays}-day verified access</Text>
+                                <Text id={"no-auth-exchange-overview-text-12"}
+                                      size={300}>Return while your verified access remains valid.</Text>
                             </div>
                         </div>
                     </div>
-                    <Text className={styles.footerNote}>
+                    <Text id={"no-auth-exchange-overview-text-13"}
+                          className={styles.footerNote}>
                         You do not need a DocuHyphen account to use this Exchange.
                     </Text>
                 </div>

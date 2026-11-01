@@ -13,11 +13,11 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionFeatureEntitlementAdminService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped

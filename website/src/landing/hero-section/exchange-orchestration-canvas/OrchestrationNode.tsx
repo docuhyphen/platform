@@ -17,7 +17,8 @@ export function OrchestrationNode({id, label, className, icon}: OrchestrationNod
             className={className}
         >
             {icon}
-            <Text weight="semibold">{label}</Text>
+            <Text id={"orchestration-node-text-1"}
+                  weight="semibold">{label}</Text>
         </div>
     );
 }

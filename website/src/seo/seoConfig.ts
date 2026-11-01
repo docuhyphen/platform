@@ -82,7 +82,6 @@ const routeSeoByPath: Readonly<Record<string, RouteSeo>> = {
         pageType: "webpage",
         breadcrumbs: [{name: "Home", path: "/"}, {name: "Security", path: "/security"}],
     }),
-    // "/about" route SEO entry intentionally omitted while the page is hidden pending redesign
     "/contact": defineRoute({
         path: "/contact",
         title: "Contact DocuHyphen",

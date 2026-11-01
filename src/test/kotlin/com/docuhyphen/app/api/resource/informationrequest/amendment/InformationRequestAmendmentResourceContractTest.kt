@@ -18,8 +18,8 @@ import com.docuhyphen.app.api.resource.informationrequest.amendment.operations.I
 import com.docuhyphen.app.api.resource.informationrequest.amendment.operations.InformationRequestNoAuthAmendmentResourceOperations
 import com.docuhyphen.app.api.resource.model.AmendInformationRequestRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.amendment.InformationRequestAmendmentQueryService

@@ -46,7 +46,6 @@ describe("AuditIntegritySection stale scope-switch protection", () =>
             streams: [{streamId: "org-stream", chainValid: false, chainNote: "broken", segmentsValid: 0, segmentsChecked: 1, segmentFailureNotes: ["bad"]}],
         });
 
-        // Give the stale org response's setState every chance to land before asserting it didn't.
         await new Promise((resolve) => setTimeout(resolve, 20));
 
         expect(document.getElementById("audit-integrity-stream-platform-stream")).toBeTruthy();

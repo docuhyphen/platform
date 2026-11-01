@@ -77,8 +77,10 @@ const WorkflowsTab = () =>
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.tabListWrapper}>
+        <div id={"workflows-tab-div-1"}
+             className={styles.container}>
+            <div id={"workflows-tab-div-2"}
+                 className={styles.tabListWrapper}>
                 <TabList
                     id="workflows-tab-subtab-list"
                     selectedValue={subTab}
@@ -100,7 +102,8 @@ const WorkflowsTab = () =>
                 </TabList>
             </div>
 
-            <div className={styles.content}>
+            <div id={"workflows-tab-div-3"}
+                 className={styles.content}>
                 <div
                     id={`workflows-tab-content-transition-${subTab}`}
                     key={`list-${subTab}`}

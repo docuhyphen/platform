@@ -2,200 +2,240 @@ package com.docuhyphen.app.api.resource.application
 
 import com.docuhyphen.app.api.exception.ApplicationNotFoundException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.entity.Application
+import com.docuhyphen.app.api.resource.application.operations.ApplicationManagementResourceOperations
+import com.docuhyphen.app.api.resource.model.CreateApplicationRequestBody
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.application.ApplicationManagementService
-import com.docuhyphen.app.api.service.application.CreateApplicationRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
+import com.docuhyphen.app.api.resource.model.UpdateCapabilitiesRequestBody
+import com.docuhyphen.app.api.service.application.ApplicationAdministrationService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
-import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.*
 
-@Path("/admin/applications")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class ApplicationManagementResource @Inject constructor(
-    private val applicationManagementService: ApplicationManagementService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
-)
+    private val applicationAdministrationService: ApplicationAdministrationService,
+) : ApplicationManagementResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ApplicationManagementResource::class.java)
+        private const val SUBSCRIPTION_REFUSAL_MESSAGE = "Application management request refused by subscription policy"
+        private const val FAILURE_MESSAGE = "An error occurred"
     }
 
-    @GET
-    fun listApplications(): Response = guarded {
-        val apps = applicationManagementService.listAll(principal(), context())
-        Response.ok(apps.map { it.toDto() }).build()
-    }
-
-    @POST
-    fun createApplication(body: CreateApplicationRequestBody): Response = guarded {
-        require(!body.name.isNullOrBlank()) { "name is required" }
-        val appType = body.applicationType?.trim()?.uppercase()
-            ?.let { runCatching { com.docuhyphen.app.api.model.entity.ApplicationType.valueOf(it) }.getOrNull() }
-            ?: com.docuhyphen.app.api.model.entity.ApplicationType.SERVICE
-        val request = CreateApplicationRequest(
-            name = body.name,
-            description = body.description,
-            applicationType = appType,
-            ownerOrganizationId = body.ownerOrganizationId?.let { UUID.fromString(it) },
-            grantedCapabilities = body.grantedCapabilities ?: emptyList(),
-        )
-        val (app, rawSecret) = applicationManagementService.create(request, principal(), context())
-        Response.status(CREATED).entity(app.toCreatedDto(rawSecret)).build()
-    }
-
-    @GET
-    @Path("/{id}")
-    fun getApplication(@PathParam("id") id: String): Response = guarded {
-        val appId = parseUuid(id)
-        val app = applicationManagementService.getById(appId, principal(), context())
-        Response.ok(app.toDto()).build()
-    }
-
-    @POST
-    @Path("/{id}/credentials/rotate")
-    fun rotateCredentials(@PathParam("id") id: String): Response = guarded {
-        val appId = parseUuid(id)
-        val result = applicationManagementService.rotateCredentials(appId, principal(), context())
-        Response.ok(RotateCredentialsResponse(result.apiKey, result.rawSecret)).build()
-    }
-
-    @PUT
-    @Path("/{id}/capabilities")
-    fun updateCapabilities(
-        @PathParam("id") id: String,
-        body: UpdateCapabilitiesRequestBody
-    ): Response = guarded {
-        val appId = parseUuid(id)
-        applicationManagementService.updateGrantedCapabilities(
-            appId,
-            body.capabilities ?: emptyList(),
-            principal(),
-            context()
-        )
-        Response.ok().build()
-    }
-
-    @DELETE
-    @Path("/{id}")
-    fun deactivateApplication(@PathParam("id") id: String): Response = guarded {
-        val appId = parseUuid(id)
-        applicationManagementService.deactivate(appId, principal(), context())
-        Response.status(NO_CONTENT).build()
-    }
-
-    // -------------------------------------------------------------------------
-
-    private fun principal() = authorizationContextFactory.currentPrincipal()
-        ?: throw SecurityException("Authentication required")
-
-    private fun context() = authorizationContextFactory.currentContext()
-
-    private fun parseUuid(value: String): UUID =
-        runCatching { UUID.fromString(value) }.getOrElse { throw IllegalArgumentException("Invalid id") }
-
-    private fun guarded(block: () -> Response): Response
+    override fun listApplications(): Response
     {
         return try
         {
-            block()
+            Response.ok(applicationAdministrationService.listApplications()).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is SubscriptionDenialException)
+            when (exception)
             {
-                logger.warn("Application management request refused by subscription policy", e)
-                throw e
-            }
-            logger.error("Error in application management endpoint", e)
-            when (e)
-            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
                 is SecurityException ->
-                    Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
                 is ApplicationNotFoundException ->
-                    Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                    Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(ResponseError("An error occurred")).build()
+                {
+                    logger.error("Error listing applications", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
             }
         }
     }
 
-    private fun Application.toDto() = ApplicationDto(
-        id = id.toString(),
-        name = name,
-        description = description,
-        applicationType = applicationType.name,
-        ownerOrganizationId = ownerOrganizationId?.toString(),
-        isActive = isActive,
-        grantedCapabilities = grantedCapabilitiesJson,
-        createdDate = createdDate.toInstant().toString(),
-        lastAccessDate = lastAccessDate?.toInstant()?.toString(),
-    )
+    override fun createApplication(body: CreateApplicationRequestBody): Response
+    {
+        return try
+        {
+            Response.status(CREATED).entity(applicationAdministrationService.createApplication(body)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
 
-    private fun Application.toCreatedDto(rawSecret: String) = ApplicationCreatedDto(
-        id = id.toString(),
-        name = name,
-        description = description,
-        applicationType = applicationType.name,
-        ownerOrganizationId = ownerOrganizationId?.toString(),
-        apiKey = apiKey,
-        rawSecret = rawSecret,
-        grantedCapabilities = grantedCapabilitiesJson,
-        createdDate = createdDate.toInstant().toString(),
-    )
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ApplicationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error creating application", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun getApplication(id: String): Response
+    {
+        return try
+        {
+            Response.ok(applicationAdministrationService.getApplication(parseApplicationId(id))).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ApplicationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error reading application", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun rotateCredentials(id: String): Response
+    {
+        return try
+        {
+            Response.ok(applicationAdministrationService.rotateCredentials(parseApplicationId(id))).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ApplicationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error rotating application credentials", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun updateCapabilities(
+        id: String,
+        body: UpdateCapabilitiesRequestBody,
+    ): Response
+    {
+        return try
+        {
+            applicationAdministrationService.updateCapabilities(parseApplicationId(id), body.capabilities)
+            Response.ok().build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ApplicationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error updating application capabilities", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun deactivateApplication(id: String): Response
+    {
+        return try
+        {
+            applicationAdministrationService.deactivate(parseApplicationId(id))
+            Response.status(NO_CONTENT).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ApplicationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error deactivating application", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
 }
-
-@Serializable
-data class ApplicationDto(
-    val id: String,
-    val name: String,
-    val description: String?,
-    val applicationType: String,
-    val ownerOrganizationId: String?,
-    val isActive: Boolean,
-    val grantedCapabilities: String,
-    val createdDate: String,
-    val lastAccessDate: String?,
-)
-
-@Serializable
-data class ApplicationCreatedDto(
-    val id: String,
-    val name: String,
-    val description: String?,
-    val applicationType: String,
-    val ownerOrganizationId: String?,
-    val apiKey: String,
-    val rawSecret: String,
-    val grantedCapabilities: String,
-    val createdDate: String,
-)
-
-@Serializable
-data class RotateCredentialsResponse(val apiKey: String, val rawSecret: String)
-
-@Serializable
-data class CreateApplicationRequestBody(
-    val name: String?,
-    val description: String?,
-    val applicationType: String?,
-    val ownerOrganizationId: String?,
-    val grantedCapabilities: List<String>?,
-)
-
-@Serializable
-data class UpdateCapabilitiesRequestBody(val capabilities: List<String>?)

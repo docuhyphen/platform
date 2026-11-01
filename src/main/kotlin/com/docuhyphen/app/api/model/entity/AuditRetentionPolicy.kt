@@ -5,13 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * An organization's override of the platform-default retention catalog for one
- * [com.docuhyphen.app.api.service.audit.catalog.AuditCategory]. There is no platform-default row
- * in this table - the default catalog lives in code
- * ([com.docuhyphen.app.api.service.audit.AuditRetentionCatalogService]), so every organization
- * always has a well-defined effective policy even with zero rows here.
- */
 @Entity
 @Table(name = "audit_retention_policy")
 class AuditRetentionPolicy

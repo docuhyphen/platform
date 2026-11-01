@@ -81,7 +81,6 @@ class AppAdminGuardTest
             service.requireAppAdmin(actorId)
         }
 
-        // No role assignment must be persisted from requireAppAdmin
         verify(appRoleAssignmentRepository, never()).save(any())
     }
 

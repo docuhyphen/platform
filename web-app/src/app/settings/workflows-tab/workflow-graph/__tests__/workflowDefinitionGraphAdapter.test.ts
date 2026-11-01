@@ -3,8 +3,6 @@ import { WorkflowDesignerState, WorkflowStepSpecDraft } from "../../../../models
 import { buildDefinitionGraph } from "../workflowDefinitionGraphAdapter.ts";
 import { WEBHOOK_DELIVER_HANDLER_KEY } from "../workflowGraphModels.ts";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
 const baseState = (
     steps: WorkflowStepSpecDraft[] = [],
     id = "def-1",
@@ -26,8 +24,6 @@ const approvalStep = (overrides: Partial<WorkflowStepSpecDraft> = {}): WorkflowS
     ...overrides,
 });
 
-// ── empty workflow ─────────────────────────────────────────────────────────────
-
 describe("buildDefinitionGraph: empty workflow", () =>
 {
     it("produces Start, End, and a direct Start-to-End edge", () =>
@@ -42,8 +38,6 @@ describe("buildDefinitionGraph: empty workflow", () =>
         expect(graph.warnings).toHaveLength(0);
     });
 });
-
-// ── single step ───────────────────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: single step", () =>
 {
@@ -73,8 +67,6 @@ describe("buildDefinitionGraph: single step", () =>
     });
 });
 
-// ── approval branches ─────────────────────────────────────────────────────────
-
 describe("buildDefinitionGraph: approval branches", () =>
 {
     it("creates approve and reject edges when both configured", () =>
@@ -102,8 +94,6 @@ describe("buildDefinitionGraph: approval branches", () =>
         expect(reject).toBeUndefined();
     });
 });
-
-// ── condition branches ────────────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: condition branches", () =>
 {
@@ -137,8 +127,6 @@ describe("buildDefinitionGraph: condition branches", () =>
     });
 });
 
-// ── WAIT_FOR_COUNTERPARTY_CLEARANCE ───────────────────────────────────────────
-
 describe("buildDefinitionGraph: WAIT_FOR_COUNTERPARTY_CLEARANCE", () =>
 {
     const waitStep = (): WorkflowStepSpecDraft => ({
@@ -161,8 +149,6 @@ describe("buildDefinitionGraph: WAIT_FOR_COUNTERPARTY_CLEARANCE", () =>
     });
 });
 
-// ── two outcomes sharing one target ──────────────────────────────────────────
-
 describe("buildDefinitionGraph: two outcomes sharing one target", () =>
 {
     it("preserves both edges even when both point to the same step", () =>
@@ -180,8 +166,6 @@ describe("buildDefinitionGraph: two outcomes sharing one target", () =>
     });
 });
 
-// ── backward branch / loop ────────────────────────────────────────────────────
-
 describe("buildDefinitionGraph: backward branch", () =>
 {
     it("allows backward edge without an error", () =>
@@ -198,8 +182,6 @@ describe("buildDefinitionGraph: backward branch", () =>
         expect(backEdge).toBeDefined();
     });
 });
-
-// ── invalid targets ───────────────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: invalid targets", () =>
 {
@@ -225,7 +207,6 @@ describe("buildDefinitionGraph: invalid targets", () =>
 
     it("produces an INVALID_TARGET node for a negative numeric string", () =>
     {
-        // "-1" is not matched by /^\d+$/ so it is treated as malformed.
         const graph = buildDefinitionGraph(
             baseState([approvalStep({ onApprove: { nextStep: "-1" } })]),
         );
@@ -233,8 +214,6 @@ describe("buildDefinitionGraph: invalid targets", () =>
         expect(invalid).toBeDefined();
     });
 });
-
-// ── webhook detection ─────────────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: webhook detection", () =>
 {
@@ -281,8 +260,6 @@ describe("buildDefinitionGraph: webhook detection", () =>
     });
 });
 
-// ── render ID namespacing ─────────────────────────────────────────────────────
-
 describe("buildDefinitionGraph: render ID namespacing", () =>
 {
     it("does not collide between two graphs with the same step count but different IDs", () =>
@@ -295,8 +272,6 @@ describe("buildDefinitionGraph: render ID namespacing", () =>
         expect(intersection).toHaveLength(0);
     });
 });
-
-// ── step name display ─────────────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: step labels", () =>
 {
@@ -316,8 +291,6 @@ describe("buildDefinitionGraph: step labels", () =>
         expect(node!.label).toBe("Approval 1");
     });
 });
-
-// ── incomplete / partial step ─────────────────────────────────────────────────
 
 describe("buildDefinitionGraph: incomplete step", () =>
 {

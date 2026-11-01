@@ -17,7 +17,8 @@ const AuditExportCategoriesField = ({categories, onChange}: AuditExportCategorie
             className={styles.selected}
         >
             {categories.length === 0
-                ? <Text size={200}>Select categories</Text>
+                ? <Text id={"audit-export-categories-field-text-1"}
+                        size={200}>Select categories</Text>
                 : categories.map((category) => (
                     <Tag
                         id={"audit-export-category-tag-" + category.toLowerCase()}

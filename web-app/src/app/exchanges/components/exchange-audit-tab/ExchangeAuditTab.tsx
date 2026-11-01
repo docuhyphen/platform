@@ -12,11 +12,6 @@ interface ExchangeAuditTabProps
     exchange: ExchangeDetailedDto;
 }
 
-/**
- * Ledger-backed Exchange "Audit" tab: every document event plus Exchange-level events,
- * paginated over `GET /exchanges/{exchangeId}/audit-events`, using the shared audit table/detail
- * components instead of a bespoke table.
- */
 const ExchangeAuditTab = ({exchange}: ExchangeAuditTabProps) =>
 {
     const styles = useExchangeAuditTabStyles();
@@ -28,19 +23,25 @@ const ExchangeAuditTab = ({exchange}: ExchangeAuditTabProps) =>
     if (loading && items.length === 0)
     {
         return (
-            <div className={styles.spinner}>
-                <Spinner size="small" label="Loading audit logs..." labelPosition="after"/>
+            <div id={"exchange-audit-tab-div-1"}
+                 className={styles.spinner}>
+                <Spinner id={"exchange-audit-tab-spinner-1"}
+                         size="small"
+                         label="Loading audit logs..."
+                         labelPosition="after"/>
             </div>
         );
     }
 
     if (error)
     {
-        return <Text className={styles.errorText}>Error: {error}</Text>;
+        return <Text id={"exchange-audit-tab-text-1"}
+                     className={styles.errorText}>Error: {error}</Text>;
     }
 
     return (
-        <div id={"exchange-audit-tab-container"} className={styles.container}>
+        <div id={"exchange-audit-tab-container"}
+             className={styles.container}>
             <AuditEventTable
                 items={items}
                 nextCursor={cursor}

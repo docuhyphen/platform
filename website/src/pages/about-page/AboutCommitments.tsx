@@ -25,19 +25,22 @@ export function AboutCommitments()
                     id="about-commitment-audit"
                     className={styles.commitment}
                 >
-                    <CheckmarkCircle24Regular aria-hidden="true"/>Readable audit trails
+                    <CheckmarkCircle24Regular id={"about-commitments-checkmark-circle24-regular-1"}
+                                              aria-hidden="true"/>Readable audit trails
                 </Text>
                 <Text
                     id="about-commitment-data"
                     className={styles.commitment}
                 >
-                    <CheckmarkCircle24Regular aria-hidden="true"/>Customer-owned data
+                    <CheckmarkCircle24Regular id={"about-commitments-checkmark-circle24-regular-2"}
+                                              aria-hidden="true"/>Customer-owned data
                 </Text>
                 <Text
                     id="about-commitment-controls"
                     className={styles.commitment}
                 >
-                    <CheckmarkCircle24Regular aria-hidden="true"/>Controls built into every Exchange
+                    <CheckmarkCircle24Regular id={"about-commitments-checkmark-circle24-regular-3"}
+                                              aria-hidden="true"/>Controls built into every Exchange
                 </Text>
             </div>
         </section>

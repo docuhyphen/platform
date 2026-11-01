@@ -24,7 +24,6 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
     const [instances, setInstances] = useState<WorkflowInstanceDetailDto[]>([]);
     const [pendingSteps, setPendingSteps] = useState<PendingWorkflowStep[]>([]);
     const [clearanceStatus, setClearanceStatus] = useState<ExchangeClearanceStatusDto | null>(null);
-    // Tab-level view preference (Decision 8, Decision 15): local state only, default Timeline.
     const [viewMode, setViewMode] = useState<WorkflowViewMode>("BOTH");
     const {markMatchingAsRead} = useNotifications();
 
@@ -42,7 +41,6 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
             setInstances(details);
             setPendingSteps(pending);
 
-            // Clearance status is best-effort; do not fail the tab if it errors.
             fetchExchangeWorkflowClearanceStatus(exchange.id)
                 .then(cs => setClearanceStatus(cs))
                 .catch(() => setClearanceStatus(null));
@@ -79,7 +77,8 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
         return (
             <div id="exchange-workflow-tab-loading"
                  className={styles.centeredState}>
-                <Spinner size="small"
+                <Spinner id={"exchange-workflow-tab-spinner-1"}
+                         size="small"
                          label="Loading workflow..."
                          labelPosition="after" />
             </div>
@@ -91,7 +90,7 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
         return (
             <MessageBar id="exchange-workflow-tab-error"
                         intent="error">
-                <MessageBarBody>{error}</MessageBarBody>
+                <MessageBarBody id={"exchange-workflow-tab-message-bar-body-1"}>{error}</MessageBarBody>
             </MessageBar>
         );
     }
@@ -101,7 +100,7 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
         return (
             <div id="exchange-workflow-tab-empty"
                  className={styles.emptyCard}>
-                <Text>This exchange does not require any workflows.</Text>
+                <Text id={"exchange-workflow-tab-text-1"}>This Exchange does not require any workflows.</Text>
             </div>
         );
     }
@@ -111,7 +110,8 @@ const ExchangeWorkflowTab = ({exchange}: Props) =>
              className={styles.root}>
             <div id="exchange-workflow-tab-header"
                  className={styles.header}>
-                <Text className={styles.headerTitle}
+                <Text id={"exchange-workflow-tab-text-2"}
+                      className={styles.headerTitle}
                       weight="semibold">
                 </Text>
                 <WorkflowViewToggle mode={viewMode}

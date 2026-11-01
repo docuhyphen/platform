@@ -19,7 +19,6 @@ interface AuditExportRequestDialogProps
     onSubmit: (request: AuditExportCreateRequestDto) => void;
 }
 
-/** Form dialog to request a new signed evidence export bundle. */
 const AuditExportRequestDialog = (
     {
         open,

@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceArtifact
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceVersion
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.io.File
 import java.io.OutputStream
 import java.util.*

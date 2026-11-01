@@ -1,19 +1,10 @@
-import React, {useRef, useState} from 'react';
-import {
-    Badge,
-    Button,
-    Input,
-    Label,
-    Popover,
-    PopoverSurface,
-    PopoverTrigger,
-    Text,
-    Textarea,
-    Tooltip,
-} from '@fluentui/react-components';
-import {DismissRegular} from '@fluentui/react-icons';
-import {AvailableVariablesDto, SequenceDefinitionDto, SystemVariableDto, VariableDefinitionDto} from '../../app/models/models';
+import React from 'react';
+import {Button, Input, Label, Textarea} from '@fluentui/react-components';
+import {AvailableVariablesDto} from '../../app/models/models';
 import {useVariableTokenInputStyles} from "./VariableTokenInputStyles.tsx";
+import useVariableTokenInput from "./useVariableTokenInput.ts";
+import VariableTokenPicker from "./token-picker/VariableTokenPicker.tsx";
+import VariableTokenPreview from "./token-preview/VariableTokenPreview.tsx";
 
 export interface VariableTokenInputProps
 {
@@ -25,121 +16,6 @@ export interface VariableTokenInputProps
     placeholder?: string;
     label?: string;
     disabled?: boolean;
-}
-
-const TOKEN_RE = /\{\{([^}]+)}}/g;
-
-function getTokens(value: string): Array<{token: string; start: number; end: number}>
-{
-    const tokens: Array<{token: string; start: number; end: number}> = [];
-    let m: RegExpExecArray | null;
-    TOKEN_RE.lastIndex = 0;
-    while ((m = TOKEN_RE.exec(value)) !== null)
-        tokens.push({token: m[1].trim(), start: m.index, end: m.index + m[0].length});
-    return tokens;
-}
-
-function getPreviewLabel(token: string, available: AvailableVariablesDto, resolved?: Record<string, string>): string
-{
-    if (resolved?.[token]) return resolved[token];
-    const sys = available.system.find(s => s.token === token);
-    if (sys) return sys.example;
-    const seq = available.sequences.find(s => `SEQ:${s.key}` === token);
-    if (seq) return seq.previewValue;
-    const orgVar = available.org.find(v => v.key === token);
-    if (orgVar) return orgVar.defaultValue ?? '';
-    const personalVar = available.personal.find(v => v.key === token);
-    if (personalVar) return personalVar.defaultValue ?? '';
-    return `{{${token}}}`;
-}
-
-interface TokenChipProps
-{
-    token: string;
-    available: AvailableVariablesDto;
-    resolved?: Record<string, string>;
-    removeButtonId: string;
-    onRemove: () => void;
-    disabled?: boolean;
-}
-
-const TokenChip: React.FC<TokenChipProps> = ({token, available, resolved, removeButtonId, onRemove, disabled}) =>
-{
-    const styles = useVariableTokenInputStyles();
-    const isSystem = available.system.some(s => s.token === token);
-    const isSeq = token.startsWith('SEQ:');
-    const isOrg = available.org.some(v => v.key === token);
-
-    let color: 'brand' | 'success' | 'informative' | 'warning' = 'informative';
-    if (isSystem) color = 'brand';
-    else if (isSeq) color = 'success';
-    else if (isOrg) color = 'warning';
-
-    const preview = getPreviewLabel(token, available, resolved);
-
-    return (
-        <Tooltip content={`{{${token}}} resolves to ${preview}`} relationship="description">
-            <Badge
-                appearance="tint"
-                color={color}
-                className={styles.tokenChip}
-            >
-                {token}
-                {!disabled && (
-                    <Button
-                        id={removeButtonId}
-                        size="small"
-                        appearance="transparent"
-                        shape="circular"
-                        icon={<DismissRegular className={styles.removeIcon}/>}
-                        onClick={onRemove}
-                        className={styles.removeButton}
-                        aria-label={`Remove ${token}`}
-                    />
-                )}
-            </Badge>
-        </Tooltip>
-    );
-};
-
-interface PickerGroupProps<T>
-{
-    label: string;
-    items: T[];
-    getKey: (item: T) => string;
-    getLabel: (item: T) => string;
-    getBadge: (item: T) => string;
-    badgeColor: 'brand' | 'success' | 'warning' | 'informative';
-    onSelect: (token: string) => void;
-}
-
-function PickerGroup<T>({label, items, getKey, getLabel, getBadge, badgeColor, onSelect}: PickerGroupProps<T>)
-{
-    const styles = useVariableTokenInputStyles();
-    if (items.length === 0) return null;
-    return (
-        <div className={styles.pickerGroup}>
-            <Text size={100} weight="semibold" className={styles.pickerGroupLabel}>
-                {label}
-            </Text>
-            <div className={styles.pickerGroupList}>
-                {items.map(item => (
-                    <Button
-                        id={`variable-token-picker-${label.toLowerCase().replace(/\s+/g, "-")}-${getKey(item)}`}
-                        key={getKey(item)}
-                        appearance="subtle"
-                        size="small"
-                        shape="circular"
-                        className={styles.pickerGroupButton}
-                        onClick={() => onSelect(getKey(item))}
-                    >
-                        <Badge appearance="tint" color={badgeColor} size="small">{getBadge(item)}</Badge>
-                        <Text size={200}>{getLabel(item)}</Text>
-                    </Button>
-                ))}
-            </div>
-        </div>
-    );
 }
 
 const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
@@ -154,141 +30,43 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
 }) =>
 {
     const styles = useVariableTokenInputStyles();
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const [pickerSearch, setPickerSearch] = useState('');
-    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
-    const cursorRef = useRef<number>(value.length);
-
-    const insertToken = (token: string) =>
-    {
-        const pos = cursorRef.current;
-        const newValue = value.slice(0, pos) + `{{${token}}}` + value.slice(pos);
-        onChange(newValue);
-        setPickerOpen(false);
-        setPickerSearch('');
-    };
-
-    const removeToken = (start: number, end: number) =>
-    {
-        onChange(value.slice(0, start) + value.slice(end));
-    };
-
-    const handleInputChange = (raw: string) =>
-    {
-        if (raw.endsWith('{{'))
-        {
-            setPickerOpen(true);
-        }
-        onChange(raw);
-    };
-
-    const filterSearch = (token: string) =>
-        !pickerSearch || token.toLowerCase().includes(pickerSearch.toLowerCase());
-
-    const vTokens = getTokens(value);
-
-    // Render a visual preview of the value with chips interspersed
-    const renderPreview = () =>
-    {
-        if (vTokens.length === 0) return null;
-        const parts: React.ReactNode[] = [];
-        let last = 0;
-        vTokens.forEach(({token, start, end}, i) =>
-        {
-            if (start > last)
-                parts.push(<span key={`text-${i}`}>{value.slice(last, start)}</span>);
-            parts.push(
-                <TokenChip
-                    key={`chip-${i}`}
-                    token={token}
-                    available={availableVariables}
-                    resolved={resolvedPreview}
-                    removeButtonId={`variable-token-remove-${i}`}
-                    onRemove={() => removeToken(start, end)}
-                    disabled={disabled}
-                />
-            );
-            last = end;
-        });
-        if (last < value.length)
-            parts.push(<span key="text-end">{value.slice(last)}</span>);
-        return parts;
-    };
-
-    const picker = (
-        <Popover open={pickerOpen} onOpenChange={(_, d) => setPickerOpen(d.open)}>
-            <PopoverTrigger disableButtonEnhancement>
-                <span/>
-            </PopoverTrigger>
-            <PopoverSurface className={styles.pickerSurface}>
-                <Text weight="semibold" size={300} block className={styles.pickerTitle}>Insert Variable</Text>
-                <Input
-                    size="small"
-                    placeholder="Search variables…"
-                    value={pickerSearch}
-                    onChange={(_, d) => setPickerSearch(d.value)}
-                    className={styles.pickerSearch}
-                />
-                <PickerGroup<SystemVariableDto>
-                    label="System"
-                    items={availableVariables.system.filter(s => filterSearch(s.token))}
-                    getKey={s => s.token}
-                    getLabel={s => s.description}
-                    getBadge={s => s.token}
-                    badgeColor="brand"
-                    onSelect={insertToken}
-                />
-                <PickerGroup<SequenceDefinitionDto>
-                    label="Sequences"
-                    items={availableVariables.sequences.filter(s => filterSearch(`SEQ:${s.key}`))}
-                    getKey={s => `SEQ:${s.key}`}
-                    getLabel={s => `${s.name} (next: ${s.previewValue})`}
-                    getBadge={s => `SEQ:${s.key}`}
-                    badgeColor="success"
-                    onSelect={insertToken}
-                />
-                <PickerGroup<VariableDefinitionDto>
-                    label="Org Variables"
-                    items={availableVariables.org.filter(v => filterSearch(v.key))}
-                    getKey={v => v.key}
-                    getLabel={v => `${v.key}${v.defaultValue ? ` = ${v.defaultValue}` : ''}`}
-                    getBadge={v => v.key}
-                    badgeColor="warning"
-                    onSelect={insertToken}
-                />
-                <PickerGroup<VariableDefinitionDto>
-                    label="Personal Variables"
-                    items={availableVariables.personal.filter(v => filterSearch(v.key))}
-                    getKey={v => v.key}
-                    getLabel={v => `${v.key}${v.defaultValue ? ` = ${v.defaultValue}` : ''}`}
-                    getBadge={v => v.key}
-                    badgeColor="informative"
-                    onSelect={insertToken}
-                />
-            </PopoverSurface>
-        </Popover>
-    );
+    const {
+        pickerOpen,
+        setPickerOpen,
+        pickerSearch,
+        setPickerSearch,
+        inputRef,
+        insertToken,
+        removeToken,
+        handleInputChange,
+        rememberCursor,
+        tokens,
+    } = useVariableTokenInput(value, onChange);
 
     return (
-        <div className={styles.root}>
-            {label && <Label>{label}</Label>}
-            <div className={styles.inputWrapper}>
+        <div id={"variable-token-input-div-3"}
+             className={styles.root}>
+            {label && <Label id={"variable-token-input-label-1"}>{label}</Label>}
+            <div id={"variable-token-input-div-4"}
+                 className={styles.inputWrapper}>
                 {multiline ? (
                     <Textarea
+                        id={"variable-token-input-textarea-1"}
                         ref={inputRef as React.Ref<HTMLTextAreaElement>}
                         value={value}
                         onChange={(_, d) => handleInputChange(d.value)}
-                        onSelect={e => { cursorRef.current = (e.target as HTMLTextAreaElement).selectionStart ?? value.length; }}
+                        onSelect={e => rememberCursor((e.target as HTMLTextAreaElement).selectionStart)}
                         placeholder={placeholder}
                         disabled={disabled}
                         className={styles.fullWidth}
                     />
                 ) : (
                     <Input
+                        id={"variable-token-input-input-2"}
                         ref={inputRef as React.Ref<HTMLInputElement>}
                         value={value}
                         onChange={(_, d) => handleInputChange(d.value)}
-                        onSelect={e => { cursorRef.current = (e.target as HTMLInputElement).selectionStart ?? value.length; }}
+                        onSelect={e => rememberCursor((e.target as HTMLInputElement).selectionStart)}
                         placeholder={placeholder}
                         disabled={disabled}
                         className={styles.fullWidth}
@@ -308,12 +86,20 @@ const VariableTokenInput: React.FC<VariableTokenInputProps> = ({
                         }
                     />
                 )}
-                {picker}
+                <VariableTokenPicker open={pickerOpen}
+                                     onOpenChange={setPickerOpen}
+                                     search={pickerSearch}
+                                     onSearchChange={setPickerSearch}
+                                     availableVariables={availableVariables}
+                                     onSelect={insertToken}/>
             </div>
-            {vTokens.length > 0 && (
-                <div className={styles.preview}>
-                    {renderPreview()}
-                </div>
+            {tokens.length > 0 && (
+                <VariableTokenPreview value={value}
+                                      tokens={tokens}
+                                      availableVariables={availableVariables}
+                                      resolvedPreview={resolvedPreview}
+                                      disabled={disabled}
+                                      onRemoveToken={removeToken}/>
             )}
         </div>
     );

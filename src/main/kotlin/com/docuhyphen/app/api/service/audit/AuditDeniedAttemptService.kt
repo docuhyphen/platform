@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome

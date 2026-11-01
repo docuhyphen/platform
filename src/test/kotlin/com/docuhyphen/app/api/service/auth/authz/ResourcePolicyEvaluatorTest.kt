@@ -1,8 +1,14 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyOutcome
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyRequest
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.auth.authz.ShareObligations
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
@@ -21,12 +27,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * A resource kind may narrow an allowed decision with facts only that kind understands, but it
- * can never widen one. A kind with no registered evaluator changes nothing, an evaluator that
- * cannot read its facts refuses the decision, and an evaluator is asked only about a decision the
- * central capability union already allowed.
- */
 class ResourcePolicyEvaluatorTest
 {
     private val userId = UUID.randomUUID()
@@ -133,10 +133,6 @@ class ResourcePolicyEvaluatorTest
 
         assertTrue(observed.contains(Capability.EXCHANGE_READ))
     }
-
-    // -------------------------------------------------------------------------
-    // fixtures
-    // -------------------------------------------------------------------------
 
     private fun evaluatorReturning(outcome: ResourcePolicyOutcome) = object : ResourcePolicyEvaluator
     {

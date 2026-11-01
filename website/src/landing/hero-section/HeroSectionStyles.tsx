@@ -2,6 +2,8 @@ import {makeStyles, tokens} from "@fluentui/react-components";
 import {
     BREAKPOINT_MOBILE,
     BUTTON_MIN_WIDTH,
+    HERO_TITLE_FONT_SIZE,
+    HERO_TITLE_LINE_HEIGHT,
     SECTION_PADDING_DESKTOP,
     SECTION_PADDING_MOBILE,
 } from "../shared.ts";
@@ -63,8 +65,8 @@ export const useHeroSectionStyles = makeStyles({
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
         color: "transparent",
-        fontSize: "3.75rem",
-        lineHeight: "4.5rem",
+        fontSize: HERO_TITLE_FONT_SIZE,
+        lineHeight: HERO_TITLE_LINE_HEIGHT,
         fontWeight: tokens.fontWeightSemibold,
 
         [BREAKPOINT_MOBILE]: {

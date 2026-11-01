@@ -15,11 +15,6 @@ import java.util.UUID
 private class FieldValuePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<FieldValuePostgreSQLContainer>(imageName)
 
-/**
- * Verifies that widening the field value provenance vocabulary lets a schema-configured default be
- * recorded as such, keeps every previously recorded provenance valid, and still rejects a value
- * whose provenance is not a known origin.
- */
 class FieldValueSchemaDefaultProvenanceContractTest
 {
     private val provenanceMigrationVersion = "76"
@@ -43,9 +38,6 @@ class FieldValueSchemaDefaultProvenanceContractTest
                 insertFieldsFixture(connection, fixture)
                 insertFieldValue(connection, fixture, fixture.userValueId, "USER")
 
-                // The vocabulary in place before the migration has no place for a value that came
-                // from the schema's own configured default. A distinct field contract is used so the
-                // only rule that can reject the row is the provenance check.
                 val refused = assertThrows<SQLException> {
                     insertFieldValue(connection, fixture, UUID.randomUUID(), "SCHEMA_DEFAULT", UUID.randomUUID())
                 }
@@ -55,7 +47,6 @@ class FieldValueSchemaDefaultProvenanceContractTest
                 )
             }
 
-            // Stops at this migration so the contract stays about the provenance widening alone.
             flyway(postgres, target = provenanceMigrationVersion).migrate()
 
             postgres.createConnection("").use { connection ->
@@ -66,7 +57,6 @@ class FieldValueSchemaDefaultProvenanceContractTest
                 )
                 assertEquals("SCHEMA_DEFAULT", provenanceOf(connection, fixture.defaultValueId))
 
-                // Every origin recorded before the change is still a legal value.
                 listOf("BLUEPRINT_DEFAULT", "API", "WORKFLOW_ACTION", "CALCULATED", "MIGRATION")
                     .forEach { provenance ->
                         val id = UUID.randomUUID()
@@ -212,10 +202,6 @@ class FieldValueSchemaDefaultProvenanceContractTest
         }
     }
 
-    /**
-     * One value row against the fixture's assignment. A distinct [contractId] is required for each
-     * extra row because a resource holds at most one value per field contract.
-     */
     private fun insertFieldValue(
         connection: Connection,
         fixture: Fixture,

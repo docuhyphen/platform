@@ -48,13 +48,14 @@ const RegisteredPersonAccessPanel = ({exchangeId, onCancel, onAdded}: Registered
                 id={"registered-person-access-error"}
                 intent="error"
             >
-                <MessageBarBody>{state.error}</MessageBarBody>
+                <MessageBarBody id={"registered-person-access-panel-message-bar-body-1"}>{state.error}</MessageBarBody>
             </MessageBar>}
             <div
                 id={"registered-person-access-fields"}
                 className={styles.row}
             >
-                <Field label="Person email">
+                <Field id={"registered-person-access-panel-field-1"}
+                       label="Person email">
                     <SinglePersonPicker
                         id={"combobox-add-person-email"}
                         placeholder="name@company.com"
@@ -69,7 +70,8 @@ const RegisteredPersonAccessPanel = ({exchangeId, onCancel, onAdded}: Registered
                         disabled={state.busy}
                     />
                 </Field>
-                <Field label="Access role">
+                <Field id={"registered-person-access-panel-field-2"}
+                       label="Access role">
                     <Combobox
                         id={"combobox-add-person-role"}
                         value={AssignableRoleDisplayNames[state.role]
@@ -108,7 +110,8 @@ const RegisteredPersonAccessPanel = ({exchangeId, onCancel, onAdded}: Registered
                     disabled={state.busy || !state.email.trim()}
                     onClick={state.add}
                 >
-                    {state.busy ? <><Spinner size="tiny"/> Adding</> : 'Add person'}
+                    {state.busy ? <><Spinner id={"registered-person-access-panel-spinner-1"}
+                                             size="tiny"/> Adding</> : 'Add person'}
                 </Button>
                 <Button
                     id={"add-person-panel-cancel-btn"}

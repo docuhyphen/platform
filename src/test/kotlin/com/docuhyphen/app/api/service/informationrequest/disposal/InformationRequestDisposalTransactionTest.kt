@@ -192,7 +192,7 @@ class InformationRequestDisposalTransactionTest
                     resourceId = fixture.exchangeId.toString(),
                     scope = RecordPreservationScope.DESCENDANTS_AND_REFERENCES,
                     reason = "preserve the Exchange",
-                    caseReference = "matter-1",
+                    caseReference = "case-1",
                     effectiveFrom = null,
                     principal = fixture.principal,
                 ),
@@ -201,7 +201,7 @@ class InformationRequestDisposalTransactionTest
         assertRefused(InformationRequestErrorCatalog.RECORD_HELD, fixture, RecordDisposalBasis.RETENTION_SCHEDULE)
 
         QuarkusTransaction.requiringNew().run {
-            holds.release(ReleaseRecordPreservationHoldCommand(hold.hold.id, fixture.owner, "matter closed", fixture.principal))
+            holds.release(ReleaseRecordPreservationHoldCommand(hold.hold.id, fixture.owner, "case closed", fixture.principal))
         }
         val claimed = disposalService.claim(fixture.requestId, RecordDisposalBasis.RETENTION_SCHEDULE, null, fixture.principal)
         assertTrue(claimed is InformationRequestDisposalOutcome.Claimed)
@@ -693,7 +693,7 @@ class InformationRequestDisposalTransactionTest
                 ReleaseRecordPreservationHoldCommand(
                     hold.hold.id,
                     shared.source.owner,
-                    "matter closed",
+                    "case closed",
                     shared.source.principal
                 ),
             )

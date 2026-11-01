@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import io.quarkus.security.ForbiddenException
 import java.util.*
 

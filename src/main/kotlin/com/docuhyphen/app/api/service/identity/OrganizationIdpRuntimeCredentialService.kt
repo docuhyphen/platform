@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.service.auth.RevocationReasonCode
 import com.docuhyphen.app.api.service.auth.idp.OAuthJsonParser
-import com.docuhyphen.app.api.service.auth.idp.RuntimeIdpCredentials
+import com.docuhyphen.app.api.model.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.security.SecurityIncidentService
@@ -44,7 +44,6 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             throw IllegalArgumentException("Organization IdP configuration is inactive or does not match the provider")
         }
 
-        // INTERNAL auth does not use external OAuth client credentials.
         if (provider == IdentityProviderType.INTERNAL)
         {
             return null
@@ -75,9 +74,6 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
             ?.toSet()
             ?: emptySet()
 
-        // `tenantId` on the config row means different things per provider: a directory id for
-        // Microsoft, a Workspace domain for Google. Splitting it here means neither provider can
-        // accidentally interpret the other's value as its own tenancy pin.
         val configuredTenancy = config.tenantId?.trim()?.takeIf { it.isNotBlank() }
 
         return RuntimeIdpCredentials(
@@ -211,12 +207,4 @@ class OrganizationIdpRuntimeCredentialService @Inject constructor(
         return value
     }
 }
-
-
-
-
-
-
-
-
 

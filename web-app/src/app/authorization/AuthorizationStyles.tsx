@@ -82,7 +82,7 @@ export const useAuthorizationStyles = makeStyles({
 
         "@media (max-width: 768px)": {
             justifyContent: "flex-start",
-            paddingTop: "120px"
+            paddingTop: `calc(${tokens.spacingVerticalXXXL} * 3 + ${tokens.spacingVerticalXXL})`
         },
     },
 });

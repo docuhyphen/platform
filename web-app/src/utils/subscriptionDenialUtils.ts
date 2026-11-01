@@ -25,7 +25,7 @@ const unwrapErrorPayload = (error: unknown): unknown =>
 };
 
 const optionalNumber = (value: unknown): number | null | undefined =>
-    value === null || typeof value === "number" ? value : undefined;
+    typeof value === "number" ? value : value === null ? null : undefined;
 
 export const parseSubscriptionDenial = (error: unknown): SubscriptionDenialDto | null =>
 {

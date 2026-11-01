@@ -1,69 +1,68 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
+import com.docuhyphen.app.api.resource.audit.operations.AuditOrganizationAnalyticsResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
 import com.docuhyphen.app.api.service.audit.AuditAnalyticsReconciliationService
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/organizations/{organizationId}/audit-analytics/reconciliation")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditOrganizationAnalyticsResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditAccessAuthorizer: AuditAccessAuthorizer,
     private val auditAnalyticsReconciliationService: AuditAnalyticsReconciliationService,
-)
+) : AuditOrganizationAnalyticsResourceOperations
 {
-    @GET
-    fun getOrganizationAnalyticsReconciliation(@PathParam("organizationId") organizationId: String): Response =
-        withAuthorizedOrg(organizationId, Action.AUDIT_INTEGRITY_VERIFY) { principal, orgId ->
-            val report = auditAnalyticsReconciliationService.reconcile(
-                orgId,
-                platformOnly = false,
-                requestedByUserId = principal
-            )
-            Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
-        }
-
-    private fun withAuthorizedOrg(
-        organizationId: String,
-        action: Action,
-        block: (UUID, UUID) -> Response,
-    ): Response
+    companion object
     {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val orgId = parseUuid(organizationId)
-        val decision = authorizationService.authorize(principal, action, ResourceRef.organization(orgId), context)
-        if (decision is Decision.Deny)
-        {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(principal.id, orgId) }
+        private val logger = LoggerFactory.getLogger(AuditOrganizationAnalyticsResource::class.java)
     }
 
-    private fun runGuarded(block: () -> Response): Response
+    override fun getOrganizationAnalyticsReconciliation(organizationId: String): Response
     {
         return try
         {
-            block()
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.AUDIT_INTEGRITY_VERIFY,
+            )
+            val report = auditAnalyticsReconciliationService.reconcile(
+                access.organizationId,
+                platformOnly = false,
+                requestedByUserId = access.actor.principal.id,
+            )
+            Response.ok(AuditGovernanceDtoMapper.toDto(report)).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException -> throw exception
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error reconciling organization audit analytics", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
-
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
 }

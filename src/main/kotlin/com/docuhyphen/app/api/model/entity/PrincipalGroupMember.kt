@@ -8,13 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * A member of a [PrincipalGroup]. The member is itself a principal (USER or PARTICIPANT
- * for now; nested PRINCIPAL_GROUP membership is deferred to a later iteration).
- *
- * For legacy compatibility, member rows that originated from `organization_group_member`
- * keep the same `id` as the legacy row.
- */
 @Entity
 @Serializable
 @Table(name = "principal_group_member")

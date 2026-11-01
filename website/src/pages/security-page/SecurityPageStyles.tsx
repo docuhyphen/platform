@@ -34,7 +34,7 @@ export const useSecurityPageStyles = makeStyles({
     },
     pillar: {
         backgroundColor: tokens.colorNeutralBackground1,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         borderRadius: CARD_RADIUS,
         padding: SPACE_LG,
         display: "flex",
@@ -44,7 +44,7 @@ export const useSecurityPageStyles = makeStyles({
     pillarIcon: {
         width: "3rem",
         height: "3rem",
-        borderRadius: "0.7rem",
+        borderRadius: tokens.borderRadiusXLarge,
         backgroundColor: tokens.colorBrandBackground2,
         color: tokens.colorBrandForeground1,
         display: "flex",
@@ -54,7 +54,7 @@ export const useSecurityPageStyles = makeStyles({
     band: {
         marginTop: SPACE_LG,
         backgroundColor: tokens.colorNeutralBackground1,
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        border: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
         borderRadius: CARD_RADIUS,
         padding: SPACE_LG,
         display: "flex",
@@ -77,9 +77,9 @@ export const useSecurityPageStyles = makeStyles({
         flexDirection: "column",
         gap: SPACE_XS,
         padding: SPACE_SM,
-        borderLeft: `3px solid ${tokens.colorBrandStroke1}`,
+        borderLeft: `${tokens.strokeWidthThicker} solid ${tokens.colorBrandStroke1}`,
         backgroundColor: tokens.colorNeutralBackground2,
-        borderRadius: "0.4rem",
+        borderRadius: tokens.borderRadiusLarge,
     },
     cta: {
         marginTop: SPACE_LG,

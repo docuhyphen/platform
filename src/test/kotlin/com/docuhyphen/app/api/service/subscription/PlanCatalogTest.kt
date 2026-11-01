@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.PlanLimits
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -73,9 +74,6 @@ class PlanCatalogTest
     @Test
     fun `reminders arrive with workflow authoring and no individual plan sells one`()
     {
-        // A reminder only exists as an addon on a workflow step, so granting one to an
-        // individual would grant workflow authoring with it. The feature name is historical and
-        // does not mean the Personal plan owns it.
         PlanCatalog.plansFor(SubscriptionOwnerType.USER).forEach { plan ->
             assertFalse(
                 plan.includes(PlanFeature.PERSONAL_REMINDERS),
@@ -199,6 +197,4 @@ class PlanCatalogTest
         assertThrows(IllegalArgumentException::class.java) { PlanCode.fromCode("ENTERPRISE") }
     }
 }
-
-
 

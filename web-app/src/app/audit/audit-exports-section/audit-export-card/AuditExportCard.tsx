@@ -12,7 +12,6 @@ interface AuditExportCardProps
     onDownload: (exportItem: AuditExportDto) => void;
 }
 
-/** One evidence export row: status, approval progress, and approve/download actions. */
 const AuditExportCard = (
     {
         exportItem,
@@ -26,17 +25,24 @@ const AuditExportCard = (
     const styles = useAuditExportCardStyles();
 
     return (
-        <div id={`audit-export-card-${exportItem.exportId}`} className={styles.card}>
-            <div className={styles.header}>
-                <Text weight={"semibold"}>{exportItem.purpose}</Text>
-                <Badge appearance={"tint"} color={exportItem.status === "READY" ? "success" : "informative"}>
+        <div id={`audit-export-card-${exportItem.exportId}`}
+             className={styles.card}>
+            <div id={"audit-export-card-div-1"}
+                 className={styles.header}>
+                <Text id={"audit-export-card-text-1"}
+                      weight={"semibold"}>{exportItem.purpose}</Text>
+                <Badge id={"audit-export-card-badge-1"}
+                       appearance={"tint"}
+                       color={exportItem.status === "READY" ? "success" : "informative"}>
                     {exportItem.status}
                 </Badge>
-                <Text size={200}>
+                <Text id={"audit-export-card-text-2"}
+                      size={200}>
                     {exportItem.approvalCount}/{exportItem.requiredApprovals} approvals
                 </Text>
             </div>
-            <div className={styles.actions}>
+            <div id={"audit-export-card-div-2"}
+                 className={styles.actions}>
                 {canApprove && exportItem.status === "APPROVAL_PENDING" && (
                     <Button
                         id={`button-audit-export-approve-${exportItem.exportId}`}

@@ -7,7 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
 
-/** Selects the active [AuditArchiveSigningKeyProvider] by `app.audit.archive.signing.provider`. */
 @ApplicationScoped
 class AuditArchiveSigningKeyProviderProducer @Inject constructor(
     private val configService: AuditArchiveConfigService,

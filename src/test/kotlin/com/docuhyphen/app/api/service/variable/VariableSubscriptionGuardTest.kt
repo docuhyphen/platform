@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.variable
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -13,9 +14,6 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Covers the allowance that decides whether variables and sequences may be authored.
- */
 class VariableSubscriptionGuardTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -126,5 +124,4 @@ class VariableSubscriptionGuardTest
         verifyNoInteractions(policyService)
     }
 }
-
 

@@ -44,10 +44,14 @@ const ProfileOverviewCard = (
         ? appUser.avatarUrl
         : undefined;
 
-    return <section id={"profile-overview-card"} className={styles.card}>
-        <div id={"profile-overview-content"} className={styles.content}>
-            <div id={"profile-overview-identity"} className={styles.identityBlock}>
-                <div id={"profile-overview-avatar-wrapper"} className={styles.avatarWrapper}>
+    return <section id={"profile-overview-card"}
+                    className={styles.card}>
+        <div id={"profile-overview-content"}
+             className={styles.content}>
+            <div id={"profile-overview-identity"}
+                 className={styles.identityBlock}>
+                <div id={"profile-overview-avatar-wrapper"}
+                     className={styles.avatarWrapper}>
                     <Avatar
                         id={"profile-overview-avatar"}
                         name={getAvatarName(appUser)}
@@ -69,8 +73,10 @@ const ProfileOverviewCard = (
                 </div>
 
 
-                <div id={"profile-overview-copy"} className={styles.copyBlock}>
-                    <div id={"profile-overview-title-row"} className={styles.inlineDetailRow}>
+                <div id={"profile-overview-copy"}
+                     className={styles.copyBlock}>
+                    <div id={"profile-overview-title-row"}
+                         className={styles.inlineDetailRow}>
                         <Button
                             id={"button-profile-overview-edit"}
                             appearance={"subtle"}
@@ -79,9 +85,12 @@ const ProfileOverviewCard = (
                             icon={<PersonEditIcon/>}
                             onClick={onEditProfile}
                         />
-                        <Text id={"profile-overview-title"} size={700} weight={"semibold"}>{getDisplayName(appUser)}</Text>
+                        <Text id={"profile-overview-title"}
+                              size={700}
+                              weight={"semibold"}>{getDisplayName(appUser)}</Text>
                     </div>
-                    <div id={"profile-overview-email-row"} className={styles.inlineDetailRow}>
+                    <div id={"profile-overview-email-row"}
+                         className={styles.inlineDetailRow}>
                         <Button
                             id={"button-edit-email"}
                             appearance={"subtle"}
@@ -90,7 +99,9 @@ const ProfileOverviewCard = (
                             icon={<MailEditIcon/>}
                             onClick={onEditEmail}
                         />
-                        <Text id={"profile-overview-email"} size={300} className={styles.subtleText}>
+                        <Text id={"profile-overview-email"}
+                              size={300}
+                              className={styles.subtleText}>
                             {appUser?.email || "No email added"}
                         </Text>
                     </div>
@@ -104,7 +115,8 @@ const ProfileOverviewCard = (
                                 icon={<PhoneEditIcon/>}
                                 onClick={onEditPhone}
                             />
-                            <Text id={"profile-overview-phone-value"} size={300}>{phoneNumber}</Text>
+                            <Text id={"profile-overview-phone-value"}
+                                  size={300}>{phoneNumber}</Text>
                     </> :
                         <Button
                             id={"button-add-phone-number"}
@@ -117,11 +129,15 @@ const ProfileOverviewCard = (
                         </Button>
                     }
                     </div>
-                    <div id={"profile-overview-badges"} className={styles.badgeRow}>
-                        <Badge id={"profile-overview-status-badge"} appearance={"filled"} color={appUser?.isActive ? "success" : "warning"}>
+                    <div id={"profile-overview-badges"}
+                         className={styles.badgeRow}>
+                        <Badge id={"profile-overview-status-badge"}
+                               appearance={"filled"}
+                               color={appUser?.isActive ? "success" : "warning"}>
                             {appUser?.isActive ? "Account active" : "Account pending"}
                         </Badge>
-                        <Badge id={"profile-overview-meta-member"} appearance={"filled"}>
+                        <Badge id={"profile-overview-meta-member"}
+                               appearance={"filled"}>
                             Member since {memberSince}
                         </Badge>
                     </div>

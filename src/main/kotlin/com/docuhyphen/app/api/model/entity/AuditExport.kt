@@ -5,15 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One requested, built, and downloaded verifiable evidence export. A normal mutable lifecycle row - like
- * [AuditEngagement], never the WORM evidence itself. The evidence is the signed bundle object
- * ([bundleObjectKey]) archived via `AuditArchiveStorage`, reusing the same archive
- * bucket or local directory as the WORM archive.
- *
- * Denormalized IDs only, no FK to any mutable business entity - same rule as every other audit
- * table.
- */
 @Entity
 @Table(name = "audit_export")
 class AuditExport
@@ -21,7 +12,6 @@ class AuditExport
     @Id
     var id: UUID = UUID.randomUUID()
 
-    /** Null means a platform-scope export (no single owning organization). */
     @Column(name = "organization_id")
     var organizationId: UUID? = null
 
@@ -110,15 +100,12 @@ class AuditExport
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Timestamp = Timestamp.from(Instant.now())
 
-    /** Identifies the application node currently holding the build-claim lease. Meaningful only while [status] is `BUILDING`. */
     @Column(name = "build_worker_id", length = 128)
     var buildWorkerId: String? = null
 
-    /** Expiry of the current build-claim lease. A null or past value means the export is unclaimed and eligible to be claimed. */
     @Column(name = "build_lease_expires_at")
     var buildLeaseExpiresAt: Timestamp? = null
 
-    /** JPA optimistic-lock version: bumped on every update, so a transaction holding a stale read fails to commit over a newer state. */
     @Version
     @Column(name = "version", nullable = false)
     var version: Int = 0

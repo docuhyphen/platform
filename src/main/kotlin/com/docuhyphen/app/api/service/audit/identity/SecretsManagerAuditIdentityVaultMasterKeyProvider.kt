@@ -9,11 +9,6 @@ import java.security.MessageDigest
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
-/**
- * Secrets-Manager-backed master key provider: a single base64 AES-256 key stored as one
- * JSON-free plain-text secret in the existing AWS Secrets Manager - no KMS, no per-subject secret.
- * The secret value must be provisioned out-of-band, same as `AuditArchiveSigningSecret`.
- */
 @ApplicationScoped
 @Aws
 class SecretsManagerAuditIdentityVaultMasterKeyProvider @Inject constructor(

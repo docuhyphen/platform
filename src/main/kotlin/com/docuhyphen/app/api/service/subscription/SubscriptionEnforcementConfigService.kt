@@ -5,13 +5,6 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.slf4j.LoggerFactory
 
-/**
- * Resolves how commercial plan decisions behave in this environment.
- *
- * The default enforces every decision consistently across environments. An observation
- * deployment must select `REPORT_ONLY` explicitly. An unrecognised value falls back to enforced
- * decisions rather than silently weakening the configured commercial policy.
- */
 @ApplicationScoped
 class SubscriptionEnforcementConfigService @Inject constructor(
 

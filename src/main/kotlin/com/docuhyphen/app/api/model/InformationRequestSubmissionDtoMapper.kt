@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.fields.FieldValueRevisionValue
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceVersionRecord
 import com.docuhyphen.app.api.model.informationrequest.submission.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.util.*
 
 object InformationRequestSubmissionDtoMapper

@@ -23,12 +23,6 @@ class SignUpEmailConfirmationTokenService @Inject constructor(
         private val base64UrlEncoder = Base64.getUrlEncoder().withoutPadding()
     }
 
-    /**
-     * Generate a fresh confirmation token for [email] and store it in Redis with
-     * the given TTL. Any previous token for the same email is left alone (it
-     * will simply expire on its own; the email address is recoverable from
-     * whichever token the user actually clicks).
-     */
     fun issueToken(email: String, ttlMinutes: Long): String
     {
         val token = generateToken()
@@ -45,13 +39,6 @@ class SignUpEmailConfirmationTokenService @Inject constructor(
         return token
     }
 
-    /**
-     * Look up the email address associated with [token] without consuming it.
-     * Returns null if the token is missing/expired/malformed.
-     *
-     * Used by the GET introspection endpoint so the frontend can render
-     * "verifying user@example.com" before the user types a password.
-     */
     fun peekToken(token: String): String?
     {
         if (!isWellFormed(token)) return null
@@ -83,14 +70,8 @@ class SignUpEmailConfirmationTokenService @Inject constructor(
         return base64UrlEncoder.encodeToString(bytes)
     }
 
-    /**
-     * Quick syntactic sanity check before hitting Redis. Real validation is
-     * "does this exist in Redis"; this just avoids round-trips on obviously
-     * bogus input and helps defend against log spam from scanners.
-     */
     private fun isWellFormed(token: String): Boolean
     {
-        // 32 bytes base64url-encoded without padding = 43 chars from the set [A-Za-z0-9_-].
         if (token.length !in 16..128) return false
         return token.all { c -> c.isLetterOrDigit() || c == '_' || c == '-' }
     }

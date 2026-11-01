@@ -21,8 +21,10 @@ const WorkflowTimeline = ({ instance }: Props) =>
     );
 
     return (
-        <div className={styles.timeline}>
+        <div id={"workflow-timeline-div-1"}
+             className={styles.timeline}>
             <Accordion
+                id={"workflow-timeline-accordion-1"}
                 openItems={openItems}
                 onToggle={(_: unknown, data: AccordionToggleData<string>) =>
                     setOpenItems(data.openItems as string[])

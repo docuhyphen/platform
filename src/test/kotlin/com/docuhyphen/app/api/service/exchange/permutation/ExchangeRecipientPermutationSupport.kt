@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.exchange.permutation
 
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.model.organization.TrustedPersonAcceptanceValidation
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientRepository
 import com.docuhyphen.app.api.service.exchange.*
 import com.docuhyphen.app.api.service.organization.*

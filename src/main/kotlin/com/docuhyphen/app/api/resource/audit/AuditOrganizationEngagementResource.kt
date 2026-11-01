@@ -1,115 +1,232 @@
 package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditEngagementCreateRequestDto
 import com.docuhyphen.app.api.model.dto.AuditEngagementDtoMapper
+import com.docuhyphen.app.api.resource.audit.operations.AuditOrganizationEngagementResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
 import com.docuhyphen.app.api.service.audit.AuditEngagementNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/organizations/{organizationId}/audit-engagements")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditOrganizationEngagementResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditAccessAuthorizer: AuditAccessAuthorizer,
     private val auditEngagementService: AuditEngagementService,
-)
+) : AuditOrganizationEngagementResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditOrganizationEngagementResource::class.java)
+        private const val SUBSCRIPTION_REFUSAL_MESSAGE =
+            "An organization audit engagement mutation was refused by the subscription plan check: plan={}"
     }
 
-    @POST
-    fun requestOrganizationEngagement(
-        @PathParam("organizationId") organizationId: String,
-        body: AuditEngagementCreateRequestDto,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_ENGAGEMENT_MANAGE) { principal, orgId ->
-        val engagement = auditEngagementService.requestEngagement(
-            request = AuditEngagementDtoMapper.toRequest(orgId, body),
-            requestedByUserId = principal,
-        )
-        Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
-    }
-
-    @GET
-    fun listOrganizationEngagements(@PathParam("organizationId") organizationId: String): Response =
-        withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { _, orgId ->
-            Response.ok(auditEngagementService.listForOrganization(orgId).map(AuditEngagementDtoMapper::toDto)).build()
-        }
-
-    @POST
-    @Path("/{engagementId}/approve")
-    fun approveOrganizationEngagement(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("engagementId") engagementId: String,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_ENGAGEMENT_MANAGE) { principal, orgId ->
-        val engagement = auditEngagementService.approveEngagement(parseUuid(engagementId), orgId, principal)
-        Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
-    }
-
-    @POST
-    @Path("/{engagementId}/revoke")
-    fun revokeOrganizationEngagement(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("engagementId") engagementId: String,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_ENGAGEMENT_MANAGE) { principal, orgId ->
-        val engagement = auditEngagementService.revokeEngagement(parseUuid(engagementId), orgId, principal)
-        Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
-    }
-
-    private fun withAuthorizedOrg(
+    override fun requestOrganizationEngagement(
         organizationId: String,
-        action: Action,
-        block: (UUID, UUID) -> Response,
+        body: AuditEngagementCreateRequestDto,
     ): Response
-    {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val orgId = parseUuid(organizationId)
-        val decision = authorizationService.authorize(principal, action, ResourceRef.organization(orgId), context)
-        if (decision is Decision.Deny)
-        {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(principal.id, orgId) }
-    }
-
-    private fun runGuarded(block: () -> Response): Response
     {
         return try
         {
-            block()
-        }
-        catch (e: SubscriptionDenialException)
-        {
-            logger.warn(
-                "An organization audit engagement mutation was refused by the subscription plan check: plan={}",
-                e.denial.planCode
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.AUDIT_ENGAGEMENT_MANAGE,
             )
-            throw e
+            val engagement = auditEngagementService.requestEngagement(
+                request = AuditEngagementDtoMapper.toRequest(access.organizationId, body),
+                requestedByUserId = access.actor.principal.id,
+            )
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            val status =
-                if (e is AuditEngagementNotFoundException) Response.Status.NOT_FOUND else Response.Status.BAD_REQUEST
-            Response.status(status).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception.denial.planCode)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditEngagementNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error requesting organization audit engagement", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
 
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
+    override fun listOrganizationEngagements(organizationId: String): Response
+    {
+        return try
+        {
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.ORG_READ_AUDIT,
+            )
+            Response.ok(
+                auditEngagementService.listForOrganization(access.organizationId).map(AuditEngagementDtoMapper::toDto)
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception.denial.planCode)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditEngagementNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing organization audit engagements", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
+        }
+    }
+
+    override fun approveOrganizationEngagement(
+        organizationId: String,
+        engagementId: String,
+    ): Response
+    {
+        return try
+        {
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.AUDIT_ENGAGEMENT_MANAGE,
+            )
+            val engagement = auditEngagementService.approveEngagement(
+                UUID.fromString(engagementId),
+                access.organizationId,
+                access.actor.principal.id,
+            )
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception.denial.planCode)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditEngagementNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error approving organization audit engagement", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
+        }
+    }
+
+    override fun revokeOrganizationEngagement(
+        organizationId: String,
+        engagementId: String,
+    ): Response
+    {
+        return try
+        {
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.AUDIT_ENGAGEMENT_MANAGE,
+            )
+            val engagement = auditEngagementService.revokeEngagement(
+                UUID.fromString(engagementId),
+                access.organizationId,
+                access.actor.principal.id,
+            )
+            Response.ok(AuditEngagementDtoMapper.toDto(engagement)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception.denial.planCode)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditEngagementNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error revoking organization audit engagement", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
+        }
+    }
 }

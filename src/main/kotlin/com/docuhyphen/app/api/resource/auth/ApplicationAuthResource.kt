@@ -1,35 +1,24 @@
 package com.docuhyphen.app.api.resource.auth
 
+import com.docuhyphen.app.api.resource.auth.operations.ApplicationAuthResourceOperations
 import com.docuhyphen.app.api.resource.model.ApplicationTokenRequest
 import com.docuhyphen.app.api.resource.model.ApplicationTokenResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.application.ApplicationService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 
-@Path("/auth/application")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class ApplicationAuthResource @Inject constructor(
     private val applicationService: ApplicationService,
-)
+) : ApplicationAuthResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ApplicationAuthResource::class.java)
     }
 
-    @POST
-    @Path("/token")
-    fun getApplicationToken(
-        payload: ApplicationTokenRequest,
-    ): Response
+    override fun getApplicationToken(payload: ApplicationTokenRequest): Response
     {
         return try
         {
@@ -47,9 +36,9 @@ class ApplicationAuthResource @Inject constructor(
 
             Response.ok(ApplicationTokenResponse(accessToken)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            logger.error("Error generating application token", e)
+            logger.error("Error generating application token", exception)
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ResponseError("Failed to generate application token"))
                 .build()

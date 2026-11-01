@@ -26,20 +26,9 @@ enum class WorkflowStepStatus
     SKIPPED,
     COMPLETED,
 
-    /** Step is paused until all workflow instances on the counterparty side of the exchange reach a terminal state. */
     AWAITING_COUNTERPARTY,
 }
 
-/**
- * Concrete execution of one step inside a [WorkflowInstance].
- *
- * - `specSnapshotJson` : the step's spec at instance start (replay-safe).
- *
- * Resolved assignees live in `workflow_step_assignee` (snapshotted at step start so
- * subsequent group membership changes don't move the targets mid-run) and recorded
- * decisions live in `workflow_step_decision` (one row per principal vote, counted for
- * quorum). Both are queried via their repositories rather than embedded JSON.
- */
 @Entity
 @Serializable
 @Table(name = "workflow_step_instance")
@@ -67,11 +56,6 @@ class WorkflowStepInstance
     @Column(name = "spec_snapshot_json", nullable = false, columnDefinition = "text")
     lateinit var specSnapshotJson: String
 
-    /**
-     * Tracks per-addon fire state so the scheduler never double-sends a reminder.
-     * JSON object keyed by addon index: `{ "0": { "fired": "true", "fireCount": "1",
-     * "firedAt": "<epochMs>", "lastFiredAt": "<epochMs>" } }`.
-     */
     @Column(name = "addons_state_json", nullable = false, columnDefinition = "text")
     var addonsStateJson: String = "{}"
 

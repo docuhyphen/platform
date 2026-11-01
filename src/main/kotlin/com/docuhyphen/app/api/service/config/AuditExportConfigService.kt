@@ -4,14 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
-/**
- * Configuration for verifiable evidence exports. Kept as its own bean (mirrors
- * [AuditArchiveConfigService]'s reasoning about `@ConfigProperty` constructor bytecode size).
- *
- * Dual control defaults to required: an export only reaches `BUILDING` once
- * [getRequiredApprovals] distinct approvers (never the requester) have approved it. Set
- * `app.audit.export.dual-control-required=false` only for a lower-trust dev/test environment.
- */
 @ApplicationScoped
 class AuditExportConfigService @Inject constructor(
 
@@ -48,6 +40,5 @@ class AuditExportConfigService @Inject constructor(
     fun getBuildEvery(): String = buildEveryConfig
     fun getExpireEvery(): String = expireEveryConfig
 
-    /** How long a node's build-claim lease ([AuditExportService.claimForBuilding]) stays valid before another node may reclaim it. */
     fun getBuildLeaseMinutes(): Int = if (buildLeaseMinutesConfig > 0) buildLeaseMinutesConfig else 10
 }

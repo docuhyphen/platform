@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.model.dto
 
 import com.docuhyphen.app.api.model.entity.RecordPreservationHold
-import com.docuhyphen.app.api.service.audit.AnalyticsReconciliationReport
-import com.docuhyphen.app.api.service.audit.RetentionPolicySpec
+import com.docuhyphen.app.api.model.audit.AnalyticsReconciliationReport
+import com.docuhyphen.app.api.model.audit.RetentionPolicySpec
 
 object AuditGovernanceDtoMapper
 {

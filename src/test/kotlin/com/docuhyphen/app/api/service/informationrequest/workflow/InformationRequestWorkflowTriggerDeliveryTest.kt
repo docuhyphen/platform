@@ -12,7 +12,7 @@ import com.docuhyphen.app.api.model.workflow.WorkflowSpec
 import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
 import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsPostgreSQLResource
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.EventRouter
 import com.docuhyphen.app.api.service.workflow.WorkflowSpecJson
 import io.quarkus.narayana.jta.QuarkusTransaction

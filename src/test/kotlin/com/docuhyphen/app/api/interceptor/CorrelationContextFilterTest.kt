@@ -10,10 +10,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-/**
- * Verifies that the correlation filter always produces a non-null server trace ID even with no
- * client-supplied header, and treats `X-Request-Id` as an untrusted hint only.
- */
 class CorrelationContextFilterTest
 {
     private fun requestContextWithHeaders(headers: Map<String, String?>): ContainerRequestContext

@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.blueprint
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintDefinition
 import com.docuhyphen.app.api.model.entity.BlueprintScope
@@ -10,7 +12,7 @@ import com.docuhyphen.app.api.repository.blueprint.BlueprintFieldDefaultReposito
 import com.docuhyphen.app.api.repository.blueprint.BlueprintParticipantDefaultRepository
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.model.BlueprintTenantFixture

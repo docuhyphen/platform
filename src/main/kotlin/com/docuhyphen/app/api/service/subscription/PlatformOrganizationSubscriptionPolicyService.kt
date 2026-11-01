@@ -5,8 +5,11 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.PolicyListResult
+import com.docuhyphen.app.api.model.subscription.PolicyResult
+import com.docuhyphen.app.api.model.subscription.SubscriptionLifecycleUpdate
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationService
@@ -18,29 +21,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-data class PolicyResult(
-    val organizationId: UUID,
-    val tierCode: String,
-    val maxUsers: Long?,
-    val currentActiveUsers: Long,
-    val subscriptionStatus: String,
-    val billingFrequency: String?,
-    val currentPeriodStart: Timestamp?,
-    val currentPeriodEnd: Timestamp?,
-    val gracePeriodEnd: Timestamp?,
-    val changeReason: String?,
-    val persisted: Boolean,
-    val createdDate: Timestamp?,
-    val updatedDate: Timestamp?,
-)
-
-data class PolicyListResult(
-    val total: Int,
-    val limit: Int,
-    val offset: Int,
-    val items: List<PolicyResult>,
-)
 
 @RequestScoped
 class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
@@ -55,20 +35,10 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
 {
     companion object
     {
-        /**
-         * Business is the only plan an organization can hold. Individual plans belong to a
-         * registered user, so they are never valid on an organization policy row.
-         */
         val ORGANIZATION_TIER_CODE: String = PlanCatalog.DEFAULT_ORGANIZATION_PLAN.name
 
-        /**
-         * Seat capacity an organization has when a platform administrator has not yet assigned
-         * purchased seats. Null means uncapped rather than a silent low cap that would lock
-         * existing members out.
-         */
         val UNASSIGNED_SEAT_CAPACITY: Long? = null
     }
-
 
     fun getEffectivePolicy(organizationId: String, requestId: String?): PolicyResult
     {
@@ -297,7 +267,6 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
             .count { it.isActive && it.deprovisionedAt == null }.toLong()
     }
 
-
     private fun validatePaging(limit: Int, offset: Int)
     {
         if (limit !in 1..200)
@@ -349,15 +318,10 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         )
     }
 
-    /**
-     * Seat capacity comes only from the purchased quantity recorded on the policy. No plan
-     * grants an implicit member cap, so an unset value means the organization is uncapped.
-     */
     private fun resolveEffectiveMaxUsers(configuredMaxUsers: Long?): Long?
     {
         return configuredMaxUsers
     }
-
 
     private fun snapshot(policy: OrganizationSubscriptionPolicy, organization: Organization): String
     {
@@ -369,6 +333,3 @@ class PlatformOrganizationSubscriptionPolicyService @Inject constructor(
         return "organizationId=${result.organizationId};tierCode=${result.tierCode};maxUsers=${result.maxUsers};currentActiveUsers=${result.currentActiveUsers};subscriptionStatus=${result.subscriptionStatus};billingFrequency=${result.billingFrequency};currentPeriodStart=${result.currentPeriodStart};currentPeriodEnd=${result.currentPeriodEnd};gracePeriodEnd=${result.gracePeriodEnd};persisted=${result.persisted};changeReason=${result.changeReason};createdDate=${result.createdDate};updatedDate=${result.updatedDate}"
     }
 }
-
-
-

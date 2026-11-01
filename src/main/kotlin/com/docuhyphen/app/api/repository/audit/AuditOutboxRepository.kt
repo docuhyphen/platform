@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.repository.audit
 import com.docuhyphen.app.api.model.audit.AuditTargetQuery
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
 import com.docuhyphen.app.api.repository.BaseRepository
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import jakarta.enterprise.context.RequestScoped
 import jakarta.persistence.NoResultException
 import java.sql.Timestamp

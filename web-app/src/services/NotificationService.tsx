@@ -3,23 +3,6 @@ import {NotificationDto} from '../app/models/models';
 import {getApiBaseUrl} from './apiBaseUrl.ts';
 import {issueRealtimeTicket} from './realtimeApi.ts';
 
-/**
- * Realtime client for the per-userSession WebSocket at /realtime/{userSessionId}.
- *
- *  - Keyed by the access token's `exchange_id` claim so two devices for the same user have
- *    independent sockets.
- *  - Indefinite reconnect with exponential backoff. The old 5-attempt cap dropped users
- *    permanently after a transient network blip; we never want that for the auth-event
- *    channel.
- *  - Heartbeat ping every 25s; the server replies PONG without extending user activity.
- *  - Typed message dispatch via per-type handler sets, plus a wildcard `*` for the
- *    NotificationContext that wants every NOTIFICATION envelope.
- *
- * Backwards compatibility: NotificationContext still imports `notificationService` from
- * this module and calls `connect(appUserId)` / `addMessageHandler`. The legacy methods are
- * preserved,  internally they resolve the userSessionId from the access token.
- */
-
 export type RealtimeMessageType =
     | 'PING'
     | 'PONG'
@@ -40,9 +23,6 @@ export type RealtimeMessageType =
     | 'EXCHANGE_STATUS_CHANGED'
     | 'EXCHANGE_LIST_CHANGED'
     | 'REALTIME_PROBE'
-    // NB: workflow.step_assigned / workflow.escalated / session.activated / session.rejected
-    // are not envelope types because the backend wraps them inside NOTIFICATION. Consumers key
-    // off `msg.notification.type`.
     | 'ERROR'
     | 'WELCOME';
 
@@ -107,11 +87,6 @@ class RealtimeService
     private typedHandlers = new Map<RealtimeMessageType | '*', Set<TypedHandler>>();
     private legacyNotificationHandlers = new Set<LegacyNotificationHandler>();
 
-    /**
-     * Connect using the current access token in sessionStorage. The userSessionId is
-     * derived from the token's `exchange_id` claim,  callers don't need to pass anything,
-     * but for backwards compat we still accept an unused appUserId argument.
-     */
     connect(appUserId?: string): void
     {
         void appUserId;
@@ -139,7 +114,6 @@ class RealtimeService
         this.explicitlyDisconnected = false;
         this.revocationHandled = false;
 
-        // If a socket already exists for the same userSession, leave it alone.
         if (this.socket && this.userSessionId === sessionId && this.socket.readyState <= WebSocket.OPEN)
         {
             console.info('[Realtime] already connected for this session, skipping');
@@ -166,10 +140,6 @@ class RealtimeService
         this.reconnectAttempts = 0;
     }
 
-    /**
-     * Register a typed handler. Pass `'*'` to receive every message.
-     * Returns an unsubscribe function.
-     */
     on(type: RealtimeMessageType | '*', handler: TypedHandler): () => void
     {
         let set = this.typedHandlers.get(type);
@@ -182,17 +152,12 @@ class RealtimeService
         return () => set!.delete(handler);
     }
 
-    /**
-     * Legacy compatibility: NotificationContext still uses this entry point. Wraps a
-     * NOTIFICATION-only typed handler.
-     */
     addMessageHandler(handler: LegacyNotificationHandler): () => void
     {
         this.legacyNotificationHandlers.add(handler);
         return () => { this.legacyNotificationHandlers.delete(handler); };
     }
 
-    /** Send a typed envelope. No-op if disconnected. */
     send(message: RealtimeMessage): void
     {
         if (this.socket && this.socket.readyState === WebSocket.OPEN)
@@ -235,7 +200,6 @@ class RealtimeService
     private openSocket(ticket: string, userSessionId: string): void
     {
         const apiBase = getApiBaseUrl();
-        // If env var is set, derive ws/wss from its scheme; otherwise default to localhost dev.
         const wsBase = apiBase
             ? apiBase.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://')
             : 'ws://localhost:8080';
@@ -279,15 +243,11 @@ class RealtimeService
             console.info('[Realtime] close', {code: event.code, reason: event.reason, wasClean: event.wasClean});
             this.stopHeartbeat();
             this.socket = null;
-            // Auth failed at handshake,  don't reconnect indefinitely; let AuthContext drive
-            // the next attempt via a token refresh.
             if (event.code === CLOSE_CODE_AUTH_FAILED)
             {
                 console.warn('[Realtime] auth failed, not reconnecting until token refresh');
                 return;
             }
-            // Server told us this device's session is revoked. AuthContext picks it up via
-            // the SESSION_REVOKED handler that already ran. No reconnect.
             if (event.code === CLOSE_CODE_SESSION_REVOKED)
             {
                 if (!this.explicitlyDisconnected && !this.revocationHandled)
@@ -367,7 +327,6 @@ class RealtimeService
             const sessionId = this.userSessionId ?? claims?.exchange_id ?? null;
             if (!token || !sessionId)
             {
-                // Token disappeared (logout). Stop trying.
                 this.userSessionId = null;
                 return;
             }
@@ -379,8 +338,6 @@ class RealtimeService
 
     private dispatch(msg: RealtimeMessage): void
     {
-        // Built-in auth-event handling: every device-level revocation triggers the existing
-        // auth-session-expired event. AuthContext already wires this to a redirect.
         if (msg.type === 'SESSION_REVOKED' || msg.type === 'PASSWORD_CHANGED')
         {
             this.revocationHandled = true;
@@ -388,13 +345,11 @@ class RealtimeService
             window.dispatchEvent(new CustomEvent('auth-session-expired', {detail: {reason}}));
         }
 
-        // Typed handlers.
         const exact = this.typedHandlers.get(msg.type);
         exact?.forEach((h) => safeCall(h, msg));
         const wildcard = this.typedHandlers.get('*');
         wildcard?.forEach((h) => safeCall(h, msg));
 
-        // Legacy notification handlers.
         if (msg.type === 'NOTIFICATION' && msg.notification)
         {
             this.legacyNotificationHandlers.forEach((h) =>
@@ -430,5 +385,4 @@ function isTokenExpired(claims: AccessTokenClaims | null): boolean
 }
 
 export const realtimeService = new RealtimeService();
-// Back-compat alias for files still importing `notificationService`.
 export const notificationService = realtimeService;

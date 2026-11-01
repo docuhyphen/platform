@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.communication.templates.AuthEmailTemplateS
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
 import com.docuhyphen.app.api.service.communication.templates.ExchangeEmailTemplateService
 import com.docuhyphen.app.api.service.communication.templates.OrganizationEmailTemplateService
-import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
+import com.docuhyphen.app.api.model.communication.RenderedEmailTemplate
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 

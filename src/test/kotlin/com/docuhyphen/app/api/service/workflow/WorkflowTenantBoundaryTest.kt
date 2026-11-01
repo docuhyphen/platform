@@ -1,13 +1,17 @@
 package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowScope
+import com.docuhyphen.app.api.model.workflow.CreateWorkflowDefinitionRequest
+import com.docuhyphen.app.api.model.workflow.UpdateWorkflowDefinitionRequest
 import com.docuhyphen.app.api.model.workflow.WorkflowSpec
 import com.docuhyphen.app.api.repository.workflow.WorkflowDefinitionRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowInstanceRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.workflow.model.WorkflowTenantFixture

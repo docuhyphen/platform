@@ -56,7 +56,9 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
     };
 
     return (
-        <section className={"document-actions-menu"} onClick={stopCardClickPropagation}>
+        <section id={"exchange-document-actions-menu-section-1"}
+                 className={"document-actions-menu"}
+                 onClick={stopCardClickPropagation}>
             <Menu positioning={{autoSize: true}}>
                 <MenuTrigger disableButtonEnhancement>
                     <Button id={`exchange-document-actions-trigger-${exchangeDocument.id}`}
@@ -65,7 +67,7 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                             shape={"circular"}
                             onClick={stopCardClickPropagation}/>
                 </MenuTrigger>
-                <MenuPopover>
+                <MenuPopover id={"exchange-document-actions-menu-menu-popover-1"}>
                     <MenuList id={`exchange-document-actions-menu-${exchangeDocument.id}`}>
                         <MenuItem icon={<EditIcon/>}
                                   id={`exchange-document-action-edit-${exchangeDocument.id}`}
@@ -73,7 +75,7 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                                   onClick={onUpdate}>
                             Edit
                         </MenuItem>
-                        <Divider/>
+                        <Divider id={"exchange-document-actions-menu-divider-1"}/>
                         <MenuItem
                             id={`exchange-document-action-upload-${exchangeDocument.id}`}
                             icon={<UploadIcon/>}
@@ -93,7 +95,7 @@ const ExchangeDocumentActionsMenu: React.FC<DocumentActionsMenuProps> = (
                                   onClick={() => setIsDeleteDialogOpen(true)}>
                             Delete
                         </MenuItem>
-                        <Divider/>
+                        <Divider id={"exchange-document-actions-menu-divider-2"}/>
                         <MenuItem icon={<DocumentPreviewIcon/>}
                                   id={`exchange-document-action-preview-${exchangeDocument.id}`}
                                   disabled={!exchangeDocument.uploadDate}

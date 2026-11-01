@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestAmendmentChangeRepository
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestAmendmentRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

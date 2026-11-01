@@ -3,7 +3,9 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.exchange.ResolvedExchangeRecipientSelection
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepositoryPostgreSQLResource
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
@@ -12,7 +14,7 @@ import com.docuhyphen.app.api.resource.model.TrustedPersonRecipientSelectionRequ
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -21,7 +23,7 @@ import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.notification.UserNotificationPreferenceService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.model.organization.TrustedGroupValidation
 import com.docuhyphen.app.api.service.user.AppUserService
 import io.quarkus.test.common.QuarkusTestResource
 import io.quarkus.test.junit.QuarkusMock
@@ -89,7 +91,7 @@ class ExchangeNotificationTransactionIntegrationTest
     private lateinit var caller: AppUser
     private lateinit var recipient: AppUser
     private lateinit var group: PrincipalGroup
-    private lateinit var preparedResolution: ExternalIdentityResolutionService.PreparedPersonResolution
+    private lateinit var preparedResolution: PreparedPersonResolution
     private lateinit var groupValidation: TrustedGroupValidation
     private lateinit var pendingShare: Share
     private lateinit var recipientBinding: ExchangeRecipient
@@ -346,7 +348,7 @@ class ExchangeNotificationTransactionIntegrationTest
         val resolution = mock<ExternalIdentityResolution>()
         whenever(resolution.id).thenReturn(resolutionId)
         whenever(resolution.targetOrganizationId).thenReturn(targetOrganizationId)
-        preparedResolution = ExternalIdentityResolutionService.PreparedPersonResolution(
+        preparedResolution = PreparedPersonResolution(
             resolution,
             recipient,
             mock(),

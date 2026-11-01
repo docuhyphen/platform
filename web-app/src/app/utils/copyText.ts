@@ -10,7 +10,6 @@ export const copyText = async (text: string): Promise<boolean> =>
     }
     catch (_)
     {
-        // Fall back for environments where the Clipboard API is unavailable.
     }
 
     const textArea = document.createElement('textarea');

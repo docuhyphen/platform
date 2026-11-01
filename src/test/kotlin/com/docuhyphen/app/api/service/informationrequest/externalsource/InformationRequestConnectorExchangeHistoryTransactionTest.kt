@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.informationrequest.externalsource
 
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.migration.queryInt
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.externalsource.*
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository

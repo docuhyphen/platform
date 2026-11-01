@@ -1,8 +1,12 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Grant
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.PrincipalKind
@@ -25,10 +29,6 @@ import org.mockito.junit.jupiter.MockitoSettings
 import org.mockito.quality.Strictness
 import java.util.*
 
-/**
- * Phase 4 exit test: [DefaultAuthorizationService.collectOrgMembershipGrants] must use the
- * resource owner resolved by [ResourceAuthorizationContextRegistry], not the caller's active org.
- */
 @ExtendWith(MockitoExtension::class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ExchangeOwnerContextResolutionTest
@@ -136,8 +136,6 @@ class ExchangeOwnerContextResolutionTest
     @Test
     fun `active org B is ignored when the exchange is owned by org A`()
     {
-        // Caller has activeOrgId = Org B, but exchange is owned by Org A.
-        // The active org must not bleed into the ownership resolution.
         val resource = ResourceRef(ResourceType.EXCHANGE, exchangeId)
         `when`(resourceContextRegistry.resolution(resource))
             .thenReturn(
@@ -206,10 +204,6 @@ class ExchangeOwnerContextResolutionTest
             "Unresolvable exchange must yield no org membership grants (fail closed)"
         }
     }
-
-    // -------------------------------------------------------------------------
-    // helpers
-    // -------------------------------------------------------------------------
 
     private fun membership(orgId: UUID): OrganizationMembership =
         OrganizationMembership().apply {

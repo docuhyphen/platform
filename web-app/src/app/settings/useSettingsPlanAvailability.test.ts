@@ -134,11 +134,19 @@ describe("useSettingsPlanAvailability", () =>
             ],
         );
         authMock.currentSession = {
+            userId: "user-1",
+            email: "member@process.test",
+            appRoles: [],
             activeOrganizationId: "org-1",
-            availableOrganizations: [],
+            organizationRoles: [],
             capabilities: [Capability.ORG_POLICY_MANAGE, Capability.ORG_BILLING_MANAGE],
-            effectiveSubscription: subscriptionMock.current,
-        } as CurrentSessionDto;
+            availableOrganizations: [],
+            idleTimeoutMinutes: 30,
+            serverTimeEpochMs: 0,
+            idleExpiresAtEpochMs: 0,
+            sessionExpiresAtEpochMs: null,
+            subscription: subscriptionMock.current,
+        };
         authMock.appUserPersonOrganization = {isActive: true};
         authMock.capabilities = [Capability.ORG_POLICY_MANAGE, Capability.ORG_BILLING_MANAGE];
 

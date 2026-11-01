@@ -13,11 +13,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.security.SecureRandom
 
-/**
- * Verifies the crypto-shredding primitive: a subject's data key round-trips through
- * wrap/unwrap, and [AuditIdentityVaultService.shred] permanently makes it unrecoverable (twice,
- * idempotently) without deleting the row itself.
- */
 class AuditIdentityVaultServiceTest
 {
     private fun fixedMasterKeyProvider(): AuditIdentityVaultMasterKeyProvider
@@ -89,7 +84,6 @@ class AuditIdentityVaultServiceTest
         assertNull(svc.unwrapDataKey("USER", "subject-1"))
         assertTrue(svc.isShredded("USER", "subject-1"))
 
-        // Shredding again is a safe no-op, not an error.
         assertTrue(svc.shred("USER", "subject-1", null))
     }
 }

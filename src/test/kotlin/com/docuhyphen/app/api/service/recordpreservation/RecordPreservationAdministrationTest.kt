@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.entity.RecordRetentionSchedule
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationHoldView
 import com.docuhyphen.app.api.model.recordpreservation.RecordRetentionScheduleView
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows

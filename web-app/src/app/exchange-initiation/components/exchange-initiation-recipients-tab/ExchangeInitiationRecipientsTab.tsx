@@ -28,7 +28,6 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
             (!hasCapability(Capability.EXTERNAL_GROUP_DISCOVER) &&
                 !hasCapability(Capability.EXTERNAL_IDENTITY_RESOLVE)))
         {
-            // Only reset org-specific modes; PEOPLE and MY_GROUPS are always available
             if (props.recipientMode === ExchangeInitiationRecipientMode.MY_ORG ||
                 props.recipientMode === ExchangeInitiationRecipientMode.TRUSTED_ORG)
             {
@@ -39,7 +38,8 @@ const ExchangeInitiationRecipientsTab: React.FC<ExchangeRecipientsTabProps> = (p
     }, [appUserPersonOrganization, hasCapability, props]);
 
     return (
-        <div className={styles.recipientsTabContent}>
+        <div id={"exchange-initiation-recipients-tab-div-1"}
+             className={styles.recipientsTabContent}>
             <Field id={"exchange-recipient-mode-field"}>
                 <RadioGroup
                     id={"exchange-recipient-mode-group"}

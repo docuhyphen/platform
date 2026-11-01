@@ -15,11 +15,6 @@ import org.mockito.kotlin.whenever
 import org.mockito.kotlin.times
 import java.util.UUID
 
-/**
- * Verifies [AuditExportScheduler.buildTick]'s multi-worker build-claim wiring: it claims each
- * `BUILDING` candidate's lease before building it, and a candidate whose claim fails - because
- * another node already holds an unexpired lease on it - is skipped rather than built twice.
- */
 class AuditExportSchedulerTest
 {
     private fun candidate(): AuditExport = AuditExport().apply {

@@ -1,18 +1,22 @@
-﻿import {ExchangeDetailedDto, ExchangeStatus} from "../../../models/models.tsx";
+﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
 import React from "react";
 import {
-    Badge,
     Button,
     Dialog,
     DialogActions,
     DialogBody,
     DialogContent,
     DialogSurface,
-    DialogTitle,
-    Text
+    DialogTitle
 } from "@fluentui/react-components";
-import {formatDateWithOrdinal} from "../../../helpers.ts";
 import {useExchangeDDetailedViewDialogStyles} from "./ExchangeDetailedViewDialogStyles.tsx";
+import ExchangeDetailSection from "./exchange-detail-section/ExchangeDetailSection.tsx";
+import ExchangeDetailKeyValueGrid from "./exchange-detail-key-value-grid/ExchangeDetailKeyValueGrid.tsx";
+import ExchangeDetailOverviewSection from "./exchange-detail-overview-section/ExchangeDetailOverviewSection.tsx";
+import ExchangeDetailParticipantsSection
+    from "./exchange-detail-participants-section/ExchangeDetailParticipantsSection.tsx";
+import {normalizeExchangeStatus} from "./exchangeDetailedViewFormatting.ts";
+import {buildDocumentRows, buildLifecycleRows, buildSharingOptionRows} from "./exchangeDetailedViewRows.ts";
 
 interface ExchangeDetailedViewDialogProps
 {
@@ -32,204 +36,48 @@ const ExchangeDetailedViewDialog: React.FC<ExchangeDetailedViewDialogProps> = (
 
     if (!exchange) return null;
 
-    const normalizeStatus = (
-        status?: ExchangeStatus | string,
-        endDate?: string | null
-    ): ExchangeStatus =>
-    {
-        const normalizedStatus = typeof status === "string" ? status.trim().toUpperCase() : status;
-
-        switch (normalizedStatus)
-        {
-            case ExchangeStatus.ACCEPTED_STARTED:
-            case "ACCEPTED":
-            case "STARTED":
-            case "IN_PROGRESS":
-                return ExchangeStatus.ACCEPTED_STARTED;
-            case ExchangeStatus.REJECTED:
-                return ExchangeStatus.REJECTED;
-            case ExchangeStatus.RESCINDED:
-                return ExchangeStatus.RESCINDED;
-            case ExchangeStatus.ENDED:
-            case "COMPLETED":
-            case "CLOSED":
-                return ExchangeStatus.ENDED;
-            case ExchangeStatus.INITIATED:
-                return ExchangeStatus.INITIATED;
-            default:
-                return endDate ? ExchangeStatus.ENDED : ExchangeStatus.INITIATED;
-        }
-    };
-
-    const currentStatus = normalizeStatus(exchange.status, exchange.endDate);
-
-    const getStatusAsText = (status: ExchangeStatus) =>
-    {
-        switch (status)
-        {
-            case ExchangeStatus.ACCEPTED_STARTED:
-                return "In Progress";
-            case ExchangeStatus.REJECTED:
-                return "Rejected";
-            case ExchangeStatus.RESCINDED:
-                return "Rescinded";
-            case ExchangeStatus.INITIATED:
-                return "Initiated";
-            case ExchangeStatus.ENDED:
-                return "Ended";
-            default:
-                return "Unknown";
-        }
-    };
-
-    const formatParticipant = (participant: ExchangeDetailedDto['initiator']) =>
-    {
-        const name = [participant?.person?.firstName, participant?.person?.lastName]
-            .filter(Boolean)
-            .join(' ')
-            .trim();
-        const email = participant?.email;
-
-        if (name && email) return `${name} (${email})`;
-        if (name) return name;
-        if (email) return email;
-        return "Not provided";
-    };
-
-    const getStatusChipProps = (status?: ExchangeStatus) =>
-    {
-        switch (status)
-        {
-            case ExchangeStatus.ACCEPTED_STARTED:
-                return {appearance: "filled" as const, color: "brand" as const};
-            case ExchangeStatus.REJECTED:
-                return {appearance: "filled" as const, color: "danger" as const};
-            case ExchangeStatus.RESCINDED:
-                return {appearance: "filled" as const, color: "warning" as const};
-            case ExchangeStatus.ENDED:
-                return {appearance: "filled" as const, color: "subtle" as const};
-            case ExchangeStatus.INITIATED:
-            default:
-                return {appearance: "filled" as const, color: "success" as const};
-        }
-    };
-
-    const getBooleanLabel = (value?: boolean) => value ? "Yes" : "No";
-    const statusChipProps = getStatusChipProps(currentStatus);
-
-    const uploadedDocuments = (exchange.documents || []).filter(document => !!document.uploadDate).length;
-    const requestedDocuments = (exchange.documents || []).filter(document => !document.uploadDate).length;
+    const currentStatus = normalizeExchangeStatus(exchange.status, exchange.endDate);
 
     return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface className={styles.dialogSurface}>
-                <DialogBody>
-                    <DialogTitle>Exchange Detailed View</DialogTitle>
-                    <DialogContent className={styles.dialogContent}>
-                        <div className={styles.sectionCard}>
-                            <div className={styles.titleRow}>
-                                <Text size={500} weight="semibold" className={styles.exchangeTitleText}>
-                                    {exchange.name || "Unnamed Exchange"}
-                                </Text>
-                                <Badge
-                                    appearance={statusChipProps.appearance}
-                                    color={statusChipProps.color}
-                                    shape="rounded"
-                                    className={styles.statusChip}>
-                                    {getStatusAsText(currentStatus)}
-                                </Badge>
-                            </div>
-                            <Text size={300}>{exchange.description || "No description provided."}</Text>
-                            <Text size={300} italic>{exchange.initialShareMessage || "No initial share message."}</Text>
-                        </div>
+        {<Dialog modalType="alert"
+                 open={isOpen}>
+            <DialogSurface id={"exchange-detailed-view-dialog-dialog-surface-1"}
+                           className={styles.dialogSurface}>
+                <DialogBody id={"exchange-detailed-view-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-detailed-view-dialog-dialog-title-1"}>Exchange Detailed View</DialogTitle>
+                    <DialogContent id={"exchange-detailed-view-dialog-dialog-content-1"}
+                                   className={styles.dialogContent}>
+                        <ExchangeDetailOverviewSection exchange={exchange}
+                                                       currentStatus={currentStatus}/>
 
-                        <div className={styles.sectionCard}>
-                            <Text weight="semibold">Lifecycle</Text>
-                            <div className={styles.keyValueGrid}>
-                                <Text className={styles.keyLabel}>Date initiated</Text>
-                                <Text>{formatDateWithOrdinal(exchange.createdDate)}</Text>
+                        <ExchangeDetailSection id={"exchange-detailed-view-dialog-div-3"}
+                                               titleId={"exchange-detailed-view-dialog-text-4"}
+                                               title={"Lifecycle"}>
+                            <ExchangeDetailKeyValueGrid id={"exchange-detailed-view-dialog-div-4"}
+                                                        rows={buildLifecycleRows(exchange)}/>
+                        </ExchangeDetailSection>
 
-                                <Text className={styles.keyLabel}>Last activity</Text>
-                                <Text>{formatDateWithOrdinal(exchange.lastActivity)}</Text>
+                        <ExchangeDetailParticipantsSection exchange={exchange}/>
 
-                                <Text className={styles.keyLabel}>Date closed</Text>
-                                <Text>{exchange.endDate ? formatDateWithOrdinal(exchange.endDate) : '–'}</Text>
-                            </div>
-                        </div>
+                        <ExchangeDetailSection id={"exchange-detailed-view-dialog-div-9"}
+                                               titleId={"exchange-detailed-view-dialog-text-19"}
+                                               title={"Documents"}>
+                            <ExchangeDetailKeyValueGrid id={"exchange-detailed-view-dialog-div-10"}
+                                                        rows={buildDocumentRows(exchange)}/>
+                        </ExchangeDetailSection>
 
-                        <div className={styles.sectionCard}>
-                            <Text weight="semibold">Participants</Text>
-                            <div className={styles.keyValueGrid}>
-                                <Text className={styles.keyLabel}>Initiator</Text>
-                                <Text>{formatParticipant(exchange.initiator)}</Text>
-
-                                <Text className={styles.keyLabel}>Recipient</Text>
-                                <Text>{exchange.recipient ? formatParticipant(exchange.recipient) : exchange.recipientGroupName ? `${exchange.recipientGroupName} (Group)` : "Not provided"}</Text>
-                            </div>
-                            {(exchange.participants ?? []).length > 0 && (
-                                <div className={styles.additionalParticipantsContainer}>
-                                    <Text size={200} className={styles.additionalParticipantsLabel}>Additional participants</Text>
-                                    {(exchange.participants ?? []).map((p) => (
-                                        <div key={p.id} className={`${styles.keyValueGrid} ${styles.participantRow}`}>
-                                            <Text className={styles.keyLabel}>{p.participantType === 'GROUP' ? 'Group' : 'User'}</Text>
-                                            <Text>{p.organizationGroupName ?? ([p.appUserFirstName, p.appUserLastName].filter(Boolean).join(' ') || p.appUserEmail || 'Unknown')}</Text>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className={styles.sectionCard}>
-                            <Text weight="semibold">Documents</Text>
-                            <div className={styles.keyValueGrid}>
-                                <Text className={styles.keyLabel}>Total</Text>
-                                <Text>{exchange.documents?.length || 0}</Text>
-
-                                <Text className={styles.keyLabel}>Uploaded</Text>
-                                <Text>{uploadedDocuments}</Text>
-
-                                <Text className={styles.keyLabel}>Requested</Text>
-                                <Text>{requestedDocuments}</Text>
-                            </div>
-                        </div>
-
-                        <div className={styles.sectionCard}>
-                            <Text weight="semibold">Sharing options</Text>
-                            <div className={styles.keyValueGrid}>
-                                <Text className={styles.keyLabel}>Require recipient sign-in</Text>
-                                <Text>{getBooleanLabel(exchange.requestRecipientSignIn)}</Text>
-
-                                <Text className={styles.keyLabel}>Allow document addition</Text>
-                                <Text>{getBooleanLabel(exchange.allowDocumentAddition)}</Text>
-
-                                <Text className={styles.keyLabel}>Allow document upload</Text>
-                                <Text>{getBooleanLabel(exchange.allowDocumentUpload)}</Text>
-
-                                <Text className={styles.keyLabel}>Allow document update</Text>
-                                <Text>{getBooleanLabel(exchange.allowDocumentUpdate)}</Text>
-
-                                <Text className={styles.keyLabel}>Allow document download</Text>
-                                <Text>{getBooleanLabel(exchange.allowDocumentDownload)}</Text>
-
-                                <Text className={styles.keyLabel}>Allow document deletion</Text>
-                                <Text>{getBooleanLabel(exchange.allowDocumentDeletion)}</Text>
-
-                                <Text className={styles.keyLabel}>Watermark</Text>
-                                <Text>{getBooleanLabel(exchange.watermark)}</Text>
-
-                                <Text className={styles.keyLabel}>Require MFA</Text>
-                                <Text>{getBooleanLabel(exchange.requireMfa)}</Text>
-
-                            </div>
-                        </div>
+                        <ExchangeDetailSection id={"exchange-detailed-view-dialog-div-11"}
+                                               titleId={"exchange-detailed-view-dialog-text-26"}
+                                               title={"Sharing options"}>
+                            <ExchangeDetailKeyValueGrid id={"exchange-detailed-view-dialog-div-12"}
+                                                        rows={buildSharingOptionRows(exchange)}/>
+                        </ExchangeDetailSection>
                     </DialogContent>
-                    <DialogActions>
-
-                        <Button
-                            id={"exchange-detailed-view-close-btn"}
-                            appearance="primary"
-                            onClick={onDismiss}
-                            shape={"circular"}>
+                    <DialogActions id={"exchange-detailed-view-dialog-dialog-actions-1"}>
+                        <Button id={"exchange-detailed-view-close-btn"}
+                                appearance="primary"
+                                onClick={onDismiss}
+                                shape={"circular"}>
                             Close
                         </Button>
                     </DialogActions>

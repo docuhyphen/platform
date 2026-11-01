@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.variable
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.CreateVariableRequest
 import com.docuhyphen.app.api.model.dto.UpdateVariableRequest
 import com.docuhyphen.app.api.model.dto.VariableDefinitionDto
@@ -9,7 +12,7 @@ import com.docuhyphen.app.api.model.entity.VariableDefinition
 import com.docuhyphen.app.api.model.entity.VariableScope
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
@@ -34,6 +37,8 @@ class VariableDefinitionService @Inject constructor(
         private val logger = LoggerFactory.getLogger(VariableDefinitionService::class.java)
         private val KEY_REGEX = Regex("^[A-Z0-9_]{1,64}$")
     }
+
+    fun listVariables(scopeName: String?): List<VariableDefinitionDto> = listVariables(parseScope(scopeName))
 
     fun listVariables(scope: VariableScope): List<VariableDefinitionDto>
     {
@@ -66,7 +71,7 @@ class VariableDefinitionService @Inject constructor(
 
         val normalizedKey = request.key.trim().uppercase()
         if (!KEY_REGEX.matches(normalizedKey))
-            throw IllegalArgumentException("Variable key must be 1–64 uppercase alphanumeric characters or underscores")
+            throw IllegalArgumentException("Variable key must be 1-64 uppercase alphanumeric characters or underscores")
 
         when (scope)
         {
@@ -141,8 +146,6 @@ class VariableDefinitionService @Inject constructor(
         logger.info("Variable {} soft-deleted by user {}", id, principal.id)
     }
 
-    // ── Access control ────────────────────────────────────────────────────────
-
     private fun checkWriteAccess(variable: VariableDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
         when (variable.scope)
@@ -162,12 +165,6 @@ class VariableDefinitionService @Inject constructor(
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /**
-     * Charges the change to whoever owns the variable, so an organization variable is always paid
-     * for by that organization and a personal one by the person who created it.
-     */
     private fun requirePlanAllowance(scope: VariableScope, ownerUserId: UUID?, organizationId: UUID?)
     {
         when (scope)
@@ -176,6 +173,12 @@ class VariableDefinitionService @Inject constructor(
             VariableScope.PERSONAL -> ownerUserId?.let(variableSubscriptionGuard::requirePersonalManagement)
         }
     }
+
+    private fun parseScope(scopeName: String?): VariableScope =
+        scopeName?.let { name ->
+            VariableScope.entries.firstOrNull { it.name == name.uppercase() }
+                ?: throw IllegalArgumentException("Invalid scope '$scopeName'")
+        } ?: VariableScope.PERSONAL
 
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()

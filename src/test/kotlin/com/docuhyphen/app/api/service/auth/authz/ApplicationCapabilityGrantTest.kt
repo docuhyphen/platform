@@ -1,7 +1,11 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -23,15 +27,6 @@ import org.mockito.kotlin.any
 import org.mockito.quality.Strictness
 import java.util.*
 
-/**
- * APPLICATION principal with and without EXCHANGE_INITIATE grant.
- *
- * Scenario: Acme registers a CLM integration as an APPLICATION. The integration is
- * explicitly granted EXCHANGE_INITIATE for Acme. It must be able to initiate an Acme-owned
- * Exchange but must gain no other Exchange, document, or customer-content capability.
- *
- * A second application (no capability grant) must be denied EXCHANGE_INITIATE entirely.
- */
 @ExtendWith(MockitoExtension::class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ApplicationCapabilityGrantTest
@@ -76,7 +71,6 @@ class ApplicationCapabilityGrantTest
         )).thenReturn(emptyList())
         `when`(resourceContextRegistry.resolve(resource))
             .thenReturn(ResourceAuthorizationContext(ownerContext = OwnerContext.Organization(acmeOrgId)))
-        // Mirror the real registry's answers so the resolution-driven paths behave as in production.
         `when`(resourceContextRegistry.resolution(any<ResourceRef>()))
             .thenAnswer { invocation ->
                 val ref = invocation.arguments[0] as ResourceRef
@@ -280,10 +274,6 @@ class ApplicationCapabilityGrantTest
             "Malformed granted_capabilities JSON must fail closed; no capabilities granted"
         }
     }
-
-    // -------------------------------------------------------------------------
-    // helpers
-    // -------------------------------------------------------------------------
 
     private fun acmeClm(grantedCapabilitiesJson: String): Application =
         application(id = clmAppId, ownerOrgId = acmeOrgId, grantedCapabilitiesJson = grantedCapabilitiesJson)

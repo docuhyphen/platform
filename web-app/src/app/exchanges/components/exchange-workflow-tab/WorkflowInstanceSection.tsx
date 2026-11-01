@@ -17,13 +17,6 @@ interface Props
     onViewTimeline: () => void;
 }
 
-/**
- * One workflow instance. The banner, summary, and action-required decision
- * controls stay unchanged in every view; only the detail region below them
- * changes: full-width Timeline, full-width Diagram, or a
- * side-by-side split showing both at once (detail on the left, diagram
- * preview on the right).
- */
 const WorkflowInstanceSection = ({instance, pendingSteps, onDecisionMade, viewMode, onViewTimeline}: Props) =>
 {
     const styles = useExchangeWorkflowTabStyles();

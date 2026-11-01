@@ -2,6 +2,7 @@
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.model.ExchangeDocumentAuditDtoMapper
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.model.dto.DocumentAuditDetailedDto
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.Document

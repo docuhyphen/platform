@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.fields
 
+import com.docuhyphen.app.api.model.audit.AuditDraftValidationResult
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.FieldValueProvenance
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
@@ -9,7 +11,7 @@ import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentFieldsFixture.Question
 import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import kotlinx.serialization.json.JsonNull

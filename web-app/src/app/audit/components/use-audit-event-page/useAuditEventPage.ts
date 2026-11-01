@@ -13,11 +13,6 @@ export interface UseAuditEventPageResult
     reset: () => void;
 }
 
-/**
- * Cursor-paginated audit event list state, shared by every ledger-backed audit surface
- * (Audit workspace, Exchange audit tab/document audit, personal security activity). `fetchFn`
- * is one of the typed functions in `services/auditService.ts`.
- */
 export const useAuditEventPage = (
     fetchFn: (params?: AuditCursorParams) => Promise<AuditEventPageDto>,
 ): UseAuditEventPageResult =>
@@ -28,9 +23,6 @@ export const useAuditEventPage = (
     const [error, setError] = useState<string | null>(null);
     const fetchFnRef = useRef(fetchFn);
     fetchFnRef.current = fetchFn;
-    // Bumped by every fetchPage call so a response from a superseded request (an older filter,
-    // scope, or loadMore call that is still in flight) can detect it is stale and discard itself
-    // instead of overwriting state a newer request already populated.
     const requestGenerationRef = useRef(0);
 
     const fetchPage = useCallback(async (params: AuditCursorParams | undefined, append: boolean) =>
@@ -69,7 +61,6 @@ export const useAuditEventPage = (
     useEffect(() =>
     {
         fetchPage(undefined, false);
-        // Runs once on mount; callers use `reset` to force a refetch with a new fetchFn identity.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

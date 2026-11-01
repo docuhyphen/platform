@@ -1,5 +1,6 @@
 ﻿package com.docuhyphen.app.api.service.communication.templates
 
+import com.docuhyphen.app.api.model.communication.RenderedEmailTemplate
 import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.service.communication.EmailTemplateService.ExchangeStatusEmailAudience
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -173,7 +174,7 @@ class ExchangeEmailTemplateService @Inject constructor(
         }
 
         return RenderedEmailTemplate(
-            subject = "Your verification code for the exchange",
+            subject = "Your verification code for the Exchange",
             body = renderer.render("exchange-no-auth-otp.ftl", model),
         )
     }

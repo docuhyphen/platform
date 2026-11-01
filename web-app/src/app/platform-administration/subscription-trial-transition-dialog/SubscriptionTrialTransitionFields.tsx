@@ -23,8 +23,10 @@ const SubscriptionTrialTransitionFields = ({idPrefix, fieldGridClassName, dialog
                         value={dialog.billingFrequency}
                         disabled={dialog.saving}
                         onChange={(_, data) => dialog.setBillingFrequency(data.value as "MONTHLY" | "ANNUAL")}>
-                        <option value={"MONTHLY"}>Monthly</option>
-                        <option value={"ANNUAL"}>Annual</option>
+                        <option id={"subscription-trial-transition-fields-option-1"}
+                                value={"MONTHLY"}>Monthly</option>
+                        <option id={"subscription-trial-transition-fields-option-2"}
+                                value={"ANNUAL"}>Annual</option>
                     </Select>
                 </Field>
                 <Field

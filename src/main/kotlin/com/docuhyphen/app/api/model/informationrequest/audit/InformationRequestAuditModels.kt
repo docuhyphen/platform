@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequestRecordExport
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import kotlinx.serialization.json.JsonObject

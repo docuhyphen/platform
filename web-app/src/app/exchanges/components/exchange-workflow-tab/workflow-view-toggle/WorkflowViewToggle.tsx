@@ -30,11 +30,6 @@ const MODE_LABELS: Record<WorkflowViewMode, string> = {
     BOTH: "Both",
 };
 
-/**
- * One tab-level control (Decision 8) that switches every workflow instance in the
- * Exchange Workflow tab between Timeline, Diagram, or a side-by-side split of
- * both. Preference is owned by the parent tab in local state only.
- */
 const WorkflowViewToggle = ({mode, onChange}: Props) =>
 {
     const styles = useWorkflowViewToggleStyles();
@@ -59,7 +54,7 @@ const WorkflowViewToggle = ({mode, onChange}: Props) =>
                                 icon={<Icon className={styles.icon} />} />
                 </Tooltip>
             </MenuTrigger>
-            <MenuPopover>
+            <MenuPopover id={"workflow-view-toggle-menu-popover-1"}>
                 <MenuList id="exchange-workflow-view-menu">
                     <MenuItemRadio id="exchange-workflow-view-timeline"
                                    name="view"

@@ -12,7 +12,8 @@ const WorkflowDesignerActionBar = ({onCancel, onSave}: Props) =>
     const styles = useWorkflowDesignerActionBarStyles();
 
     return (
-        <div className={styles.saveBar}>
+        <div id={"workflow-designer-action-bar-div-1"}
+             className={styles.saveBar}>
             <Button
                 id="workflow-designer-cancel-btn"
                 appearance="secondary"

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.CurrentSessionDto
-import com.docuhyphen.app.api.realtime.RealtimeSessionDeadlineService
+import com.docuhyphen.app.api.service.realtime.RealtimeSessionDeadlineService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

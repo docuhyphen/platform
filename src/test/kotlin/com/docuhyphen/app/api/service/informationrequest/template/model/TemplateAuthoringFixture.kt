@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.informationrequest.template.model
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateDefinition
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.informationrequest.template.*
 import org.mockito.kotlin.argumentCaptor

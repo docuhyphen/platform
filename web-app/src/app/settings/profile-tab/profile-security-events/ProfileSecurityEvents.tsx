@@ -7,10 +7,6 @@ import AuditEventDetail from "../../../audit/components/audit-event-detail/Audit
 import {AuditEventDto} from "../../../models/models.tsx";
 import {useProfileSecurityEventsStyles} from "./ProfileSecurityEventsStyles.tsx";
 
-/**
- * Personal "Security Activity" tab content: the signed-in user's own authentication and security
- * events from `GET /users/me/security-events`, using the shared audit table/detail components.
- */
 const ProfileSecurityEvents = () =>
 {
     const styles = useProfileSecurityEventsStyles();
@@ -20,9 +16,13 @@ const ProfileSecurityEvents = () =>
     );
 
     return (
-        <div id={"profile-security-events-content"} className={styles.container}>
-            <div id={"profile-security-events-header"} className={styles.header}>
-                <Text id={"profile-security-events-description"} size={200} className={styles.description}>
+        <div id={"profile-security-events-content"}
+             className={styles.container}>
+            <div id={"profile-security-events-header"}
+                 className={styles.header}>
+                <Text id={"profile-security-events-description"}
+                      size={200}
+                      className={styles.description}>
                     Recent sign-ins and security-relevant activity on your account.
                 </Text>
             </div>

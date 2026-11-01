@@ -1,149 +1,65 @@
-import {useCallback, useEffect, useState} from "react";
-import {Badge, Button, Select, Spinner, Text} from "@fluentui/react-components";
-import {WorkflowInstanceSummaryDto} from "../../../models/models.tsx";
-import {listWorkflowInstances} from "../../../../services/workflowService.ts";
+import {Spinner, Text} from "@fluentui/react-components";
 import {useWorkflowInstanceDashboardStyles} from "./WorkflowInstanceDashboardStyles.tsx";
-import {INSTANCE_STATUS_LABELS} from "../workflowUtils.ts";
-import {ArrowSyncRegular} from "@fluentui/react-icons";
 import WorkflowsPagination from "../workflows-pagination/WorkflowsPagination.tsx";
-
-type InstanceStatus = WorkflowInstanceSummaryDto["status"] | "";
-
-const STATUS_COLORS: Record<string, "success" | "warning" | "danger" | "informative" | "subtle"> = {
-    RUNNING: "informative",
-    COMPLETED: "success",
-    REJECTED: "danger",
-    CANCELLED: "subtle",
-    ESCALATED: "warning",
-    FAILED: "danger",
-};
+import WorkflowInstanceFilterBar from "./workflow-instance-filter-bar/WorkflowInstanceFilterBar.tsx";
+import WorkflowInstanceRow from "./workflow-instance-row/WorkflowInstanceRow.tsx";
+import {useWorkflowInstances} from "./useWorkflowInstances.ts";
+import {INSTANCE_PAGE_SIZE} from "./workflowInstancePresentation.ts";
 
 interface Props
 {
     onSelectInstance?: (id: string) => void;
 }
 
-const PAGE_SIZE = 15;
-
 const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
 {
     const styles = useWorkflowInstanceDashboardStyles();
-    const [instances, setInstances] = useState<WorkflowInstanceSummaryDto[]>([]);
-    const [statusFilter, setStatusFilter] = useState<InstanceStatus>("");
-    const [loading, setLoading] = useState(false);
-    const [page, setPage] = useState(0);
-
-    const load = useCallback(async () =>
-    {
-        setLoading(true);
-        try
-        {
-            const data = await listWorkflowInstances({
-                status: statusFilter || undefined,
-                page,
-                pageSize: PAGE_SIZE,
-            });
-            setInstances(data);
-        }
-        catch
-        { /* ignore */
-        }
-        finally
-        {
-            setLoading(false);
-        }
-    }, [statusFilter, page]);
-
-    useEffect(() =>
-    {
-        load();
-    }, [load]);
-
-    const formatDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
-        year: "numeric", month: "short", day: "numeric",
-    });
+    const {instances, statusFilter, setStatusFilter, loading, page, setPage, reload} = useWorkflowInstances();
 
     const hasResults = instances.length > 0;
     const isFiltered = statusFilter !== "";
     const showControls = hasResults || isFiltered;
 
     return (
-        <div className={styles.container}>
+        <div id={"workflow-instance-dashboard-div-1"}
+             className={styles.container}>
             {showControls && (
-                <div className={styles.filterBar}>
-                    <Text weight="semibold">Filter by status:</Text>
-                    <Select
-                        id="workflow-instance-status-filter-select"
-                        value={statusFilter}
-                        onChange={(_, d) =>
-                        {
-                            setStatusFilter(d.value as InstanceStatus);
-                            setPage(0);
-                        }}
-                        size="small"
-                        className={styles.statusFilterSelect}
-                    >
-                        <option value="">All</option>
-                        <option value="RUNNING">In Progress</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="REJECTED">Rejected</option>
-                        <option value="CANCELLED">Cancelled</option>
-                        <option value="ESCALATED">Escalated</option>
-                        <option value="FAILED">Failed</option>
-                    </Select>
-                    <Button
-                        id="workflow-instance-refresh-btn"
-                        size="small"
-                        shape={"circular"}
-                        icon={<ArrowSyncRegular/>}
-                        appearance="secondary"
-                        onClick={load}
-                    >
-                        Refresh
-                    </Button>
-                </div>
+                <WorkflowInstanceFilterBar
+                    statusFilter={statusFilter}
+                    onStatusFilterChange={setStatusFilter}
+                    onRefresh={reload}
+                />
             )}
 
-            <div className={styles.listContent}>
-                {loading && <Spinner size="small" label="Loading instances..."/>}
+            <div id={"workflow-instance-dashboard-div-3"}
+                 className={styles.listContent}>
+                {loading && <Spinner id={"workflow-instance-dashboard-spinner-1"}
+                                     size="small"
+                                     label="Loading instances..."/>}
 
                 {!loading && instances.length === 0 && (
-                    <div className={styles.emptyState}>
-                        <Text>{isFiltered ? "No instances match the selected filter." : "No workflow instances found."}</Text>
+                    <div id={"workflow-instance-dashboard-div-4"}
+                         className={styles.emptyState}>
+                        <Text id={"workflow-instance-dashboard-text-2"}>{isFiltered ? "No instances match the selected filter." : "No workflow instances found."}</Text>
                     </div>
                 )}
 
                 {!loading && instances.map(inst => (
-                    <div
+                    <WorkflowInstanceRow
                         key={inst.id}
-                        className={styles.row}
-                        onClick={() => onSelectInstance?.(inst.id)}
-                    >
-                        <div className={styles.rowInfo}>
-                            <Text weight="semibold">{inst.definitionName ?? inst.definitionId}</Text>
-                            {inst.exchangeName && <Text size={200} block>Exchange: {inst.exchangeName}</Text>}
-                            <Text
-                                size={200}
-                                block
-                                className={styles.rowMetaInherit}
-                            >
-                                Step {inst.currentStepIndex + 1} &middot; Started {formatDate(inst.createdAt)}
-                            </Text>
-                        </div>
-                        <Badge color={STATUS_COLORS[inst.status] ?? "subtle"} appearance="filled" size="small">
-                            {INSTANCE_STATUS_LABELS[inst.status] ?? inst.status}
-                        </Badge>
-                    </div>
+                        instance={inst}
+                        onSelect={onSelectInstance}
+                    />
                 ))}
-                </div>
+            </div>
 
             {!loading && hasResults && (
                 <WorkflowsPagination
                     currentPage={page}
-                    firstItem={page * PAGE_SIZE + 1}
-                    lastItem={page * PAGE_SIZE + instances.length}
+                    firstItem={page * INSTANCE_PAGE_SIZE + 1}
+                    lastItem={page * INSTANCE_PAGE_SIZE + instances.length}
                     itemLabel={"instances"}
-                    hasNextPage={instances.length === PAGE_SIZE}
+                    hasNextPage={instances.length === INSTANCE_PAGE_SIZE}
                     onPageChange={setPage}
                 />
             )}
@@ -152,5 +68,3 @@ const WorkflowInstanceDashboard = ({onSelectInstance}: Props) =>
 };
 
 export default WorkflowInstanceDashboard;
-
-

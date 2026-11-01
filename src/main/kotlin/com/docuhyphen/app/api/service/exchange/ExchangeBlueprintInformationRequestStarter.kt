@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.exchange.ExchangeBlueprintInformationRequest
 import com.docuhyphen.app.api.model.informationrequest.creation.CreateInformationRequestFromBlueprintCommand
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory

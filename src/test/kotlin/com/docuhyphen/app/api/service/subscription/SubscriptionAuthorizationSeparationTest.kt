@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
 import com.docuhyphen.app.api.service.auth.authz.Capability
 import com.docuhyphen.app.api.service.auth.authz.RoleCapabilities
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -11,11 +12,6 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.*
 
-/**
- * Guards the boundary between the two independent questions a protected action must answer:
- * whether the caller is authorized, and whether the paying subject bought the feature.
- * Neither answer may be derived from the other.
- */
 class SubscriptionAuthorizationSeparationTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -88,5 +84,4 @@ class SubscriptionAuthorizationSeparationTest
         assertFalse(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_GUEST).contains(Capability.BLUEPRINT_USE))
     }
 }
-
 

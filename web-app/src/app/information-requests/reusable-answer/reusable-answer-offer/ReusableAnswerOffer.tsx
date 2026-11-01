@@ -121,7 +121,7 @@ const ReusableAnswerOffer = ({
                         shape={"circular"}
                         size={"small"}
                         disabled={!confirmed || busy || clearTargets.some(target => !confirmedClears.includes(target.requirementId))}
-                        onClick={() => void use()}>
+                        onClick={() => { void use(); }}>
                     Use this answer
                 </Button>
             </div>

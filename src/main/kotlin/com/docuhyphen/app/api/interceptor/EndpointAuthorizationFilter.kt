@@ -42,62 +42,22 @@ class AuthTokenContext
             _authToken = value
         }
 
-    /** Best-effort client IP extracted from X-Forwarded-For / X-Real-IP request headers. */
     var clientIp: String? = null
 
-    /**
-     * SHA-256 hex of the raw share-link token from the X-Share-Link-Token header.
-     * Set for all requests (including no-auth) when the header is present.
-     * Used by [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]
-     * to resolve a PUBLIC_LINK grant without storing or logging the raw token.
-     */
     var shareLinkTokenHash: String? = null
 
-    /**
-     * The organization the caller has explicitly selected for this session, extracted from the
-     * X-Active-Organization-Id header after the filter validates membership. Null when the
-     * caller has not selected an organization (personal-product flows).
-     */
     var activeOrganizationId: UUID? = null
 
-    /** The OrganizationMembership row ID corresponding to [activeOrganizationId]. */
     var activeMembershipId: UUID? = null
 
-    /**
-     * The `UserSession` row this request arrived on, set once the filter has validated that the
-     * session is active and not revoked. It is a non-secret identifier of the session record, never
-     * the credential that opened it, so services may persist it as provenance on the records a
-     * request changes.
-     */
     var userSessionId: UUID? = null
 
-    /**
-     * Server-generated trace ID for this request. Always set by [CorrelationContextFilter],
-     * never derived from a client-supplied header, so every request (authenticated or not) has a
-     * trustworthy identifier for log/audit correlation.
-     */
     var serverTraceId: String? = null
 
-    /**
-     * Correlation ID grouping this request with related requests/events across a multi-step or
-     * multi-service flow. Reused from an incoming `X-Correlation-Id` header when present and
-     * well-formed, otherwise generated fresh. Safe to trust for grouping only; it grants no
-     * authorization and is never taken from the untrusted `X-Request-Id` hint.
-     */
     var correlationId: String? = null
 
-    /**
-     * Identifies the event/request that caused this one, when the caller supplies a well-formed
-     * `X-Causation-Id` header. Null when there is no known cause (this request is the origin of
-     * its own chain).
-     */
     var causationId: String? = null
 
-    /**
-     * Raw `X-Request-Id` header value, if present. This is an untrusted client-supplied hint kept
-     * only for correlating with client-side logs; it must never be used as the trace or
-     * correlation ID and must never be trusted for authorization or idempotency decisions.
-     */
     var clientRequestIdHint: String? = null
 }
 
@@ -132,13 +92,6 @@ class EndpointVerificationFilter @Inject constructor(
 {
     private val logger = LoggerFactory.getLogger(EndpointVerificationFilter::class.java.name)
 
-    /**
-     * Endpoints that must be reachable without an access token.
-     *
-     * Matched as normalized path prefixes, never as substrings. A substring match would let any
-     * request whose decoded path merely contains one of these values (for example a free-form
-     * path parameter carrying an encoded "/auth/oauth/") skip authentication entirely.
-     */
     private val excludedEndpoints = listOf(
         "/auth/sign-up/initiation",
         "/auth/sign-up/completion",
@@ -158,7 +111,7 @@ class EndpointVerificationFilter @Inject constructor(
         "/no-auth/sales-enquiries",
         "/no-auth/information-request-access-links/",
         "/no-auth/information-requests/",
-        "/scim/", // SCIM endpoints use their own static bearer token, validated in the resource.
+        "/scim/",
     )
 
     @Inject
@@ -352,7 +305,6 @@ class EndpointVerificationFilter @Inject constructor(
             return
         }
 
-        // O(1) Redis check first,  covers in-flight revocations between DB writes and cache eviction.
         if (sessionRevocationCache.isRevoked(sessionId))
         {
             logger.warn("Revoked session (Redis) sessionId={} user={}", sessionId, userId)
@@ -375,10 +327,6 @@ class EndpointVerificationFilter @Inject constructor(
             return
         }
 
-        // Sliding inactivity (idle) timeout enforcement at request time.
-        // Distinct from the absolute refresh-token / session expiry: an authenticated
-        // request after a long pause must be rejected even if the access token is still
-        // valid, so a forgotten/lost device cannot be reused later.
         val sessionRecord = userSessionService.findSession(sessionId)
         val lastSeen = sessionRecord?.lastSeenAt?.toInstant()
         if (lastSeen != null)
@@ -415,8 +363,6 @@ class EndpointVerificationFilter @Inject constructor(
 
         authenticationContext.userSessionId = sessionId
 
-        // DPoP (RFC 9449) sender-constraint check. Required when enabled and the access token
-        // carries a `cnf.jkt` claim. The proof's JWK thumbprint must match.
         if (configurationService.isDpopEnabled())
         {
             val cnf = claims["cnf"] as? Map<*, *>
@@ -505,13 +451,6 @@ class EndpointVerificationFilter @Inject constructor(
         )
     }
 
-    /**
-     * Produces a canonical, absolute path for prefix matching.
-     *
-     * Traversal segments are collapsed so a decoded path cannot walk out of the segment it was
-     * matched in, and duplicate separators are removed so "//auth//oauth//" is treated the same
-     * as "/auth/oauth/".
-     */
     private fun normalizePath(rawPath: String): String
     {
         val segments = rawPath.replace('\\', '/').split('/')
@@ -531,10 +470,6 @@ class EndpointVerificationFilter @Inject constructor(
         return if (rawPath.endsWith("/") && !normalized.endsWith("/")) "$normalized/" else normalized
     }
 
-    /**
-     * The immediate TCP peer. This is the only address a remote caller cannot forge, so it is
-     * what decides whether the forwarded headers on this request are trustworthy at all.
-     */
     private fun resolvePeerAddress(): String? =
         currentVertxRequest.current?.request()?.remoteAddress()?.host()
 

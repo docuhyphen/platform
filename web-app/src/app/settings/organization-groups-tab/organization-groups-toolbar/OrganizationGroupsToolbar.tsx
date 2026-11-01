@@ -49,7 +49,8 @@ const OrganizationGroupsToolbar = (props: OrganizationGroupsToolbarProps) =>
                 value={props.searchQuery}
                 onChange={(_, data) => props.onSearchChange(data.value)}
             />
-            <div className={styles.tools}>
+            <div id={"organization-groups-toolbar-div-1"}
+                 className={styles.tools}>
                 <SettingsToolbarMenu
                     id="organization-groups-status-filter"
                     icon={<FilterIcon/>}

@@ -7,9 +7,10 @@ import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationshipStatus
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.organization.OrganizationTrustPolicyUpdate
 import com.docuhyphen.app.api.repository.organization.OrganizationTrustPartyPolicyRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -17,7 +18,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import jakarta.enterprise.context.ApplicationScoped
@@ -29,16 +30,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-data class OrganizationTrustPolicyUpdate(
-    val allowExchangesToPartner: Boolean,
-    val allowExchangesFromPartner: Boolean,
-    val allowPartnerMemberResolution: Boolean,
-    val allowPartnerGroupDiscovery: Boolean,
-    val shareMemberDisplayName: Boolean,
-    val expiresAt: Instant?,
-    val reviewDueAt: Instant?,
-)
 
 @ApplicationScoped
 class OrganizationTrustPolicyService @Inject constructor(

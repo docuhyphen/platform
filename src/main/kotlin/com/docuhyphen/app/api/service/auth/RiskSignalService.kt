@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.RiskAssessment
+import com.docuhyphen.app.api.model.auth.RiskLevel
 import com.docuhyphen.app.api.model.entity.SecurityIncidentSeverity
 import com.docuhyphen.app.api.model.entity.SecurityIncidentType
 import com.docuhyphen.app.api.model.entity.UserSession
@@ -8,24 +10,6 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-enum class RiskLevel
-{ NONE, LOW, MEDIUM, HIGH }
-
-data class RiskAssessment(
-    val level: RiskLevel,
-    val reasons: List<String>,
-)
-
-/**
- * Lightweight, deterministic risk evaluation. Compares the request's IP /16 prefix and
- * User-Agent "family" against the session's stored context. Returns a level that the caller
- * uses to gate or block the request.
- *
- * Triggers:
- *   - IP /16 prefix change → LOW
- *   - UA family change → LOW
- *   - Both changes simultaneously → HIGH (treat as session takeover signal)
- */
 @RequestScoped
 class RiskSignalService @Inject constructor(
     private val securityIncidentService: SecurityIncidentService,

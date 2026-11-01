@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.exception.InvalidOtpException
 import com.docuhyphen.app.api.exception.MaxAttemptsOTPExceededException
 import com.docuhyphen.app.api.exception.OTPExpiredException
+import com.docuhyphen.app.api.model.auth.StepUpMfaChallenge
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType.EMAIL
@@ -13,13 +14,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
-
-data class StepUpMfaChallenge(
-    val sessionId: String,
-    val message: String,
-    val mfaType: String,
-    val emailFallbackEnabled: Boolean,
-)
 
 class StepUpMfaRateLimitedException(val retryAfterSeconds: Long) : RuntimeException(
     "Please wait before requesting another verification code."

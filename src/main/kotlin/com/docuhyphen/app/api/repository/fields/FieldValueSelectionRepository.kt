@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.util.*
 
-/** Persistence for [FieldValueSelection] option codes belonging to a select-typed [com.docuhyphen.app.api.model.entity.FieldValue]. */
 @ApplicationScoped
 class FieldValueSelectionRepository :
     BaseRepository<FieldValueSelection>(FieldValueSelection::class.java)

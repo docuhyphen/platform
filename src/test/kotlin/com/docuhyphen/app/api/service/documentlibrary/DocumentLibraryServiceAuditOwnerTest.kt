@@ -3,15 +3,15 @@ package com.docuhyphen.app.api.service.documentlibrary
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -23,12 +23,6 @@ import org.mockito.kotlin.whenever
 import java.io.File
 import java.util.UUID
 
-/**
- * A personally owned Document Library entry must file its download event under its real
- * [AuditOwnerScope.Personal] owner. Before this fix, only [BlueprintScope.ORG] resolved to an
- * organization owner and every other scope, including a personal entry, silently fell back to
- * [AuditOwnerScope.Platform].
- */
 class DocumentLibraryServiceAuditOwnerTest
 {
     private fun service(
@@ -83,5 +77,4 @@ class DocumentLibraryServiceAuditOwnerTest
         assertEquals(AuditOwnerScope.Personal(ownerUserId), draftCaptor.firstValue.owner)
     }
 }
-
 

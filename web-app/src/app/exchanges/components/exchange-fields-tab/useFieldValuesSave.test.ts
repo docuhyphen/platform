@@ -10,7 +10,6 @@ vi.mock('../../../../services/fieldsService', () => ({
 
 const entries = [{fieldContractId: 'contract-1', value: 'recorded note'}];
 
-/** A save answered with the version it produced, as the service reports one. */
 const savedAt = (etag: string) => ({outcome: 'SAVED' as const, assignment: {etag} as never});
 
 afterEach(() => vi.mocked(saveExchangeFieldValues).mockReset());

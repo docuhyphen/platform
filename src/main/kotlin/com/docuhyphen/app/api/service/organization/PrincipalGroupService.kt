@@ -11,6 +11,7 @@ import com.docuhyphen.app.api.service.informationrequest.party.InformationReques
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import java.io.File
 import java.util.*
 
 @ApplicationScoped
@@ -30,6 +31,23 @@ class PrincipalGroupService @Inject constructor(
     fun activeMembers(groupId: UUID): List<PrincipalGroupMember> = memberRepository.findActiveMembers(groupId)
 
     fun findById(groupId: UUID): PrincipalGroup? = groupRepository.findById(groupId)
+
+    fun findOwnedByUser(ownerAppUserId: UUID): List<PrincipalGroup> = groupRepository.findByOwnerUser(ownerAppUserId)
+
+    fun iconDataUrl(file: File?, contentType: String?): String
+    {
+        if (file == null) throw IllegalArgumentException("No file provided")
+        val bytes = file.readBytes()
+        if (bytes.isEmpty()) throw IllegalArgumentException("Uploaded file is empty")
+        val mime = contentType?.takeIf { it.startsWith("image/") } ?: "image/png"
+        return "data:$mime;base64,${Base64.getEncoder().encodeToString(bytes)}"
+    }
+
+    fun replaceIcon(group: PrincipalGroup, iconData: String?): PrincipalGroup
+    {
+        group.iconData = iconData
+        return groupRepository.update(group)
+    }
 
     fun upsertOrgGroup(
         groupId: UUID,

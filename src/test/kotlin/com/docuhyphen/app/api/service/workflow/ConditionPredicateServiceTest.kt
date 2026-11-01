@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.model.workflow.PredicateErrorCode
+import com.docuhyphen.app.api.model.workflow.PredicateResult
+import com.docuhyphen.app.api.model.workflow.WorkflowSubjectField
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf

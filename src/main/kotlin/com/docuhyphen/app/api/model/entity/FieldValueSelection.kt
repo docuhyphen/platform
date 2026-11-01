@@ -6,11 +6,6 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.*
 
-/**
- * A canonical selected option code for a SINGLE_SELECT (one row) or MULTI_SELECT (many rows)
- * [FieldValue]. Stores stable option codes, never mutable display labels.
- * See FIELDS-FEATURE.md "Option Set and Option".
- */
 @Entity
 @Table(name = "field_value_selection")
 class FieldValueSelection

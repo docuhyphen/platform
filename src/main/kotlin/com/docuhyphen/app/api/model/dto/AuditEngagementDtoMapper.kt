@@ -1,13 +1,12 @@
 package com.docuhyphen.app.api.model.dto
 
+import com.docuhyphen.app.api.model.audit.AuditEngagementRequest
 import com.docuhyphen.app.api.model.entity.AuditEngagement
 import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
-import com.docuhyphen.app.api.service.audit.AuditEngagementService
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import java.time.Instant
 import java.util.*
 
-/** Audit engagement request/entity <-> DTO mapping, per this codebase's `toDto` convention. */
 object AuditEngagementDtoMapper
 {
     fun toDto(engagement: AuditEngagement): AuditEngagementDto = AuditEngagementDto(
@@ -39,7 +38,7 @@ object AuditEngagementDtoMapper
     fun toRequest(
         organizationId: UUID?,
         dto: AuditEngagementCreateRequestDto,
-    ): AuditEngagementService.AuditEngagementRequest = AuditEngagementService.AuditEngagementRequest(
+    ): AuditEngagementRequest = AuditEngagementRequest(
         organizationId = organizationId,
         resourceType = dto.resourceType,
         resourceId = dto.resourceId,

@@ -1,5 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.RefreshRotationResult
+import com.docuhyphen.app.api.model.auth.RefreshRotationStatus
+import com.docuhyphen.app.api.model.auth.StoredRefreshToken
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
@@ -140,7 +143,6 @@ class RedisRefreshTokenStore @Inject constructor(
         val userTokensKey = "$USER_TOKENS_KEY_PREFIX$userId"
         val familyTokensKey = "$FAMILY_TOKENS_KEY_PREFIX$familyId"
 
-        // Only the hash is written. The raw token never leaves the response cookie.
         val req = Request.cmd(Command.HSET)
             .arg(tokenKey)
             .arg("userId").arg(userId.toString())

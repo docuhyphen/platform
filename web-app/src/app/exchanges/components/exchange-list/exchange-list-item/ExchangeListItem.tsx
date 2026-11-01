@@ -1,13 +1,14 @@
 ﻿import React from 'react';
 import {Avatar, Badge, Divider, ListItem, mergeClasses, Text} from "@fluentui/react-components";
 import {useExchangeStyles} from "../ExchangeListStyles.tsx";
-import {ExchangeBasicDto, ExchangeStatus} from "../../../../models/models.tsx";
+import {useExchangeListItemStyles} from "./ExchangeListItemStyles.tsx";
+import {ExchangeListEntry, ExchangeStatus} from "../../../../models/models.tsx";
 import {formatDateWithOrdinal} from "../../../../helpers.ts";
 import {ExchangeListTab} from "../exchange-list-tabs/ExchangeListTabs.tsx";
 
 interface ExchangeListItemProps
 {
-    exchange: ExchangeBasicDto;
+    exchange: ExchangeListEntry;
     isSelected: boolean;
     activeTab: ExchangeListTab;
     staggerIndex: number;
@@ -19,6 +20,7 @@ const STAGGER_DELAY_MS = 50;
 const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected, activeTab, staggerIndex}) =>
 {
     const styles = useExchangeStyles();
+    const itemStyles = useExchangeListItemStyles();
     const animationDelay = `${Math.min(staggerIndex, MAX_STAGGER_INDEX) * STAGGER_DELAY_MS}ms`;
 
     const getArchiveStatusMeta = () =>
@@ -29,7 +31,7 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
         {
             return {
                 label: 'Declined',
-                className: styles.archiveStatusChipDeclined,
+                className: itemStyles.archiveStatusChipDeclined,
                 appearance: 'filled' as const,
                 color: 'danger' as const,
             };
@@ -39,7 +41,7 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
         {
             return {
                 label: 'Rescinded',
-                className: styles.archiveStatusChipEnded,
+                className: itemStyles.archiveStatusChipEnded,
                 appearance: 'outline' as const,
                 color: 'warning' as const,
             };
@@ -47,48 +49,57 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
 
         return {
             label: 'Ended',
-            className: styles.archiveStatusChipEnded,
+            className: itemStyles.archiveStatusChipEnded,
             appearance: 'outline' as const,
-            color: 'neutral' as const,
+            color: 'informative' as const,
         };
     }
 
     const listItemCard = () =>
     {
-        const name = exchange.name || "Untitled exchange";
+        const name = exchange.name || "Untitled Exchange";
         const archiveStatusMeta = getArchiveStatusMeta();
         const descriptionText = exchange.description
             ? (exchange.description.length > 80 ? `${exchange.description.substring(0, 80)}...` : exchange.description)
             : "No description available";
 
-        return <div className={styles.listCard}>
-            <section className={styles.listCardItem}>
-                <span>
-                    <Avatar name={exchange.recipientEmail}/>
+        return <div id={"exchange-list-item-div-1"}
+                    className={styles.listCard}>
+            <section id={"exchange-list-item-section-1"}
+                     className={styles.listCardItem}>
+                <span id={"exchange-list-item-span-1"}>
+                    <Avatar id={"exchange-list-item-avatar-1"}
+                            name={'recipientEmail' in exchange ? exchange.recipientEmail : undefined}/>
                 </span>
-                <span className={styles.listCardItemDetails}>
-                    <div className={`${styles.caption1} ${styles.truncatedText}`}>
-                        {/*{exchange.recipientEmail.length > 80*/}
-                        {/*    ? `${exchange.recipientEmail.substring(0, 80)}...`*/}
-                        {/*    : exchange.recipientEmail}*/}
+                <span id={"exchange-list-item-span-2"}
+                      className={styles.listCardItemDetails}>
+                    <div id={"exchange-list-item-div-2"}
+                         className={`${itemStyles.caption1} ${itemStyles.truncatedText}`}>
                     </div>
-                    <div className={styles.listCardItemRow}>
-                        <Text size={300}
+                    <div id={"exchange-list-item-div-3"}
+                         className={styles.listCardItemRow}>
+                        <Text id={"exchange-list-item-text-1"}
+                              size={300}
                               weight={"semibold"}
-                              className={styles.name}>
+                              className={itemStyles.name}>
                             {name.length > 80
                                 ? `${name.substring(0, 80)}...`
                                 : name}
                         </Text>
-                        <div className={styles.titleMetaRow}>
-                            <Text align={"end"}
+                        <div id={"exchange-list-item-div-4"}
+                             className={itemStyles.titleMetaRow}>
+                            <Text id={"exchange-list-item-text-2"}
+                                  align={"end"}
                                   size={100}
-                                  className={styles.createdDate}>
+                                  className={itemStyles.createdDate}>
                                 {formatDateWithOrdinal(exchange.createdDate)}
                             </Text>
-                            {archiveStatusMeta && <Divider vertical className={styles.titleMetaDivider}/>}
+                            {archiveStatusMeta && <Divider id={"exchange-list-item-divider-1"}
+                                                           vertical
+                                                           className={itemStyles.titleMetaDivider}/>}
                             {archiveStatusMeta && (
                                 <Badge
+                                    id={"exchange-list-item-badge-1"}
                                     appearance={archiveStatusMeta.appearance}
                                     color={archiveStatusMeta.color}
                                     className={archiveStatusMeta.className}>
@@ -97,10 +108,12 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
                             )}
                         </div>
                     </div>
-                    <div className={styles.exchangeDescription}>
-                        <Text size={200}
+                    <div id={"exchange-list-item-div-5"}
+                         className={itemStyles.exchangeDescription}>
+                        <Text id={"exchange-list-item-text-3"}
+                              size={200}
                               italic={true}
-                              className={styles.truncatedText}>
+                              className={itemStyles.truncatedText}>
                             {descriptionText}
                         </Text>
                     </div>
@@ -113,8 +126,8 @@ const ExchangeListItem: React.FC<ExchangeListItemProps> = ({exchange, isSelected
         <ListItem
             id={`exchange-list-item-${exchange.id}`}
             className={mergeClasses(
-                styles.exchangeListItemEnter,
-                isSelected ? styles.exchangesListSelectedItem : styles.exchangesListItem
+                itemStyles.exchangeListItemEnter,
+                isSelected ? styles.exchangesListSelectedItem : itemStyles.exchangesListItem
             )}
             key={exchange.id}
             value={exchange.id}

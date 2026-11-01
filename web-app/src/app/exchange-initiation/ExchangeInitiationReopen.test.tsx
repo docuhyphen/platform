@@ -4,7 +4,7 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import ExchangeInitiation from "./ExchangeInitiation.tsx";
 import {initiateExchange} from "../../services/exchangeApi.ts";
 import {publishRecreateRejectedExchange} from "../observable/exchangeObservables.ts";
-import {BlueprintDefinitionSummaryDto} from "../models/models.tsx";
+import {BlueprintDefinitionSummaryDto, PlanCode} from "../models/models.tsx";
 import {ExchangeNewMainRecipient} from "./components/exchange-initiation-recipients-tab/new-recipient/NewRecipient.tsx";
 
 const mocks = vi.hoisted(() => ({
@@ -57,7 +57,7 @@ vi.mock("../../hooks/subscription/usePlanFeature.ts", () => ({
         isEnforced: true,
         isDiscoverable: true,
         isAvailable: true,
-        upgradePlanCode: null,
+        upgradePlanCode: null as PlanCode | null,
     }),
 }));
 
@@ -155,7 +155,11 @@ const startAgainByHand = async () => {
 };
 
 beforeEach(() => {
-    vi.mocked(initiateExchange).mockReset().mockResolvedValue({id: "exchange-1"});
+    vi.mocked(initiateExchange).mockReset().mockResolvedValue({
+        id: "exchange-1",
+        createdDate: "2026-08-01T08:00:00Z",
+        lastActivity: "2026-08-01T08:00:00Z",
+    });
     mocks.navigate.mockReset();
 });
 

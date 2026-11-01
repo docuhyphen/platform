@@ -13,14 +13,14 @@ import com.docuhyphen.app.api.model.informationrequest.noauth.UpgradeInformation
 import com.docuhyphen.app.api.resource.informationrequest.noauth.operations.InformationRequestParticipantAccountLinkResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpgradeInformationRequestParticipantAccountRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestParticipantAccountUpgradeService
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException

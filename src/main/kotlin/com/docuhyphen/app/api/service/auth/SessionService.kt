@@ -13,18 +13,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
 
-/**
- * Computes the effective session contract for the authenticated caller.
- *
- * The returned [CurrentSessionDto] exposes the caller's identity, the explicitly selected
- * organization (null for personal-product sessions), all applicable scoped roles, and the union
- * of effective capabilities derived from those roles. Capabilities are recomputed on every call
- * from live role assignments, so role changes are reflected without reissuing tokens.
- *
- * The commercial position of the paying subject is resolved alongside, and stays strictly
- * separate: capabilities decide what the caller is allowed to do, while the subscription
- * decides what the paying subject has bought.
- */
 @ApplicationScoped
 class SessionService @Inject constructor(
     private val authTokenContext: AuthTokenContext,

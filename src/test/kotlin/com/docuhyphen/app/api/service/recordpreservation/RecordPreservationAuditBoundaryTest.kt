@@ -8,10 +8,10 @@ import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldEventRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordRetentionScheduleRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*

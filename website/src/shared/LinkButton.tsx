@@ -7,7 +7,6 @@ type LinkButtonProps = {
     to: string;
     children?: ReactNode;
     appearance?: "primary" | "outline" | "subtle" | "secondary" | "transparent";
-    shape?: "circular" | "rounded" | "square";
     size?: "small" | "medium" | "large";
     icon?: ReactElement;
     iconPosition?: "before" | "after";
@@ -19,7 +18,10 @@ export function LinkButton({to, children, ...buttonProps}: LinkButtonProps)
     const navigate = useNavigate();
 
     return (
-        <Button {...buttonProps} onClick={() => navigate(to)}>
+        <Button id={"link-button"}
+                {...buttonProps}
+                shape="circular"
+                onClick={() => navigate(to)}>
             {children}
         </Button>
     );

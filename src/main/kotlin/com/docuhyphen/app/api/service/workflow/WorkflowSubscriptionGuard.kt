@@ -4,12 +4,11 @@ import com.docuhyphen.app.api.model.entity.WorkflowDefinition
 import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
 
-/** Applies the commercial workflow-automation boundary without interrupting running instances. */
 @ApplicationScoped
 class WorkflowSubscriptionGuard @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,

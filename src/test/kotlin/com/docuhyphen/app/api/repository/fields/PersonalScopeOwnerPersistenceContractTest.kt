@@ -49,15 +49,6 @@ class PersonalScopeOwnerPostgreSQLResource : QuarkusTestResourceLifecycleManager
     }
 }
 
-/**
- * A person owning reusable configuration has to survive the round trip through the mapped entity,
- * not only through a hand-written statement, and the lookup that decides whether a key is already
- * taken has to ask about the same owner that the key belongs to.
- *
- * Looking a key up by scope kind and organization alone answers for every person at once, because
- * they all share the absent organization. Two people would then be told each other's key is taken,
- * and one person's configuration would be handed to another.
- */
 @QuarkusTest
 @QuarkusTestResource(PersonalScopeOwnerPostgreSQLResource::class)
 class PersonalScopeOwnerPersistenceContractTest
@@ -168,7 +159,6 @@ class PersonalScopeOwnerPersistenceContractTest
                 )?.id,
             )
 
-            // A third person has not taken the key merely by having no organization either.
             assertNull(
                 fieldDefinitionRepository.findByKey(
                     FieldScopeKind.PERSONAL, null, insertOwner("third-key-owner"), namespace, "recorded-note",
@@ -227,7 +217,6 @@ class PersonalScopeOwnerPersistenceContractTest
         status = FieldLifecycleStatus.PUBLISHED
     }
 
-    /** Namespaces are per test so one test's stored key never decides another's lookup. */
     private fun uniqueNamespace(): String = "process-${UUID.randomUUID().toString().take(8)}"
 
     private fun insertOwner(label: String): UUID

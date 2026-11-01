@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
@@ -15,9 +16,6 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Covers the allowance that decides whether the Document Library may be read or changed.
- */
 class DocumentLibrarySubscriptionGuardTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -199,5 +197,4 @@ class DocumentLibrarySubscriptionGuardTest
         verifyNoInteractions(userRoleService)
     }
 }
-
 

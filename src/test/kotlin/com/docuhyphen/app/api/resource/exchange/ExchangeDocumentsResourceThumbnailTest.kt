@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
+import com.docuhyphen.app.api.service.exchange.ExchangeDocumentDetailsViewService
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
-import com.docuhyphen.app.api.service.storage.FileStorageService
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -14,7 +14,7 @@ class ExchangeDocumentsResourceThumbnailTest
 {
     private val thumbnailContent = byteArrayOf(1, 2, 3)
     private val exchangeDocumentService = mock<ExchangeDocumentService>()
-    private val resource = ExchangeDocumentsResource(exchangeDocumentService, mock<FileStorageService>())
+    private val resource = ExchangeDocumentsResource(exchangeDocumentService, mock<ExchangeDocumentDetailsViewService>())
 
     @Test
     fun `thumbnail response is private cacheable PNG with an etag`()

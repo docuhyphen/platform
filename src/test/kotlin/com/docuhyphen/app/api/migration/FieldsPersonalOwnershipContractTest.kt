@@ -16,17 +16,6 @@ import java.util.UUID
 private class PersonalOwnershipPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<PersonalOwnershipPostgreSQLContainer>(imageName)
 
-/**
- * Reusable configuration is owned by the platform or by an organization, and there is nowhere to
- * record a person as the owner. A user with no organization therefore cannot hold a Field, a Schema,
- * or an assignment of one, even though personal ownership is first-class everywhere else.
- *
- * A column alone does not settle it. The released key indexes fold every owner into
- * `COALESCE(scope_org_id, '000...0')`, so the moment two people hold the same key their rows meet at
- * the same sentinel and the second one is refused. These contract tests hold the three facts that
- * make personal ownership safe: the owner is recorded, each scope kind admits exactly one owner, and
- * one person's key space is their own.
- */
 class FieldsPersonalOwnershipContractTest
 {
     private val releasedVersion = "81"
@@ -64,7 +53,6 @@ class FieldsPersonalOwnershipContractTest
             postgres.createConnection("").use { connection ->
                 insertOwners(connection, fixture)
 
-                // A person's row names the person and nobody else.
                 refused(connection, "ck_field_def_scope_owner") {
                     insertFieldDefinition(
                         connection, UUID.randomUUID(), "PERSONAL",
@@ -75,7 +63,6 @@ class FieldsPersonalOwnershipContractTest
                     insertFieldDefinition(connection, UUID.randomUUID(), "PERSONAL", fieldKey = "unowned")
                 }
 
-                // An organization's row and the platform's row still name nobody personally.
                 refused(connection, "ck_field_def_scope_owner") {
                     insertFieldDefinition(
                         connection, UUID.randomUUID(), "ORGANIZATION",
@@ -93,8 +80,6 @@ class FieldsPersonalOwnershipContractTest
                     insertSchemaDefinition(connection, UUID.randomUUID(), "PERSONAL", schemaKey = "unowned")
                 }
 
-                // The assignment carries the owner of the schema it applies, and the released schema
-                // never checked that it carries a coherent one.
                 insertSchemaDefinition(connection, fixture.schemaDefinitionId, "PERSONAL", userId = fixture.ownerId)
                 insertSchemaVersion(connection, fixture)
                 refused(connection, "ck_assignment_scope_owner") {
@@ -117,11 +102,9 @@ class FieldsPersonalOwnershipContractTest
                 insertFieldDefinition(connection, UUID.randomUUID(), "PERSONAL", userId = fixture.ownerId)
                 insertSchemaDefinition(connection, UUID.randomUUID(), "PERSONAL", userId = fixture.ownerId)
 
-                // Somebody else holding the same key is not a conflict; it is a different owner.
                 insertFieldDefinition(connection, UUID.randomUUID(), "PERSONAL", userId = fixture.otherOwnerId)
                 insertSchemaDefinition(connection, UUID.randomUUID(), "PERSONAL", userId = fixture.otherOwnerId)
 
-                // The same owner holding it twice still is.
                 refused(connection, "ux_field_def_key") {
                     insertFieldDefinition(connection, UUID.randomUUID(), "PERSONAL", userId = fixture.ownerId)
                 }
@@ -142,8 +125,6 @@ class FieldsPersonalOwnershipContractTest
             postgres.createConnection("").use { connection ->
                 insertOwners(connection, fixture)
 
-                // The sentinel the released index folds every ownerless row onto, held by a real
-                // person, must not stand in for the platform's own key.
                 insertOwner(connection, sentinel, "sentinel-owner@process.test")
 
                 insertFieldDefinition(connection, UUID.randomUUID(), "PLATFORM")
@@ -188,15 +169,12 @@ class FieldsPersonalOwnershipContractTest
                     "An organization's schema is still that organization's",
                 )
 
-                // The keys those rows hold are still theirs alone.
                 refused(connection, "ux_field_def_key") {
                     insertFieldDefinition(connection, UUID.randomUUID(), "PLATFORM")
                 }
             }
         }
     }
-
-    // ── Fixture ─────────────────────────────────────────────────────────────────
 
     private class Fixture
     {
@@ -238,10 +216,6 @@ class FieldsPersonalOwnershipContractTest
         return configuration.load()
     }
 
-    /**
-     * A refused statement aborts the transaction it ran in, so each one is run in its own and rolled
-     * back. Everything inserted before it was committed as it went and survives.
-     */
     private fun refused(connection: Connection, expected: String, block: () -> Unit)
     {
         connection.autoCommit = false

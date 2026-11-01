@@ -13,11 +13,6 @@ interface ExchangeDocumentAuditProps
     exchangeDocument: DocumentDetailedDto;
 }
 
-/**
- * Ledger-backed document audit view, paginated over
- * `GET /exchanges/{exchangeId}/documents/{documentId}/audit-events` via the shared audit
- * card-list/detail components instead of the legacy single-page audit log list.
- */
 const ExchangeDocumentAudit = (
     {
         exchangeId,
@@ -33,16 +28,19 @@ const ExchangeDocumentAudit = (
 
     if (loading && items.length === 0)
     {
-        return <Spinner size={"small"}/>;
+        return <Spinner id={"exchange-document-audit-spinner-1"}
+                        size={"small"}/>;
     }
 
     if (error)
     {
-        return <Text className={styles.error}>Error: {error}</Text>;
+        return <Text id={"exchange-document-audit-text-1"}
+                     className={styles.error}>Error: {error}</Text>;
     }
 
     return (
-        <div id={"exchange-document-audit-container"} className={styles.auditContainer}>
+        <div id={"exchange-document-audit-container"}
+             className={styles.auditContainer}>
             <AuditEventCardList
                 items={items}
                 nextCursor={cursor}

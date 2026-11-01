@@ -9,10 +9,6 @@ export interface ThemeContextValue
     mode: ThemeMode;
     resolvedMode: ResolvedTheme;
     theme: Theme;
-    /**
-     * Update the active theme mode. ThemeProvider persists this locally,
-     * while callers can also persist it to the user's account settings.
-     */
     setMode: (mode: ThemeMode) => void;
 }
 

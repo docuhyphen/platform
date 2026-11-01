@@ -16,10 +16,6 @@ enum class OrganizationMembershipStatus
     LEFT,
 }
 
-/**
- * A user's membership of an organization. Organization roles are additive and stored in
- * `organization_membership_role`; changing one role does not replace unrelated roles.
- */
 @Entity
 @Serializable
 @Table(name = "organization_membership")

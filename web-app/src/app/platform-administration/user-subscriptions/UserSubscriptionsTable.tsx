@@ -55,11 +55,12 @@ const UserSubscriptionsTable = ({
                         <TableRow
                             id={`platform-user-subscription-row-${item.appUserId}`}
                             key={item.appUserId}>
-                            <TableCell>{item.displayName ? `${item.displayName} (${item.email})` : item.email}</TableCell>
-                            <TableCell>{item.planCode}</TableCell>
-                            <TableCell>{item.subscriptionStatus}</TableCell>
-                            <TableCell>{item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleDateString() : "Not set"}</TableCell>
-                            <TableCell className={styles.actions}>
+                            <TableCell id={"user-subscriptions-table-table-cell-1"}>{item.displayName ? `${item.displayName} (${item.email})` : item.email}</TableCell>
+                            <TableCell id={"user-subscriptions-table-table-cell-2"}>{item.planCode}</TableCell>
+                            <TableCell id={"user-subscriptions-table-table-cell-3"}>{item.subscriptionStatus}</TableCell>
+                            <TableCell id={"user-subscriptions-table-table-cell-4"}>{item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleDateString() : "Not set"}</TableCell>
+                            <TableCell id={"user-subscriptions-table-table-cell-5"}
+                                       className={styles.actions}>
                                 <div
                                     id={`platform-user-subscription-actions-${item.appUserId}`}
                                     className={styles.actionButtons}>
@@ -103,7 +104,8 @@ const UserSubscriptionsTable = ({
                     ))}
                     {items.length === 0 && (
                         <TableRow id={"platform-user-subscriptions-empty-row"}>
-                            <TableCell colSpan={5}>No registered user subscriptions match this search.</TableCell>
+                            <TableCell id={"user-subscriptions-table-table-cell-6"}
+                                       colSpan={5}>No registered user subscriptions match this search.</TableCell>
                         </TableRow>
                     )}
                 </TableBody>

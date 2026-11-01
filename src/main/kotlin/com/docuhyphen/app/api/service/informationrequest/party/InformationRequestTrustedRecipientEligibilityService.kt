@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.party
 import com.docuhyphen.app.api.exception.OrganizationTrustException
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException

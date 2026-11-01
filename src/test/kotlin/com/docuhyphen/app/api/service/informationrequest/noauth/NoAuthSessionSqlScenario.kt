@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.entity.RequestAccessSessionVerificationStren
 import com.docuhyphen.app.api.model.entity.ShareLink
 import com.docuhyphen.app.api.model.entity.ShareLinkMode
 import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.exchange.ShareLinkService
 import io.quarkus.narayana.jta.QuarkusTransaction

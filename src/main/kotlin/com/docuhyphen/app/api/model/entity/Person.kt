@@ -41,8 +41,5 @@ class Person
     @OneToOne(cascade = [(ALL)], fetch = EAGER)
     var contactDetails: ContactDetails? = null
 
-//    var jobTitle: String? = null
-//    var department: String? = null
-
     constructor()
 }

@@ -1,13 +1,6 @@
 ﻿import {useEffect, useState} from 'react';
 import {realtimeService} from './NotificationService';
 
-/**
- * Subscribe to PRESENCE_UPDATE events and expose the live set of online user IDs.
- *
- * The server fans presence transitions out to every connected user; on initial mount we
- * don't have a snapshot, so the set grows as the first few PRESENCE_UPDATE messages
- * arrive (or as users this client cares about come online).
- */
 export function usePresence(): { onlineUserIds: Set<string>; isOnline: (userId: string) => boolean }
 {
     const [online, setOnline] = useState<Set<string>>(new Set());
@@ -34,10 +27,6 @@ export function usePresence(): { onlineUserIds: Set<string>; isOnline: (userId: 
     };
 }
 
-/**
- * Subscribe to viewers of a exchange. While the hook is mounted, this client is
- * marked as viewing the session on the server side; on unmount it unsubscribes.
- */
 export function useExchangeViewers(exchangeId: string | null | undefined): string[]
 {
     const [viewerIds, setViewerIds] = useState<string[]>([]);

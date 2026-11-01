@@ -101,7 +101,8 @@ const LinkedProviderCard: React.FC<LinkedProviderCardProps> = (
                                 disabled={!canUnlink || isActionLoading}
                                 shape={"circular"}
                                 onClick={onUnlink}>
-                                {isActionLoading ? <Spinner size="tiny"/> : "Unlink"}
+                                {isActionLoading ? <Spinner id={"linked-provider-card-spinner-1"}
+                                                            size="tiny"/> : "Unlink"}
                             </Button>
                             {!canUnlink && (
                                 <Text
@@ -119,7 +120,8 @@ const LinkedProviderCard: React.FC<LinkedProviderCardProps> = (
                             disabled={isActionLoading}
                             shape={"circular"}
                             onClick={onLink}>
-                            {isActionLoading ? <Spinner size="tiny"/> : "Link"}
+                            {isActionLoading ? <Spinner id={"linked-provider-card-spinner-2"}
+                                                        size="tiny"/> : "Link"}
                         </Button>
                     )}
                 </div>

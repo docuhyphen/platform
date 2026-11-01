@@ -51,7 +51,9 @@ const OrganizationSubscriptionFields = ({editor}: OrganizationSubscriptionFields
                     disabled={editor.saving}
                     onChange={(_, data) => editor.setSubscriptionStatus(data.value)}>
                     {(["TRIALING", "ACTIVE", "PAST_DUE", "SUSPENDED", "CANCELED"] as const)
-                        .map((status) => <option key={status} value={status}>{status}</option>)}
+                        .map((status) => <option id={`organization-subscription-fields-option-1-${status}`}
+                                                 key={status}
+                                                 value={status}>{status}</option>)}
                 </Select>
             </Field>
             <Field
@@ -62,9 +64,12 @@ const OrganizationSubscriptionFields = ({editor}: OrganizationSubscriptionFields
                     value={editor.billingFrequency}
                     disabled={editor.saving}
                     onChange={(_, data) => editor.setBillingFrequency(data.value)}>
-                    <option value={""}>Not set</option>
-                    <option value={"MONTHLY"}>Monthly</option>
-                    <option value={"ANNUAL"}>Annual</option>
+                    <option id={"organization-subscription-fields-option-2"}
+                            value={""}>Not set</option>
+                    <option id={"organization-subscription-fields-option-3"}
+                            value={"MONTHLY"}>Monthly</option>
+                    <option id={"organization-subscription-fields-option-4"}
+                            value={"ANNUAL"}>Annual</option>
                 </Select>
             </Field>
             <Field

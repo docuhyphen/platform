@@ -28,7 +28,7 @@ const RecipientPreviewContent = ({requestId, partyId}: Props) => {
                     <Button id={"information-request-recipient-preview-retry"}
                             shape={"circular"}
                             disabled={preview.loading}
-                            onClick={() => void preview.reload()}>Try again</Button>
+                            onClick={() => { void preview.reload(); }}>Try again</Button>
                 </MessageBarActions>
             </MessageBar>
         );

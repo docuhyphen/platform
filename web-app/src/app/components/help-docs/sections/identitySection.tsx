@@ -33,120 +33,120 @@ export const identitySection: HelpDocSectionInput = {
             title: "IdP setup guide",
             content: (
                 <>
-                    <p>
+                    <p id={"identity-section-p-1"}>
                         Configure Microsoft Entra ID or Google as your identity provider
                         for single sign-on and organization-level access control.
                     </p>
 
-                    <h3>Before you begin</h3>
-                    <ul>
-                        <li>Confirm the organization has the Business identity and integrations entitlement.</li>
-                        <li>Confirm you have admin access to your identity provider.</li>
-                        <li>Collect redirect URIs for each deployment environment.</li>
-                        <li>Decide which organization-owned email domains are allowed.</li>
-                        <li>Confirm you can add a TXT record to each domain&apos;s DNS.</li>
-                        <li>Define who owns rollout, testing, and change approval.</li>
+                    <h3 id={"identity-section-h3-1"}>Before you begin</h3>
+                    <ul id={"identity-section-ul-1"}>
+                        <li id={"identity-section-li-1"}>Confirm the organization has the Business identity and integrations entitlement.</li>
+                        <li id={"identity-section-li-2"}>Confirm you have admin access to your identity provider.</li>
+                        <li id={"identity-section-li-3"}>Collect redirect URIs for each deployment environment.</li>
+                        <li id={"identity-section-li-4"}>Decide which organization-owned email domains are allowed.</li>
+                        <li id={"identity-section-li-5"}>Confirm you can add a TXT record to each domain&apos;s DNS.</li>
+                        <li id={"identity-section-li-6"}>Define who owns rollout, testing, and change approval.</li>
                     </ul>
 
-                    <h3>Microsoft (Entra ID)</h3>
-                    <ol>
-                        <li>Create or select an Entra ID app registration.</li>
-                        <li>Add the DocuHyphen redirect URI(s) as web redirects.</li>
-                        <li>Capture the client ID and tenant ID.</li>
-                        <li>Create a client secret and store it in your secret manager.</li>
-                        <li>
+                    <h3 id={"identity-section-h3-2"}>Microsoft (Entra ID)</h3>
+                    <ol id={"identity-section-ol-1"}>
+                        <li id={"identity-section-li-7"}>Create or select an Entra ID app registration.</li>
+                        <li id={"identity-section-li-8"}>Add the DocuHyphen redirect URI(s) as web redirects.</li>
+                        <li id={"identity-section-li-9"}>Capture the client ID and tenant ID.</li>
+                        <li id={"identity-section-li-10"}>Create a client secret and store it in your secret manager.</li>
+                        <li id={"identity-section-li-11"}>
                             Include claims for email, given name, family name, and subject
                             or object ID.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-12"}>
                             Enable the optional email claim with the domain ownership setting so the
                             token carries a verified address. Sign-ins without it are rejected.
                         </li>
-                        <li>Grant scopes: openid, profile, and email.</li>
-                        <li>
+                        <li id={"identity-section-li-13"}>Grant scopes: openid, profile, and email.</li>
+                        <li id={"identity-section-li-14"}>
                             Set a specific directory ID as the tenant. The shared values common,
                             organizations, and consumers accept tokens from any Microsoft directory
                             and are refused unless multi-tenant sign-in is deliberately enabled.
                         </li>
-                        <li>Save values in DocuHyphen settings and run a sign-in test.</li>
+                        <li id={"identity-section-li-15"}>Save values in DocuHyphen settings and run a sign-in test.</li>
                     </ol>
 
-                    <h3>Google</h3>
-                    <ol>
-                        <li>Create or select a Google Cloud project.</li>
-                        <li>Configure the OAuth consent screen for your org.</li>
-                        <li>Create web OAuth credentials and set redirect URI(s).</li>
-                        <li>Capture the client ID and client secret.</li>
-                        <li>Grant scopes: openid, profile, and email.</li>
-                        <li>Configure domain restrictions if required.</li>
-                        <li>Save configuration in DocuHyphen and run a test login.</li>
+                    <h3 id={"identity-section-h3-3"}>Google</h3>
+                    <ol id={"identity-section-ol-2"}>
+                        <li id={"identity-section-li-16"}>Create or select a Google Cloud project.</li>
+                        <li id={"identity-section-li-17"}>Configure the OAuth consent screen for your org.</li>
+                        <li id={"identity-section-li-18"}>Create web OAuth credentials and set redirect URI(s).</li>
+                        <li id={"identity-section-li-19"}>Capture the client ID and client secret.</li>
+                        <li id={"identity-section-li-20"}>Grant scopes: openid, profile, and email.</li>
+                        <li id={"identity-section-li-21"}>Configure domain restrictions if required.</li>
+                        <li id={"identity-section-li-22"}>Save configuration in DocuHyphen and run a test login.</li>
                     </ol>
 
-                    <h3>Session policy</h3>
-                    <p>
-                        Open <b>Settings</b>, select <b>Administration</b> under
-                        <b> Organization</b>, then open <b>Security</b> to review the effective session policy.
+                    <h3 id={"identity-section-h3-4"}>Session policy</h3>
+                    <p id={"identity-section-p-2"}>
+                        Open <b id={"identity-section-b-1"}>Settings</b>, select <b id={"identity-section-b-2"}>Administration</b> under
+                        <b id={"identity-section-b-3"}> Organization</b>, then open <b id={"identity-section-b-4"}>Security</b> to review the effective session policy.
                         The strictest value from the active Identity Provider configurations applies.
                         Existing configuration remains visible after a subscription change, but changes
                         to providers, session policy, or secret lifecycle require mutation access.
                     </p>
-                    <ul>
-                        <li><b>Access token lifetime</b> controls short-lived API access.</li>
-                        <li><b>Session renewal window</b> controls how long an active session can renew access.</li>
-                        <li><b>Maximum session lifetime</b> is the absolute limit after sign-in.</li>
-                        <li><b>Inactivity timeout</b> ends a session after no user activity.</li>
+                    <ul id={"identity-section-ul-2"}>
+                        <li id={"identity-section-li-23"}><b id={"identity-section-b-5"}>Access token lifetime</b> controls short-lived API access.</li>
+                        <li id={"identity-section-li-24"}><b id={"identity-section-b-6"}>Session renewal window</b> controls how long an active session can renew access.</li>
+                        <li id={"identity-section-li-25"}><b id={"identity-section-b-7"}>Maximum session lifetime</b> is the absolute limit after sign-in.</li>
+                        <li id={"identity-section-li-26"}><b id={"identity-section-b-8"}>Inactivity timeout</b> ends a session after no user activity.</li>
                     </ul>
 
-                    <h3>Sign-in enforcement</h3>
-                    <ul>
-                        <li>
+                    <h3 id={"identity-section-h3-5"}>Sign-in enforcement</h3>
+                    <ul id={"identity-section-ul-3"}>
+                        <li id={"identity-section-li-27"}>
                             On the sign-in page, people can use Google or Microsoft directly,
                             or enter their email address to continue with email and password.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-28"}>
                             An organization domain must be registered in DocuHyphen and verified
                             with its DNS TXT challenge before it can route sign-in or enforce an
                             organization Identity Provider policy.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-29"}>
                             Before someone signs in, the sign-in page never lists organizations and never
                             shows whether an email address belongs to one.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-30"}>
                             A verified organization domain may route directly to its active
                             Identity Provider without returning the organization&apos;s name or identifier.
                             An organization contact email does not establish ownership of its domain.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-31"}>
                             After signing in, people who belong to more than one organization choose
                             the organization they work in from the workspace list in the account menu.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-32"}>
                             Microsoft membership is bound to the configured Entra tenant and immutable
                             object ID. The address in the token is only trusted when Microsoft confirms
                             the tenant owns that email domain, so a display name such as the sign-in
                             username is never accepted as an identity. Google Workspace membership
                             requires a verified email and matching hosted domain.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-33"}>
                             A provider sign-in can only create a new DocuHyphen account when the
                             provider confirms the email address. Otherwise the person must sign up
                             first and link the provider afterwards.
                         </li>
-                        <li>
+                        <li id={"identity-section-li-34"}>
                             Deactivate the INTERNAL configuration when members must use organization SSO.
                             Email and password will no longer be offered as a fallback for that domain.
                         </li>
                     </ul>
 
-                    <h3>Troubleshooting checklist</h3>
-                    <ul>
-                        <li>Redirect URI mismatch between provider and DocuHyphen.</li>
-                        <li>Missing consent for required scopes.</li>
-                        <li>Invalid tenant or project configuration.</li>
-                        <li>Tenant left as a shared multi-directory value instead of your directory ID.</li>
-                        <li>Missing verified email claim from Entra ID.</li>
-                        <li>User email domain blocked by policy.</li>
+                    <h3 id={"identity-section-h3-6"}>Troubleshooting checklist</h3>
+                    <ul id={"identity-section-ul-4"}>
+                        <li id={"identity-section-li-35"}>Redirect URI mismatch between provider and DocuHyphen.</li>
+                        <li id={"identity-section-li-36"}>Missing consent for required scopes.</li>
+                        <li id={"identity-section-li-37"}>Invalid tenant or project configuration.</li>
+                        <li id={"identity-section-li-38"}>Tenant left as a shared multi-directory value instead of your directory ID.</li>
+                        <li id={"identity-section-li-39"}>Missing verified email claim from Entra ID.</li>
+                        <li id={"identity-section-li-40"}>User email domain blocked by policy.</li>
                     </ul>
                 </>
             ),

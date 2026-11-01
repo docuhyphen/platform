@@ -31,9 +31,9 @@ vi.mock('../../services/exchangeApi.ts', () => ({
 vi.mock('./exchangeWorkspaceAvailability.ts', () => ({hasExchangeWorkspaceContent: async () => true}));
 vi.mock('../../services/NotificationService', () => ({
     realtimeService: {
-        on: () => () => undefined,
-        subscribeToExchange: () => undefined,
-        unsubscribeFromExchange: () => undefined,
+        on: vi.fn(() => vi.fn()),
+        subscribeToExchange: vi.fn(),
+        unsubscribeFromExchange: vi.fn(),
     },
 }));
 vi.mock('../information-requests/exchange-tab/useExchangeInformationRequests.ts', () => ({
@@ -44,16 +44,16 @@ vi.mock('./components/exchange-details-header/ExchangeDetailsHeader.tsx', () => 
         <h2 id="exchange-details-test-header">{exchangeDetails.name}</h2>
     ),
 }));
-vi.mock('./components/exchange-document-list/ExchangeDocumentsList.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-document-sidebar/ExchangeDocumentSidebar.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-dialog-group/ExchangeDialogsGroup.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-tabs-header/ExchangeTabsHeader.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-acceptance-dialog/ExchangeAcceptanceDialog.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-audit-tab/ExchangeAuditTab.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx', () => ({default: () => null}));
-vi.mock('./components/exchange-fields-tab/ExchangeFieldsTab.tsx', () => ({default: () => null}));
-vi.mock('../information-requests/exchange-tab/exchange-information-requests-tab/ExchangeInformationRequestsTab.tsx', () => ({default: () => null}));
+vi.mock('./components/exchange-document-list/ExchangeDocumentsList.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-document-preview/ExchangeDocumentPreviewer.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-document-sidebar/ExchangeDocumentSidebar.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-dialog-group/ExchangeDialogsGroup.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-tabs-header/ExchangeTabsHeader.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-acceptance-dialog/ExchangeAcceptanceDialog.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-audit-tab/ExchangeAuditTab.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-workflow-tab/ExchangeWorkflowTab.tsx', () => ({default: (): null => null}));
+vi.mock('./components/exchange-fields-tab/ExchangeFieldsTab.tsx', () => ({default: (): null => null}));
+vi.mock('../information-requests/exchange-tab/exchange-information-requests-tab/ExchangeInformationRequestsTab.tsx', () => ({default: (): null => null}));
 
 const firstExchange: ExchangeDetailedDto = {
     id: 'exchange-1',

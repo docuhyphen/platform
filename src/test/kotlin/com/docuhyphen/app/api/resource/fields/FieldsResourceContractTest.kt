@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.entity.FieldValueType
 import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.resource.exchange.ExchangeFieldsResource
 import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.FieldDefinitionService
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService

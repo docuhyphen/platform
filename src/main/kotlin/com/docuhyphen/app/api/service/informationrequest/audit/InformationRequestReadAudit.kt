@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.audit
 
 import com.docuhyphen.app.api.model.informationrequest.audit.InformationRequestAuditedRead
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

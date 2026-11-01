@@ -32,11 +32,6 @@ export interface ProfilePictureManager
     reset: () => void;
 }
 
-/**
- * Owns the state and side effects for previewing, replacing, and removing the signed in
- * user's profile picture. A newly chosen image is staged with a local preview URL so the
- * user can review it in a circular preview before committing the upload.
- */
 export const useProfilePicture = (): ProfilePictureManager =>
 {
     const {appUser, token, setAppUser} = useAuth();

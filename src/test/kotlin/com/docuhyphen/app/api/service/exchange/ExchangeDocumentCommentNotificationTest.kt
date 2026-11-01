@@ -16,11 +16,11 @@ class ExchangeDocumentCommentNotificationTest
         val message = buildDocumentCommentNotificationMessage(
             commenterName = "Jane Doe",
             documentName = "Signed agreement.pdf",
-            exchangeName = "Supplier onboarding",
+            exchangeName = "Partner onboarding",
         )
 
         assertEquals(
-            "Jane Doe commented on \"Signed agreement.pdf\" in Exchange \"Supplier onboarding\".",
+            "Jane Doe commented on \"Signed agreement.pdf\" in Exchange \"Partner onboarding\".",
             message,
         )
     }

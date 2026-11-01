@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.OAuthTokenHandoff
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
 import io.vertx.mutiny.redis.client.Request
@@ -7,12 +8,6 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.security.SecureRandom
 import java.util.*
-
-data class OAuthTokenHandoff(
-    val accessToken: String,
-    val idToken: String,
-    val isNewUser: Boolean,
-)
 
 @RequestScoped
 class OAuthTokenHandoffService @Inject constructor(

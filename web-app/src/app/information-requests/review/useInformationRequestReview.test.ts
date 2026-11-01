@@ -15,6 +15,7 @@ import {
     InformationRequestReviewDto,
     InformationRequestReviewItemStanding,
     InformationRequestReviewKind,
+    InformationRequestReviewDelegationCandidateDto,
     InformationRequestReviewOutcome,
     InformationRequestReviewStageOrdering,
     InformationRequestReviewStageState,
@@ -85,7 +86,7 @@ const reviewFor = (
         state: InformationRequestReviewAssignmentState.ACTIVE,
         assignedAt: Date.parse("2026-09-26T08:05:00Z"),
         callerIsReviewer: true,
-        delegationCandidates: [],
+        delegationCandidates: [] as InformationRequestReviewDelegationCandidateDto[],
     }],
     decisions: [],
     findings: [],
@@ -176,7 +177,7 @@ const assignmentIn = (id: string, stageKey: string, decidedAt?: number) => ({
     assignedAt: Date.parse("2026-09-26T08:05:00Z"),
     decidedAt,
     callerIsReviewer: true,
-    delegationCandidates: [],
+    delegationCandidates: [] as InformationRequestReviewDelegationCandidateDto[],
 });
 
 const sheetOf = (assignmentId: string, revision: number, entries: InformationRequestReviewWorksheetDto["entries"] = []) =>

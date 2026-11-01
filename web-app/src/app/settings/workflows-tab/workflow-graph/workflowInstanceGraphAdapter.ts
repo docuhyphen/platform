@@ -1,21 +1,3 @@
-/**
- * Transforms a `WorkflowInstanceDetailDto` with its frozen graph snapshot
- * into a `WorkflowGraph` for the instance-view mode.
- *
- * Rules:
- * - Topology and labels come from the frozen `definitionSnapshotJson`, decoded
- *   into the same `{steps}` DSL the builder serializes, then routed through the
- *   SHARED `buildBaseGraph` so equal builder and instance topology receive equal
- *   layout (Decision 2, Decision 3, Decision 18). Topology is never re-derived.
- * - Node runtime state comes only from each step instance's `status`. Steps that
- *   were never instantiated (lazy engine) render as `NOT_REACHED`.
- * - Edge traversal comes ONLY from explicit `transitions`; it is never inferred
- *   from step order, decisions, timestamps, or status.
- * - A frozen `WAIT_FOR_COUNTERPARTY_CLEARANCE` step keeps its single neutral
- *   continuation edge (from `buildBaseGraph`) and surfaces its parked
- *   `AWAITING_COUNTERPARTY` node state (Decision 21).
- * - Unknown future step types and statuses resolve to safe neutral fallbacks.
- */
 
 import {
     WorkflowInstanceDetailDto,
@@ -32,14 +14,6 @@ import {
 } from "./workflowGraphModels.ts";
 import {buildNodeAccessibilityLabel, nodeStatePresentation} from "./workflowGraphUtils.ts";
 
-// ── Snapshot decoding ──────────────────────────────────────────────────────────
-
-/**
- * Decodes the frozen `definitionSnapshotJson` into the step list. The snapshot is
- * the verbatim `{steps, applicability}` blob the builder serializes, so the same
- * shape decoded here reproduces the builder topology exactly. A malformed snapshot
- * throws so the rendering-error boundary (Decision 16) can fall back to Timeline.
- */
 function decodeSnapshotSteps(snapshotJson: string): WorkflowStepSpecDraft[]
 {
     const parsed = JSON.parse(snapshotJson || '{"steps":[]}');
@@ -47,13 +21,6 @@ function decodeSnapshotSteps(snapshotJson: string): WorkflowStepSpecDraft[]
     return Array.isArray(steps) ? (steps as WorkflowStepSpecDraft[]) : [];
 }
 
-// ── Runtime node state mapping ──────────────────────────────────────────────────
-
-/**
- * Maps a step instance status to the graph node-state contract. A step instance
- * only exists once the engine reaches it (lazy creation), so the absence of a
- * step instance is the `NOT_REACHED` signal rather than any inferred status.
- */
 function stepNodeState(step: WorkflowStepInstanceDto | undefined): WorkflowGraphNodeState
 {
     if (step === undefined) return "NOT_REACHED";
@@ -70,10 +37,6 @@ function stepNodeState(step: WorkflowStepInstanceDto | undefined): WorkflowGraph
     }
 }
 
-/**
- * Terminal instance status projected onto the End node. A still-running instance
- * has not reached End.
- */
 function endNodeState(instanceStatus: string): WorkflowGraphNodeState
 {
     switch (instanceStatus)
@@ -85,8 +48,6 @@ function endNodeState(instanceStatus: string): WorkflowGraphNodeState
         default: return "NOT_REACHED";
     }
 }
-
-// ── Runtime detail rows ─────────────────────────────────────────────────────────
 
 function formatDate(iso: string | undefined): string | undefined
 {
@@ -122,14 +83,6 @@ function buildStepDetails(
     return details;
 }
 
-// ── Traversal overlay ───────────────────────────────────────────────────────────
-
-/**
- * A transition uniquely identifies a definition edge by its source step index
- * (null = the START edge) plus its outcome, matching exactly one edge produced by
- * `buildBaseGraph` for that source. `toStepIndex` is not part of the key because
- * the frozen topology already fixes the target for each source/outcome pair.
- */
 function transitionKey(fromStepIndex: number | null, outcome: string): string
 {
     const from = fromStepIndex === null ? "START" : String(fromStepIndex);
@@ -147,8 +100,6 @@ function edgeSourceKey(
     if (source.stepIndex === undefined) return null;
     return transitionKey(source.stepIndex, edge.outcome);
 }
-
-// ── Main adapter ────────────────────────────────────────────────────────────────
 
 export function buildInstanceGraph(instance: WorkflowInstanceDetailDto): WorkflowGraph
 {
@@ -199,7 +150,6 @@ function overlayNode(
     }
     if (node.kind !== "STEP" || node.stepIndex === undefined)
     {
-        // INVALID_TARGET or any non-step node: keep structural presentation.
         return node;
     }
 
@@ -220,7 +170,6 @@ function overlayEdge(
     nodeById: Map<string, WorkflowGraphNode>,
 ): WorkflowGraphEdge
 {
-    // Structurally invalid edges keep their invalid treatment.
     if (edge.state === "INVALID") return edge;
 
     const key = edgeSourceKey(edge, nodeById);

@@ -1,8 +1,12 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -20,32 +24,11 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * PUBLIC_LINK grant resolution.
- *
- * Rules verified:
- *  - Valid, active ShareLink with a covering Share grants access.
- *  - Unknown token hash (no ShareLink found) denies access.
- *  - Revoked ShareLink denies access.
- *  - Expired ShareLink (by status) denies access.
- *  - Expired ShareLink (by expiresAt timestamp) denies access.
- *  - Exhausted ShareLink (usedCount >= maxUses) denies access.
- *  - ShareLink requiring MFA denies when mfaSatisfied=false.
- *  - ShareLink whose Share covers a different exchange denies access.
- *  - ShareLink token is accepted alongside an authenticated user session.
- *  - No share link in context produces no SHARE_LINK grant.
- *  - A VERIFICATION_BOOTSTRAP-mode ShareLink never produces a content grant, even when otherwise
- *    valid, active, and covering the requested resource.
- */
 class PublicLinkShareTest
 {
     private val tokenHash = "a".repeat(64)
     private val exchangeId: UUID = UUID.randomUUID()
     private val shareId: UUID = UUID.randomUUID()
-
-    // -----------------------------------------------------------------------
-    // Allow paths
-    // -----------------------------------------------------------------------
 
     @Test
     fun `valid active ShareLink with covering Share grants access`()
@@ -72,7 +55,6 @@ class PublicLinkShareTest
         val share = coveringShare()
         val svc = buildService(link = link, share = share)
 
-        // Both actingUser and shareLinkTokenHash present simultaneously.
         val userId = UUID.randomUUID()
         val context = AuthorizationContext(
             shareLinkTokenHash = tokenHash,
@@ -85,10 +67,6 @@ class PublicLinkShareTest
         )
         assertTrue(decision.isAllowed)
     }
-
-    // -----------------------------------------------------------------------
-    // Deny paths
-    // -----------------------------------------------------------------------
 
     @Test
     fun `unknown token hash produces no grant and denies`()
@@ -195,7 +173,6 @@ class PublicLinkShareTest
         val svc = buildService(link = activeLink(), share = share)
         val context = AuthorizationContext(shareLinkTokenHash = tokenHash)
 
-        // Request is for exchangeId but the link's Share points to otherExchangeId.
         assertFalse(svc.authorize(PrincipalRef.user(UUID.randomUUID()), Action.EXCHANGE_VIEW, ResourceRef.exchange(exchangeId), context).isAllowed)
     }
 
@@ -225,7 +202,6 @@ class PublicLinkShareTest
         val share = coveringShare()
         val svc = buildService(link = link, share = share)
 
-        // Context has no token.
         val context = AuthorizationContext(shareLinkTokenHash = null)
         val decision = svc.authorize(
             PrincipalRef.user(UUID.randomUUID()),
@@ -233,14 +209,9 @@ class PublicLinkShareTest
             ResourceRef.exchange(exchangeId),
             context,
         )
-        // No Share grants either (no direct share for this random principal).
         assertFalse(decision.isAllowed)
         assertEquals(Decision.REASON_NO_GRANT, (decision as Decision.Deny).reasonCode)
     }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
 
     private fun activeLink(): ShareLink = ShareLink().apply {
         this.id = UUID.randomUUID()
@@ -273,7 +244,6 @@ class PublicLinkShareTest
         }
 
         val shareRepo = mock<ShareRepository>().also { repo ->
-            // No direct shares for any principal (so only link grants apply).
             whenever(repo.findActiveForPrincipalOnResource(any(), any(), any(), any()))
                 .thenReturn(emptyList())
             if (share != null) whenever(repo.findById(shareId)).thenReturn(share)

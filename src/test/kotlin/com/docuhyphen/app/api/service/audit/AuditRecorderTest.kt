@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
 import com.docuhyphen.app.api.model.entity.AuthToken
@@ -14,15 +17,6 @@ import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Verifies [AuditRecorder]:
- *  - a valid draft is validated, derives context, and writes exactly one outbox row.
- *  - an invalid draft (unknown event type) always throws, regardless of failure policy.
- *  - a retried capture attempt (same idempotency key) does not insert a duplicate row.
- *  - FAIL_CLOSED: a forced outbox-write failure propagates out of [AuditRecorder.record] so the
- *    caller's `@Transactional` method rolls back.
- *  - DEGRADED: a forced outbox-write failure is swallowed and reported as [AuditCaptureResult.Degraded].
- */
 class AuditRecorderTest
 {
     private val userId: UUID = UUID.randomUUID()

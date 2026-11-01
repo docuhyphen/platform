@@ -1,35 +1,34 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.organization.OrganizationIdpSecretLifecycleDtoMapper
+import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretActivateRequest
+import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRetireRequest
+import com.docuhyphen.app.api.resource.model.OrganizationIdpSecretRotateRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationIdentityProviderSecretResourceOperations
 import com.docuhyphen.app.api.service.identity.OrganizationIdpSecretLifecycleService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("organizations/{organizationId}/identity-providers/{configId}/secrets")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationIdentityProviderSecretResource @Inject constructor(
     private val organizationIdpSecretLifecycleService: OrganizationIdpSecretLifecycleService,
-)
+) : OrganizationIdentityProviderSecretResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationIdentityProviderSecretResource::class.java)
     }
 
-    @POST
-    @Path("/rotate")
-    fun rotateSecret(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun rotateSecret(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
         payload: OrganizationIdpSecretRotateRequest,
     ): Response
     {
@@ -41,29 +40,41 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 newSecret = payload.newClientSecret,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-
-            Response.ok(
-                OrganizationIdpSecretRotationResponse(
-                    secretRef = outcome.secretRef,
-                    previousVersionId = outcome.previousVersionId,
-                    activeVersionId = outcome.activeVersionId,
-                    overlapUntilEpochMillis = outcome.overlapUntilEpochMillis,
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretLifecycleDtoMapper.toRotationResponse(outcome)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error rotating org IdP secret", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret rotation refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error rotating org IdP secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/activate")
-    fun activateVersion(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun activateVersion(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
         payload: OrganizationIdpSecretActivateRequest,
     ): Response
     {
@@ -77,19 +88,39 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             )
             Response.ok().build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error activating org IdP secret version", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret activation refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error activating org IdP secret version", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/rollback")
-    fun rollbackToPreviousVersion(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun rollbackToPreviousVersion(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -99,27 +130,40 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 configId = configId,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-
-            Response.ok(
-                OrganizationIdpSecretRollbackResponse(
-                    secretRef = outcome.secretRef,
-                    rolledBackToVersionId = outcome.rolledBackToVersionId,
-                    previousCurrentVersionId = outcome.previousCurrentVersionId,
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretLifecycleDtoMapper.toRollbackResponse(outcome)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error rolling back org IdP secret", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret rollback refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error rolling back org IdP secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @GET
-    @Path("/status")
-    fun getSecretStatus(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
+    override fun getSecretStatus(
+        organizationId: String,
+        configId: String,
     ): Response
     {
         return try
@@ -128,33 +172,41 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
                 organizationId = organizationId,
                 configId = configId,
             )
-
-            Response.ok(
-                OrganizationIdpSecretStatusResponse(
-                    secretRef = status.secretRef,
-                    disabled = status.disabled,
-                    rotationPhase = status.rotationPhase,
-                    currentVersionId = status.currentVersionId,
-                    previousVersionId = status.previousVersionId,
-                    pendingVersionId = status.pendingVersionId,
-                    overlapUntilEpochMillis = status.overlapUntilEpochMillis,
-                    overlapActive = status.overlapActive,
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretLifecycleDtoMapper.toStatusResponse(status)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error fetching org IdP secret status", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret status refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching org IdP secret status", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/disable")
-    fun disableSecret(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun disableSecret(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -166,19 +218,39 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             )
             Response.ok().build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error disabling org IdP secret", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret disabling refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error disabling org IdP secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/enable")
-    fun enableSecret(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun enableSecret(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -190,18 +262,39 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             )
             Response.ok().build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error enabling org IdP secret", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret enabling refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error enabling org IdP secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    fun retireSecret(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun retireSecret(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
         payload: OrganizationIdpSecretRetireRequest,
     ): Response
     {
@@ -215,43 +308,31 @@ class OrganizationIdentityProviderSecretResource @Inject constructor(
             )
             Response.ok().build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error retiring org IdP secret", e)
-        }
-    }
-
-
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        if (exception is SubscriptionDenialException)
-        {
-            logger.warn(
-                "Organization identity-provider secret operation refused by subscription policy: {}",
-                message,
-                exception
-            )
-            throw exception
-        }
-        logger.error(message, exception)
-
-        return when (exception)
-        {
-            is UnauthorizedException ->
+            when (exception)
             {
-                Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-            }
+                is WebApplicationException -> throw exception
 
-            is IllegalArgumentException ->
-            {
-                Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-            }
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider secret retirement refused by subscription policy", exception)
+                    throw exception
+                }
 
-            else ->
-            {
-                Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error retiring org IdP secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }

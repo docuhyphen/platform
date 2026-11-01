@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.subscription.UserSubscriptionPolicyRepository
@@ -15,13 +16,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Owns persistence of subscription records.
- *
- * Every registered individual account holds exactly one individual plan row and every
- * organization holds exactly one Business row. Keeping that guarantee here means callers never
- * have to reason about a missing record or fall back to an implicit default.
- */
 @ApplicationScoped
 class SubscriptionPolicyService @Inject constructor(
     private val userSubscriptionPolicyRepository: UserSubscriptionPolicyRepository,
@@ -85,11 +79,6 @@ class SubscriptionPolicyService @Inject constructor(
         organizationSubscriptionPolicyRepository.save(policy)
     }
 
-    /**
-     * Guarantees a registered account owns an individual subscription. New accounts start on the
-     * default individual plan. An account that already has a record keeps it untouched so a
-     * later sign-in never resets a paid plan back to the default.
-     */
     @Transactional
     fun ensureUserPolicy(
         appUserId: UUID,
@@ -121,11 +110,6 @@ class SubscriptionPolicyService @Inject constructor(
         return policy
     }
 
-    /**
-     * Guarantees an organization owns a Business subscription. Seat capacity is deliberately
-     * left unassigned so a platform administrator records purchased seats explicitly rather than
-     * an implicit cap locking members out.
-     */
     @Transactional
     fun ensureOrganizationPolicy(
         organization: Organization,
@@ -155,10 +139,6 @@ class SubscriptionPolicyService @Inject constructor(
         return policy
     }
 
-    /**
-     * Guarantees a Business subscription for an organization identified only by ID, used when a
-     * plan decision needs the record and the caller does not already hold the organization.
-     */
     @Transactional
     fun ensureOrganizationPolicy(organizationId: UUID): OrganizationSubscriptionPolicy
     {
@@ -173,15 +153,6 @@ class SubscriptionPolicyService @Inject constructor(
         return ensureOrganizationPolicy(organization)
     }
 
-    /**
-     * Platform-administered decisions layered on top of the plan defaults of one owner. An entry
-     * set to true adds a feature the plan omits and false removes one it grants. Codes that do not
-     * correspond to a known product feature are ignored so an obsolete override row can never
-     * change what a plan resolves to.
-     *
-     * The owner kind decides which column is matched, so an organization and an individual account
-     * that happen to share an id never read each other's decisions.
-     */
     fun featureOverrides(context: SubscriptionContext): Map<PlanFeature, Boolean>
     {
         val entitlements = when (context.ownerType)
@@ -200,6 +171,4 @@ class SubscriptionPolicyService @Inject constructor(
             .toMap()
     }
 }
-
-
 

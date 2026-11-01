@@ -11,17 +11,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Webhook endpoint registered for outbound delivery by the workflow engine.
- *
- * Signing credentials are stored in [signingSecretToken] (raw Base64 secret) and are separate from the
- * inbound application API credentials in [Application]. Rotation replaces both
- * [signingSecretToken] and increments [signingSecretVersion]; a bounded overlap window
- * lets in-flight deliveries complete with the previous version before it is invalidated.
- *
- * [targetUrl] is validated against [WebhookDestinationPolicy] on create and update to
- * prevent SSRF via loopback, link-local, private-range, and metadata-service addresses.
- */
 @Entity
 @Table(name = "workflow_webhook_endpoint")
 @Serializable

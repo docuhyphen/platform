@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.repository.informationrequest.oversight.Informatio
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeStateReader
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped

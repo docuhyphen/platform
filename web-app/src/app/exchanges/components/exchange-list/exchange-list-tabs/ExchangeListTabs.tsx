@@ -41,9 +41,11 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                 <Tab
                     id="exchange-list-tab-requests"
                     value="inbox">
-                    <span className={tabContentClassName}>
+                    <span id={"exchange-list-tabs-span-1"}
+                          className={tabContentClassName}>
                         {collapsed ? (
-                            <span className={styles.collapsedIconWrapper}>
+                            <span id={"exchange-list-tabs-span-2"}
+                                  className={styles.collapsedIconWrapper}>
                                 {activeTab === 'inbox'
                                     ? (
                                         <MailInbox20Filled
@@ -55,6 +57,7 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                                 }
                                 {totalInboxCount > 0 && (
                                     <CounterBadge
+                                        id={"exchange-list-tabs-counter-badge-1"}
                                         dot
                                         size="medium"
                                         appearance="filled"
@@ -72,6 +75,7 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                                 Requests
                                 {totalInboxCount > 0 && (
                                     <CounterBadge
+                                        id={"exchange-list-tabs-counter-badge-2"}
                                         count={totalInboxCount}
                                         size="small"
                                         appearance="filled"
@@ -85,7 +89,8 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                 <Tab
                     id="exchange-list-tab-active"
                     value="active">
-                    <span className={tabContentClassName}>
+                    <span id={"exchange-list-tabs-span-3"}
+                          className={tabContentClassName}>
                         {activeTab === 'active'
                             ? (
                                 <Live20Filled
@@ -101,7 +106,8 @@ const ExchangeListTabs: React.FC<ExchangeListTabsProps> = ({activeTab, inboxCoun
                 <Tab
                     id="exchange-list-tab-archive"
                     value="archive">
-                    <span className={tabContentClassName}>
+                    <span id={"exchange-list-tabs-span-4"}
+                          className={tabContentClassName}>
                         {activeTab === 'archive'
                             ? (
                                 <Archive20Filled

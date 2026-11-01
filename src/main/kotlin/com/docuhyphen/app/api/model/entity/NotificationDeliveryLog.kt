@@ -8,10 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Audit row written by `DeliveryDispatcher` after every send attempt. Drives retry
- * logic, fallback chains, and per-channel delivery dashboards.
- */
 @Entity
 @Serializable
 @Table(name = "notification_delivery_log")

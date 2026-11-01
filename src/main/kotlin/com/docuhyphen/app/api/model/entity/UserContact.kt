@@ -8,11 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Per-owner personal contact entry. Populated only when a exchange recipient
- * accepts (reciprocity gate). One row per (owner, contactEmail) pair; both sides of
- * an accepted relationship get a row.
- */
 @Entity
 @Serializable
 @Table(

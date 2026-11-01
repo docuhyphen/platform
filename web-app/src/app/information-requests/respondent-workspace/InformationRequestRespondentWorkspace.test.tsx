@@ -15,6 +15,7 @@ import {
     InformationRequestTemplateStatus,
 } from "../../models/models.tsx";
 import InformationRequestRespondentWorkspace from "./InformationRequestRespondentWorkspace.tsx";
+import {KeptUpload} from "../requirement-evidence/keptEvidenceUploads.ts";
 import {duplicateIds} from "../shared/testing/duplicateIds.ts";
 import {unnamedControls} from "../shared/testing/unnamedControls.ts";
 
@@ -95,8 +96,8 @@ vi.mock("./useInformationRequestRespondentWorkspace.ts", () => ({
         challengeSent: false,
         code: "",
         busy: false,
-        error: null,
-        keptUploads: {kept: () => [], keep: vi.fn()},
+        error: null as string | null,
+        keptUploads: {kept: () => [] as KeptUpload[], keep: vi.fn()},
         setCode: vi.fn(),
         issueChallenge: vi.fn(),
         verifyCode: vi.fn(),

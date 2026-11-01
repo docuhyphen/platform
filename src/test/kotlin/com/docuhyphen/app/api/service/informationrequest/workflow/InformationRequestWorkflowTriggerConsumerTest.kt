@@ -5,10 +5,11 @@ import com.docuhyphen.app.api.exception.WorkflowStartRefusedException
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestOwnerRef
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionOutcome
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.model.workflow.TriggerResult
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.subscription.*
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import org.junit.jupiter.api.Assertions.*

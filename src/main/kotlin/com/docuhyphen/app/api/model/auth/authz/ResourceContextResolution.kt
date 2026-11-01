@@ -1,6 +1,5 @@
 package com.docuhyphen.app.api.model.auth.authz
 
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
 
 sealed interface ResourceContextResolution
 {

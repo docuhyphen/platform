@@ -3,7 +3,6 @@ import {Badge, Text} from '@fluentui/react-components';
 import {
     BuildingFilled,
     CreditCardPersonFilled,
-    DataBarVerticalFilled,
     DocumentBulletListFilled,
     ReceiptFilled,
     ShieldLockFilled,

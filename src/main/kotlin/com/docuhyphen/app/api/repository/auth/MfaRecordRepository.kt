@@ -30,7 +30,7 @@ class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
 
         val query: TypedQuery<MfaRecord> = entityManager.createQuery(queryString, MfaRecord::class.java)
         query.setParameter("appUserEmail", email)
-        query.maxResults = 1 // limit to just one result
+        query.maxResults = 1
 
         return query.resultList.firstOrNull()
     }
@@ -47,7 +47,7 @@ class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
         val query: TypedQuery<MfaRecord> = entityManager.createQuery(queryString, MfaRecord::class.java)
         query.setParameter("appUserEmail", email)
         query.setParameter("mfaToken", token)
-        query.maxResults = 1 // limit to just one result
+        query.maxResults = 1
 
         return query.resultList.firstOrNull()
     }
@@ -62,7 +62,7 @@ class MfaRecordRepository : BaseRepository<MfaRecord>(MfaRecord::class.java)
         """
         val query: TypedQuery<MfaRecord> = entityManager.createQuery(queryString, MfaRecord::class.java)
         query.setParameter("appUserEmail", email)
-        query.maxResults = 1 // limit to just one result
+        query.maxResults = 1
 
         return query.resultList.firstOrNull()
     }

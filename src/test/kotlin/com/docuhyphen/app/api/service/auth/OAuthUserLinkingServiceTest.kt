@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
 import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.model.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import org.junit.jupiter.api.Assertions.assertEquals

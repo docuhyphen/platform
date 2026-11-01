@@ -1,15 +1,3 @@
-/**
- * DPoP (RFC 9449) client helper.
- *
- * Generates an ECDSA P-256 keypair once per browser, persists the *non-extractable* private
- * key in IndexedDB, and signs a DPoP proof JWS for outgoing requests.
- *
- * Enable by setting `VITE_DPOP_ENABLED=true`. When disabled, `dpopProofFor()` returns null
- * and callers should omit the DPoP header.
- *
- * The corresponding access token must carry `cnf.jkt = base64url(SHA-256(canonical JWK))`.
- * The server's DpopValidationService verifies this on every protected request.
- */
 
 const DB_NAME = 'docuhyphen-dpop';
 const STORE = 'keys';
@@ -81,10 +69,6 @@ const ensureKey = async (): Promise<StoredKey | null> =>
     return stored;
 };
 
-/**
- * Returns the JWK thumbprint for binding to access tokens at sign-in time.
- * Sent to the server in a `DPoP-Bind` header during the sign-in / token request.
- */
 export const dpopJwkThumbprint = async (): Promise<string | null> =>
 {
     const key = await ensureKey();
@@ -99,7 +83,6 @@ export const dpopJwkThumbprint = async (): Promise<string | null> =>
     return base64UrlEncode(digest);
 };
 
-/** Build a DPoP proof JWS for a single outgoing request. Returns null if DPoP is disabled. */
 export const dpopProofFor = async (httpMethod: string, requestUrl: string): Promise<string | null> =>
 {
     const key = await ensureKey();
@@ -141,7 +124,6 @@ type DpopHeaderBag = {
     set?: (name: string, value: string) => void;
 };
 
-/** Wire into the axios request interceptor by adding a DPoP header to every request. */
 export const attachDpopToAxiosConfig = async (config: {method?: string; url?: string; baseURL?: string; headers?: DpopHeaderBag}): Promise<void> =>
 {
     if (!isEnabled()) return;

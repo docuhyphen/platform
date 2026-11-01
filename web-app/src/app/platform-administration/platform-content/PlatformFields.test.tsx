@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import {cleanup, fireEvent, render, screen} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {FieldScopeKind} from "../../models/models.tsx";
+import {FieldDefinitionDto, FieldScopeKind, SchemaDefinitionDto} from "../../models/models.tsx";
 import PlatformFields from "./PlatformFields.tsx";
 
 const fieldDialogProps = vi.fn();
@@ -11,12 +11,12 @@ const setSchemaEditor = vi.fn();
 
 vi.mock("./usePlatformFieldManagement.ts", () => ({
     usePlatformFieldManagement: () => ({
-        fields: [],
-        schemas: [],
+        fields: [] as FieldDefinitionDto[],
+        schemas: [] as SchemaDefinitionDto[],
         loading: false,
-        error: null,
+        error: null as string | null,
         fieldEditorOpen: false,
-        schemaEditor: null,
+        schemaEditor: null as SchemaDefinitionDto | "new" | null,
         setFieldEditorOpen,
         setSchemaEditor,
         saved: vi.fn(),
@@ -28,16 +28,16 @@ vi.mock("./usePlatformFieldManagement.ts", () => ({
     }),
 }));
 
-vi.mock("../../settings/fields-tab/FieldDefinitionDialog.tsx", () => ({
-    default: (props: Record<string, unknown>) =>
+vi.mock("../../settings/fields-tab/field-definition-dialog/FieldDefinitionDialog.tsx", () => ({
+    default: (props: Record<string, unknown>): null =>
     {
         fieldDialogProps(props);
         return null;
     },
 }));
 
-vi.mock("../../settings/fields-tab/SchemaEditorDialog.tsx", () => ({
-    default: (props: Record<string, unknown>) =>
+vi.mock("../../settings/fields-tab/schema-editor-dialog/SchemaEditorDialog.tsx", () => ({
+    default: (props: Record<string, unknown>): null =>
     {
         schemaDialogProps(props);
         return null;

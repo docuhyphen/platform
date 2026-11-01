@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestEligibility
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.auth.UserRoleService

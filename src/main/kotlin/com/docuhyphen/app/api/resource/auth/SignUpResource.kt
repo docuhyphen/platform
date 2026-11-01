@@ -23,27 +23,27 @@ class SignUpResource @Inject constructor(
         payload: SignUpInitiateRequest,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1500) {
                 signUpService.initiateSignUp(payload.email, clientIpResolver.resolve(request), requestId)
                 Response.ok(SignUpInitiateResponse(message = GENERIC_INITIATION_MESSAGE)).build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
+                is SignUpRateLimitedException -> tooManyRequests(exception)
+
+                is EmailRequiredException,
+                is DisposableEmailAddressException,
+                is InvalidEmailException -> badRequest(exception)
+
+                else ->
                 {
-                    is SignUpRateLimitedException -> tooManyRequests(exception)
-
-                    is EmailRequiredException,
-                    is DisposableEmailAddressException,
-                    is InvalidEmailException -> badRequest(exception)
-
-                    else ->
-                    {
-                        logger.error("Error initiating sign up", exception)
-                        serverError("A server error occurred while signing up.")
-                    }
+                    logger.error("Error initiating account sign up", exception)
+                    serverError("A server error occurred while signing up.")
                 }
             }
         }
@@ -55,9 +55,9 @@ class SignUpResource @Inject constructor(
         signUpRequest: SignUpCompletionRequest,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1200) {
                 with(signUpRequest) {
                     signUpService.completeSignUp(
                         email,
@@ -70,35 +70,35 @@ class SignUpResource @Inject constructor(
                 }
                 Response.ok(SignUpCompletionResponse("Sign up successful!")).build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
+                is SubscriptionDenialException ->
                 {
-                    is SubscriptionDenialException ->
-                    {
-                        logger.error("Subscription denied while completing sign up", exception)
-                        throw exception
-                    }
+                    logger.error("Subscription denied while completing sign up", exception)
+                    throw exception
+                }
 
-                    is SignUpRateLimitedException -> tooManyRequests(exception)
+                is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                    is EmailRequiredException,
-                    is InvalidEmailException,
-                    is OtpRequiredException,
-                    is PasswordRequiredException,
-                    is ConfirmationPasswordRequiredException,
-                    is PasswordRequirementsNotMetException,
-                    is PasswordMismatchException,
-                    is PasswordContainsEmailException,
-                    is SignUpVerificationRejectedException,
-                    is SignUpVerificationBusyException,
-                    is AppUserExistsException -> badRequest(exception)
+                is EmailRequiredException,
+                is InvalidEmailException,
+                is OtpRequiredException,
+                is PasswordRequiredException,
+                is ConfirmationPasswordRequiredException,
+                is PasswordRequirementsNotMetException,
+                is PasswordMismatchException,
+                is PasswordContainsEmailException,
+                is SignUpVerificationRejectedException,
+                is SignUpVerificationBusyException,
+                is AppUserExistsException -> badRequest(exception)
 
-                    else ->
-                    {
-                        logger.error("Error completing sign up", exception)
-                        serverError("A server error occurred while completing sign up.")
-                    }
+                else ->
+                {
+                    logger.error("Error completing sign up", exception)
+                    serverError("A server error occurred while completing sign up.")
                 }
             }
         }
@@ -106,9 +106,9 @@ class SignUpResource @Inject constructor(
 
     override fun checkEmailConfirmToken(token: String?): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(300) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(300) {
                 val email = signUpService.peekEmailFromConfirmationToken(token)
 
                 if (email.isNullOrBlank())
@@ -120,11 +120,11 @@ class SignUpResource @Inject constructor(
                     Response.ok(SignUpEmailConfirmCheckResponse(email = email)).build()
                 }
             }
-            catch (exception: Exception)
-            {
-                logger.error("Error checking sign-up confirmation token", exception)
-                serverError("A server error occurred while validating the verification link.")
-            }
+        }
+        catch (exception: Exception)
+        {
+            logger.error("Error checking sign-up confirmation token", exception)
+            serverError("A server error occurred while validating the verification link.")
         }
     }
 
@@ -134,9 +134,9 @@ class SignUpResource @Inject constructor(
         confirmRequest: SignUpEmailConfirmRequest,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1200) {
                 with(confirmRequest) {
                     signUpService.completeSignUpViaToken(
                         token,
@@ -148,32 +148,32 @@ class SignUpResource @Inject constructor(
                 }
                 Response.ok(SignUpEmailConfirmResponse("Sign up successful!")).build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
+                is SubscriptionDenialException ->
                 {
-                    is SubscriptionDenialException ->
-                    {
-                        logger.error("Subscription denied while confirming sign up via token", exception)
-                        throw exception
-                    }
+                    logger.error("Subscription denied while confirming sign up via token", exception)
+                    throw exception
+                }
 
-                    is SignUpRateLimitedException -> tooManyRequests(exception)
+                is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                    is InvalidSignUpConfirmationTokenException -> invalidLink(exception)
+                is InvalidSignUpConfirmationTokenException -> invalidLink(exception)
 
-                    is AppUserExistsException,
-                    is PasswordRequiredException,
-                    is ConfirmationPasswordRequiredException,
-                    is PasswordRequirementsNotMetException,
-                    is PasswordMismatchException,
-                    is PasswordContainsEmailException -> badRequest(exception)
+                is AppUserExistsException,
+                is PasswordRequiredException,
+                is ConfirmationPasswordRequiredException,
+                is PasswordRequirementsNotMetException,
+                is PasswordMismatchException,
+                is PasswordContainsEmailException -> badRequest(exception)
 
-                    else ->
-                    {
-                        logger.error("Error confirming sign up via token", exception)
-                        serverError("A server error occurred while completing sign up.")
-                    }
+                else ->
+                {
+                    logger.error("Error confirming sign up via token", exception)
+                    serverError("A server error occurred while completing sign up.")
                 }
             }
         }
@@ -185,38 +185,38 @@ class SignUpResource @Inject constructor(
         regenerationRequest: SignUpRegenerationRequest,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1200) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1200) {
                 signUpService.regenerateOtp(regenerationRequest.email, clientIpResolver.resolve(request), requestId)
                 Response.ok(SignUpCompletionResponse(GENERIC_REGENERATION_MESSAGE)).build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
-                {
-                    is SignUpRateLimitedException -> tooManyRequests(exception)
+                is SignUpRateLimitedException -> tooManyRequests(exception)
 
-                    is SignUpResendCooldownException ->
-                        Response.status(TOO_MANY_REQUESTS)
-                            .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
-                            .entity(
-                                ResponseError(
-                                    errorMessage = exception.message,
-                                    reasonCode = RESEND_COOLDOWN_REASON_CODE,
-                                    retryAfterSeconds = exception.retryAfterSeconds,
-                                )
+                is SignUpResendCooldownException ->
+                    Response.status(TOO_MANY_REQUESTS)
+                        .header(RETRY_AFTER_HEADER, exception.retryAfterSeconds)
+                        .entity(
+                            ResponseError(
+                                errorMessage = exception.message,
+                                reasonCode = RESEND_COOLDOWN_REASON_CODE,
+                                retryAfterSeconds = exception.retryAfterSeconds,
                             )
-                            .build()
+                        )
+                        .build()
 
-                    is EmailRequiredException,
-                    is InvalidEmailException -> badRequest(exception)
+                is EmailRequiredException,
+                is InvalidEmailException -> badRequest(exception)
 
-                    else ->
-                    {
-                        logger.error("Error regenerating OTP", exception)
-                        serverError("A server error occurred while regenerating OTP.")
-                    }
+                else ->
+                {
+                    logger.error("Error regenerating OTP", exception)
+                    serverError("A server error occurred while regenerating OTP.")
                 }
             }
         }

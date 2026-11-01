@@ -7,11 +7,6 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.ConfigProvider
 import org.slf4j.LoggerFactory
 
-/**
- * Fail-fast guards for authentication configuration that is safe in development but unsafe
- * anywhere else. Misconfiguration here is silent at runtime and catastrophic in effect, so the
- * application refuses to start rather than serving traffic with a known-weak setup.
- */
 @ApplicationScoped
 class AuthSecurityStartupValidator @Inject constructor(
     private val configurationService: ConfigurationService,
@@ -82,7 +77,6 @@ class AuthSecurityStartupValidator @Inject constructor(
 
         if (configurationService.microsoftOAuthClientId.isBlank())
         {
-            // Microsoft sign-in is not configured for this deployment, nothing to pin.
             return
         }
 

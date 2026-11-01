@@ -7,23 +7,17 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Dropdown,
     Field,
-    Input,
-    Option,
     Spinner,
     Switch
 } from "@fluentui/react-components";
-import React, {useEffect, useState} from "react";
-import {useAuth} from "../../../../context/AuthContext.tsx";
+import React from "react";
 import {AppUserPublicDto} from "../../../models/models.tsx";
-import {
-    OrganizationRoleDisplayNames,
-    OrganizationRoleName,
-} from '../../../../services/types/roles.ts';
-import {updateOrganizationUser} from "../../../../services/organizationApi.ts";
 import {useEditUserDialogStyles} from "./EditUserDialogStyles.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {useEditUserForm} from "./useEditUserForm.ts";
+import AppUserNameFields from "../app-user-form-fields/AppUserNameFields.tsx";
+import AppUserRolesField from "../app-user-form-fields/AppUserRolesField.tsx";
 
 interface EditUserDialogProps
 {
@@ -34,6 +28,19 @@ interface EditUserDialogProps
     onComplete: () => void;
 }
 
+const nameFieldIds = {
+    firstNameField: "edit-user-dialog-field-1",
+    firstNameInput: "edit-user-first-name-input",
+    lastNameField: "edit-user-dialog-field-2",
+    lastNameInput: "edit-user-last-name-input",
+};
+
+const rolesFieldIds = {
+    field: "edit-user-dialog-field-3",
+    dropdown: "edit-user-role-dropdown",
+    optionPrefix: "edit-user-dialog-option-1",
+};
+
 const EditUserDialog: React.FC<EditUserDialogProps> = (
     {
         isOpen,
@@ -43,175 +50,63 @@ const EditUserDialog: React.FC<EditUserDialogProps> = (
         onComplete
     }) =>
 {
-    const styles = useEditUserDialogStyles()
-    const globStyles = useGlobalStyles()
-
-    const {token} = useAuth();
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [roles, setRoles] = useState<OrganizationRoleName[]>([]);
-    const [isActive, setIsActive] = useState(true);
-    const [savingData, setSavingData] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() =>
-    {
-        if (user)
-        {
-            setFirstName(user.person?.firstName || "");
-            setLastName(user.person?.lastName || "");
-            setRoles(user.organizationRoles as OrganizationRoleName[]);
-            setIsActive(user.isActive);
-        }
-    }, [user]);
-
-    const extractErrorMessage = (e: unknown): string =>
-    {
-        if (typeof e === "string") return e;
-        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
-        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
-        if (msg) return msg;
-        return "Something went wrong. Please try again in a moment.";
-    }
-
-    const handleSave = async () =>
-    {
-        if (!organizationId || !user?.id) return;
-
-        if (!firstName.trim() || !lastName.trim())
-        {
-            setError("First name and last name are required.");
-            return;
-        }
-
-        setSavingData(true);
-        setError(null);
-
-        try
-        {
-            await updateOrganizationUser(
-                organizationId,
-                user.id.toString(),
-                {
-                    rolesToAdd: roles.filter((role) => !user.organizationRoles.includes(role)),
-                    rolesToRemove: user.organizationRoles.filter((role) => !roles.includes(role as OrganizationRoleName)) as OrganizationRoleName[],
-                    isActive,
-                    person: {
-                        firstName: firstName.trim(),
-                        lastName: lastName.trim()
-                    }
-                },
-                token || undefined
-            );
-
-            onComplete();
-        }
-        catch (err: unknown)
-        {
-            setError(extractErrorMessage(err));
-            console.error("Failed to update user:", err);
-        }
-        finally
-        {
-            setSavingData(false);
-        }
-    };
-
-    const onClose = () =>
-    {
-        setError(null);
-        onDismiss();
-    };
-
-    const hasChanges =
-        firstName !== user?.person?.firstName ||
-        lastName !== user?.person?.lastName ||
-        roles.slice().sort().join(',') !== user?.organizationRoles.slice().sort().join(',') ||
-        isActive !== user?.isActive;
-
-    const isFormValid = firstName && lastName && roles.length > 0;
+    const styles = useEditUserDialogStyles();
+    const globStyles = useGlobalStyles();
+    const form = useEditUserForm({organizationId, user, onDismiss, onComplete});
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Edit User</DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        { error && <div className={styles.errorContainer}>{error}</div>}
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"edit-user-dialog-dialog-surface-1"}>
+                <DialogBody id={"edit-user-dialog-dialog-body-1"}>
+                    <DialogTitle id={"edit-user-dialog-dialog-title-1"}>Edit User</DialogTitle>
+                    <DialogContent id={"edit-user-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        {form.error && <div id={"edit-user-dialog-div-1"}
+                                            className={styles.errorContainer}>{form.error}</div>}
 
-                        <Field label="First Name" required>
-                            <Input
-                                id={"edit-user-first-name-input"}
-                                type="text"
-                                value={firstName}
-                                maxLength={50}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-                            />
-                        </Field>
+                        <AppUserNameFields ids={nameFieldIds}
+                                           firstName={form.firstName}
+                                           lastName={form.lastName}
+                                           onFirstNameChange={form.setFirstName}
+                                           onLastNameChange={form.setLastName}
+                                           onEnter={form.handleSave}/>
 
-                        <Field label="Last Name" required>
-                            <Input
-                                id={"edit-user-last-name-input"}
-                                type="text"
-                                value={lastName}
-                                maxLength={50}
-                                onChange={(e) => setLastName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-                            />
-                        </Field>
+                        <AppUserRolesField ids={rolesFieldIds}
+                                           roles={form.roles}
+                                           onRolesChange={form.setRoles}/>
 
-                        <Field label="Roles" required>
-                            <Dropdown
-                                id={"edit-user-role-dropdown"}
-                                multiselect
-                                selectedOptions={roles}
-                                value={roles.map((role) => OrganizationRoleDisplayNames[role]).join(', ')}
-                                onOptionSelect={(_, data) =>
-                                    setRoles(data.selectedOptions as OrganizationRoleName[])}
-                            >
-                                {Object.entries(OrganizationRoleDisplayNames).map(([role, label]) => (
-                                    <Option
-                                        key={role}
-                                        value={role}
-                                    >
-                                        {label}
-                                    </Option>
-                                ))}
-                            </Dropdown>
-                        </Field>
-
-                        <Field>
+                        <Field id={"edit-user-dialog-field-4"}>
                             <Switch
                                 id={"edit-user-active-switch"}
-                                disabled={user?.organizationRoles.includes(OrganizationRoleName.ORG_ADMIN) ||
-                                    user?.organizationRoles.includes(OrganizationRoleName.ORG_OWNER)}
-                                checked={isActive}
-                                onChange={(_, data) => setIsActive(data.checked)}
-                                label={isActive ? "Deactivate" : "Activate"}
+                                disabled={form.activeSwitchLocked}
+                                checked={form.isActive}
+                                onChange={(_, data) => form.setIsActive(data.checked)}
+                                label={form.isActive ? "Deactivate" : "Activate"}
                             />
                         </Field>
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
+                <DialogActions id={"edit-user-dialog-dialog-actions-1"}>
                     <Button
                         id={"edit-user-save-btn"}
                         appearance="primary"
                         shape="circular"
-                        disabled={savingData || !isFormValid || !hasChanges}
-                        onClick={handleSave}
+                        disabled={form.savingData || !form.isFormValid || !form.hasChanges}
+                        onClick={form.handleSave}
                         className={globStyles.buttonWithLoading}
                     >
-                        {savingData && <Spinner size="tiny"/>}
-                        {savingData ? "Updating…" : "Update User"}
+                        {form.savingData && <Spinner id={"edit-user-dialog-spinner-1"}
+                                                     size="tiny"/>}
+                        {form.savingData ? "Updating…" : "Update User"}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
                             id={"edit-user-cancel-btn"}
                             appearance="secondary"
                             shape="circular"
-                            disabled={savingData}
-                            onClick={onClose}
+                            disabled={form.savingData}
+                            onClick={form.onClose}
                         >
                             Cancel
                         </Button>

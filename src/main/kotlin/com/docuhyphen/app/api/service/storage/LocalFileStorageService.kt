@@ -65,7 +65,6 @@ class LocalFileStorageService : FileStorageService
                 }
                 else
                 {
-                    // Handle duplicate entry, e.g., by renaming or skipping
                     val newKey = generateUniqueKey(key, uniqueKeys)
                     uniqueKeys.add(newKey)
                     val targetFile = File(DOCUMENT_UPLOADS_DIRECTORY, key)

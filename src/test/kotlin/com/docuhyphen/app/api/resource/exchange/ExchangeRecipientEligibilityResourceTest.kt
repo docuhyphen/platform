@@ -6,11 +6,11 @@ import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.resource.model.ExchangeAcceptanceDecisionRequest
 import com.docuhyphen.app.api.resource.model.UpdateNoAuthExchange
 import com.docuhyphen.app.api.service.exchange.ExchangeAcceptanceService
+import com.docuhyphen.app.api.service.exchange.ExchangeDocumentDetailsViewService
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import com.docuhyphen.app.api.service.exchange.ExchangeUpdateService
 import com.docuhyphen.app.api.service.exchange.ShareLinkValidationService
-import com.docuhyphen.app.api.service.storage.FileStorageService
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -68,7 +68,7 @@ class ExchangeRecipientEligibilityResourceTest
             mock<ExchangeRetrievalService>(),
             updateService,
             mock<ExchangeDocumentService>(),
-            mock<FileStorageService>(),
+            mock<ExchangeDocumentDetailsViewService>(),
             mock<ShareLinkValidationService>(),
         )
 

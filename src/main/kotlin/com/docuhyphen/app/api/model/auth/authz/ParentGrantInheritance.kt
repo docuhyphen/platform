@@ -1,7 +1,6 @@
 package com.docuhyphen.app.api.model.auth.authz
 
 import com.docuhyphen.app.api.service.auth.authz.ParentGrantInheritancePolicy
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
 
 sealed interface ParentGrantInheritance
 {

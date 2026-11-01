@@ -11,10 +11,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Per-user OAuth link binding an [AppUser] to their external account inside a configured
- * [OrganizationNotificationChannel] (e.g. Slack user id `U02ABCD...`).
- */
 @Entity
 @Serializable
 @Table(name = "user_channel_link")

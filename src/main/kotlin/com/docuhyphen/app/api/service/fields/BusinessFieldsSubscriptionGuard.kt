@@ -3,30 +3,22 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
 
-/** Applies the Business subscription requirement to Fields and Schema mutations. */
 @ApplicationScoped
 class BusinessFieldsSubscriptionGuard @Inject constructor(
     private val subscriptionAccessService: SubscriptionAccessService,
 )
 {
-    /**
-     * Bills a change to reusable configuration to whoever owns that configuration. Each scope kind
-     * names exactly one owner, so the owner the scope does not name is not consulted: an
-     * organization id supplied alongside a personally owned Schema would otherwise bill an
-     * organization for something it does not own.
-     */
     fun requireConfigurationMutation(scopeKind: FieldScopeKind, organizationId: UUID?, userId: UUID?)
     {
         if (!subscriptionAccessService.enforcementMode().evaluatesDecisions) return
 
         when (scopeKind)
         {
-            // Platform configuration is the platform's own, so there is nobody to bill for it.
             FieldScopeKind.PLATFORM -> return
             FieldScopeKind.ORGANIZATION -> requireMutation(
                 SubscriptionContext.forOrganization(

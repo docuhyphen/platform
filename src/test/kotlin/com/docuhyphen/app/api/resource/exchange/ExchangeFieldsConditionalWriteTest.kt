@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.fields.FieldValueEntry
 import com.docuhyphen.app.api.resource.model.AssignSchemaRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.FieldValueSetETag
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentFieldsFixture

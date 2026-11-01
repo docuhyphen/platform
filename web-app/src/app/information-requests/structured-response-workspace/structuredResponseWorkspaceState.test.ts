@@ -1,6 +1,7 @@
 import {describe, expect, it} from "vitest";
 import {
     FieldDataClassification,
+    FieldValueDto,
     FieldValueType,
     InformationRequestConditionEvaluationState,
     InformationRequestContributorRole,
@@ -368,7 +369,7 @@ describe("structuredResponseWorkspaceState", () =>
             sourceTemplateBindingId: "conditional-binding",
             occurrencePath: "items[0]",
             disposition: InformationRequestResponseDisposition.NOT_ANSWERED,
-            fieldValues: [],
+            fieldValues: [] as FieldValueDto[],
             responseRevision: 0,
             updatedAt: Date.parse("2026-09-11T00:00:00Z"),
         } satisfies InformationRequestResponseDto;

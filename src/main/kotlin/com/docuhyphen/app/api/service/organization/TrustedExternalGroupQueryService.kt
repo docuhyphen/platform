@@ -4,10 +4,13 @@ import com.docuhyphen.app.api.exception.OrganizationTrustAuthorizationException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.PublishedExchangeGroupDtoTransformer
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.PublishedExchangeGroupDto
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.organization.OrganizationMemberCaller
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -46,7 +49,7 @@ class TrustedExternalGroupQueryService @Inject constructor(
         }
     }
 
-    private fun currentCaller(): Caller
+    private fun currentCaller(): OrganizationMemberCaller
     {
         val organizationId = authTokenContext.activeOrganizationId
             ?: throw OrganizationTrustAuthorizationException("An active organization is required")
@@ -56,10 +59,10 @@ class TrustedExternalGroupQueryService @Inject constructor(
         {
             throw OrganizationTrustAuthorizationException("Only an organization member can discover published groups")
         }
-        return Caller(principal.id, organizationId)
+        return OrganizationMemberCaller(principal.id, organizationId)
     }
 
-    private fun requireAuthorized(caller: Caller)
+    private fun requireAuthorized(caller: OrganizationMemberCaller)
     {
         val decision = authorizationService.authorize(
             PrincipalRef.user(caller.appUserId),
@@ -74,7 +77,7 @@ class TrustedExternalGroupQueryService @Inject constructor(
     }
 
     private fun record(
-        caller: Caller,
+        caller: OrganizationMemberCaller,
         targetOrganizationId: UUID,
         eventType: AuditEventType,
         outcome: AuditOutcome,
@@ -93,6 +96,4 @@ class TrustedExternalGroupQueryService @Inject constructor(
             ),
         )
     }
-
-    private data class Caller(val appUserId: UUID, val organizationId: UUID)
 }

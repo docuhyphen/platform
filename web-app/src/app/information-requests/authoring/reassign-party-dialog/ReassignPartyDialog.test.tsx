@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
 import {cleanup, fireEvent, render, screen} from "@testing-library/react";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
-import {InformationRequestPartyDto, InformationRequestShareRoleKey} from "../../../models/models.tsx";
+import {InformationRequestPartyDto, InformationRequestShareRoleKey, InformationRequestSubjectDto} from "../../../models/models.tsx";
+import {TrustedPartyCandidate} from "../party-holder-fields/partyHolder.ts";
 import {duplicateIds} from "../../shared/testing/duplicateIds.ts";
 import {unnamedControls} from "../../shared/testing/unnamedControls.ts";
 import ReassignPartyDialog from "./ReassignPartyDialog.tsx";
@@ -9,13 +10,13 @@ import ReassignPartyDialog from "./ReassignPartyDialog.tsx";
 const trustedRead = vi.hoisted(() => ({error: null as string | null, reload: () => Promise.resolve()}));
 
 vi.mock("../add-party-dialog/useTrustedRecipientCandidates.ts", () => ({
-    useTrustedRecipientCandidates: () => ({candidates: [], error: trustedRead.error, reload: trustedRead.reload}),
+    useTrustedRecipientCandidates: () => ({candidates: [] as TrustedPartyCandidate[], error: trustedRead.error, reload: trustedRead.reload}),
 }));
 vi.mock("../add-party-dialog/usePartyCandidates.ts", () => ({
     usePartyCandidates: () => ({
         groups: [{id: "group-a", name: "Records team"}],
         people: [{id: "user-b", name: "Second Member (second@process.test)"}],
-        subjects: [],
+        subjects: [] as InformationRequestSubjectDto[],
     }),
 }));
 

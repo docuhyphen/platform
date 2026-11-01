@@ -6,9 +6,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-// ── Workflow Definition DTOs ──────────────────────────────────────────────────
-
-/** Full workflow definition, including the raw stepsJson DSL blob. Returned by GET /workflows/definitions/{id}. */
 @Serializable
 data class WorkflowDefinitionDto(
     @Serializable(with = UUIDSerializer::class)
@@ -34,7 +31,6 @@ data class WorkflowDefinitionDto(
     val createdAt: Timestamp,
 )
 
-/** Summary view without stepsJson. Used for list responses (GET /workflows/definitions). */
 @Serializable
 data class WorkflowDefinitionListItemDto(
     @Serializable(with = UUIDSerializer::class)
@@ -56,8 +52,6 @@ data class WorkflowDefinitionListItemDto(
     val createdAt: Timestamp,
 )
 
-// ── Trigger Event DTOs ────────────────────────────────────────────────────────
-
 @Serializable
 data class WorkflowTriggerEventResponseDto(
     val eventName: String,
@@ -76,7 +70,6 @@ data class WorkflowSubjectFieldResponseDto(
     val lookupType: String? = null,
 )
 
-/** Returned by GET /workflows/entity-lookup — a resolved entity ref for the entity picker. */
 @Serializable
 data class WorkflowEntityRefDto(
     val id: String,
@@ -84,9 +77,6 @@ data class WorkflowEntityRefDto(
     val sublabel: String? = null,
 )
 
-// ── Instance DTOs ─────────────────────────────────────────────────────────────
-
-/** Paginated list item for GET /workflows/instances. */
 @Serializable
 data class WorkflowInstanceListItemDto(
     @Serializable(with = UUIDSerializer::class)
@@ -105,7 +95,6 @@ data class WorkflowInstanceListItemDto(
     val completedAt: Timestamp?,
 )
 
-/** Full instance detail including step timeline. Returned by GET /workflows/instances/{id}. */
 @Serializable
 data class WorkflowInstanceDetailResponseDto(
     @Serializable(with = UUIDSerializer::class)
@@ -119,19 +108,9 @@ data class WorkflowInstanceDetailResponseDto(
     val status: String,
     val currentStepIndex: Int,
     val steps: List<WorkflowStepInstanceResponseDto>,
-    /** Definition version frozen at instance start; never changes on later definition edits. */
     val definitionVersion: Int,
-    /**
-     * Raw definition steps_json frozen at instance start. Reproduces the exact builder topology
-     * and labels (including step names) so the Exchange diagram matches the definition preview.
-     */
     val definitionSnapshotJson: String,
-    /** Explicitly traversed edges, oldest first. The only source of edge traversal for the diagram. */
     val transitions: List<WorkflowStepTransitionResponseDto>,
-    /**
-     * Safe machine failure code when [status] is FAILED (e.g. `SNAPSHOT_MISSING`,
-     * `SNAPSHOT_CORRUPT`); null otherwise. Never carries raw JSON or stack detail.
-     */
     val failureCode: String? = null,
     @Serializable(with = TimestampSerializer::class)
     val createdAt: Timestamp,
@@ -139,12 +118,6 @@ data class WorkflowInstanceDetailResponseDto(
     val completedAt: Timestamp?,
 )
 
-/**
- * One traversed edge in an instance's execution graph. `fromStepIndex` is null for the START
- * edge (entry into the first step); `toStepIndex` is null for a terminal edge (the instance ends).
- * `outcome` is one of DEFAULT, APPROVE, REJECT, TRUE, FALSE and identifies which configured branch
- * was taken, matching the definition-graph edge outcomes.
- */
 @Serializable
 data class WorkflowStepTransitionResponseDto(
     val fromStepIndex: Int?,
@@ -190,23 +163,14 @@ data class WorkflowDecisionResponseDto(
     val email: String? = null,
 )
 
-// ── Exchange clearance status DTOs ────────────────────────────────────────────
-
-/** Aggregate clearance status for one party (my org or a counterparty). */
 @Serializable
 data class PartyClearanceDto(
-    /** NONE | RUNNING | CLEARED | BLOCKED */
     val status: String,
 )
 
-/**
- * Response for GET /exchanges/{id}/workflow-clearance-status.
- * Exposes aggregate workflow progress per party without leaking internal step details.
- */
 @Serializable
 data class ExchangeClearanceStatusDto(
     val myOrg: PartyClearanceDto,
-    /** One entry per counterparty org — no org name or internal detail. */
     val counterparties: List<PartyClearanceDto>,
 )
 

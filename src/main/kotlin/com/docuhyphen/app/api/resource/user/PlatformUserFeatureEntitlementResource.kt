@@ -4,13 +4,14 @@ import com.docuhyphen.app.api.model.PlatformUserFeatureEntitlementDtoMapper
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsUpdateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.user.operations.PlatformUserFeatureEntitlementResourceOperations
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.subscription.PlatformUserFeatureEntitlementService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
 import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
 class PlatformUserFeatureEntitlementResource @Inject constructor(
@@ -34,8 +35,27 @@ class PlatformUserFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error fetching platform user feature entitlements", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching platform user feature entitlements", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
@@ -59,27 +79,27 @@ class PlatformUserFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error replacing platform user feature entitlements", exception)
-        }
-    }
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
 
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        logger.error(message, exception)
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError(exception.message)).build()
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-            is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-            is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-            else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error replacing platform user feature entitlements", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 }

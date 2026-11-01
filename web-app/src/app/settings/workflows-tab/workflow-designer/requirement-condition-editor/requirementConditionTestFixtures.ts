@@ -2,6 +2,7 @@ import {
     FieldScopeKind,
     FieldValueType,
     InformationRequestRequirementType,
+    InformationRequestResponseDisposition,
     InformationRequestTemplateDto,
     InformationRequestTemplateScopeKind,
     InformationRequestTemplateStatus,
@@ -42,7 +43,7 @@ const requirement = (
     requirementKey: key,
     requirementType,
     prompt,
-    permittedDispositions: [],
+    permittedDispositions: [] as InformationRequestResponseDisposition[],
     ...extra,
 });
 

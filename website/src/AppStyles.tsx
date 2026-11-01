@@ -1,5 +1,5 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
-import {BREAKPOINT_MOBILE} from "./landing/shared.ts";
+import {BREAKPOINT_MOBILE, HEADER_HEIGHT} from "./landing/shared.ts";
 
 export const appStyles = makeStyles({
     page: {
@@ -14,7 +14,7 @@ export const appStyles = makeStyles({
     mainContent: {
         display: "flex",
         flexDirection: "column",
-        paddingTop: "4.5rem",
+        paddingTop: HEADER_HEIGHT,
         backgroundColor: tokens.colorNeutralBackground1,
     },
 

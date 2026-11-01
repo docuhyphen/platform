@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.resource.informationrequest.party.operations.Infor
 import com.docuhyphen.app.api.resource.model.GrantInformationRequestDelegatedAuthorityRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.RevokeInformationRequestDelegatedAuthorityRequest
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestDelegatedAuthorityService
 import jakarta.inject.Inject

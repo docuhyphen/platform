@@ -2,7 +2,7 @@ import {useMemo} from "react";
 import {Text} from "@fluentui/react-components";
 import {WorkflowDesignerState} from "../../../../models/models.tsx";
 import {buildDefinitionGraph} from "../../workflow-graph/workflowDefinitionGraphAdapter.ts";
-import {WorkflowGraphPreview} from "../../workflow-graph/WorkflowGraphPreview.tsx";
+import {WorkflowGraphPreview} from "../../workflow-graph/workflow-graph-preview/WorkflowGraphPreview.tsx";
 import {WorkflowGraphDirection} from "../../workflow-graph/workflowGraphModels.ts";
 import {useWorkflowDefinitionPreviewStyles} from "./WorkflowDefinitionPreviewStyles.tsx";
 
@@ -29,11 +29,13 @@ const WorkflowDefinitionPreview = ({state, defaultDirection = "LR", fillHeight =
              className={fillHeight ? `${styles.container} ${styles.containerFillHeight}` : styles.container}>
             <div id="workflow-definition-preview-applicability"
                   className={styles.applicabilitySummary}>
-                <Text size={200}
+                <Text id={"workflow-definition-preview-text-1"}
+                      size={200}
                       weight="semibold">
                     Applicability
                 </Text>
-                <Text size={200}
+                <Text id={"workflow-definition-preview-text-2"}
+                      size={200}
                       className={styles.applicabilityDetail}>
                     {applicabilityText}
                 </Text>

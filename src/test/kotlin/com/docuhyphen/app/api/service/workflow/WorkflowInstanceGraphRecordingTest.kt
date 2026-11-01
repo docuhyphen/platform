@@ -6,21 +6,13 @@ import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.model.workflow.WorkflowSpec
 import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
 import com.docuhyphen.app.api.repository.workflow.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.util.*
 
-/**
- * Verifies the Phase 4 frozen-instance-graph contract: the engine freezes the raw definition
- * snapshot at instance start and records every traversed edge explicitly (START, approve,
- * reject, and forward branch), deduplicating per source step instance.
- *
- * The engine uses field injection, so collaborators are set reflectively with Mockito mocks.
- * These are pure-logic unit tests; they do not touch a database.
- */
 class WorkflowInstanceGraphRecordingTest
 {
     private val definitionRepository: WorkflowDefinitionRepository = mock()
@@ -79,7 +71,6 @@ class WorkflowInstanceGraphRecordingTest
             status = WorkflowInstanceStatus.RUNNING
             currentStepIndex = 0
             triggerEventSnapshot = "test.event"
-            // The engine advances from the frozen execution snapshot, so an instance must carry one.
             definitionSnapshotJson = WorkflowSpecJson.encode(
                 WorkflowSpec(steps = if (steps.isEmpty()) listOf(approvalStep("END")) else steps.toList()),
             )
@@ -109,8 +100,6 @@ class WorkflowInstanceGraphRecordingTest
             decision = Decision.APPROVE.name
         }
 
-    // ── trigger: freezes snapshot and records the START edge ─────────────────────
-
     @Test
     fun `trigger freezes the definition snapshot and records the START edge`()
     {
@@ -135,8 +124,6 @@ class WorkflowInstanceGraphRecordingTest
         assertEquals(0, txn.firstValue.toStepIndex)
         assertEquals(WorkflowTransitionOutcome.DEFAULT, txn.firstValue.outcome)
     }
-
-    // ── approval to END: terminal APPROVE edge ───────────────────────────────────
 
     @Test
     fun `approval to END records a terminal APPROVE edge`()
@@ -164,8 +151,6 @@ class WorkflowInstanceGraphRecordingTest
         assertEquals(WorkflowTransitionOutcome.APPROVE, txn.firstValue.outcome)
     }
 
-    // ── rejection: terminal REJECT edge ──────────────────────────────────────────
-
     @Test
     fun `rejection records a terminal REJECT edge`()
     {
@@ -190,8 +175,6 @@ class WorkflowInstanceGraphRecordingTest
         assertNull(txn.firstValue.toStepIndex)
         assertEquals(WorkflowTransitionOutcome.REJECT, txn.firstValue.outcome)
     }
-
-    // ── forward branch: APPROVE edge carries the resolved target index ────────────
 
     @Test
     fun `approval advancing to a later step records the target index`()
@@ -220,8 +203,6 @@ class WorkflowInstanceGraphRecordingTest
         assertEquals(WorkflowTransitionOutcome.APPROVE, txn.firstValue.outcome)
     }
 
-    // ── dedup: a source step instance never records twice ────────────────────────
-
     @Test
     fun `an already-recorded source step does not record a second edge`()
     {
@@ -243,8 +224,6 @@ class WorkflowInstanceGraphRecordingTest
         verify(transitionRepository, never()).save(any())
     }
 
-    // ── snapshot immutability: editing the definition cannot change the frozen copy ─
-
     @Test
     fun `frozen snapshot is a copy independent of later definition edits`()
     {
@@ -260,7 +239,6 @@ class WorkflowInstanceGraphRecordingTest
         verify(instanceRepository).save(instanceCaptor.capture())
         val frozen = instanceCaptor.firstValue.definitionSnapshotJson
 
-        // Simulate a later definition edit / version bump.
         definition.stepsJson = WorkflowSpecJson.encode(
             WorkflowSpec(steps = listOf(approvalStep("END"), approvalStep("END"))),
         )

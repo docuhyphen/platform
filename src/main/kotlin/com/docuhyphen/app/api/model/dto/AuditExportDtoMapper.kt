@@ -5,7 +5,6 @@ import com.docuhyphen.app.api.model.audit.export.StreamIntegrityReport
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
 
-/** All `AuditExport`/integrity-report -> DTO mapping in one dedicated class, per this codebase's `toDto` convention (resources/services never inline entity->DTO mapping). */
 object AuditExportDtoMapper
 {
     fun toDto(export: AuditExport): AuditExportDto = AuditExportDto(

@@ -2,108 +2,88 @@ package com.docuhyphen.app.api.resource.auth
 
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.docuhyphen.app.api.resource.auth.operations.PasswordResetResourceOperations
 import com.docuhyphen.app.api.resource.model.PasswordResetCompletionRequest
 import com.docuhyphen.app.api.resource.model.PasswordResetInitiationRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.auth.PasswordResetService
 import jakarta.inject.Inject
-import jakarta.ws.rs.Consumes
-import jakarta.ws.rs.POST
-import jakarta.ws.rs.Path
-import jakarta.ws.rs.Produces
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
 import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
 import org.slf4j.LoggerFactory
 
-@Path("/auth/password-reset")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class PasswordResetResource @Inject constructor(
     private val passwordResetService: PasswordResetService,
-)
+) : PasswordResetResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PasswordResetResource::class.java)
     }
 
-    @POST
-    @Path("/initiation")
-    fun initiatePasswordReset(payload: PasswordResetInitiationRequest): Response
+    override fun initiatePasswordReset(payload: PasswordResetInitiationRequest): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
-            try
-            {
-                with(payload) {
-                    passwordResetService.initiatePasswordReset(email)
-                    Response.ok().build()
-                }
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1500) {
+                passwordResetService.initiatePasswordReset(payload.email)
+                Response.ok().build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
+                is EmailRequiredException,
+                is InvalidEmailException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is EmailNotFoundException -> Response.ok().build()
+
+                else ->
                 {
-                    is EmailRequiredException,
-                    is InvalidEmailException ->
-                    {
-                        val responseError = ResponseError(exception.message)
-                        Response.status(BAD_REQUEST).entity(responseError).build()
-                    }
-
-                    is EmailNotFoundException ->
-                    {
-                        Response.ok().build()
-                    }
-
-                    else ->
-                    {
-                        logger.error("Error processing password reset request.", exception)
-                        Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
-                            .build()
-                    }
+                    logger.error("Error processing password reset request.", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred."))
+                        .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("/completion")
-    fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
+    override fun completePasswordReset(payload: PasswordResetCompletionRequest): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1500) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1500) {
                 with(payload) {
                     passwordResetService.completePasswordReset(email, otp, password, confirmationPassword)
-                    Response.ok().build()
                 }
+                Response.ok().build()
             }
-            catch (exception: Exception)
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
             {
-                when (exception)
-                {
-                    is EmailRequiredException,
-                    is InvalidEmailException,
-                    is OtpRequiredException,
-                    is PasswordRequiredException,
-                    is ConfirmationPasswordRequiredException,
-                    is PasswordMismatchException,
-                    is PasswordRequirementsNotMetException,
-                    is InvalidOtpException,
-                    is OTPExpiredException ->
-                    {
-                        val responseError = ResponseError(exception.message)
-                        Response.status(BAD_REQUEST).entity(responseError).build()
-                    }
+                is EmailRequiredException,
+                is InvalidEmailException,
+                is OtpRequiredException,
+                is PasswordRequiredException,
+                is ConfirmationPasswordRequiredException,
+                is PasswordMismatchException,
+                is PasswordRequirementsNotMetException,
+                is InvalidOtpException,
+                is OTPExpiredException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-                    else ->
-                    {
-                        logger.error("Error completing password reset.", exception)
-                        Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred."))
-                            .build()
-                    }
+                else ->
+                {
+                    logger.error("Error completing password reset.", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred."))
+                        .build()
                 }
             }
         }

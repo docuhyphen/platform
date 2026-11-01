@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialResponse
 import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialTransitionResponse
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialMutation
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialTransition
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialMutation
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialTransition
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

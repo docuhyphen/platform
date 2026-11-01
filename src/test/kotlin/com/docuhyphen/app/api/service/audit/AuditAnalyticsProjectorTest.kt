@@ -14,12 +14,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Verifies [AuditAnalyticsProjector]: projecting the same ledger event twice never
- * produces a second fact row (idempotent under retry/concurrent ticks), and the projected fact
- * carries only denormalized dimensions - never [AuditLedgerEvent.payloadJson] - so a prohibited
- * payload field can never reach the projection.
- */
 class AuditAnalyticsProjectorTest
 {
     private fun ledgerEvent(): AuditLedgerEvent = AuditLedgerEvent().apply {
@@ -70,7 +64,6 @@ class AuditAnalyticsProjectorTest
         val projector = AuditAnalyticsProjector(mock<AuditLedgerEventRepository>(), factRepo)
         projector.projectOne(ledgerEvent())
 
-        // AuditAnalyticsFact has no payload field at all - the assertion is structural, not content-based.
         assertEquals(1, captured.size)
         assertEquals("EXCHANGE", captured.first().category)
     }

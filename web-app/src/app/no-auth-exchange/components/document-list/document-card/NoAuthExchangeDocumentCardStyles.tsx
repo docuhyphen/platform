@@ -85,7 +85,7 @@ export const useNoAuthExchangeDocumentCardStyles = makeStyles({
         background: tokens.colorNeutralBackground3,
         padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         borderRadius: tokens.borderRadiusCircular,
-        fontSize: "12px",
+        fontSize: tokens.fontSizeBase200,
         lineHeight: "1.3",
         overflowWrap: "anywhere",
     },
@@ -134,7 +134,7 @@ export const useNoAuthExchangeDocumentCardStyles = makeStyles({
         },
         '@media (max-width: 350px)': {
             minHeight: "36px",
-            fontSize: "12px",
+            fontSize: tokens.fontSizeBase200,
         },
     },
 

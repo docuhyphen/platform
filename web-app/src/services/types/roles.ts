@@ -1,12 +1,4 @@
-﻿/**
- * Centralized role enums and capability helpers matching the backend domain model.
- *
- * Prefer hasCapabilityIn() over hasAppRole() / hasOrganizationRole() for all menu, button,
- * settings tab, and action-control visibility decisions. The capability-based helpers consume
- * the CurrentSessionDto returned by GET /app-user/session, which is computed server-side from
- * live role assignments and reflects the explicitly selected active organization.
- */
-
+﻿
 import {Capability} from '../../app/models/models.tsx';
 
 export {Capability};
@@ -66,13 +58,6 @@ export const hasOrganizationRole = (
     role: OrganizationRoleName,
 ): boolean => user?.organizationRoles?.includes(role) === true;
 
-/**
- * Capability-based visibility helper. Use this in preference to hasAppRole /
- * hasOrganizationRole for all menu, button, and settings tab gates.
- *
- * @param capabilities - the capabilities array from CurrentSessionDto
- * @param cap          - the capability to check
- */
 export const hasCapabilityIn = (
     capabilities: Capability[] | null | undefined,
     cap: Capability,
@@ -99,7 +84,6 @@ export const PrincipalGroupRoleDisplayNames: Record<PrincipalGroupRoleName, stri
     [PrincipalGroupRoleName.OBSERVER]: 'Observer',
 };
 
-/** Roles assignable on a exchange share (access entry). */
 export enum ExchangeShareRoleName
 {
     OWNER = 'OWNER',
@@ -121,7 +105,6 @@ export const ExchangeShareRoleDisplayNames: Record<ExchangeShareRoleName, string
     [ExchangeShareRoleName.PARTICIPANT]: 'Participant',
 };
 
-/** Roles that the manage-access UI allows assigning to new/existing entries. OWNER is structural and not assignable. */
 export const ASSIGNABLE_ROLES: ReadonlySet<ExchangeShareRoleName> = new Set([
     ExchangeShareRoleName.EDITOR,
     ExchangeShareRoleName.REVIEWER,
@@ -135,7 +118,6 @@ export const AssignableRoleDisplayNames: Record<string, string> = Object.fromEnt
     [...ASSIGNABLE_ROLES].map((r) => [r, ExchangeShareRoleDisplayNames[r]]),
 );
 
-/** Roles that support participant-level constraints (download gate, watermark, etc.). */
 export const CONSTRAINED_ROLES: ReadonlySet<ExchangeShareRoleName> = new Set([
     ExchangeShareRoleName.PARTICIPANT,
     ExchangeShareRoleName.VIEWER,

@@ -1,9 +1,11 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.DomainEventOutboxEntry
+import com.docuhyphen.app.api.model.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEventJson
 import com.docuhyphen.app.api.model.notification.DomainEventOwnerColumns
 import com.docuhyphen.app.api.repository.notification.DomainEventOutboxRepository
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory

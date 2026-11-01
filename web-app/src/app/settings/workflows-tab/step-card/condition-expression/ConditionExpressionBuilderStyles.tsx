@@ -22,16 +22,7 @@ export const useConditionExpressionBuilderStyles = makeStyles({
         flex: "1 1 10rem",
         minWidth: 0,
     },
-    valueControl: {
-        flex: "1 1 8rem",
-        minWidth: 0,
-    },
     hint: {
         color: tokens.colorNeutralForeground3,
-    },
-    sublabel: {
-        color: tokens.colorNeutralForeground3,
-        marginLeft: tokens.spacingHorizontalS,
-        fontSize: "0.8em",
     },
 });

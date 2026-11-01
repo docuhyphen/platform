@@ -8,13 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Per-user preferences for which channels receive which event patterns, with optional
- * quiet hours and digest batching.
- *
- * Replaces the legacy notification booleans on [AppUserSettings] (which remain in place
- * but become advisory once the rule engine is the source of truth in iteration 4+).
- */
 @Entity
 @Serializable
 @Table(name = "notification_preference")
@@ -28,11 +21,9 @@ class NotificationPreference
     @Serializable(with = UUIDSerializer::class)
     lateinit var appUserId: UUID
 
-    /** Glob over the event taxonomy: `session.*`, `document.viewed`, `*`. */
     @Column(name = "event_pattern", nullable = false, length = 128)
     lateinit var eventPattern: String
 
-    /** Comma-separated [NotificationChannelType] names. */
     @Column(name = "channels", nullable = false, length = 512)
     lateinit var channels: String
 

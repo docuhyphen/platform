@@ -43,6 +43,7 @@ const AuditEventTableFooter = ({
                 id={"audit-event-table-loading"}
                 className={footerClassName}>
                 <Spinner
+                    id={"audit-event-table-footer-spinner-1"}
                     size={"small"}
                     label={"Loading audit events..."}
                     labelPosition={"after"}/>

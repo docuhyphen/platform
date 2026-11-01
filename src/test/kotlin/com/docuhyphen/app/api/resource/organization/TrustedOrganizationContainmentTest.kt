@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.organization
 
-import com.docuhyphen.app.api.resource.exchange.PublishedExchangeGroupResource
+import com.docuhyphen.app.api.resource.exchange.operations.PublishedExchangeGroupResourceOperations
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationResourceOperations
 
 import com.docuhyphen.app.api.model.dto.PublishedExchangeGroupDto
 import com.docuhyphen.app.api.resource.model.ExchangeInitiationDto
@@ -16,7 +17,7 @@ class TrustedOrganizationContainmentTest
     @Test
     fun `organization resources do not expose a trusted member enumeration endpoint`()
     {
-        val paths = OrganizationResource::class.java.declaredMethods
+        val paths = OrganizationResourceOperations::class.java.declaredMethods
             .mapNotNull { it.getAnnotation(Path::class.java)?.value }
 
         assertFalse(paths.any { it.contains("app-users") })
@@ -35,7 +36,7 @@ class TrustedOrganizationContainmentTest
     {
         assertEquals(
             "organizations/{targetOrganizationId}/published-exchange-groups",
-            PublishedExchangeGroupResource::class.java.getAnnotation(Path::class.java).value,
+            PublishedExchangeGroupResourceOperations::class.java.getAnnotation(Path::class.java).value,
         )
     }
 

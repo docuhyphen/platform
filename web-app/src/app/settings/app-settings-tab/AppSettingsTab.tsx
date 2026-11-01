@@ -75,7 +75,6 @@ const AppSettingsTab = () => {
                 [definition.legacySetting]: channels.length > 0,
             });
         } catch {
-            // saveSettings restores the previous selection.
         }
     };
 

@@ -34,10 +34,11 @@ const SetupPasswordFields = ({
             <MessageBar
                 id={"setup-password-dialog-error"}
                 intent={"error"}>
-                <MessageBarBody>{error}</MessageBarBody>
+                <MessageBarBody id={"setup-password-fields-message-bar-body-1"}>{error}</MessageBarBody>
             </MessageBar>
         )}
-        <Field label={"Password"}>
+        <Field id={"setup-password-fields-field-1"}
+               label={"Password"}>
             <Input
                 id={"setup-password-input"}
                 type={"password"}
@@ -48,7 +49,8 @@ const SetupPasswordFields = ({
                 contentAfter={<PasswordRequirementsInfo/>}
             />
         </Field>
-        <Field label={"Confirm password"}>
+        <Field id={"setup-password-fields-field-2"}
+               label={"Confirm password"}>
             <Input
                 id={"setup-password-confirmation-input"}
                 type={"password"}

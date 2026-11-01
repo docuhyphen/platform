@@ -252,13 +252,13 @@ describe('ExchangeFieldsTab', () =>
         vi.mocked(getExchangeSchema).mockResolvedValue(stateOf(undefined));
         vi.mocked(listSchemas).mockResolvedValue([publishedSchema('EXCHANGE')]);
         vi.mocked(assignExchangeSchema).mockRejectedValue({
-            errorMessage: 'Access denied to manage the exchange schema',
+            errorMessage: 'Access denied to manage the Exchange schema',
         });
 
         render(<ExchangeFieldsTab exchange={exchange(ExchangeStatus.INITIATED)}/>);
         await chooseOnlySchema();
 
-        await waitFor(() => expect(screen.getByText('Access denied to manage the exchange schema')).toBeTruthy());
+        await waitFor(() => expect(screen.getByText('Access denied to manage the Exchange schema')).toBeTruthy());
     });
 
     it('offers removing the schema only to a caller who may choose it', async () => {

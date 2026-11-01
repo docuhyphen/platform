@@ -34,26 +34,31 @@ const StepDeleteDialog = ({open, stepNumber, stepLabel, affectedRoutes, onConfir
             open={open}
             onOpenChange={(_, d) => { if (!d.open) onCancel(); }}
         >
-            <DialogSurface>
-                <DialogBody>
+            <DialogSurface id={"step-delete-dialog-dialog-surface-1"}>
+                <DialogBody id={"step-delete-dialog-dialog-body-1"}>
                     <DialogTitle id="step-delete-dialog-title">
                         Delete Step {stepNumber}: {stepLabel}
                     </DialogTitle>
-                    <DialogContent>
-                        <div className={styles.content}>
+                    <DialogContent id={"step-delete-dialog-dialog-content-1"}>
+                        <div id={"step-delete-dialog-div-1"}
+                             className={styles.content}>
                             <Text id="step-delete-dialog-description">
                                 This permanently removes the step. Later steps shift up by one and
                                 their routes are updated automatically.
                             </Text>
                             {hasAffectedRoutes && (
-                                <MessageBar intent="warning" id="step-delete-dialog-affected-routes">
-                                    <MessageBarBody>
-                                        <Text weight="semibold" block>
+                                <MessageBar intent="warning"
+                                            id="step-delete-dialog-affected-routes">
+                                    <MessageBarBody id={"step-delete-dialog-message-bar-body-1"}>
+                                        <Text id={"step-delete-dialog-text-1"}
+                                              weight="semibold"
+                                              block>
                                             {affectedRoutes.length === 1
                                                 ? "1 route points at this step and will be rewritten to End:"
                                                 : `${affectedRoutes.length} routes point at this step and will be rewritten to End:`}
                                         </Text>
-                                        <ul className={styles.routeList}>
+                                        <ul id={"step-delete-dialog-ul-1"}
+                                            className={styles.routeList}>
                                             {affectedRoutes.map((route, i) => (
                                                 <li
                                                     key={i}
@@ -70,7 +75,7 @@ const StepDeleteDialog = ({open, stepNumber, stepLabel, affectedRoutes, onConfir
                             )}
                         </div>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"step-delete-dialog-dialog-actions-1"}>
                         <Button
                             id="step-delete-dialog-confirm-btn"
                             appearance="primary"

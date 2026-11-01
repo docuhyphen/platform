@@ -4,7 +4,6 @@ import {
     toDateTimeInputValue,
 } from './fieldDateTimeCanonical';
 
-/** The offset text the browser running these tests would attach to the given local reading. */
 const localOffsetTextFor = (localReading: string): string =>
 {
     const minutes = -new Date(localReading).getTimezoneOffset();

@@ -1,7 +1,7 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
+import {requestFailureOf, responseStatusOf} from './requestFailure';
 import {
     AppUserPublicDto,
-    Organization,
     OrganizationDetailedDto,
     OrganizationSettingsDto,
     PersonDetailedDto
@@ -19,7 +19,7 @@ export const fetchOrganization = async (organizationId: string, token?: string) 
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -37,7 +37,7 @@ export const updateOrganization = async (organizationId: string, data: {
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -52,7 +52,7 @@ export const updateOrganizationSettings = async (organizationId: string, setting
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -61,7 +61,7 @@ export interface OrganizationGroupBasicDto
     id: string;
     name: string;
     description?: string;
-    organizationId: string;
+    organizationId?: string;
     members: Array<{
         user?: AppUserPublicDto;
         groupRole?: PrincipalGroupRoleName;
@@ -79,7 +79,7 @@ export const fetchOrganizationGroups = async (organizationId: string, token?: st
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -105,7 +105,7 @@ export const addOrganizationGroup = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -133,7 +133,7 @@ export const updateOrganizationGroup = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -152,7 +152,7 @@ export const deleteOrganizationGroup = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -179,7 +179,7 @@ export const uploadOrganizationGroupIcon = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -199,7 +199,7 @@ export const deleteOrganizationGroupIcon = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -214,7 +214,7 @@ export const fetchOrganizationUsers = async (organizationId: string, token?: str
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -233,7 +233,7 @@ export const addOrganizationUser = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -259,7 +259,7 @@ export const updateOrganizationUser = async (
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -274,7 +274,7 @@ export const deactivateOrganizationUser = async (organizationId: string, appUser
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -289,11 +289,11 @@ export const checkAppUserIsDeletable = async (organizationId: string, appUserId:
     }
     catch (error: unknown)
     {
-        if (error.response?.status === 409)
+        if (responseStatusOf(error) === 409)
         {
             return false;
         }
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -308,7 +308,7 @@ export const deleteOrganizationAppUser = async (organizationId: string, appUserI
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -321,7 +321,7 @@ export const fetchMyOrganizationUsers = async (token?: string): Promise<AppUserP
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -334,7 +334,7 @@ export const fetchMyOrganizationGroups = async (token?: string) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -354,7 +354,7 @@ const fetchCurrentUserOrganization = async (token?: string): Promise<Organizatio
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

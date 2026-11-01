@@ -39,6 +39,7 @@ import {
     InformationRequestShareRoleKey,
     InformationRequestStandingReason,
     InformationRequestState,
+    InformationRequestSubjectDto,
     InformationRequestSubmissionPackageDto,
     InformationRequestSummaryDto,
     InformationRequestTemplateStatus,
@@ -92,7 +93,7 @@ vi.mock("../add-party-dialog/usePartyCandidates.ts", () => ({
     usePartyCandidates: () => ({
         groups: [{id: "group-a", name: "Records team"}],
         people: [{id: "user-b", name: "Second Member (second@process.test)"}],
-        subjects: [],
+        subjects: [] as InformationRequestSubjectDto[],
     }),
 }));
 vi.mock("../../../../context/AuthContext.tsx", () => ({

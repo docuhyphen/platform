@@ -45,11 +45,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error retrieving document versions", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException -> {
                     logger.warn("Refused retrieving document versions: {}", exception.message)
@@ -57,11 +53,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error retrieving document versions", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
@@ -100,11 +92,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error creating document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException -> {
                     logger.warn("Refused creating document version: {}", exception.message)
@@ -112,11 +100,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error creating document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
@@ -148,11 +132,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error downloading document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException -> {
                     logger.warn("Refused downloading document version: {}", exception.message)
@@ -160,11 +140,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error downloading document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
@@ -202,11 +178,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error retrieving latest document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException -> {
                     logger.warn("Refused retrieving latest document version: {}", exception.message)
@@ -214,11 +186,7 @@ class ExchangeDocumentVersionResource @Inject constructor(
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error retrieving latest document version", exception)
-                    val responseError = ResponseError(exception.message)
-                    status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {

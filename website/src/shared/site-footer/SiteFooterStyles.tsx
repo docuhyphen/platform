@@ -8,20 +8,20 @@ export const useSiteFooterStyles = makeStyles({
     footer: {
         width: "100%",
         backgroundColor: tokens.colorNeutralBackground1,
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderTop: `${tokens.strokeWidthThin} solid ${tokens.colorNeutralStroke2}`,
     },
     inner: {
         maxWidth: WIDTH_CONTENT,
         margin: "0 auto",
         minHeight: "9rem",
-        padding: `${tokens.spacingVerticalXXL} 2rem`,
+        padding: `${tokens.spacingVerticalXXL} ${tokens.spacingHorizontalXXXL}`,
         boxSizing: "border-box",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: tokens.spacingHorizontalL,
         [BREAKPOINT_MOBILE]: {
-            padding: `${tokens.spacingVerticalXXL} 1.6rem`,
+            padding: `${tokens.spacingVerticalXXL} ${tokens.spacingHorizontalXXL}`,
             gap: tokens.spacingHorizontalL,
         },
     },

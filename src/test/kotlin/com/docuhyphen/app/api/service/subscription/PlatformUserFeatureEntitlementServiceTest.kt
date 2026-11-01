@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementDto
 import com.docuhyphen.app.api.resource.model.PlatformUserFeatureEntitlementsUpdateRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -27,11 +27,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-/**
- * The platform administration surface that records an individual account's feature decisions. It is
- * the personal counterpart of the released organization surface: without it the personal half of the
- * override table has no writer and a personal grant could only be created by direct SQL.
- */
 class PlatformUserFeatureEntitlementServiceTest
 {
     private val actor = AppUser().apply {

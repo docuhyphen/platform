@@ -3,38 +3,22 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.model.workflow.AssigneeSpec
+import com.docuhyphen.app.api.model.notification.DeliveryTask
+import com.docuhyphen.app.api.model.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.NotifAssigneeSpec
+import com.docuhyphen.app.api.model.notification.NotificationPredicateExpr
 import com.docuhyphen.app.api.repository.notification.NotificationPreferenceRepository
 import com.docuhyphen.app.api.repository.notification.NotificationRuleRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.workflow.WorkflowAssigneeResolver
 import com.docuhyphen.app.api.service.workflow.WorkflowSpecJson
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonClassDiscriminator
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Matches a [DomainEvent] against active [NotificationRule]s, expands assignees to
- * concrete users, applies their [NotificationPreference]s, and emits a list of
- * [DeliveryTask]s for the [DeliveryDispatcher] to act on.
- *
- * Rule resolution order:
- *   1. Org-scoped rules for the event's organization (most specific).
- *   2. App-scoped rules (fallback).
- *   3. Within each tier, ordered by `priority` ASC (lower wins for SUPPRESS chains).
- *
- * Preference resolution (per user, per channel):
- *   * Glob match `event_pattern` against the event type (`session.*` matches `session.activated`).
- *   * Channels intersected against the user's enabled channels for the matched pattern.
- *   * Quiet-hours / digest classification produces the final outcome (INSTANT → dispatch;
- *     DIGEST → also dispatched in iteration 3 because the digest scheduler isn't wired yet,
- *     but the dispatcher will tag the log entry so we can replay them later).
- */
 @ApplicationScoped
 class NotificationRuleEngine
 {
@@ -71,7 +55,6 @@ class NotificationRuleEngine
                     {
                         if (recipient.kind != PrincipalKind.USER) continue
                         if (recipient.id in suppressedRecipients) continue
-                        // De-dup actor → no self-notifications.
                         if (event.actor?.kind == PrincipalKind.USER.name && event.actor.id == recipient.id.toString()) continue
                         tasks += buildTasksForUser(event, recipient.id)
                     }
@@ -80,8 +63,6 @@ class NotificationRuleEngine
         }
         return tasks
     }
-
-    // -- assignees ------------------------------------------------------------
 
     private fun resolveAssignees(rule: NotificationRule, event: DomainEvent): List<PrincipalRef>
     {
@@ -104,9 +85,6 @@ class NotificationRuleEngine
     private fun recipientsFromPayload(event: DomainEvent, field: String): List<PrincipalRef>
     {
         val raw = event.payload[field] ?: return emptyList()
-        // Payload format conventions (kept very simple for iteration 3):
-        //   "USER:<uuid>"                                  -> single principal
-        //   "USER:<uuid>,USER:<uuid>,PRINCIPAL_GROUP:<id>" -> csv of refs
         return raw.split(",").mapNotNull { token ->
             val parts = token.trim().split(":")
             if (parts.size != 2) return@mapNotNull null
@@ -124,14 +102,11 @@ class NotificationRuleEngine
         return fields
     }
 
-    // -- predicate ------------------------------------------------------------
-
-    /** V3 predicate: trivial `{ "field": "...", "equals": "..." }` form. Null = always match. */
     private fun predicateMatches(rule: NotificationRule, event: DomainEvent): Boolean
     {
         val pj = rule.predicateJson?.takeIf { it.isNotBlank() } ?: return true
         return runCatching {
-            val parsed = json.decodeFromString(PredicateExpr.serializer(), pj)
+            val parsed = json.decodeFromString(NotificationPredicateExpr.serializer(), pj)
             val actual = when (parsed.field)
             {
                 "subject.type" -> event.subject?.type
@@ -146,15 +121,6 @@ class NotificationRuleEngine
         }
     }
 
-    @Serializable
-    private data class PredicateExpr(
-        val field: String,
-        // "equals" is a Kotlin Any.equals shadow; rename on the wire.
-        @kotlinx.serialization.SerialName("equals") val equals_: String,
-    )
-
-    // -- per-user channel resolution -----------------------------------------
-
     private fun buildTasksForUser(event: DomainEvent, appUserId: UUID): List<DeliveryTask>
     {
         val prefs = preferenceRepository.findActiveForUser(appUserId)
@@ -162,7 +128,6 @@ class NotificationRuleEngine
 
         if (prefs.isEmpty())
         {
-            // Sensible default until the user configures preferences.
             channels += NotificationChannelType.IN_APP
             channels += NotificationChannelType.EMAIL
         }
@@ -185,67 +150,7 @@ class NotificationRuleEngine
     {
         if (pattern == "*" || pattern == eventType) return true
         if (!pattern.contains("*")) return false
-        // Tiny glob: "session.*" -> matches "session.<anything>"
         val regex = "^" + Regex.escape(pattern).replace("\\*", ".*") + "$"
         return Regex(regex).matches(eventType)
     }
-
-    // -- notification-rule assignee DSL --------------------------------------
-
-    /**
-     * Superset of [AssigneeSpec] that adds an `EVENT_PAYLOAD` kind. The other kinds
-     * delegate to the workflow assignee resolver, same DSL, single resolver, no drift.
-     */
-    @Serializable
-    @JsonClassDiscriminator("kind")
-    sealed class NotifAssigneeSpec
-    {
-        @Serializable
-        @kotlinx.serialization.SerialName("EVENT_PAYLOAD")
-        data class EventPayload(val field: String) : NotifAssigneeSpec()
-
-        @Serializable
-        @kotlinx.serialization.SerialName("PRINCIPAL")
-        data class Principal(
-            val principalKind: PrincipalKind,
-            val principalId: String,
-        ) : NotifAssigneeSpec()
-
-        @Serializable
-        @kotlinx.serialization.SerialName("GROUP_ROLE")
-        data class GroupRoleAssignees(
-            val groupIdRef: String,
-            val groupRole: com.docuhyphen.app.api.model.entity.PrincipalGroupRoleName,
-        ) : NotifAssigneeSpec()
-
-        @Serializable
-        @kotlinx.serialization.SerialName("APP_ROLE")
-        data class AppRoleAssignees(
-            val roleName: com.docuhyphen.app.api.model.entity.AppRoleName,
-        ) : NotifAssigneeSpec()
-
-        @Serializable
-        @kotlinx.serialization.SerialName("ORGANIZATION_ROLE")
-        data class OrganizationRoleAssignees(
-            val roleName: com.docuhyphen.app.api.model.entity.OrganizationRoleName,
-            val organizationIdRef: String,
-        ) : NotifAssigneeSpec()
-
-        /** Bridges PRINCIPAL/GROUP_ROLE/ROLE variants to the workflow assignee DSL. */
-        fun toWorkflowSpec(): AssigneeSpec = when (this)
-        {
-            is Principal -> AssigneeSpec.Principal(principalKind, principalId)
-            is GroupRoleAssignees -> AssigneeSpec.GroupRoleAssignees(groupIdRef, groupRole)
-            is AppRoleAssignees -> AssigneeSpec.AppRoleAssignees(roleName)
-            is OrganizationRoleAssignees ->
-                AssigneeSpec.OrganizationRoleAssignees(roleName, organizationIdRef)
-
-            is EventPayload -> error("EVENT_PAYLOAD must be handled by NotificationRuleEngine, not delegated")
-        }
-    }
 }
-
-
-
-
-

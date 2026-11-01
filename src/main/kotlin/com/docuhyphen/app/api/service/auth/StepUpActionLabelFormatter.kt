@@ -18,7 +18,7 @@ object StepUpActionLabelFormatter
         "ORG_IDP_CONFIG_CREATE" to "add an identity provider",
         "ORG_IDP_CONFIG_UPDATE" to "update an identity provider",
         "ORG_IDP_CONFIG_DELETE" to "remove an identity provider",
-        "ORG_AUTH_EXCHANGE_POLICY_UPDATE" to "update the exchange authentication policy",
+        "ORG_AUTH_EXCHANGE_POLICY_UPDATE" to "update the Exchange authentication policy",
         "ORG_VARIABLE_CREATE" to "create an organization variable",
         "ORG_VARIABLE_UPDATE" to "update an organization variable",
         "ORG_VARIABLE_DELETE" to "delete an organization variable",

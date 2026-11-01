@@ -25,12 +25,12 @@ export const useExchangeListTabsStyles = makeStyles({
         display: "inline-flex",
     },
     collapsedIcon: {
-        fontSize: "40px",
-        lineHeight: 1,
+        fontSize: tokens.fontSizeHero900,
+        lineHeight: tokens.lineHeightHero800,
     },
     collapsedBadge: {
         position: "absolute",
-        top: "2px",
-        right: "2px",
+        top: tokens.spacingVerticalXXS,
+        right: tokens.spacingHorizontalXXS,
     },
 });

@@ -1,106 +1,123 @@
 package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditGovernanceDtoMapper
 import com.docuhyphen.app.api.model.dto.AuditRetentionPolicyUpdateRequestDto
-import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
+import com.docuhyphen.app.api.resource.audit.operations.AuditOrganizationRetentionPolicyResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
 import com.docuhyphen.app.api.service.audit.AuditRetentionPolicyService
-import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/organizations/{organizationId}/audit-retention-policies")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditOrganizationRetentionPolicyResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditAccessAuthorizer: AuditAccessAuthorizer,
     private val auditRetentionPolicyService: AuditRetentionPolicyService,
-)
+) : AuditOrganizationRetentionPolicyResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditOrganizationRetentionPolicyResource::class.java)
+        private const val SUBSCRIPTION_REFUSAL_MESSAGE = "Organization audit-retention change refused by subscription policy"
     }
 
-    @GET
-    fun listOrganizationRetentionPolicies(@PathParam("organizationId") organizationId: String): Response =
-        withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { _, orgId ->
-            Response.ok(auditRetentionPolicyService.listEffectivePolicies(orgId).map(AuditGovernanceDtoMapper::toDto))
-                .build()
-        }
-
-    @PUT
-    @Path("/{category}")
-    fun upsertOrganizationRetentionPolicy(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("category") category: String,
-        body: AuditRetentionPolicyUpdateRequestDto,
-    ): Response = withAuthorizedOrg(organizationId, Action.AUDIT_RETENTION_MANAGE) { principal, orgId ->
-        val spec = auditRetentionPolicyService.upsertOverride(
-            organizationId = orgId,
-            category = parseCategory(category),
-            ledgerRetentionDays = body.ledgerRetentionDays,
-            archiveRetentionDays = body.archiveRetentionDays,
-            legalHoldEligible = body.legalHoldEligible,
-            identityTreatment = parseIdentityTreatment(body.identityTreatment),
-            updatedByUserId = principal,
-        )
-        Response.ok(AuditGovernanceDtoMapper.toDto(spec)).build()
-    }
-
-    private fun parseCategory(raw: String): AuditCategory = runCatching { AuditCategory.valueOf(raw.uppercase()) }
-        .getOrElse { throw IllegalArgumentException("Unknown audit category: $raw") }
-
-    private fun parseIdentityTreatment(raw: String): AuditIdentityTreatment =
-        runCatching { AuditIdentityTreatment.valueOf(raw.uppercase()) }
-            .getOrElse { throw IllegalArgumentException("Unknown identity treatment: $raw") }
-
-    private fun withAuthorizedOrg(
-        organizationId: String,
-        action: Action,
-        block: (UUID, UUID) -> Response,
-    ): Response
-    {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val orgId = parseUuid(organizationId)
-        val decision = authorizationService.authorize(principal, action, ResourceRef.organization(orgId), context)
-        if (decision is Decision.Deny)
-        {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(principal.id, orgId) }
-    }
-
-    private fun runGuarded(block: () -> Response): Response
+    override fun listOrganizationRetentionPolicies(organizationId: String): Response
     {
         return try
         {
-            block()
+            val access = auditAccessAuthorizer.authorizeOrganization(UUID.fromString(organizationId), Action.ORG_READ_AUDIT)
+            Response.ok(
+                auditRetentionPolicyService.listEffectivePolicies(access.organizationId).map(AuditGovernanceDtoMapper::toDto)
+            ).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Organization audit-retention change refused by subscription policy", e)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing organization audit retention policies", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
 
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
+    override fun upsertOrganizationRetentionPolicy(
+        organizationId: String,
+        category: String,
+        body: AuditRetentionPolicyUpdateRequestDto,
+    ): Response
+    {
+        return try
+        {
+            val access = auditAccessAuthorizer.authorizeOrganization(
+                UUID.fromString(organizationId),
+                Action.AUDIT_RETENTION_MANAGE,
+            )
+            val spec = auditRetentionPolicyService.upsertOverride(
+                organizationId = access.organizationId,
+                category = parseAuditCategory(category),
+                ledgerRetentionDays = body.ledgerRetentionDays,
+                archiveRetentionDays = body.archiveRetentionDays,
+                legalHoldEligible = body.legalHoldEligible,
+                identityTreatment = parseAuditIdentityTreatment(body.identityTreatment),
+                updatedByUserId = access.actor.principal.id,
+            )
+            Response.ok(AuditGovernanceDtoMapper.toDto(spec)).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(SUBSCRIPTION_REFUSAL_MESSAGE, exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error updating organization audit retention policy", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
+        }
+    }
 }

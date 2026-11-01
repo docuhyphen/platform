@@ -4,91 +4,52 @@ import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeRecipientEligibilityException
 import com.docuhyphen.app.api.exception.NoAuthOtpException
-import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
-import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
+import com.docuhyphen.app.api.exception.RequestValidationException
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
+import com.docuhyphen.app.api.resource.RequestGuards
 import com.docuhyphen.app.api.resource.ResourceEndpointDelayHelper
+import com.docuhyphen.app.api.resource.exchange.handler.ExchangeDocumentRequestHandler
+import com.docuhyphen.app.api.resource.exchange.operations.NoAuthExchangeResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateNoAuthExchange
 import com.docuhyphen.app.api.service.exchange.*
-import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
-import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.*
 
-@Path("no-auth/exchanges")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class NoAuthExchangeResource @Inject constructor(
     private val exchangeRetrievalService: ExchangeRetrievalService,
     private val exchangeUpdateService: ExchangeUpdateService,
-    private val exchangeDocumentService: ExchangeDocumentService,
-    private val fileStorageService: FileStorageService,
+    exchangeDocumentService: ExchangeDocumentService,
+    exchangeDocumentDetailsViewService: ExchangeDocumentDetailsViewService,
     private val shareLinkValidationService: ShareLinkValidationService,
-)
+) : NoAuthExchangeResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(NoAuthExchangeResource::class.java)
 
-        /**
-         * Lets the recipient UI recognise a lapsed access window without matching on message
-         * text, so it can prompt for a fresh access code instead of showing a generic failure.
-         */
-        private const val ACCESS_VERIFICATION_REQUIRED_REASON = "NO_AUTH_ACCESS_EXPIRED"
+        private const val OTP_RESPONSE_FLOOR_MILLIS = 1000L
     }
 
-    private fun accessVerificationRequiredResponse(exception: NoAuthExchangeAccessExpiredException): Response =
-        Response.status(Response.Status.FORBIDDEN)
-            .entity(
-                ResponseError(
-                    errorMessage = exception.message,
-                    reasonCode = ACCESS_VERIFICATION_REQUIRED_REASON,
-                )
-            )
-            .build()
+    private val handler = ExchangeDocumentRequestHandler(exchangeDocumentService, exchangeDocumentDetailsViewService)
 
-    /**
-     * Returns basic exchange metadata for participant and public-link access.
-     *
-     * When an X-Share-Link-Token header is present the token is validated against the
-     * exchange before any data is returned. An invalid, revoked, exhausted, or mismatched
-     * link results in 403. When no token is present the endpoint serves the OTP-based
-     * participant flow (participants have a named Share grant validated at OTP time).
-     */
-    @GET
-    @Path("/{exchangeId}")
-    fun getNoAuthExchange(
-        @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("X-Share-Link-Token") shareLinkToken: String?,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
+    override fun getNoAuthExchange(
+        exchangeId: String,
+        shareLinkToken: String?,
+        noAuthAccessToken: String?,
     ): Response
     {
         return try
         {
             if (!shareLinkToken.isNullOrBlank())
             {
-                val exchangeUuid = try
-                {
-                    UUID.fromString(exchangeId)
-                }
-                catch (_: Exception)
-                {
-                    return Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ResponseError("Invalid exchange id"))
-                        .build()
-                }
                 shareLinkValidationService.validateForNoAuth(
                     rawToken = shareLinkToken,
-                    exchangeId = exchangeUuid,
+                    exchangeId = RequestGuards.uuid(exchangeId, "Invalid Exchange id"),
                 )
             }
 
@@ -106,194 +67,109 @@ class NoAuthExchangeResource @Inject constructor(
             {
                 is ForbiddenException ->
                 {
-                    logger.warn("No-auth exchange access denied ({}): {}", exchangeId, exception.message)
-                    Response
-                        .status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    logger.warn("No-auth Exchange access denied ({}): {}", exchangeId, exception.message)
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error getting exchange", exception)
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
-
+                is RequestValidationException,
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error getting exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error getting exchange", exception)
-
-                    val responseError = ResponseError("An error occurred while getting exchange")
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error getting no-auth Exchange", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting Exchange"))
                         .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("/{exchangeId}/otp")
-    fun issueNoAuthExchangeOtp(
-        @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
-    ): Response
-    {
-        return ResourceEndpointDelayHelper.withFixedFloor(1000) {
-            try
-            {
-                exchangeUpdateService.issueRecipientOtp(exchangeId, noAuthAccessToken)
-                Response.status(Response.Status.NO_CONTENT).build()
-            }
-            catch (exception: Exception)
-            {
-                when (exception)
-                {
-                    is ForbiddenException ->
-                    {
-                        logger.warn("OTP request denied", exception)
-                        Response.status(Response.Status.FORBIDDEN)
-                            .entity(ResponseError(exception.message))
-                            .build()
-                    }
-
-                    is ExchangeNotFoundException ->
-                    {
-                        logger.warn("OTP request for missing session", exception)
-                        Response.status(NOT_FOUND)
-                            .entity(ResponseError(exception.message))
-                            .build()
-                    }
-
-                    is NoAuthOtpException ->
-                    {
-                        logger.warn(
-                            "OTP request rejected: reasonCode={} retryAfter={}",
-                            exception.reasonCode,
-                            exception.retryAfterSeconds
-                        )
-                        val response = Response.status(
-                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
-                                TOO_MANY_REQUESTS
-                            else
-                                Response.Status.BAD_REQUEST,
-                        )
-                            .entity(
-                                ResponseError(
-                                    errorMessage = exception.message,
-                                    reasonCode = exception.reasonCode,
-                                    retryAfterSeconds = exception.retryAfterSeconds,
-                                )
-                            )
-                        if (exception.retryAfterSeconds != null)
-                        {
-                            response.header("Retry-After", exception.retryAfterSeconds)
-                        }
-                        response.build()
-                    }
-
-                    is IllegalArgumentException ->
-                    {
-                        logger.warn("OTP request rejected", exception)
-                        Response.status(Response.Status.BAD_REQUEST)
-                            .entity(ResponseError(exception.message))
-                            .build()
-                    }
-
-                    else ->
-                    {
-                        logger.error("Error issuing exchange OTP", exception)
-                        Response.status(INTERNAL_SERVER_ERROR)
-                            .entity(ResponseError("An error occurred while issuing the verification code"))
-                            .build()
-                    }
-                }
-            }
-        }
-    }
-
-    @POST
-    @Path("/{exchangeId}/verify-access-code")
-    fun verifyNoAuthAccessCode(
-        @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
-        request: UpdateNoAuthExchange,
+    override fun issueNoAuthExchangeOtp(
+        exchangeId: String,
+        noAuthAccessToken: String?,
     ): Response
     {
         return try
         {
-            val updatedSession =
-                exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp, noAuthAccessToken)
-            Response.ok(updatedSession).build()
+            ResourceEndpointDelayHelper.withFixedFloor(OTP_RESPONSE_FLOOR_MILLIS) {
+                exchangeUpdateService.issueRecipientOtp(exchangeId, noAuthAccessToken)
+            }
+            Response.status(NO_CONTENT).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
-                is NoAuthOtpException ->
-                {
-                    val response = Response
-                        .status(
-                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
-                                TOO_MANY_REQUESTS
-                            else
-                                Response.Status.BAD_REQUEST,
-                        )
-                        .entity(
-                            ResponseError(
-                                errorMessage = exception.message,
-                                reasonCode = exception.reasonCode,
-                                retryAfterSeconds = exception.retryAfterSeconds,
-                            )
-                        )
-
-                    if (exception.retryAfterSeconds != null)
-                    {
-                        response.header("Retry-After", exception.retryAfterSeconds)
-                    }
-
-                    response.build()
-                }
-
                 is ForbiddenException ->
                 {
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    logger.warn("OTP request denied", exception)
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is ExchangeNotFoundException ->
                 {
-                    Response.status(NOT_FOUND)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    logger.warn("OTP request for missing Exchange", exception)
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+                }
+
+                is NoAuthOtpException ->
+                {
+                    logger.warn(
+                        "OTP request rejected: reasonCode={} retryAfter={}",
+                        exception.reasonCode,
+                        exception.retryAfterSeconds
+                    )
+                    NoAuthExchangeHttp.otpRefused(exception)
                 }
 
                 is IllegalArgumentException ->
                 {
-                    Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ResponseError(exception.message))
+                    logger.warn("OTP request rejected", exception)
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+                }
+
+                else ->
+                {
+                    logger.error("Error issuing no-auth Exchange OTP", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while issuing the verification code"))
                         .build()
                 }
+            }
+        }
+    }
+
+    override fun verifyNoAuthAccessCode(
+        exchangeId: String,
+        noAuthAccessToken: String?,
+        request: UpdateNoAuthExchange,
+    ): Response
+    {
+        return try
+        {
+            val updatedExchange =
+                exchangeUpdateService.verifyNoAuthAccessCode(exchangeId, request.otp, noAuthAccessToken)
+            Response.ok(updatedExchange).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is NoAuthOtpException -> NoAuthExchangeHttp.otpRefused(exception)
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is ExchangeNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
@@ -306,27 +182,23 @@ class NoAuthExchangeResource @Inject constructor(
         }
     }
 
-    @PUT
-    @Path("/{exchangeId}")
-    fun updateNoAuthExchange(
-        @PathParam("exchangeId") exchangeId: String,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
+    override fun updateNoAuthExchange(
+        exchangeId: String,
+        noAuthAccessToken: String?,
         request: UpdateNoAuthExchange
     ): Response
     {
         return try
         {
-            val updatedSession = with(request) {
-                exchangeUpdateService.updateNoAuthExchange(
-                    exchangeId,
-                    status,
-                    otp,
-                    rejectReason ?: rejectionReason,
-                    noAuthAccessToken,
-                )
-            }
+            val updatedExchange = exchangeUpdateService.updateNoAuthExchange(
+                exchangeId,
+                request.status,
+                request.otp,
+                request.rejectReason ?: request.rejectionReason,
+                noAuthAccessToken,
+            )
 
-            Response.ok(updatedSession).build()
+            Response.ok(updatedExchange).build()
         }
         catch (exception: Exception)
         {
@@ -335,117 +207,53 @@ class NoAuthExchangeResource @Inject constructor(
                 is ExchangeRecipientEligibilityException ->
                 {
                     logger.warn("No-auth Exchange acceptance eligibility changed")
-                    Response.status(Response.Status.CONFLICT)
+                    Response.status(CONFLICT)
                         .entity(ResponseError("This Exchange can no longer be accepted"))
                         .build()
                 }
 
                 is NoAuthOtpException ->
                 {
-                    logger.error(
-                        "Error updating exchange: reasonCode={} retryAfter={}",
+                    logger.warn(
+                        "No-auth Exchange update rejected: reasonCode={} retryAfter={}",
                         exception.reasonCode,
                         exception.retryAfterSeconds
                     )
-
-                    val response = Response
-                        .status(
-                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
-                                TOO_MANY_REQUESTS
-                            else
-                                Response.Status.BAD_REQUEST,
-                        )
-                        .entity(
-                            ResponseError(
-                                errorMessage = exception.message,
-                                reasonCode = exception.reasonCode,
-                                retryAfterSeconds = exception.retryAfterSeconds,
-                            )
-                        )
-
-                    if (exception.retryAfterSeconds != null)
-                    {
-                        response.header("Retry-After", exception.retryAfterSeconds)
-                    }
-
-                    response.build()
+                    NoAuthExchangeHttp.otpRefused(exception)
                 }
 
                 is ForbiddenException ->
-                {
-                    logger.error("Error updating exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.FORBIDDEN)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error adding exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error updating exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error updating exchange", exception)
-
-                    val responseError = ResponseError("An error occurred while updating exchange")
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error updating no-auth Exchange", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while updating Exchange"))
                         .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("{exchangeId}/documents/{documentId}/file")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    fun uploadSessionDocument(
-        @RestForm("file") file: File?,
-        @RestForm("extension") extension: String?,
-        @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
-        @PathParam("exchangeId") exchangeId: String?,
-        @PathParam("documentId") documentId: String?,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
+    override fun uploadSessionDocument(
+        file: File?,
+        extension: String?,
+        encryptionMode: DocumentEncryptionMode?,
+        exchangeId: String?,
+        documentId: String?,
+        noAuthAccessToken: String?,
     ): Response
     {
         return try
         {
-            val document = exchangeDocumentService.uploadNoAuthDocument(
-                file,
-                extension,
-                exchangeId,
-                documentId,
-                encryptionMode,
-                noAuthAccessToken,
-            )
-
-            val dto = DetailedEntityToDtoTransformer.toDto(document)
-            Response.ok(enrichDocumentWithFileSize(dto)).build()
+            handler.uploadNoAuth(file, extension, exchangeId, documentId, encryptionMode, noAuthAccessToken)
         }
         catch (exception: Exception)
         {
@@ -453,51 +261,37 @@ class NoAuthExchangeResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is NoAuthExchangeAccessExpiredException ->
                 {
                     logger.warn("No-auth upload blocked by a lapsed access window: {}", exception.message)
-                    accessVerificationRequiredResponse(exception)
+                    NoAuthExchangeHttp.accessVerificationRequired(exception)
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError("An error occurred while uploading exchange document")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error uploading no-auth Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while uploading Exchange document"))
+                        .build()
                 }
             }
         }
     }
 
-    @GET
-    @Path("{exchangeId}/documents/{documentId}/file")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun downloadDocument(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
+    override fun downloadDocument(
+        exchangeId: String,
+        documentId: String,
+        noAuthAccessToken: String?,
     ): Response
     {
         return try
         {
-            val file = exchangeDocumentService.downloadNoAuthSessionDocument(exchangeId, documentId, noAuthAccessToken)
-            Response.ok(file.inputStream())
-                .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
-                .header("Content-Length", file.length())
-                .build()
+            handler.downloadNoAuth(exchangeId, documentId, noAuthAccessToken)
         }
         catch (exception: Exception)
         {
@@ -505,74 +299,44 @@ class NoAuthExchangeResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error downloading exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-                    Response.status(NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException ->
                 {
                     logger.warn("No-auth download denied for document: {}", exception.message)
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is NoAuthExchangeAccessExpiredException ->
                 {
                     logger.warn("No-auth download blocked by a lapsed access window: {}", exception.message)
-                    accessVerificationRequiredResponse(exception)
+                    NoAuthExchangeHttp.accessVerificationRequired(exception)
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error downloading exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error downloading exchange document", exception)
-
-                    val responseError = ResponseError("An error occurred while downloading exchange document")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error downloading no-auth Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while downloading Exchange document"))
+                        .build()
                 }
             }
         }
     }
 
-    @GET
-    @Path("{exchangeId}/documents/{documentId}/thumbnail")
-    @Produces("image/png")
-    fun getNoAuthDocumentThumbnail(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
-        @HeaderParam("x-no-auth-access-token") noAuthAccessToken: String?,
-        @HeaderParam("If-None-Match") ifNoneMatch: String?,
+    override fun getNoAuthDocumentThumbnail(
+        exchangeId: String,
+        documentId: String,
+        noAuthAccessToken: String?,
+        ifNoneMatch: String?,
     ): Response
     {
         return try
         {
-            val thumbnail =
-                exchangeDocumentService.getNoAuthDocumentThumbnail(exchangeId, documentId, noAuthAccessToken)
-            val etag = "\"${thumbnail.etag}\""
-            if (ifNoneMatch == etag)
-            {
-                return Response.notModified()
-                    .header("ETag", etag)
-                    .header("Cache-Control", "private, max-age=300, must-revalidate")
-                    .build()
-            }
-            Response.ok(thumbnail.content)
-                .header("Content-Type", "image/png")
-                .header("Content-Length", thumbnail.content.size)
-                .header("ETag", etag)
-                .header("Cache-Control", "private, max-age=300, must-revalidate")
-                .build()
+            handler.thumbnailNoAuth(exchangeId, documentId, noAuthAccessToken, ifNoneMatch)
         }
         catch (exception: Exception)
         {
@@ -580,41 +344,30 @@ class NoAuthExchangeResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("No-auth document thumbnail was not found", exception)
-                    Response.status(NOT_FOUND)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException ->
                 {
                     logger.warn("No-auth document thumbnail access denied: {}", exception.message)
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is DocumentThumbnailUnavailableException ->
                 {
                     logger.warn("No-auth document thumbnail is unavailable: {}", exception.message)
-                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(SERVICE_UNAVAILABLE).entity(ResponseError(exception.message)).build()
                 }
 
                 is NoAuthExchangeAccessExpiredException ->
                 {
                     logger.warn("No-auth thumbnail blocked by a lapsed access window: {}", exception.message)
-                    accessVerificationRequiredResponse(exception)
+                    NoAuthExchangeHttp.accessVerificationRequired(exception)
                 }
 
                 is IllegalArgumentException ->
                 {
                     logger.warn("No-auth document thumbnail request rejected: {}", exception.message)
-                    Response.status(Response.Status.BAD_REQUEST)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
                 }
 
                 else ->
@@ -626,21 +379,5 @@ class NoAuthExchangeResource @Inject constructor(
                 }
             }
         }
-    }
-
-    private fun enrichDocumentWithFileSize(document: DocumentDetailedDto?): DocumentDetailedDto?
-    {
-        if (document == null || document.uploadDate == null) return document
-
-        val documentId = document.id ?: return document
-        val documentType = document.type
-            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
-            ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
-            ?: return document
-
-        val storageKey = "$documentId${DocumentType.toFileExtension(documentType)}"
-        val fileSize = runCatching { fileStorageService.getDocumentSizeBytes(storageKey) }.getOrNull()
-
-        return document.copy(fileSize = fileSize)
     }
 }

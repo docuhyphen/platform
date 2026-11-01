@@ -18,12 +18,6 @@ import java.util.UUID
 private class DocumentVersionStoragePostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<DocumentVersionStoragePostgreSQLContainer>(imageName)
 
-/**
- * A stored document version names its content with exactly one typed locator: the provider that
- * holds it, the kind of identifier it is, and the identifier itself. There is no second column a
- * reader could fall back to, a version cannot be stored without its locator, and a row that could
- * only be located through the retired local path does not survive the migration.
- */
 class DocumentVersionStorageLocatorColumnContractTest
 {
     @Test
@@ -261,8 +255,6 @@ class DocumentVersionStorageLocatorColumnContractTest
             }
         }
     }
-
-    // Support
 
     private fun withPostgres(block: (DocumentVersionStoragePostgreSQLContainer) -> Unit)
     {

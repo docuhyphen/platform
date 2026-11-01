@@ -15,7 +15,6 @@ object UserAgentParser
         ua.contains("Edg/") || ua.contains("Edge/") -> "Edge"
         ua.contains("OPR/") || ua.contains("Opera/") -> "Opera"
         ua.contains("Firefox/") -> "Firefox"
-        // Chrome must come after Edge and Opera since those UAs also contain "Chrome/"
         ua.contains("Chrome/") -> "Chrome"
         ua.contains("Safari/") -> "Safari"
         else -> "Browser"

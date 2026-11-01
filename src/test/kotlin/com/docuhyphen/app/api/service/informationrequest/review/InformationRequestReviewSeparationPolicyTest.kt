@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.informationrequest.review.InformationRequest
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStagePlan
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewDecisionRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.evidence.InformationRequestEvidenceQueryService

@@ -47,8 +47,11 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
     const styles = useExchangeInitiationStyles();
 
     return (
-        <div className={styles.exchangeDetailsTap}>
-            <Field label="Exchange Name" required>
+        <div id={"exchange-initiation-details-tab-div-1"}
+             className={styles.exchangeDetailsTap}>
+            <Field id={"exchange-initiation-details-tab-field-1"}
+                   label="Exchange Name"
+                   required>
                 {availableVariables && onNameChange ? (
                     <VariableTokenInput
                         value={name}
@@ -70,7 +73,8 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                     />
                 )}
             </Field>
-            <Field label="Description">
+            <Field id={"exchange-initiation-details-tab-field-2"}
+                   label="Description">
                 {availableVariables && onDescChange ? (
                     <VariableTokenInput
                         value={description}
@@ -78,7 +82,7 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         availableVariables={availableVariables}
                         resolvedPreview={resolvedPreview}
                         multiline
-                        placeholder="Add context about this exchange (optional)"
+                        placeholder="Add context about this Exchange (optional)"
                         disabled={locked}
                     />
                 ) : (
@@ -86,12 +90,13 @@ const ExchangeInitiationDetailsTab: React.FC<ExchangeDetailsTabProps> = (
                         id={"exchange-description-textarea"}
                         onChange={onDescriptionChange}
                         value={description}
-                        placeholder="Add context about this exchange (optional)"
+                        placeholder="Add context about this Exchange (optional)"
                         disabled={locked}
                     />
                 )}
             </Field>
-            <Field label="Message to Recipients">
+            <Field id={"exchange-initiation-details-tab-field-3"}
+                   label="Message to Recipients">
                 {availableVariables && onMessageChange ? (
                     <VariableTokenInput
                         value={initialShareMessage}

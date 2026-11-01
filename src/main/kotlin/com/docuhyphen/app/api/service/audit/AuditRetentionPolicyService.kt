@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.RetentionPolicySpec
 import com.docuhyphen.app.api.model.entity.AuditIdentityTreatment
 import com.docuhyphen.app.api.model.entity.AuditRetentionPolicy
 import com.docuhyphen.app.api.repository.audit.AuditRetentionPolicyRepository
@@ -18,11 +21,6 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-/**
- * Organization-override layer over [AuditRetentionCatalogService]'s platform-default catalog
- * An organization row narrows or widens the default for exactly one
- * [AuditCategory]; with no row, [getEffectivePolicy] returns the platform default unchanged.
- */
 @ApplicationScoped
 class AuditRetentionPolicyService @Inject constructor(
     private val auditRetentionPolicyRepository: AuditRetentionPolicyRepository,
@@ -129,7 +127,6 @@ class AuditRetentionPolicyService @Inject constructor(
         return getEffectivePolicy(organizationId, category)
     }
 
-    /** Whether an event that occurred at [occurredAt] has passed the searchable-projection retention window. */
     fun isLedgerRetentionExpired(
         organizationId: UUID,
         category: AuditCategory,

@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestParty
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.notice.InformationRequestNoticeRecipient
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
 import com.docuhyphen.app.api.service.exchange.ShareService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService

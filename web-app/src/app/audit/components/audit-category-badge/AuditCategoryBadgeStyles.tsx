@@ -13,11 +13,6 @@ export interface AuditCategoryMeta
     color: BadgeProps["color"];
 }
 
-/**
- * category -> friendly label + Fluent Badge color, one entry per
- * com.docuhyphen.app.api.service.audit.catalog.AuditCategory. Unknown/future categories fall
- * back to the raw string with a neutral color at render time.
- */
 export const auditCategoryMetaMap: Record<string, AuditCategoryMeta> = {
     AUTHENTICATION: {label: "Authentication", color: "informative"},
     ADMINISTRATION: {label: "Administration", color: "important"},

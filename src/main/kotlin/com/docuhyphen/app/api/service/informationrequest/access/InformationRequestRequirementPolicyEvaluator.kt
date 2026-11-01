@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyOutcome
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementCorrectionScope
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts

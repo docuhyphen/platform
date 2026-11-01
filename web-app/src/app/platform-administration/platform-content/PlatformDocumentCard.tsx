@@ -1,5 +1,5 @@
 import {DocumentLibraryEntrySummaryDto} from "../../models/models.tsx";
-import DocumentLibraryEntryCard from "../../settings/document-library-tab/DocumentLibraryEntryCard.tsx";
+import DocumentLibraryEntryCard from "../../settings/document-library-tab/document-library-entry-card/DocumentLibraryEntryCard.tsx";
 
 interface Props
 {

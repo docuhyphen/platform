@@ -1,4 +1,5 @@
 import apiClient from './apiClient';
+import {requestFailureOf} from './requestFailure';
 
 export interface UserContactDto
 {
@@ -20,7 +21,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

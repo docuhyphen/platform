@@ -48,7 +48,8 @@ const OrganizationPeopleToolbar = (props: OrganizationPeopleToolbarProps) =>
                 value={props.searchQuery}
                 onChange={(_, data) => props.onSearchChange(data.value)}
             />
-            <div className={styles.tools}>
+            <div id={"organization-people-toolbar-div-1"}
+                 className={styles.tools}>
                 <OrganizationPeopleFilterPopover
                     icon={<FilterIcon/>}
                     statusFilters={props.statusFilters}

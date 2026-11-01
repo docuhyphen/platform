@@ -6,12 +6,10 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/** Persistence for [SchemaDefinition]. Scoped by owner like [FieldDefinitionRepository]. */
 @ApplicationScoped
 class SchemaDefinitionRepository :
     BaseRepository<SchemaDefinition>(SchemaDefinition::class.java)
 {
-    /** All schema definitions visible to an organization: its own plus PLATFORM-owned ones. */
     fun findAllForOrganization(organizationId: UUID): List<SchemaDefinition> =
         entityManager.createQuery(
             """SELECT s FROM SchemaDefinition s
@@ -36,7 +34,6 @@ class SchemaDefinitionRepository :
             .setParameter("uid", userId)
             .resultList
 
-    /** All PLATFORM-owned schema definitions. */
     fun findAllPlatform(): List<SchemaDefinition> =
         entityManager.createQuery(
             """SELECT s FROM SchemaDefinition s

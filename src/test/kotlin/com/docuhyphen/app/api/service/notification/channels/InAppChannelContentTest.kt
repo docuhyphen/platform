@@ -1,8 +1,8 @@
 package com.docuhyphen.app.api.service.notification.channels
 
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.service.notification.DeliveryTask
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DeliveryTask
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test

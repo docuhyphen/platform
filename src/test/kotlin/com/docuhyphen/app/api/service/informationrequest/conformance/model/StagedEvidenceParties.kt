@@ -1,6 +1,6 @@
 package com.docuhyphen.app.api.service.informationrequest.conformance.model
 
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.util.*
 
 internal data class StagedEvidenceParties(

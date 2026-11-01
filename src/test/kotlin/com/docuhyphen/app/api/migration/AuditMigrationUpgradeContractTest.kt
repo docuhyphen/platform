@@ -143,9 +143,6 @@ class AuditMigrationUpgradeContractTest
                 verifySubscriptionTrialRequestConstraints(connection)
             }
 
-            // The whole released chain applies and stops at the newest migration on disk. Reading the
-            // expected head from the migration directory keeps this contract about the upgrade
-            // succeeding rather than about whichever version happens to be latest today.
             assertEquals(latestMigrationVersion(), currentFlyway.info().current().version.toString())
         }
         finally
@@ -154,7 +151,6 @@ class AuditMigrationUpgradeContractTest
         }
     }
 
-    /** The highest versioned migration present in the migration directory. */
     private fun latestMigrationVersion(): String
     {
         val versions = Files.list(migrationDirectory).use { paths -> paths.toList() }

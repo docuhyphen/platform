@@ -8,8 +8,8 @@ import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestPlanQuotas
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestStandingReason
 import com.docuhyphen.app.api.resource.informationrequest.capability.operations.InformationRequestCapabilityResourceOperations
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.capability.InformationRequestCapabilityService
 import com.docuhyphen.app.api.service.subscription.PlanCode

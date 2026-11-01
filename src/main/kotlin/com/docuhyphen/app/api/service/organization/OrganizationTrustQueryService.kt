@@ -12,7 +12,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
@@ -53,7 +53,7 @@ class OrganizationTrustQueryService @Inject constructor(
             val owner = organizationService.getOrganizationById(policy.policyOwnerOrganizationId)
             transformer.toPolicyDto(policy, activeOrganizationId, owner.name)
         }
-        return OrganizationTrustPoliciesDto(relationshipId, policies)
+        return transformer.toPoliciesDto(relationshipId, policies)
     }
 
     private fun relationshipDto(

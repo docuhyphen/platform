@@ -1,4 +1,3 @@
-import React from "react";
 
 export const communicationsInWorkflowsArticle = (
     <>
@@ -13,35 +12,35 @@ export const communicationsInWorkflowsArticle = (
         <h3 id={"communications-in-workflows-linking-a-communication-to-heading"}>Linking a communication to a
             Notification step</h3>
         <ol id={"communications-in-workflows-linking-a-communication-to-list"}>
-            <li>
-                Open the workflow in the <b>Workflow Designer</b> (Settings {">"} Workflows {">"} Edit).
+            <li id={"communications-in-workflows-article-li-1"}>
+                Open the workflow in the <b id={"communications-in-workflows-article-b-1"}>Workflow Designer</b> (Settings {">"} Workflows {">"} Edit).
             </li>
-            <li>
+            <li id={"communications-in-workflows-article-li-2"}>
                 Find and click the Notification step card (or add one by clicking{" "}
-                <b>Add Step</b>, click its card, and select <b>Notification</b>).
+                <b id={"communications-in-workflows-article-b-2"}>Add Step</b>, click its card, and select <b id={"communications-in-workflows-article-b-3"}>Notification</b>).
             </li>
-            <li>
-                Click <b>Select communication...</b>. The Communication Picker dialog
+            <li id={"communications-in-workflows-article-li-3"}>
+                Click <b id={"communications-in-workflows-article-b-4"}>Select communication...</b>. The Communication Picker dialog
                 opens.
             </li>
-            <li>
-                Browse <b>My Communications</b>, <b>Organization</b>, or{" "}
-                <b>Platform</b> tabs and search by name or subject.
+            <li id={"communications-in-workflows-article-li-4"}>
+                Browse <b id={"communications-in-workflows-article-b-5"}>My Communications</b>, <b id={"communications-in-workflows-article-b-6"}>Organization</b>, or{" "}
+                <b id={"communications-in-workflows-article-b-7"}>Platform</b> tabs and search by name or subject.
             </li>
-            <li>
+            <li id={"communications-in-workflows-article-li-5"}>
                 Click a communication to select it (highlighted in blue), then click{" "}
-                <b>Select Communication</b>.
+                <b id={"communications-in-workflows-article-b-8"}>Select Communication</b>.
             </li>
-            <li>
+            <li id={"communications-in-workflows-article-li-6"}>
                 The step now shows the communication's name. Add assignees as usual.
             </li>
-            <li>Click <b>Save workflow</b>.</li>
+            <li id={"communications-in-workflows-article-li-7"}>Click <b id={"communications-in-workflows-article-b-9"}>Save workflow</b>.</li>
         </ol>
 
         <h3 id={"communications-in-workflows-clearing-a-linked-communication-heading"}>Clearing a linked
             communication</h3>
         <p id={"communications-in-workflows-clearing-a-linked-communication-paragraph"}>
-            Click <b>Clear</b> next to the selected communication name. The step
+            Click <b id={"communications-in-workflows-article-b-10"}>Clear</b> next to the selected communication name. The step
             reverts to the default system message.
         </p>
 
@@ -51,10 +50,10 @@ export const communicationsInWorkflowsArticle = (
             following is true:
         </p>
         <ul id={"communications-in-workflows-fallback-behaviour-list"}>
-            <li>No communication is linked to the step.</li>
-            <li>The linked communication has been deleted.</li>
-            <li>The linked communication is inactive.</li>
-            <li>Token resolution fails (for example, a required variable is missing).</li>
+            <li id={"communications-in-workflows-article-li-8"}>No communication is linked to the step.</li>
+            <li id={"communications-in-workflows-article-li-9"}>The linked communication has been deleted.</li>
+            <li id={"communications-in-workflows-article-li-10"}>The linked communication is inactive.</li>
+            <li id={"communications-in-workflows-article-li-11"}>Token resolution fails (for example, a required variable is missing).</li>
         </ul>
         <p id={"communications-in-workflows-fallback-behaviour-paragraph-2"}>
             Fallback does not fail the workflow; the step completes and the workflow
@@ -78,9 +77,9 @@ export const communicationsInWorkflowsArticle = (
             available depend on your workflow automation access and role:
         </p>
         <ul id={"communications-in-workflows-which-communications-are-selectable-list"}>
-            <li><b>Workflow automation users</b> - their own reusable communications.</li>
-            <li><b>Organization workflow users</b> - published Org communications from their org.</li>
-            <li><b>Workflow automation users</b> - Platform communications.</li>
+            <li id={"communications-in-workflows-article-li-12"}><b id={"communications-in-workflows-article-b-11"}>Workflow automation users</b> - their own reusable communications.</li>
+            <li id={"communications-in-workflows-article-li-13"}><b id={"communications-in-workflows-article-b-12"}>Organization workflow users</b> - published Org communications from their org.</li>
+            <li id={"communications-in-workflows-article-li-14"}><b id={"communications-in-workflows-article-b-13"}>Workflow automation users</b> - Platform communications.</li>
         </ul>
         <p id={"communications-in-workflows-which-communications-are-selectable-paragraph-2"}>
             Draft org communications are not shown in the picker until they are
@@ -89,19 +88,19 @@ export const communicationsInWorkflowsArticle = (
 
         <h3 id={"communications-in-workflows-learn-more-heading"}>Learn more</h3>
         <ul id={"communications-in-workflows-learn-more-list"}>
-            <li>
+            <li id={"communications-in-workflows-article-li-15"}>
                 <a id={"communications-in-workflows-learn-more-link"}
                    href="#"
                    data-help-article="communications-overview">
-                    <b>Communications overview</b>
+                    <b id={"communications-in-workflows-article-b-14"}>Communications overview</b>
                 </a>{" "}
                 - scopes, tokens, draft/publish lifecycle.
             </li>
-            <li>
+            <li id={"communications-in-workflows-article-li-16"}>
                 <a id={"communications-in-workflows-learn-more-link-2"}
                    href="#"
                    data-help-article="step-types">
-                    <b>Step types explained</b>
+                    <b id={"communications-in-workflows-article-b-15"}>Step types explained</b>
                 </a>{" "}
                 - full reference for Notification and other step types.
             </li>

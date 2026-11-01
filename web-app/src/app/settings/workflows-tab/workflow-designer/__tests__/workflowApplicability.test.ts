@@ -66,7 +66,7 @@ describe("workflowApplicability", () =>
 
     it("saves Exchange Field conditions only for Exchange triggers", () =>
     {
-        const applicability = {fieldConditions: [fieldCondition], requirementConditions: []};
+        const applicability = {fieldConditions: [fieldCondition], requirementConditions: [] as WorkflowRequirementConditionDraft[]};
 
         expect(savedApplicability(applicability, "EXCHANGE")).toEqual({fieldConditions: [fieldCondition]});
         expect(savedApplicability(applicability, "SUBMISSION_PACKAGE")).toBeUndefined();
@@ -82,7 +82,7 @@ describe("workflowApplicability", () =>
     });
 
     it("keeps what was loaded when the trigger could not be read", () => {
-        const applicability = {fieldConditions: [], requirementConditions: [requirementCondition]};
+        const applicability = {fieldConditions: [] as WorkflowFieldConditionDraft[], requirementConditions: [requirementCondition]};
 
         expect(savedApplicability(applicability, undefined)).toEqual(applicability);
         expect(savedApplicability({fieldConditions: [], requirementConditions: []}, undefined)).toBeUndefined();

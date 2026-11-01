@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditAttribution
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

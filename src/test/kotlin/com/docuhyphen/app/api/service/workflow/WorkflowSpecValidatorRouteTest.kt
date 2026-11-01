@@ -11,11 +11,6 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.mock
 
-/**
- * Verifies that step outcome routing targets are rejected when they reference a step index that no
- * longer exists or is otherwise not a terminal `END` or an in-range index. This guards against the
- * dangling references that a designer step deletion could previously leave behind.
- */
 class WorkflowSpecValidatorRouteTest
 {
     private val triggerRepository: WorkflowTriggerEventRepository = mock()

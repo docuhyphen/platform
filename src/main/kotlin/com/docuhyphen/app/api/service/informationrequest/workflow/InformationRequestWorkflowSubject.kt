@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.informationrequest.workflow
 
 import com.docuhyphen.app.api.model.informationrequest.workflow.InformationRequestWorkflowTriggerCatalog
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 
 object InformationRequestWorkflowSubject
 {

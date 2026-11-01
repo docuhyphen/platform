@@ -18,12 +18,6 @@ interface Props
     locked?: boolean;
 }
 
-/**
- * Optional wizard step to classify a new Exchange with a published business schema and enter its
- * typed field values. Reuses the Fields tab's FieldValueEditor so the value controls stay identical.
- * Values are collected into wizard state and applied by the backend during creation (before any
- * workflow fires); this component performs no API writes of its own.
- */
 const ExchangeInitiationFieldsTab = (
     {
         schemas,
@@ -68,7 +62,8 @@ const ExchangeInitiationFieldsTab = (
     return (
         <div id="exchange-initiation-fields-tab-content"
              className={styles.container}>
-            <div className={styles.schemaRow}>
+            <div id={"exchange-initiation-fields-tab-div-1"}
+                 className={styles.schemaRow}>
                 <Field
                     id="exchange-initiation-schema-field"
                     label="Business schema"
@@ -82,14 +77,19 @@ const ExchangeInitiationFieldsTab = (
                 </Field>
             </div>
 
-            {error && <span className={styles.errorText}>{error}</span>}
+            {error && <span id={"exchange-initiation-fields-tab-span-1"}
+                            className={styles.errorText}>{error}</span>}
 
-            {loading && <Spinner size="small" label="Loading schema fields..."/>}
+            {loading && <Spinner id={"exchange-initiation-fields-tab-spinner-1"}
+                                 size="small"
+                                 label="Loading schema fields..."/>}
 
             {!loading && schemaDefinitionId && bindings.length > 0 && (
-                <div className={styles.fieldList}>
+                <div id={"exchange-initiation-fields-tab-div-2"}
+                     className={styles.fieldList}>
                     {bindings.map(binding => (
-                        <FieldValueEditor key={binding.fieldContractId}
+                        <FieldValueEditor id={`exchange-initiation-fields-tab-field-value-editor-1-${binding.fieldContractId}`}
+                                          key={binding.fieldContractId}
                                           binding={locked ? {...binding, isReadOnly: true} : binding}
                                           value={valueMap[binding.fieldContractId]}
                                           onChange={value => onValueChange(binding.fieldContractId, value)}/>
@@ -98,7 +98,8 @@ const ExchangeInitiationFieldsTab = (
             )}
 
             {!schemaDefinitionId && (
-                <Text className={styles.subText}>
+                <Text id={"exchange-initiation-fields-tab-text-1"}
+                      className={styles.subText}>
                     Select a schema to classify this Exchange and capture its field values, or continue
                     without one.
                 </Text>

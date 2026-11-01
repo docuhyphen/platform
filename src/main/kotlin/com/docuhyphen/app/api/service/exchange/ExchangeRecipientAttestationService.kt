@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestation
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientAttestationSubjectType
 import com.docuhyphen.app.api.model.entity.Share
 import com.docuhyphen.app.api.repository.exchange.ExchangeRecipientAttestationRepository
-import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
-import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
+import com.docuhyphen.app.api.model.organization.TrustedGroupValidation
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Instance
 import jakarta.inject.Inject

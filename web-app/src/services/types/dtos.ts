@@ -1,10 +1,5 @@
-﻿/**
- * Shared TypeScript interfaces mirroring backend DTOs.
- */
-import {AppUserPublicDto, ExchangeRecipientSelection} from '../../app/models/models';
+﻿import {AppUserPublicDto, ExchangeRecipientSelection} from '../../app/models/models';
 import {ExchangeShareRoleName, PrincipalGroupRoleName} from './roles';
-
-// ── Exchange Access ──
 
 export interface ExchangeAccessEntryDto
 {
@@ -46,8 +41,6 @@ export interface UpdateExchangeShareRoleRequest
     constraintsJson?: string;
 }
 
-// ── Share Constraints ──
-
 export interface ShareConstraints
 {
     can_download?: boolean;
@@ -56,8 +49,6 @@ export interface ShareConstraints
     require_mfa?: boolean;
     allowed_download_formats?: string[];   // undefined = no restriction
 }
-
-// ── Workflow decisions ──
 
 export interface WorkflowDecisionRequest
 {
@@ -83,16 +74,9 @@ export interface PendingWorkflowStep
     requestedByEmail?: string;
     requestedByName?: string;
     groupName?: string;
-    /**
-     * Server returns epoch millis. Older client paths (the realtime push
-     * fallback) populate `createdAt` with an ISO string when the notification payload
-     * carries `timestamp`, kept here for back-compat. Prefer `createdAtEpochMillis`.
-     */
     createdAt?: string;
     createdAtEpochMillis?: number;
 }
-
-// ── Personal Groups ──
 
 export interface PrincipalGroupDto
 {
@@ -138,8 +122,6 @@ export interface GroupMemberEntry
     groupRole?: PrincipalGroupRoleName;
 }
 
-// ── App Admin ──
-
 export interface AppAdminDto
 {
     assignmentId: string;
@@ -156,10 +138,6 @@ export interface GrantAppAdminRequest
     appUserId: string;
 }
 
-/**
- * A single hit from /admin/roles/app-admin-candidates. Used by the App
- * Admins picker (app-admin is a global role, not org-scoped).
- */
 export interface AppUserSearchResult
 {
     id: string;
@@ -169,6 +147,3 @@ export interface AppUserSearchResult
     avatarUrl?: string | null;
 }
 
-// ── Org Settings ──
-// NB: OrganizationSettingsV2Dto was removed; it was never consumed.
-// OrganizationDetailsTab uses the legacy `OrganizationSettingsDto` from models.tsx.

@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.model.recordpreservation.PlaceRecordPreservationHo
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
 import com.docuhyphen.app.api.model.recordpreservation.RecordPreservationKey
 import com.docuhyphen.app.api.model.recordpreservation.ReleaseRecordPreservationHoldCommand
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature

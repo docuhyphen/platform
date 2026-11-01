@@ -14,14 +14,6 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import java.util.*
 
-/**
- * Write-side for `organization_membership`, the unified replacement for the retired
- * single `AppUser.role` enum. Provisioning paths (org registration, JIT/SCIM/OAuth, admin
- * role assignment) call [assignOrgRole] to record a user's role within an organization.
- *
- * Idempotent: re-assigning updates the existing active membership's role rather than
- * inserting a duplicate (the table is unique on `(app_user_id, organization_id)`).
- */
 @ApplicationScoped
 class OrganizationMembershipService @Inject constructor(
     private val membershipRepository: OrganizationMembershipRepository,
@@ -31,16 +23,9 @@ class OrganizationMembershipService @Inject constructor(
     private val requestOwnershipChanges: InformationRequestOwnershipChangeService,
 )
 {
-    /**
-     * Users belonging to the organization (ACTIVE memberships). Replaces reads of the retired
-     * `Organization.appUsers` relationship. Includes users whose own `isActive` flag is false
-     * (membership stays ACTIVE on deactivation), so callers that need only enabled users must
-     * filter on [AppUser.isActive] themselves.
-     */
     fun membersOf(organizationId: UUID): List<AppUser> =
         appUserRepository.findByOrganizationId(organizationId)
 
-    /** True if the user holds an ACTIVE membership of the organization. */
     fun isMember(appUserId: UUID, organizationId: UUID): Boolean =
         membershipRepository.findActiveByUserAndOrg(appUserId, organizationId) != null
 
@@ -55,11 +40,6 @@ class OrganizationMembershipService @Inject constructor(
             .map { it.organizationId }
             .toSet()
 
-    /**
-     * Reserves a seat in every organization an inactive account will rejoin when enabled.
-     * Organization IDs are ordered consistently so concurrent multi-organization activations
-     * cannot acquire subscription locks in opposite orders.
-     */
     @Transactional
     fun enforceSeatsForAccountActivation(appUserId: UUID)
     {
@@ -71,7 +51,6 @@ class OrganizationMembershipService @Inject constructor(
             }
     }
 
-    /** Count of ACTIVE memberships of the organization. */
     fun activeMemberCount(organizationId: UUID): Long =
         membershipRepository.countActiveMembersOfOrg(organizationId)
 
@@ -84,24 +63,14 @@ class OrganizationMembershipService @Inject constructor(
     fun rolesOf(appUserId: UUID, organizationId: UUID): Set<OrganizationRoleName> =
         membershipRepository.findActiveByUserAndOrg(appUserId, organizationId)?.roles?.toSet().orEmpty()
 
-    /**
-     * The org the user primarily belongs to (their primary membership, else their first active
-     * one), or null if they hold no active membership. Used by org-scoped policies (e.g. the
-     * cross-org sharing gate) that need a single org context for a user.
-     */
     fun primaryOrganizationId(appUserId: UUID): UUID? =
         (membershipRepository.findPrimaryForUser(appUserId)
             ?: membershipRepository.findActiveByUser(appUserId).firstOrNull())?.organizationId
 
-    /**
-     * Map of appUserId to role name for every ACTIVE member of the org, in one query.
-     * Used to decorate member-listing DTOs without an N+1 per-user lookup.
-     */
     fun rolesOf(organizationId: UUID): Map<UUID, Set<OrganizationRoleName>> =
         membershipRepository.findActiveMembersOfOrg(organizationId)
             .associate { it.appUserId to it.roles.toSet() }
 
-    /** Removes the user's membership of an org (used when an org admin hard-deletes the user). */
     fun removeMember(appUserId: UUID, organizationId: UUID)
     {
         subscriptionGuard.requireMutation(organizationId, PlanFeature.ORGANIZATION_ADMINISTRATION)
@@ -109,12 +78,6 @@ class OrganizationMembershipService @Inject constructor(
         membershipRepository.deleteByUserAndOrg(appUserId, organizationId)
     }
 
-    /**
-     * Enabled administrators (ORG_ADMIN / ORG_OWNER) of the org: ACTIVE members whose own
-     * account is enabled (not deactivated, not deprovisioned). Used to enforce the
-     * "an organization must always retain at least one usable admin" invariant, a deactivated
-     * or deprovisioned admin can't actually administer, so they don't count toward the floor.
-     */
     fun activeAdmins(organizationId: UUID): List<AppUser>
     {
         val roles = rolesOf(organizationId)
@@ -126,10 +89,6 @@ class OrganizationMembershipService @Inject constructor(
         }
     }
 
-    /**
-     * True when [appUserId] is the *only* enabled administrator of the org, i.e. demoting,
-     * deactivating, or removing them would leave the organization with no usable admin.
-     */
     fun isLastActiveAdmin(appUserId: UUID, organizationId: UUID): Boolean
     {
         val admins = activeAdmins(organizationId)

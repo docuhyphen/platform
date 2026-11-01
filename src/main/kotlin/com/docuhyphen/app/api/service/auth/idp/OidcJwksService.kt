@@ -14,19 +14,6 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Fetches and caches provider JWKS documents, and verifies ID token signatures against them.
- *
- * Two throttles protect the outbound path, because the key id is taken from an unauthenticated
- * token supplied by whoever called the OAuth callback:
- *
- * - a minimum interval between refreshes of the same JWKS URL, so a burst of crafted key ids
- *   cannot be turned into a burst of outbound requests
- * - a negative cache of key ids that were absent from a freshly fetched document, so repeating
- *   the same unknown key id does not force repeated refreshes
- *
- * Both are per JWKS URL and expire, so genuine provider key rotation is still picked up.
- */
 @ApplicationScoped
 class OidcJwksService @Inject constructor(
     private val oidcHttpClient: OidcHttpClient,
@@ -71,8 +58,6 @@ class OidcJwksService @Inject constructor(
         {
             cached.keysByKid[kid]?.let { return it }
 
-            // The key id is unknown. Only pay for a refresh when this key id has not already
-            // been proven absent recently, and when the refresh floor has elapsed.
             if (cached.isKnownAbsent(kid, now, configurationService.getOidcJwksUnknownKidNegativeCacheSeconds()))
             {
                 return null
@@ -88,10 +73,6 @@ class OidcJwksService @Inject constructor(
         return refreshAndLookUp(jwksUrl, kid)
     }
 
-    /**
-     * Serialises refreshes per JWKS URL so a burst of concurrent callbacks produces one
-     * outbound fetch rather than one per request.
-     */
     private fun refreshAndLookUp(jwksUrl: String, kid: String): RSAPublicKey?
     {
         val lock = refreshLocks.computeIfAbsent(jwksUrl) { Any() }
@@ -100,7 +81,6 @@ class OidcJwksService @Inject constructor(
             val now = Instant.now().epochSecond
             val current = cache[jwksUrl]
 
-            // Another thread may have refreshed while this one waited on the lock.
             if (current != null && now - current.loadedAtEpochSeconds < configurationService.getOidcJwksMinRefreshIntervalSeconds())
             {
                 current.keysByKid[kid]?.let { return it }
@@ -146,7 +126,6 @@ class OidcJwksService @Inject constructor(
 
             if (kty != "RSA") return@forEach
 
-            // A key published for encryption must never be accepted as a signature key.
             if (use != null && use != "sig") return@forEach
 
             runCatching { buildRsaPublicKey(n, e) }
@@ -166,7 +145,6 @@ class OidcJwksService @Inject constructor(
         val modulus = BigInteger(1, decoder.decode(modulusB64Url))
         val exponent = BigInteger(1, decoder.decode(exponentB64Url))
 
-        // Reject undersized moduli outright rather than relying on the JWT library to notice.
         if (modulus.bitLength() < MIN_RSA_MODULUS_BITS)
         {
             throw IllegalArgumentException("RSA modulus is below the $MIN_RSA_MODULUS_BITS bit minimum")

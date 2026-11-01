@@ -2,6 +2,10 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
+import com.docuhyphen.app.api.model.subscription.CurrentSubscriptionTrialRequest
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestEligibility
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestPage
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestView
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService

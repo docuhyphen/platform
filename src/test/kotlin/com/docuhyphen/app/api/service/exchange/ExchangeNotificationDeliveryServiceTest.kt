@@ -1,7 +1,9 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.exchange.ExchangeEmailDelivery
+import com.docuhyphen.app.api.model.exchange.ExchangeInAppDelivery
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference

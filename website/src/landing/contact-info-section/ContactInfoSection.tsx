@@ -15,8 +15,10 @@ export function ContactInfoSection()
                 className={styles.wrapper}
                 aria-labelledby="home-contact-info-title"
             >
-                <div className={styles.introWrapper}>
-                    <div className={styles.intro}>
+                <div id={"contact-info-section-div-1"}
+                     className={styles.introWrapper}>
+                    <div id={"contact-info-section-div-2"}
+                         className={styles.intro}>
                         <Title2
                             id="home-contact-info-title"
                             align="start"
@@ -24,7 +26,9 @@ export function ContactInfoSection()
                         >
                             Get in touch
                         </Title2>
-                        <Text size={500} className={styles.subheading}>
+                        <Text id={"contact-info-section-text-1"}
+                              size={500}
+                              className={styles.subheading}>
                             Whether you&apos;re evaluating, mid-rollout, or already a customer, we&apos;re here to help.
                         </Text>
                     </div>
@@ -42,13 +46,19 @@ export function ContactInfoSection()
                             id="home-contact-info-sales"
                             className={styles.card}
                         >
-                            <div className={styles.cardHeader}>
-                                <div className={styles.icon}><Mail24Regular/></div>
-                                <Text as="h3" className={styles.cardTitle}>Sales</Text>
+                            <div id={"contact-info-section-div-3"}
+                                 className={styles.cardHeader}>
+                                <div id={"contact-info-section-div-4"}
+                                     className={styles.icon}><Mail24Regular id={"contact-info-section-mail24-regular-1"}/></div>
+                                <Text id={"contact-info-section-text-2"}
+                                      as="h3"
+                                      className={styles.cardTitle}>Sales</Text>
                             </div>
-                            <div className={styles.cardContent}>
-                                <Text>For pricing, procurement, and security reviews.</Text>
+                            <div id={"contact-info-section-div-5"}
+                                 className={styles.cardContent}>
+                                <Text id={"contact-info-section-text-3"}>For pricing, procurement, and security reviews.</Text>
                                 <a
+                                    id={"contact-info-section-a-1"}
                                     className={styles.link}
                                     href={SALES_EMAIL_URL}
                                 >
@@ -61,13 +71,19 @@ export function ContactInfoSection()
                             id="home-contact-info-support"
                             className={styles.card}
                         >
-                            <div className={styles.cardHeader}>
-                                <div className={styles.icon}><ChatHelp24Regular/></div>
-                                <Text as="h3" className={styles.cardTitle}>Support</Text>
+                            <div id={"contact-info-section-div-6"}
+                                 className={styles.cardHeader}>
+                                <div id={"contact-info-section-div-7"}
+                                     className={styles.icon}><ChatHelp24Regular id={"contact-info-section-chat-help24-regular-1"}/></div>
+                                <Text id={"contact-info-section-text-4"}
+                                      as="h3"
+                                      className={styles.cardTitle}>Support</Text>
                             </div>
-                            <div className={styles.cardContent}>
-                                <Text>For help with your account or technical issues.</Text>
+                            <div id={"contact-info-section-div-8"}
+                                 className={styles.cardContent}>
+                                <Text id={"contact-info-section-text-5"}>For help with your account or technical issues.</Text>
                                 <a
+                                    id={"contact-info-section-a-2"}
                                     className={styles.link}
                                     href="mailto:support@docuhyphen.com"
                                 >
@@ -80,13 +96,18 @@ export function ContactInfoSection()
                             id="home-contact-info-office"
                             className={styles.card}
                         >
-                            <div className={styles.cardHeader}>
-                                <div className={styles.icon}><Location24Regular/></div>
-                                <Text as="h3" className={styles.cardTitle}>Office</Text>
+                            <div id={"contact-info-section-div-9"}
+                                 className={styles.cardHeader}>
+                                <div id={"contact-info-section-div-10"}
+                                     className={styles.icon}><Location24Regular id={"contact-info-section-location24-regular-1"}/></div>
+                                <Text id={"contact-info-section-text-6"}
+                                      as="h3"
+                                      className={styles.cardTitle}>Office</Text>
                             </div>
-                            <div className={styles.cardContent}>
-                                <Text>
-                                    We are based in South Africa.<br/>
+                            <div id={"contact-info-section-div-11"}
+                                 className={styles.cardContent}>
+                                <Text id={"contact-info-section-text-7"}>
+                                    We are based in South Africa.<br id={"contact-info-section-br-1"}/>
                                     Available for meetings across SAST hours.
                                 </Text>
                             </div>
@@ -96,7 +117,7 @@ export function ContactInfoSection()
                     <GuidedDemoPanel idPrefix="home-contact-info"/>
                 </div>
             </section>
-            <Divider/>
+            <Divider id={"contact-info-section-divider-1"}/>
         </>
     );
 }

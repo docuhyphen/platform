@@ -43,7 +43,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     },
 
     sectionIcon: {
-        fontSize: "14px",
+        fontSize: tokens.fontSizeBase300,
         color: tokens.colorNeutralForeground3,
         flexShrink: 0,
     },
@@ -86,7 +86,7 @@ export const useExchangeAcceptanceDialogStyles = makeStyles({
     },
 
     documentIcon: {
-        fontSize: "14px",
+        fontSize: tokens.fontSizeBase300,
         color: tokens.colorNeutralForeground3,
         flexShrink: 0,
     },

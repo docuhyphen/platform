@@ -25,9 +25,6 @@ export const useGlobalStyles = makeStyles({
         height: "60px",
         top: 0,
         gap: tokens.spacingHorizontalS,
-        // Smaller screens: tighten the header and let the action cluster
-        // sit closer together so the brand logo and the persona avatar
-        // still both fit on a phone.
         "@media (max-width: 768px)": {
             padding: `0 ${tokens.spacingHorizontalS}`,
             gap: tokens.spacingHorizontalXS,

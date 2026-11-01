@@ -16,15 +16,6 @@ import java.util.UUID
 private class StableFieldPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<StableFieldPostgreSQLContainer>(imageName)
 
-/**
- * A Schema Version must describe each stable Field at most once. The released schema only prevents
- * binding the same immutable Field Contract twice, so two contract versions of one Field Definition
- * could both appear in a single version.
- *
- * These contract tests prove that the invariant reaches a database that already holds such a
- * conflict, that the resolution is recorded rather than silent, that no entered value is destroyed,
- * and that a database with nothing to resolve gains the same invariant.
- */
 class SchemaFieldBindingStableFieldContractTest
 {
     private val invariantMigrationVersion = "77"
@@ -40,7 +31,6 @@ class SchemaFieldBindingStableFieldContractTest
             postgres.createConnection("").use { connection ->
                 insertFieldsFixture(connection, fixture)
 
-                // The released schema accepts both contract versions of one field in one version.
                 insertBinding(connection, fixture.conflictedBindingV1Id, fixture.conflictedVersionId,
                     fixture.referenceContractV1Id, order = 0)
                 insertBinding(connection, fixture.conflictedBindingV2Id, fixture.conflictedVersionId,
@@ -53,7 +43,6 @@ class SchemaFieldBindingStableFieldContractTest
                 insertBinding(connection, fixture.cleanReviewBindingId, fixture.cleanVersionId,
                     fixture.reviewContractId, order = 1)
 
-                // Both sides of the conflict already hold an answer.
                 insertValue(connection, fixture, fixture.valueOnV1Id, fixture.conflictedBindingV1Id,
                     fixture.referenceContractV1Id, "First answer")
                 insertValue(connection, fixture, fixture.valueOnV2Id, fixture.conflictedBindingV2Id,
@@ -65,7 +54,6 @@ class SchemaFieldBindingStableFieldContractTest
             flyway(postgres, target = invariantMigrationVersion).migrate()
 
             postgres.createConnection("").use { connection ->
-                // The newer contract wins the tie because both sides carry the same number of values.
                 assertEquals(
                     listOf(fixture.referenceContractV2Id, fixture.reviewContractId),
                     boundContracts(connection, fixture.conflictedVersionId),
@@ -76,14 +64,11 @@ class SchemaFieldBindingStableFieldContractTest
                     reportedConflicts(connection, fixture.conflictedVersionId),
                 )
 
-                // A resolved conflict never destroys an entered answer; only the pointer to the
-                // binding that no longer exists is cleared.
                 assertEquals("First answer", valueTextOf(connection, fixture.valueOnV1Id))
                 assertNull(bindingPointerOf(connection, fixture.valueOnV1Id))
                 assertEquals(fixture.referenceContractV1Id, valueContractOf(connection, fixture.valueOnV1Id))
                 assertEquals(fixture.conflictedBindingV2Id, bindingPointerOf(connection, fixture.valueOnV2Id))
 
-                // A version that never held a conflict keeps every binding it had.
                 assertEquals(
                     listOf(fixture.referenceContractV2Id, fixture.reviewContractId),
                     boundContracts(connection, fixture.cleanVersionId),
@@ -319,10 +304,6 @@ class SchemaFieldBindingStableFieldContractTest
         }
     }
 
-    /**
-     * @param fieldDefinitionId supplied only once the invariant column exists; before the migration
-     *   the column is not part of the table.
-     */
     private fun insertBinding(
         connection: Connection,
         id: UUID,

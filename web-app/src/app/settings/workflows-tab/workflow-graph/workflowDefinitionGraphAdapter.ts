@@ -1,20 +1,3 @@
-/**
- * Transforms a `WorkflowDesignerState` into a `WorkflowGraph` for the
- * definition-preview mode.
- *
- * Rules:
- * - One Start node and one End node always present.
- * - Empty workflow: Start connected directly to End.
- * - Step render IDs namespaced as `def:{definitionId}:step:{index}`.
- * - Webhook detected from both `actionHandlerKey == WEBHOOK_DELIVER` and
- *   a future `WEBHOOK` step type (Decision 9).
- * - `WAIT_FOR_COUNTERPARTY_CLEARANCE` produces one neutral `Continue` edge via
- *   `onApprove` and no rejection edge (Decision 21).
- * - Invalid targets produce `INVALID_TARGET` nodes and are reported as warnings.
- * - Missing outcomes default to END (matches engine behaviour).
- * - Applicability is NOT rendered as a step node.
- * - All graph warnings are structural and informational only.
- */
 
 import {WorkflowDesignerState, WorkflowStepSpecDraft} from "../../../models/models.tsx";
 import {
@@ -26,12 +9,6 @@ import {
     WorkflowGraphStepKind,
 } from "./workflowGraphModels.ts";
 import {buildNodeAccessibilityLabel, parseNextStep, stepKindLabel} from "./workflowGraphUtils.ts";
-
-// ── ID helpers ─────────────────────────────────────────────────────────────────
-//
-// Render IDs are namespaced by an `idPrefix` (Decision 18) so the definition
-// preview (`def:{definitionId}`) and the frozen instance view (`inst:{instanceId}`)
-// never collide, while identical topology still produces identical layout.
 
 function withPrefix(prefix: string, suffix: string): string
 {
@@ -58,11 +35,10 @@ function invalidTargetId(prefix: string, suffix: string): string
     return withPrefix(prefix, `invalid:${suffix}`);
 }
 
-// ── Step kind classification ───────────────────────────────────────────────────
-
 function classifyStepKind(step: WorkflowStepSpecDraft): WorkflowGraphStepKind
 {
-    if (step.type === "WEBHOOK") return "WEBHOOK";
+    const storedType: string = step.type;
+    if (storedType === "WEBHOOK") return "WEBHOOK";
     if (step.type === "ACTION" && step.actionHandlerKey === WEBHOOK_DELIVER_HANDLER_KEY)
     {
         return "WEBHOOK";
@@ -77,8 +53,6 @@ function classifyStepKind(step: WorkflowStepSpecDraft): WorkflowGraphStepKind
         default: return "UNKNOWN";
     }
 }
-
-// ── Step details ──────────────────────────────────────────────────────────────
 
 function buildStepDetails(
     step: WorkflowStepSpecDraft,
@@ -104,8 +78,6 @@ function buildStepDetails(
     return details;
 }
 
-// ── Main adapter ──────────────────────────────────────────────────────────────
-
 export function buildDefinitionGraph(
     state: WorkflowDesignerState,
 ): WorkflowGraph
@@ -114,14 +86,6 @@ export function buildDefinitionGraph(
     return buildBaseGraph(state.steps, `def:${definitionId}`);
 }
 
-/**
- * Builds the shared frozen topology (Start, step nodes, branch edges, End) from a
- * list of steps under the given render-ID prefix. This is the single source of
- * topology interpretation reused by both the definition preview and the frozen
- * instance view, so equal step lists always yield equal graph shape and layout.
- * All nodes and edges are emitted in the neutral `DEFINITION` / structural state;
- * runtime overlays are applied by the instance adapter afterwards.
- */
 export function buildBaseGraph(
     steps: WorkflowStepSpecDraft[],
     prefix: string,
@@ -134,7 +98,6 @@ export function buildBaseGraph(
     const sId = startId(prefix);
     const eId = endId(prefix);
 
-    // Start node.
     nodes.push({
         id: sId,
         kind: "START",
@@ -144,7 +107,6 @@ export function buildBaseGraph(
         accessibilityLabel: "Start",
     });
 
-    // End node.
     nodes.push({
         id: eId,
         kind: "END",
@@ -156,7 +118,6 @@ export function buildBaseGraph(
 
     if (steps.length === 0)
     {
-        // Empty workflow: Start -> End.
         edges.push({
             id: withPrefix(prefix, "edge:start:end"),
             source: sId,
@@ -167,7 +128,6 @@ export function buildBaseGraph(
         return { nodes, edges, warnings };
     }
 
-    // Connect Start to step 0.
     edges.push({
         id: withPrefix(prefix, "edge:start:step:0"),
         source: sId,
@@ -176,7 +136,6 @@ export function buildBaseGraph(
         state: "DEFAULT",
     });
 
-    // Build step nodes and their outgoing edges.
     for (let i = 0; i < steps.length; i++)
     {
         const step = steps[i];
@@ -197,7 +156,6 @@ export function buildBaseGraph(
 
         if (step.type === "WAIT_FOR_COUNTERPARTY_CLEARANCE")
         {
-            // Single neutral continuation edge via onApprove; no rejection edge.
             const nextRaw = step.onApprove?.nextStep ?? "END";
             addOutgoingEdge(
                 edges, nodes, warnings,
@@ -232,7 +190,6 @@ export function buildBaseGraph(
                 "APPROVE", approveLabel, steps.length,
             );
 
-            // Rejection edge only when explicitly configured.
             if (rejectRaw !== null)
             {
                 addOutgoingEdge(
@@ -244,7 +201,6 @@ export function buildBaseGraph(
         }
         else
         {
-            // Unknown step type: fall back to onApprove.
             const nextRaw = step.onApprove?.nextStep ?? "END";
             addOutgoingEdge(
                 edges, nodes, warnings,
@@ -273,7 +229,6 @@ function addOutgoingEdge(
     const eId = endId(prefix);
     const outcomeKey = outcome.toLowerCase();
 
-    // Absent / empty outcome: engine defaults to END. No warning.
     if (nextRaw === null || nextRaw === undefined || nextRaw === "")
     {
         const edgeId = `${sId}:${outcomeKey}:end:default`;
@@ -321,7 +276,6 @@ function addOutgoingEdge(
         }
         else
         {
-            // Out-of-range index.
             const invalidId = invalidTargetId(prefix, `${sourceIndex}:${outcomeKey}`);
             const label = `Invalid target (step ${parsed})`;
 
@@ -354,7 +308,6 @@ function addOutgoingEdge(
         return;
     }
 
-    // Non-null, non-END, non-numeric: malformed target.
     const invalidId = invalidTargetId(prefix, `${sourceIndex}:${outcomeKey}:bad`);
     const label = `Invalid target ("${nextRaw}")`;
 

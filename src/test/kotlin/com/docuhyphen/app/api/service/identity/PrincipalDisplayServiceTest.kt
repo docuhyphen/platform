@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.identity.PrincipalDisplay
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import com.docuhyphen.app.api.service.user.AppUserLookupService

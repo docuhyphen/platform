@@ -10,9 +10,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.nio.file.Path
 
-/**
- * Verifies active signing, tamper rejection, key persistence, and historical-key lookup.
- */
 class LocalAuditArchiveSigningKeyProviderTest
 {
     private fun provider(tempDir: Path, keyId: String = "local-dev-key-1"): LocalAuditArchiveSigningKeyProvider

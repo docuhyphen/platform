@@ -59,8 +59,8 @@ vi.mock("../../../../context/AuthContext.tsx", async () => {
         useAuth: () => ({
             appUser: {id: "user-a", email: "member@process.test", person: {firstName: "Process", lastName: "Member"}},
             currentSession: useSyncExternalStore(auth.subscribe, auth.get),
-            token: null,
-            setToken: () => undefined,
+            token: null as string | null,
+            setToken: vi.fn(),
             switchOrganization: auth.switchOrganization,
         }),
     };

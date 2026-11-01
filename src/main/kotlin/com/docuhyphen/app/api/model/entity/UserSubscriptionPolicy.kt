@@ -5,12 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The subscription held by an individual registered account. Only the individual plans (Free
- * and Personal) are valid here; organization subscriptions live in
- * [OrganizationSubscriptionPolicy]. Temporary no-account recipients and service accounts never
- * get a row.
- */
 @Entity
 @Table(
     name = "user_subscription_policy",

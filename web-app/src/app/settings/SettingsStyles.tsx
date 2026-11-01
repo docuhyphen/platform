@@ -1,6 +1,5 @@
 import {makeStyles, tokens} from "@fluentui/react-components";
 
-/** Height of the fixed app header exch- keep in sync with GlobalStyles.mainAppHeader (60px = 3.75rem) */
 export const SETTINGS_HEADER_HEIGHT = "3.75rem";
 
 export const useSettingsStyles = makeStyles({

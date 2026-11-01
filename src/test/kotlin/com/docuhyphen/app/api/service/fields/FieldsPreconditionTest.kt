@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.fields.FieldValueSetRef
 import com.docuhyphen.app.api.model.fields.FieldsPrecondition
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.model.StoredAnswer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

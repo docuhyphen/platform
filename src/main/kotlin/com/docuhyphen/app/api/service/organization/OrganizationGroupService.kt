@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
-import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
+import com.docuhyphen.app.api.model.OrganizationGroupDtoMapper
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.PrincipalGroupDto
 import com.docuhyphen.app.api.model.dto.PrincipalGroupMemberDto
@@ -15,12 +15,12 @@ import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -31,6 +31,7 @@ import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.util.*
 
 @RequestScoped
@@ -366,13 +367,46 @@ class OrganizationGroupService @Inject constructor(
         }
     }
 
+    @Transactional
+    fun updateOrganizationGroupIcon(
+        organizationId: String,
+        groupId: String,
+        file: File?,
+        contentType: String?,
+    ): PrincipalGroupDto?
+    {
+        val iconData = principalGroupService.iconDataUrl(file, contentType)
+        return replaceOrganizationGroupIcon(organizationId, groupId, iconData)
+    }
+
+    @Transactional
+    fun removeOrganizationGroupIcon(organizationId: String, groupId: String): PrincipalGroupDto? =
+        replaceOrganizationGroupIcon(organizationId, groupId, null)
+
+    private fun replaceOrganizationGroupIcon(organizationId: String, groupId: String, iconData: String?): PrincipalGroupDto?
+    {
+        val gid = UUID.fromString(groupId)
+        val group = principalGroupRepository.findById(gid)
+            ?: throw OrganizationGroupNotFoundException("Group not found")
+        principalGroupService.replaceIcon(group, iconData)
+        return getOrganizationGroupViews(organizationId).find { it.id == gid }
+    }
+
     fun getOrganizationGroupViews(organizationId: String): List<PrincipalGroupDto>
     {
         val orgId = UUID.fromString(organizationId)
         organizationRepository.findById(orgId)
             ?: throw OrganizationNotFoundException("Organization not found for id: $organizationId")
-        return principalGroupRepository.findByOwnerOrg(orgId).map { toGroupView(it) }
+        return principalGroupRepository.findByOwnerOrg(orgId).map { group ->
+            OrganizationGroupDtoMapper.toDto(group, activeMemberDtos(group.id))
+        }
     }
+
+    private fun activeMemberDtos(groupId: UUID): List<PrincipalGroupMemberDto> =
+        principalGroupMemberRepository.findActiveMembers(groupId).map { member ->
+            val user = if (member.principalKind == PrincipalKind.USER) appUserService.getById(member.principalId) else null
+            OrganizationGroupDtoMapper.toMemberDto(member, user)
+        }
 
     private fun authorizeOrg(action: Action, organizationId: UUID)
     {
@@ -425,26 +459,6 @@ class OrganizationGroupService @Inject constructor(
         principalGroupMemberRepository.findActiveMembers(groupId)
             .filter { it.principalKind == PrincipalKind.USER }
             .map { PrincipalGroupMemberSpec(principalId = it.principalId, groupRole = it.groupRole) }
-
-    private fun toGroupView(group: PrincipalGroup): PrincipalGroupDto
-    {
-        val members = principalGroupMemberRepository.findActiveMembers(group.id).map { member ->
-            val user = if (member.principalKind == PrincipalKind.USER)
-                appUserService.getById(member.principalId)?.let { DetailedEntityToDtoTransformer.toPublicDto(it) }
-            else null
-            PrincipalGroupMemberDto(user = user, groupRole = member.groupRole)
-        }
-        return PrincipalGroupDto(
-            id = group.id,
-            createdDate = group.createdDate,
-            isActive = group.isActive,
-            name = group.name,
-            scope = group.scope.name,
-            externallyPublished = group.externallyPublished,
-            iconUrl = group.iconData,
-            members = members,
-        )
-    }
 
     private fun actorLabel(): String
     {

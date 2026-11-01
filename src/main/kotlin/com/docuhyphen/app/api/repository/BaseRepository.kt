@@ -16,14 +16,6 @@ abstract class BaseRepository<T>(private val entityClass: Class<T>)
         return entityManager.find(entityClass, id)
     }
 
-    /**
-     * Loads the entity and acquires a row-level pessimistic write lock (`SELECT ... FOR UPDATE`),
-     * refreshing its state so it reflects the exact committed row that was locked. Callers that
-     * must serialize competing transactions (concurrent decisions, SLA escalation, cancellation,
-     * and advancement) lock the parent instance and the current step before deciding whether a
-     * transition is still permitted, so only the first committer proceeds and later callers observe
-     * the already-advanced state. Returns null when no row exists.
-     */
     fun findByIdForUpdate(id: UUID): T?
     {
         val entity = entityManager.find(entityClass, id) ?: return null

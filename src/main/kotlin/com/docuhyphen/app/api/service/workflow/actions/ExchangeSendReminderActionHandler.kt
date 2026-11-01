@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
 import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.communication.AppNotificationService
 import com.docuhyphen.app.api.service.communication.EmailService
-import com.docuhyphen.app.api.service.workflow.ActionResult
+import com.docuhyphen.app.api.model.workflow.ActionResult
 import com.docuhyphen.app.api.service.workflow.WorkflowActionHandler
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -15,13 +15,6 @@ import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Built-in action handler that sends a reminder notification and email to the primary
- * recipient of the subject exchange. The recipient user id is read from the workflow
- * instance's `subjectDataJson` field (`recipientId` key).
- *
- * Register via `actionHandlerKey = "exchange.send-reminder"` in a workflow step spec.
- */
 @ApplicationScoped
 class ExchangeSendReminderActionHandler : WorkflowActionHandler
 {
@@ -50,7 +43,7 @@ class ExchangeSendReminderActionHandler : WorkflowActionHandler
             ?: return ActionResult(false, "Recipient user $recipientId not found")
 
         val subject = "Reminder: Your action is required"
-        val body = "You have a pending exchange that requires your attention. Please log in to DocuHyphen to review it."
+        val body = "You have a pending Exchange that requires your attention. Please log in to DocuHyphen to review it."
 
         appNotificationService.sendNotification(recipientId.toString(), subject, body)
         try

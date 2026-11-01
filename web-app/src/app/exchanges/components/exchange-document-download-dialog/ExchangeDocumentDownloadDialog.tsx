@@ -1,6 +1,5 @@
 ﻿import {DocumentDetailedDto, ExchangeDetailedDto} from "../../../models/models.tsx";
 import React, {useEffect, useState} from "react";
-import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {downloadExchangeDocument} from "../../../../services/exchangeApi.ts";
 import {
@@ -37,7 +36,6 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
         exchange,
     }) =>
 {
-    const token = useToken();
     const [downloadName, setDownloadName] = React.useState('');
     const [downloadingDocument, setDownloadingDocument] = React.useState(false);
     const globalStyles = useGlobalStyles()
@@ -62,7 +60,7 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
 
             link.id = 'f-download-link';
             link.href = url;
-            link.setAttribute('download', `${downloadName}.${exchangeDocument.type}`); //ToDo: get type from document
+            link.setAttribute('download', `${downloadName}.${exchangeDocument.type}`);
 
             window.document.body.appendChild(link);
 
@@ -88,19 +86,23 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
     }
 
     return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Downloading {exchangeDocument && exchangeDocument.title}</DialogTitle>
-                    <DialogContent>
+        {<Dialog modalType="alert"
+                 open={isOpen}>
+            <DialogSurface id={"exchange-document-download-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-document-download-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-document-download-dialog-dialog-title-1"}>Downloading {exchangeDocument && exchangeDocument.title}</DialogTitle>
+                    <DialogContent id={"exchange-document-download-dialog-dialog-content-1"}>
                         {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+                            <MessageBar id={"exchange-document-download-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-document-download-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-document-download-dialog-text-1"}
+                                          size={200}>{dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        <Field className={styles.downloadNameField}>
+                        <Field id={"exchange-document-download-dialog-field-1"}
+                               className={styles.downloadNameField}>
                             <Input
                                 id={"input-download-document-name"}
                                 type="text"
@@ -109,21 +111,23 @@ const ExchangeDocumentDownloadDialog: React.FC<DownloadDocumentDialogProps> = (
                                 onChange={(e) => setDownloadName(e.target.value)}
                                 placeholder="Document name"
                                 contentAfter={
-                                    <Text size={400}>
+                                    <Text id={"exchange-document-download-dialog-text-2"}
+                                          size={400}>
                                         .{exchangeDocument && (exchangeDocument?.type?.toLowerCase())}
                                     </Text>
                                 }
                             />
                         </Field>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"exchange-document-download-dialog-dialog-actions-1"}>
                         <Button id={"download-document-submit-btn"}
                                 appearance="primary"
                                 className={globalStyles.buttonWithLoading}
                                 shape={"circular"}
                                 disabled={(downloadingDocument || !downloadName || !downloadName.trim())}
                                 onClick={onDownload}>
-                            {downloadingDocument && <Spinner size={"tiny"}/>}
+                            {downloadingDocument && <Spinner id={"exchange-document-download-dialog-spinner-1"}
+                                                             size={"tiny"}/>}
                             Download
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

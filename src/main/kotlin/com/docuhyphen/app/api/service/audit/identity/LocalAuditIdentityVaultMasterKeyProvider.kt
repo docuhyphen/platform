@@ -10,11 +10,6 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
-/**
- * Local-filesystem master key provider: bootstraps a single random AES-256 key on first use and
- * persists it base64-encoded under [AuditIdentityVaultConfigService.getLocalDirectory]. Dev/CI
- * default; set `app.audit.identity-vault.provider=aws` in a real deployment.
- */
 @ApplicationScoped
 @Local
 class LocalAuditIdentityVaultMasterKeyProvider @Inject constructor(

@@ -1,12 +1,8 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * Builds the refusals produced by commercial plan checks.
- *
- * Wording explains the current allowance and the plan that lifts it rather than implying the
- * caller lacks permission, because a plan refusal is a commercial outcome and not an
- * authorization failure.
- */
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
+
 object SubscriptionDenialFactory
 {
     fun featureNotIncluded(

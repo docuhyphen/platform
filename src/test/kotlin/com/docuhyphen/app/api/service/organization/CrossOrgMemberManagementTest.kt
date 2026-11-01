@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.entity.AuthToken
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.auth.UserRoleService
@@ -75,8 +75,6 @@ class CrossOrgMemberManagementTest
         `when`(userRoleService.isOrgAdminIn(actorId, orgBId)).thenReturn(false)
     }
 
-    // Negative: actor is ORG_ADMIN of Org A, targets Org B
-
     @Test
     fun `addAppUser targeting foreign org is denied`()
     {
@@ -113,8 +111,6 @@ class CrossOrgMemberManagementTest
         assert(ex.message!!.contains("does not have permission")) { ex.message.orEmpty() }
     }
 
-    // Positive: same actor, own org passes the auth gate
-
     @Test
     fun `addAppUser targeting own org passes auth gate`()
     {
@@ -122,7 +118,6 @@ class CrossOrgMemberManagementTest
         `when`(organizationGroupService.getOrganizationById(orgAId)).thenReturn(org)
         `when`(organizationMembershipService.membersOf(orgAId)).thenReturn(emptyList())
 
-        // Auth passes; empty roles triggers the next validation, not an auth error.
         val ex = assertThrows<IllegalArgumentException> {
             service.addAppUser(orgAId.toString(), emptySet(), "u@test.com", "A", "B", approvalCtx)
         }
@@ -209,7 +204,6 @@ class CrossOrgMemberManagementTest
     @Test
     fun `updateAppUser targeting own org passes auth gate`()
     {
-        // Auth passes; null appUserId triggers the next validation, not an auth error.
         val ex = assertThrows<IllegalArgumentException> {
             service.updateAppUser(orgAId.toString(), null, emptySet(), emptySet(), true, null, "A", "B", approvalCtx)
         }
@@ -221,7 +215,6 @@ class CrossOrgMemberManagementTest
     @Test
     fun `deleteAppUser targeting own org passes auth gate`()
     {
-        // Auth passes; null appUserId triggers the next validation, not an auth error.
         val ex = assertThrows<IllegalArgumentException> {
             service.deleteAppUser(orgAId.toString(), null, approvalCtx)
         }

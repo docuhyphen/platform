@@ -12,13 +12,6 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
-/**
- * Local-filesystem [AuditArchiveSigningKeyProvider]: bootstraps a single RSA-2048 key pair on
- * first use and persists it as PEM under [AuditArchiveConfigService.getLocalSigningDirectory].
- * This is the default so the archiver/verifier round trip works out of the box in dev/CI; a real
- * deployment should set `app.audit.archive.signing.provider=aws` to use
- * [SecretsManagerAuditArchiveSigningKeyProvider] instead.
- */
 @ApplicationScoped
 @Local
 class LocalAuditArchiveSigningKeyProvider @Inject constructor(

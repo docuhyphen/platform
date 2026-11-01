@@ -75,19 +75,19 @@ class AuditArchiverTest
                 actorKind = "HUMAN"
                 payloadJson = """{"field":"value-$sequence"}"""
                 when (val owner = LedgerProcessor.ownerOfStream(streamId)) {
-                    com.docuhyphen.app.api.service.audit.AuditOwnerScope.Platform -> {
+                    com.docuhyphen.app.api.model.audit.AuditOwnerScope.Platform -> {
                         ownerType = "PLATFORM"
                         ownerId = null
                         organizationId = null
                     }
 
-                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Personal -> {
+                    is com.docuhyphen.app.api.model.audit.AuditOwnerScope.Personal -> {
                         ownerType = "USER"
                         ownerId = owner.userId
                         organizationId = null
                     }
 
-                    is com.docuhyphen.app.api.service.audit.AuditOwnerScope.Organization -> {
+                    is com.docuhyphen.app.api.model.audit.AuditOwnerScope.Organization -> {
                         ownerType = "ORGANIZATION"
                         ownerId = owner.organizationId
                         organizationId = owner.organizationId

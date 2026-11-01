@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.capability.InformationRequestCapability
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateMutationContext
 import com.docuhyphen.app.api.repository.informationrequest.template.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.command.CommandReceiptService
 import com.docuhyphen.app.api.service.informationrequest.template.model.PublicationStoredDraft

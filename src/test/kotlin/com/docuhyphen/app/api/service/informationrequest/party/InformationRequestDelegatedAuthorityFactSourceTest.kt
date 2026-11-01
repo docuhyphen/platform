@@ -1,10 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
 import com.docuhyphen.app.api.model.entity.InformationRequestDelegatedAuthority
-import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementDelegatedAuthorityFact
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestDelegatedAuthorityRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.eq

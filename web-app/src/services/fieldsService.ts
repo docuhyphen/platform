@@ -1,5 +1,6 @@
 import axios from 'axios';
 import apiClient from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     FieldContractDto,
     FieldDataClassification,
@@ -98,7 +99,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

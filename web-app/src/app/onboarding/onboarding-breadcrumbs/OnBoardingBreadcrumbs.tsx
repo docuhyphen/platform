@@ -23,6 +23,7 @@ const BreadcrumbItem: React.FC<BreadcrumbItemProps> = (
     const styles = useOnboardingBreadcrumbsStyles();
     return (
         <div
+            id={"on-boarding-breadcrumbs-div-1"}
             className={mergeClasses(
                 styles.onBoardingBreadcrumbItem,
                 disabled && styles.onBoardingBreadcrumbItemDisabled)}>
@@ -40,7 +41,8 @@ const BreadcrumbItem: React.FC<BreadcrumbItemProps> = (
                 </>
             }
 
-            <Text className={mergeClasses(
+            <Text id={"on-boarding-breadcrumbs-text-1"}
+                  className={mergeClasses(
                 styles.onBoardingBreadcrumbItemText,
                 isCurrentStep && styles.onBoardingBreadcrumbItemCurrent)}>
                 {text}
@@ -70,7 +72,8 @@ const OnBoardingBreadcrumbs: React.FC<OnBoardingBreadcrumbsProps> = (
     const styles = useOnboardingBreadcrumbsStyles();
 
     return (
-        <div className={styles.onBoardingBreadcrumbs}>
+        <div id={"on-boarding-breadcrumbs-div-2"}
+             className={styles.onBoardingBreadcrumbs}>
             <BreadcrumbItem text="Sign Up"/>
             <BreadcrumbItem
                 text="Sign In"/>

@@ -13,16 +13,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Personal contacts list per AppUser.
- *
- * Writes are reciprocity-gated: a contact entry is only created when a exchange
- * recipient *accepts*. Initiation alone never produces a contact entry, that's the spam-
- * resistance invariant. Call [recordMutualOnAccept] from the accept path only.
- *
- * Reads are exposed read-only via [searchContacts] and [recentContacts] and used by the
- * recipient picker. Read endpoints are guarded by DirectoryLookupGuardService.
- */
 @ApplicationScoped
 class UserContactService @Inject constructor(
     private val userContactRepository: UserContactRepository,
@@ -34,29 +24,9 @@ class UserContactService @Inject constructor(
         private val logger = LoggerFactory.getLogger(UserContactService::class.java)
     }
 
-    /**
-     * Records the mutual contact relationship between [initiator] and [recipient] after
-     * the recipient accepts a exchange.
-     *
-     * - The initiator-side entry (owner=initiator, contact=recipient) is always written.
-     * - The recipient-side entry is **skipped when the recipient is still a temp AppUser**
-     *   ([AppUser.isTemporary] == true). It will be seeded by the signup-merge step when
-     *   that user creates a real account.
-     *
-     * If [recipient] is a temp placeholder but a real (non-temporary) account exists with
-     * the same email (i.e. they accepted via the no-auth flow while already registered),
-     * the real account is used so that [contactAppUserId] is populated immediately and
-     * the contact becomes usable for group membership without waiting for a signup-merge.
-     *
-     * Wrapped in runCatching at each side so a contact-write failure can never roll back
-     * the accept transaction. Idempotent: a repeated call bumps shareCount and lastSharedAt.
-     */
     @Transactional
     fun recordMutualOnAccept(initiator: AppUser, recipient: AppUser, exchangeId: UUID)
     {
-        // If the recipient accepted via the no-auth flow they may be a temp placeholder even
-        // when a real registered account exists for that email.  Resolve to the real account
-        // so contactAppUserId is set correctly from the start.
         val effectiveRecipient = if (!recipient.isTemporary) recipient
         else recipient.email.normalizeEmailOrNull()
             ?.let { appUserRepository.findActiveByEmail(it) }
@@ -67,8 +37,6 @@ class UserContactService @Inject constructor(
 
         if (effectiveRecipient.isTemporary)
         {
-            // Still a temp user (no real account found yet); recipient-side entry
-            // deferred until they sign up via seedContactsAfterSignup.
             return
         }
 
@@ -76,10 +44,6 @@ class UserContactService @Inject constructor(
             .onFailure { logger.warn("Failed to record recipient-side contact for session={}", exchangeId, it) }
     }
 
-    /**
-     * Used by the signup-merge step to seed the recipient-side contact entry for past
-     * accepted sessions where the recipient was a temp AppUser at the time of accept.
-     */
     @Transactional
     fun recordOneWayFromSignupMerge(owner: AppUser, contact: AppUser, exchangeId: UUID)
     {
@@ -112,7 +76,6 @@ class UserContactService @Inject constructor(
         }
         else
         {
-            // Bump usage stats and refresh the cached name/id in case they've changed since.
             existing.lastSharedAt = now
             existing.shareCount = existing.shareCount + 1
             existing.lastSessionId = exchangeId
@@ -136,20 +99,11 @@ class UserContactService @Inject constructor(
         return userContactRepository.findRecentByOwner(ownerAppUserId, limit)
     }
 
-    /**
-     * Of the supplied contact user ids, returns those that currently have a stored profile
-     * picture, so a contact list can be enriched with avatars in a single lookup.
-     */
     fun findContactIdsWithAvatar(contactAppUserIds: Collection<UUID>): Set<UUID>
     {
         return appUserRepository.findIdsWithAvatar(contactAppUserIds)
     }
 
-    /**
-     * Backfills `contactAppUserId` on every row across the platform whose email matches
-     * [contactEmail]. Used during the temp-user signup-merge so the picker can join to
-     * the real account afterward.
-     */
     fun backfillContactAppUserIdForEmail(contactEmail: String, newContactAppUserId: UUID): Int
     {
         val normalized = contactEmail.normalizeEmailOrNull() ?: return 0

@@ -7,11 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-/**
- * Sends operational emails that require App Administrator awareness to the earliest effective
- * APP_ADMIN account in the database. Recipient resolution is centralized here so registration,
- * organization, subscription, and public enquiry flows use one deterministic delivery policy.
- */
 @ApplicationScoped
 class AppAdminNotificationService @Inject constructor(
     private val userRoleService: UserRoleService,

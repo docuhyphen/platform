@@ -3,6 +3,8 @@ package com.docuhyphen.app.api.service.notification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
 import com.docuhyphen.app.api.model.entity.NotificationDeliveryLog
 import com.docuhyphen.app.api.model.entity.NotificationDeliveryOutcome
+import com.docuhyphen.app.api.model.notification.ChannelSendResult
+import com.docuhyphen.app.api.model.notification.DeliveryTask
 import com.docuhyphen.app.api.repository.notification.NotificationDeliveryLogRepository
 import com.docuhyphen.app.api.repository.notification.OrganizationNotificationChannelRepository
 import com.docuhyphen.app.api.service.notification.channels.NotificationChannel
@@ -15,14 +17,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Dispatches a batch of [DeliveryTask]s. For each task:
- *   1. Pick the [NotificationChannel] bean matching the task's channel type.
- *   2. Invoke `send(task)`; capture outcome.
- *   3. Persist a [NotificationDeliveryLog] row.
- *   4. On `FAILED`, walk the org-level fallback chain (see [OrganizationNotificationChannel.fallbackChain])
- *      until something delivers or the chain is exhausted.
- */
 @ApplicationScoped
 class DeliveryDispatcher
 {
@@ -41,18 +35,12 @@ class DeliveryDispatcher
     fun dispatch(task: DeliveryTask)
     {
         val outcome = attempt(task, attemptNumber = 1)
-        // On a hard failure of the primary channel, walk the org's configured
-        // fallback chain (e.g. SLACK,IN_APP,EMAIL) until one channel delivers.
         if (outcome is ChannelSendResult.Failed)
         {
             walkFallbackChain(task)
         }
     }
 
-    /**
-     * Send [task] via its channel bean and record the outcome under [attemptNumber].
-     * Returns the channel result so the caller can decide whether to fall back.
-     */
     private fun attempt(task: DeliveryTask, attemptNumber: Int): ChannelSendResult
     {
         val channelBean = channels.firstOrNull { it.type == task.channel }
@@ -89,13 +77,6 @@ class DeliveryDispatcher
         return outcome
     }
 
-    /**
-     * After the primary channel fails, resolve the org-level fallback chain configured on
-     * the failed channel's [com.docuhyphen.app.api.model.entity.OrganizationNotificationChannel]
-     * row and try each subsequent channel in order until one delivers (or the chain is
-     * exhausted). The org context comes from the event itself; events without an org carry
-     * no fallback configuration so nothing is attempted.
-     */
     private fun walkFallbackChain(task: DeliveryTask)
     {
         val orgId = runCatching { task.event.organizationId?.let(UUID::fromString) }.getOrNull()
@@ -115,10 +96,9 @@ class DeliveryDispatcher
         var attemptNumber = 2
         for (fallbackChannel in chain)
         {
-            if (!tried.add(fallbackChannel)) continue   // skip the primary + any duplicates
+            if (!tried.add(fallbackChannel)) continue
             val result = attempt(task.copy(channel = fallbackChannel), attemptNumber)
             attemptNumber++
-            // Stop as soon as a channel doesn't hard-fail (delivered / suppressed / quiet-hours).
             if (result !is ChannelSendResult.Failed) return
         }
         logger.warn(
@@ -148,16 +128,5 @@ class DeliveryDispatcher
     }
 }
 
-/** Channel-level send result. Outcome rolls up into [NotificationDeliveryOutcome] in the log. */
-sealed class ChannelSendResult
-{
-    object Delivered : ChannelSendResult()
-    object Suppressed : ChannelSendResult()
-    object QuietHours : ChannelSendResult()
-    data class Failed(val errorMessage: String) : ChannelSendResult()
-}
-
-/** Suppress unused-warning for the channel-type import. */
 @Suppress("unused")
 private val keep = NotificationChannelType.IN_APP
-

@@ -14,12 +14,16 @@ const NoAuthExchangeHeader: React.FC = () =>
             id={"no-auth-exchange-header"}
             className={styles.container}
         >
-            <div className={styles.brandContainer}>
+            <div id={"no-auth-exchange-header-div-1"}
+                 className={styles.brandContainer}>
                 <AppLogo/>
-                <Text className={styles.secureRequestLabel}>Secure Exchange</Text>
+                <Text id={"no-auth-exchange-header-text-1"}
+                      className={styles.secureRequestLabel}>Secure Exchange</Text>
             </div>
-            <div className={styles.signInButtonContainer}>
-                <Text className={styles.signInPrompt}>Already have an account?</Text>
+            <div id={"no-auth-exchange-header-div-2"}
+                 className={styles.signInButtonContainer}>
+                <Text id={"no-auth-exchange-header-text-2"}
+                      className={styles.signInPrompt}>Already have an account?</Text>
                 <Button
                     id={"no-auth-exchange-header-sign-in-btn"}
                     onClick={() => navigate('/sign-in')}

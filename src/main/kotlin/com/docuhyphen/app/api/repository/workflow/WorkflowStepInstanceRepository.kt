@@ -11,11 +11,6 @@ import java.util.*
 class WorkflowStepInstanceRepository :
     BaseRepository<WorkflowStepInstance>(WorkflowStepInstance::class.java)
 {
-    /**
-     * Returns just the parent instance id for a step, without loading the managed step entity.
-     * Used by decision recording to discover which instance to lock first, preserving a consistent
-     * instance-before-step lock order that avoids deadlocks with escalation and cancellation.
-     */
     fun findInstanceIdById(stepInstanceId: UUID): UUID? =
         entityManager.createQuery(
             "SELECT s.instanceId FROM WorkflowStepInstance s WHERE s.id = :id",
@@ -58,10 +53,6 @@ class WorkflowStepInstanceRepository :
             .resultList
             .firstOrNull()
 
-    /**
-     * Every PENDING step instance. Used by the scheduler for addon (reminder) processing,
-     * which must visit all pending steps. Capped at 1000.
-     */
     fun findAllPending(): List<WorkflowStepInstance> =
         entityManager.createQuery(
             """SELECT s FROM WorkflowStepInstance s
@@ -73,11 +64,6 @@ class WorkflowStepInstanceRepository :
             .setMaxResults(1000)
             .resultList
 
-    /**
-     * PENDING step instances on which [userId] can act: either a direct USER assignee or a
-     * member of an assignee PRINCIPAL_GROUP (passed in as [groupIds]). Backed by the indexed
-     * workflow_step_assignee table, replacing the former scan-all-pending + in-memory filter.
-     */
     fun findPendingForAssignee(userId: UUID, groupIds: Collection<UUID>): List<WorkflowStepInstance>
     {
         val groupClause =
@@ -103,10 +89,6 @@ class WorkflowStepInstanceRepository :
         return query.setMaxResults(1000).resultList
     }
 
-    /**
-     * All AWAITING_COUNTERPARTY step instances whose parent instance targets the given subject.
-     * Used by the counterparty-clearance unblock sweep after any instance on the subject terminates.
-     */
     fun findAwaitingCounterpartyForSubject(resourceType: String, resourceId: UUID): List<WorkflowStepInstance> =
         entityManager.createQuery(
             """SELECT s FROM WorkflowStepInstance s, WorkflowInstance i

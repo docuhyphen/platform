@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.repository.subscription.OrganizationSubscriptionPolicyRepository
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import com.docuhyphen.app.api.repository.subscription.UserSubscriptionPolicyRepository
@@ -13,11 +14,6 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-/**
- * A platform-administered feature decision belongs to the owner it was recorded against, and the
- * lookup has to ask about that owner specifically. Reading by id alone would let an organization and
- * an individual account that happen to share an id inherit each other's decisions.
- */
 class SubscriptionPolicyServiceFeatureOverrideTest
 {
     private val organizationId: UUID = UUID.randomUUID()

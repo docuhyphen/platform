@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
 import com.docuhyphen.app.api.model.auth.authz.Grant
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.InformationRequestDelegatedAuthority
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementPolicyFacts

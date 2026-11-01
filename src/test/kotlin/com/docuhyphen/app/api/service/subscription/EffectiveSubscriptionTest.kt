@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull

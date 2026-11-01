@@ -15,7 +15,6 @@ interface AuditEventsSectionProps
     scope: AuditScope;
 }
 
-/** Search/filter + paginated results section of the Audit workspace. */
 const AuditEventsSection = (
     {
         scope,
@@ -51,12 +50,12 @@ const AuditEventsSection = (
     useEffect(() =>
     {
         reset();
-        // Re-search whenever the filter selection changes; `reset` itself is stable per hook.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [categories, occurredAfter, occurredBefore, scope]);
 
     return (
-        <div id={"audit-events-section"} className={styles.container}>
+        <div id={"audit-events-section"}
+             className={styles.container}>
             <AuditEventsFilters
                 categories={categories}
                 occurredAfter={occurredAfter}
@@ -66,7 +65,8 @@ const AuditEventsSection = (
                 onOccurredBeforeChange={setOccurredBefore}
             />
 
-            {error && <Text id={"audit-events-error"} className={styles.errorText}>{error}</Text>}
+            {error && <Text id={"audit-events-error"}
+                            className={styles.errorText}>{error}</Text>}
 
             <AuditEventTable
                 items={items}

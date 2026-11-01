@@ -25,20 +25,25 @@ const NoAuthExchangeWorkspace: React.FC<NoAuthExchangeWorkspaceProps> = ({exchan
                 id={"no-auth-exchange-document-workspace"}
                 className={styles.documentWorkspace}
             >
-                <div className={styles.workspaceHeading}>
-                    <div className={styles.workspaceTitleGroup}>
+                <div id={"no-auth-exchange-workspace-div-1"}
+                     className={styles.workspaceHeading}>
+                    <div id={"no-auth-exchange-workspace-div-2"}
+                         className={styles.workspaceTitleGroup}>
                         <Text
+                            id={"no-auth-exchange-workspace-text-1"}
                             size={600}
                             weight={"semibold"}
                         >
                             Exchange documents
                         </Text>
-                        <Text className={styles.workspaceDescription}>
+                        <Text id={"no-auth-exchange-workspace-text-2"}
+                              className={styles.workspaceDescription}>
                             Review available documents or upload a file where one is needed.
                         </Text>
                     </div>
                 </div>
-                <NoAuthExchangeDocumentList exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
+                <NoAuthExchangeDocumentList exchange={exchange}
+                                            onDocumentUploaded={onDocumentUploaded}/>
             </div>
         </main>
     );

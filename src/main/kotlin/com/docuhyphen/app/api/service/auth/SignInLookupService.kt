@@ -94,10 +94,6 @@ class SignInLookupService @Inject constructor(
         throw SignInLookupRateLimitedException("Too many requests. Please try again later.")
     }
 
-    /**
-     * Flags directory harvesting: many different addresses probed from one origin in a short
-     * window looks nothing like a person signing in, even when each individual budget is intact.
-     */
     private fun enforceDistinctEmailProbeLimit(clientIp: String, email: String, requestId: String?)
     {
         val distinctProbes = authRateLimitService.countDistinct(

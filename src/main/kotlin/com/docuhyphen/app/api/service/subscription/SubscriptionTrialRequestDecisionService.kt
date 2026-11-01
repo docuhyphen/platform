@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestView
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

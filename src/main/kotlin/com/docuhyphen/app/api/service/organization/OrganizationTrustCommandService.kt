@@ -4,6 +4,7 @@ import com.docuhyphen.app.api.exception.OrganizationTrustValidationException
 import com.docuhyphen.app.api.model.dto.OrganizationTrustPoliciesDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
 import com.docuhyphen.app.api.model.entity.OrganizationTrustDecision
+import com.docuhyphen.app.api.model.organization.OrganizationTrustPolicyUpdate
 import com.docuhyphen.app.api.resource.model.OrganizationTrustPolicyUpdateRequest
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import jakarta.enterprise.context.ApplicationScoped

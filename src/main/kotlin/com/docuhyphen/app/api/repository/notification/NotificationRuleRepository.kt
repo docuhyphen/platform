@@ -9,7 +9,6 @@ import java.util.*
 @ApplicationScoped
 class NotificationRuleRepository : BaseRepository<NotificationRule>(NotificationRule::class.java)
 {
-    /** Active rules that could match the given event, ordered by priority (lowest first wins for SUPPRESS chains). */
     fun findActiveForEvent(eventType: String, organizationId: UUID?): List<NotificationRule>
     {
         val app = entityManager.createQuery(

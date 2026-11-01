@@ -2,7 +2,10 @@ package com.docuhyphen.app.api.service.informationrequest.lifecycle
 
 import com.docuhyphen.app.api.exception.InformationRequestCommandRequestException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.command.CommandReceiptRequest
 import com.docuhyphen.app.api.model.entity.*
@@ -13,13 +16,15 @@ import com.docuhyphen.app.api.model.informationrequest.capability.InformationReq
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.*
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestCredentialCutoff
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.*
@@ -44,7 +49,7 @@ import com.docuhyphen.app.api.service.informationrequest.noauth.InformationReque
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestTrustedRecipientEligibilityService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestFieldAudienceGuard
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStart
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import com.docuhyphen.app.api.service.subscription.*
 import org.junit.jupiter.api.Assertions.*

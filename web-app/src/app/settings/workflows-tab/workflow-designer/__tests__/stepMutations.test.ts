@@ -7,8 +7,6 @@ import {
     remapOutcomeForDeletion,
 } from "../stepMutations.ts";
 
-// ── helpers ─────────────────────────────────────────────────────────────────
-
 const approval = (
     name: string,
     onApprove?: string,
@@ -42,8 +40,6 @@ const wait = (name: string, onApprove?: string): WorkflowStepSpecDraft => ({
     ...(onApprove !== undefined ? {onApprove: {nextStep: onApprove}} : {}),
 });
 
-// ── remapOutcomeForDeletion ───────────────────────────────────────────────────
-
 describe("remapOutcomeForDeletion", () =>
 {
     it("rewrites a reference to the deleted step to END", () =>
@@ -74,8 +70,6 @@ describe("remapOutcomeForDeletion", () =>
     });
 });
 
-// ── deleteStepAndRemap ────────────────────────────────────────────────────────
-
 describe("deleteStepAndRemap", () =>
 {
     it("deleting an unrelated later step preserves existing routes", () =>
@@ -89,7 +83,6 @@ describe("deleteStepAndRemap", () =>
 
     it("deleting a step before a referenced target decrements the target index", () =>
     {
-        // Step 0 routes to step 2; deleting step 1 should leave that route pointing at step 1.
         const steps = [approval("A", "2", "END"), approval("B", "END"), approval("C", "END")];
         const result = deleteStepAndRemap(steps, 1);
         expect(result).toHaveLength(2);
@@ -136,8 +129,6 @@ describe("deleteStepAndRemap", () =>
     });
 });
 
-// ── findRoutesReferencingStep ─────────────────────────────────────────────────
-
 describe("findRoutesReferencingStep", () =>
 {
     it("lists every route that points at the target step", () =>
@@ -167,8 +158,6 @@ describe("findRoutesReferencingStep", () =>
         expect(findRoutesReferencingStep(steps, 1)).toEqual([]);
     });
 });
-
-// ── findStepsWithInvalidRoutes ────────────────────────────────────────────────
 
 describe("findStepsWithInvalidRoutes", () =>
 {

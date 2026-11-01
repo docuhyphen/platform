@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.model.informationrequest.party
 import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestDelegatedAuthority
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.sql.Timestamp
 import java.util.*
 

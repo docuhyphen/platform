@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.user
 
+import com.docuhyphen.app.api.resource.user.operations.PlatformUserSubscriptionTrialResourceOperations
 import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.POST
 import jakarta.ws.rs.DELETE
@@ -13,7 +14,7 @@ class PlatformUserSubscriptionTrialResourceContractTest
     @Test
     fun `user trial endpoints use resource based paths and verbs`()
     {
-        val resource = PlatformUserSubscriptionTrialResource::class.java
+        val resource = PlatformUserSubscriptionTrialResourceOperations::class.java
         assertEquals(
             "/platform/users/{appUserId}/subscription-trials",
             resource.getAnnotation(Path::class.java).value,

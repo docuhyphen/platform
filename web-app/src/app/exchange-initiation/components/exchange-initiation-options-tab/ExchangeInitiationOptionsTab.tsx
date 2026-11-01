@@ -44,9 +44,11 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
     const styles = useExchangeInitiationStyles();
 
     return (
-        <div className={styles.sharingOptionsTapContent}>
-            <Divider alignContent="start">Exchange options</Divider>
-            <Field>
+        <div id={"exchange-initiation-options-tab-div-1"}
+             className={styles.sharingOptionsTapContent}>
+            <Divider id={"exchange-initiation-options-tab-divider-1"}
+                     alignContent="start">Exchange options</Divider>
+            <Field id={"exchange-initiation-options-tab-field-1"}>
                 <Switch
                     id={"exchange-require-sign-in-switch"}
                     label="Require recipient sign in"
@@ -55,8 +57,9 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     disabled={locked}
                 />
             </Field>
-            <Divider alignContent="start">Document options</Divider>
-            <Field>
+            <Divider id={"exchange-initiation-options-tab-divider-2"}
+                     alignContent="start">Document options</Divider>
+            <Field id={"exchange-initiation-options-tab-field-2"}>
                 <Switch
                     id={"exchange-allow-additions-switch"}
                     label="Allow document additions"
@@ -65,7 +68,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     disabled={locked}
                 />
             </Field>
-            <Field>
+            <Field id={"exchange-initiation-options-tab-field-3"}>
                 <Switch
                     id={"exchange-allow-deletions-switch"}
                     label="Allow document deletions"
@@ -74,7 +77,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     disabled={locked}
                 />
             </Field>
-            <Field>
+            <Field id={"exchange-initiation-options-tab-field-4"}>
                 <Switch
                     id={"exchange-allow-download-switch"}
                     label="Allow document download"
@@ -90,7 +93,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     disabled={locked}
                 />
             )}
-            <Field>
+            <Field id={"exchange-initiation-options-tab-field-5"}>
                 <Switch
                     id={"exchange-allow-update-switch"}
                     label="Allow document update"
@@ -99,7 +102,7 @@ const SharingOptionsTab: React.FC<SharingOptionsTabProps> = (
                     disabled={locked}
                 />
             </Field>
-            <Field>
+            <Field id={"exchange-initiation-options-tab-field-6"}>
                 <Switch
                     id={"exchange-allow-upload-switch"}
                     label="Allow document upload"

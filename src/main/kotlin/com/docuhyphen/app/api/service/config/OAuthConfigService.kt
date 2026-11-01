@@ -5,23 +5,9 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.util.*
 
-/**
- * OAuth provider, OIDC validation, application-token, audit, and SCIM/directory
- * configuration properties.
- *
- * Extracted from [ConfigurationService] to keep each CDI bean's generated constructor
- * well under the JVM 64 KB method bytecode limit (Quarkus ArC generates one Supplier<T>
- * per @ConfigProperty constructor parameter in the *_Bean wrapper class).
- */
 @ApplicationScoped
 class OAuthConfigService @Inject constructor(
 
-    // --- Microsoft OAuth ---
-    // Optional<String>: SmallRye Config 3.x converts "" → null via BuiltInConverter and
-    // rejects null injection into a plain String parameter (Kotlin nullable annotations
-    // are invisible to SmallRye). Optional<String> is the MicroProfile-blessed way to
-    // declare an optional config value,  empty/missing both become Optional.empty().
-    // Getters below coerce to "" so all 42 downstream callers continue to see non-null Strings.
     @ConfigProperty(name = "app.oauth.microsoft.client-id")
     private val microsoftOAuthClientId: Optional<String>,
 
@@ -34,7 +20,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oauth.microsoft.redirect-uri")
     private val microsoftOAuthRedirectUri: Optional<String>,
 
-    // --- Google OAuth ---
     @ConfigProperty(name = "app.oauth.google.client-id")
     private val googleOAuthClientId: Optional<String>,
 
@@ -44,7 +29,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oauth.google.redirect-uri")
     private val googleOAuthRedirectUri: Optional<String>,
 
-    // --- OIDC validation ---
     @ConfigProperty(name = "app.oidc.validation.require-azp-when-multi-aud", defaultValue = "true")
     private val oidcRequireAzpWhenMultiAudConfig: Boolean,
 
@@ -60,10 +44,6 @@ class OAuthConfigService @Inject constructor(
     )
     private val oidcRequiredClaimsMicrosoftConfig: String,
 
-    // --- Microsoft email trust ---
-    // Microsoft never asserts that `email`/`preferred_username` is owned by the signing tenant
-    // unless `xms_edov` is present and true. Multi-tenant placeholders therefore cannot be
-    // allowed to mint platform identities from an arbitrary attacker-controlled tenant.
     @ConfigProperty(name = "app.oidc.microsoft.allow-multi-tenant", defaultValue = "false")
     private val microsoftAllowMultiTenantConfig: Boolean,
 
@@ -73,7 +53,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oidc.microsoft.allow-preferred-username-as-email", defaultValue = "false")
     private val microsoftAllowPreferredUsernameAsEmailConfig: Boolean,
 
-    // --- Provider HTTP client ---
     @ConfigProperty(name = "app.oidc.http.connect-timeout-seconds", defaultValue = "5")
     private val oidcHttpConnectTimeoutSecondsConfig: Long,
 
@@ -86,7 +65,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.oidc.jwks.unknown-kid-negative-cache-seconds", defaultValue = "300")
     private val oidcJwksUnknownKidNegativeCacheSecondsConfig: Long,
 
-    // --- Application tokens ---
     @ConfigProperty(name = "app.auth.application.default-scopes", defaultValue = "application:api")
     private val applicationTokenDefaultScopesConfig: String,
 
@@ -102,7 +80,6 @@ class OAuthConfigService @Inject constructor(
     @ConfigProperty(name = "app.auth.application.allowed-endpoint-prefixes")
     private val applicationTokenAllowedEndpointPrefixesConfig: String,
 
-    // --- SCIM / Directory ---
     @ConfigProperty(name = "app.scim.bearer-token")
     private val scimBearerTokenConfig: Optional<String>,
 
@@ -156,7 +133,6 @@ class OAuthConfigService @Inject constructor(
         .filter { it.isNotBlank() }
         .map { if (it.startsWith('/')) it.lowercase() else "/${it.lowercase()}" }
         .toSet()
-
 
     fun getScimBearerToken(): String = scimBearerTokenConfig.orElse("")
     fun getDirectoryLookupMaxResults(): Int = directoryLookupMaxResultsConfig

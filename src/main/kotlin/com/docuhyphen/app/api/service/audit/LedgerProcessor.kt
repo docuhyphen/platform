@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.audit.CanonicalLedgerEnvelope
 import com.docuhyphen.app.api.model.audit.LedgerDrainResult
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent

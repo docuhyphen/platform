@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.FieldValueProvenance
 import com.docuhyphen.app.api.model.entity.SchemaAssignment
 import com.docuhyphen.app.api.model.fields.FieldPrincipalProvenance
 import com.docuhyphen.app.api.service.audit.AuditDraftInvalidException
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType

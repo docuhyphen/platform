@@ -31,8 +31,9 @@ const RegisteredPersonConstraints = ({selected, onChange}: RegisteredPersonConst
             selectedOptions={selected}
             onOptionSelect={(_event, data) => onChange(parseConstraintSelection(data.selectedOptions))}
         >
-            <TagPickerControl>
-                <TagPickerGroup aria-label="Selected constraint tags">
+            <TagPickerControl id={"registered-person-constraints-tag-picker-control-1"}>
+                <TagPickerGroup id={"registered-person-constraints-tag-picker-group-1"}
+                                aria-label="Selected constraint tags">
                     {selected.map(tag => (
                         <Tag
                             id={`registered-person-constraint-${tag.toLowerCase()}`}
@@ -50,7 +51,7 @@ const RegisteredPersonConstraints = ({selected, onChange}: RegisteredPersonConst
                     placeholder="Add constraints"
                 />
             </TagPickerControl>
-            <TagPickerList>
+            <TagPickerList id={"registered-person-constraints-tag-picker-list-1"}>
                 {CONSTRAINT_OPTIONS.filter(option => !selected.includes(option.value)).map(option => (
                     <TagPickerOption
                         id={`registered-person-constraint-option-${option.value.toLowerCase()}`}

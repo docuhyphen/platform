@@ -2,27 +2,24 @@ import {Routes, Route} from "react-router-dom";
 import {useState, useSyncExternalStore} from "react";
 import {LandingHeader} from "./landing/landing-header/LandingHeader.tsx";
 import {HeroSection} from "./landing/hero-section/HeroSection.tsx";
-import {RisksSection} from "./landing/RisksSection.tsx";
+import {RisksSection} from "./landing/risks-section/RisksSection.tsx";
 import {HowItWorksSection} from "./landing/how-it-works-section/HowItWorksSection.tsx";
 import {FeaturesSection} from "./landing/features-section/FeaturesSection.tsx";
-import {AudienceSection} from "./landing/AudienceSection.tsx";
+import {AudienceSection} from "./landing/audience-section/AudienceSection.tsx";
 import {ContactInfoSection} from "./landing/contact-info-section/ContactInfoSection.tsx";
-import {IndustryPickerDialog} from "./landing/IndustryPickerDialog.tsx";
+import {IndustryPickerDialog} from "./landing/industry-picker-dialog/IndustryPickerDialog.tsx";
 import {getStoredIndustry} from "./landing/industryOptions.ts";
 import type {IndustrySlug} from "./landing/industryOptions.ts";
 import {appStyles} from "./AppStyles.tsx";
-import {PricingPage} from "./pages/PricingPage.tsx";
-import {IndustriesPage} from "./pages/IndustriesPage.tsx";
+import {PricingPage} from "./pages/pricing-page/PricingPage.tsx";
+import {IndustriesPage} from "./pages/industries-page/IndustriesPage.tsx";
 import {SecurityPage} from "./pages/security-page/SecurityPage.tsx";
 import {LegalDocumentPage} from "./pages/legal-document-page/LegalDocumentPage.tsx";
 import {
     privacyPolicyDocument,
     termsOfServiceDocument,
 } from "./pages/legal-document-page/legalDocuments.ts";
-// About page is temporarily hidden pending redesign. Route intentionally
-// omitted below so "/about" falls through to the catch-all NotFoundPage.
-// import {AboutPage} from "./pages/about-page/AboutPage.tsx";
-import {NotFoundPage} from "./pages/NotFoundPage.tsx";
+import {NotFoundPage} from "./pages/not-found-page/NotFoundPage.tsx";
 import {Seo} from "./seo/Seo.tsx";
 import {ScrollToHashHandler} from "./shared/ScrollToHashHandler.tsx";
 import {SiteFooter} from "./shared/site-footer/SiteFooter.tsx";
@@ -32,7 +29,8 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
     const styles = appStyles();
 
     return (
-        <div className={styles.page}>
+        <div id={"app-div-1"}
+             className={styles.page}>
             <LandingHeader fixed/>
             <main
                 id="home-main-content"
@@ -63,7 +61,6 @@ function LandingPage({industrySlug}: {industrySlug: IndustrySlug | null})
                 >
                     <AudienceSection/>
                 </div>
-                {/*<PricingTeaserSection/>*/}
             </main>
             <div
                 id="home-contact-info-surface"
@@ -95,10 +92,14 @@ export default function App()
                 <IndustryPickerDialog onSelect={(slug) => setSelectedIndustrySlug(slug)}/>
             )}
             <Routes>
-                <Route path="/" element={<LandingPage industrySlug={industrySlug}/>}/>
-                <Route path="/pricing" element={<PricingPage/>}/>
-                <Route path="/industries/:industry" element={<IndustriesPage/>}/>
-                <Route path="/security" element={<SecurityPage/>}/>
+                <Route path="/"
+                       element={<LandingPage industrySlug={industrySlug}/>}/>
+                <Route path="/pricing"
+                       element={<PricingPage/>}/>
+                <Route path="/industries/:industry"
+                       element={<IndustriesPage/>}/>
+                <Route path="/security"
+                       element={<SecurityPage/>}/>
                 <Route
                     path="/privacy-policy"
                     element={<LegalDocumentPage document={privacyPolicyDocument}/>}
@@ -107,8 +108,8 @@ export default function App()
                     path="/terms-of-service"
                     element={<LegalDocumentPage document={termsOfServiceDocument}/>}
                 />
-                {/* "/about" route intentionally omitted while the page is hidden pending redesign */}
-                <Route path="*" element={<NotFoundPage/>}/>
+                <Route path="*"
+                       element={<NotFoundPage/>}/>
             </Routes>
         </>
     );

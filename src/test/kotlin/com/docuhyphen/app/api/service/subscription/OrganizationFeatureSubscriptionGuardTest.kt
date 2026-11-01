@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq

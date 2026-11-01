@@ -11,8 +11,8 @@ import com.docuhyphen.app.api.model.informationrequest.noauth.ReplaceInformation
 import com.docuhyphen.app.api.model.informationrequest.noauth.RevokeInformationRequestBootstrapShareLinkCommand
 import com.docuhyphen.app.api.model.informationrequest.noauth.RotateInformationRequestBootstrapShareLinkCommand
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog

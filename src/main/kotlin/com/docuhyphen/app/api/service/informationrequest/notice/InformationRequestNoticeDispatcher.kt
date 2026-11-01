@@ -14,11 +14,11 @@ import com.docuhyphen.app.api.repository.informationrequest.clock.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
 import com.docuhyphen.app.api.repository.informationrequest.notice.*
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestContinuationGuard

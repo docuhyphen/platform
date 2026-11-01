@@ -14,7 +14,6 @@ class OrganizationVerificationProducer
     fun sendToQueue(organization: Organization)
     {
         logger.info("Sending organization to verification queue: ${organization.registrationNumber}")
-//        emitter.send(KafkaRecord.of(organization.registrationNumber, organization))
     }
 }
 
@@ -26,18 +25,14 @@ class OrganizationVerificationConsumer(
 {
     private val logger = LoggerFactory.getLogger(OrganizationVerificationConsumer::class.java)
 
-    //    @Incoming("organization-verification-in")
-//    @Blocking // Ensures processing does not block the reactive pipeline
     fun verifyOrganization(organization: Organization)
     {
         logger.info("Received organization for verification: ${organization.registrationNumber}")
 
-        // Simulate verification process
         organization.isActive = true
         organization.verificationComplete = true
         organizationRepository.save(organization)
 
-        // An organization that becomes active owns a Business subscription from that moment on.
         runCatching { subscriptionPolicyService.ensureOrganizationPolicy(organization) }
             .onFailure { logger.warn("Failed to create subscription record for organization {}", organization.id, it) }
 

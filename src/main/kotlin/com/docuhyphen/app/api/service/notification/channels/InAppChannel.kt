@@ -3,10 +3,10 @@
 import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
-import com.docuhyphen.app.api.service.notification.ChannelSendResult
-import com.docuhyphen.app.api.service.notification.DeliveryTask
+import com.docuhyphen.app.api.model.notification.ChannelSendResult
+import com.docuhyphen.app.api.model.notification.DeliveryTask
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.builtins.MapSerializer
@@ -16,9 +16,6 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 
-/**
- * Persists an [InAppNotification] row and pushes the same DTO to connected clients.
- */
 @ApplicationScoped
 class InAppChannel : NotificationChannel
 {

@@ -4,7 +4,9 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.auth.authz.Decision
-import com.docuhyphen.app.api.model.dto.ExchangeBasicDto
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.model.dto.NoAuthExchangeBasicDto
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.Exchange
@@ -12,24 +14,15 @@ import com.docuhyphen.app.api.model.entity.ExchangeStatus
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.ACCEPTED_STARTED
 import com.docuhyphen.app.api.model.entity.ExchangeStatus.INITIATED
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.exchange.SearchResult
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.*
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 import java.util.*
-
-@Serializable
-data class SearchResult(
-    val content: Array<ExchangeBasicDto?>,
-    val totalElements: Long,
-    val totalPages: Int,
-    val currentPage: Int,
-    val pageSize: Int
-)
 
 @ApplicationScoped
 class ExchangeRetrievalService @Inject constructor(
@@ -80,39 +73,20 @@ class ExchangeRetrievalService @Inject constructor(
     fun hasDocumentInExchange(exchangeId: UUID, documentId: UUID): Boolean =
         exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId) != null
 
-    /**
-     * Every non-deleted document id belonging to [exchangeId]. Used by
-     * [com.docuhyphen.app.api.service.audit.AuditSearchProjectionService.listExchangeEvents] to
-     * widen a document-scoped ledger query to every document in the Exchange plus the
-     * Exchange-level target itself, without that service touching [ExchangeRepository] directly.
-     */
     fun getDocumentIdsForExchange(exchangeId: UUID): List<UUID>
     {
         val exchange = exchangeRepository.findByIdWithDocumentsOrderedByTitle(exchangeId) ?: return emptyList()
         return exchange.documents.filter { it.isDeleted == false }.map { it.id }
     }
 
-    /**
-     * Display-only Exchange name lookup with no authorization check, following the same
-     * "display" convention as [primaryRecipientUserIdForDisplay]: used by
-     * [com.docuhyphen.app.api.service.audit.AuditSearchProjectionService] to label an
-     * Exchange-scoped audit search without re-running [Action.EXCHANGE_VIEW] authorization,
-     * which would wrongly fail the label lookup (and, if not caught, the whole search) for an
-     * auditor who has audit-read rights on the organization but no direct Exchange-view grant.
-     * Must not be used to decide whether the caller may see the Exchange.
-     */
     fun getExchangeNameForDisplay(exchangeId: UUID): String? = exchangeRepository.findById(exchangeId)?.name
 
-    /** Same "display, not authorization" convention as [getExchangeNameForDisplay], for a single document's title. */
     fun getDocumentTitleForDisplay(exchangeId: UUID, documentId: UUID): String? =
         exchangeRepository.findDocumentBySessionIdAndDocumentId(exchangeId, documentId)?.title
 
     fun getAllSessionsForSignedInAppUser(): List<Exchange>
     {
         val appUserId = authTokenContext.authToken.appUser?.id ?: return emptyList()
-        // findByParticipatingAppUser now resolves access through Share rows (initiator + any
-        // active USER share, direct, group-inherited, or participant), so it is the single
-        // source of "sessions this user can see".
         val participatingSessions = exchangeRepository.findByParticipatingAppUser(appUserId)
 
         return (participatingSessions)
@@ -129,12 +103,6 @@ class ExchangeRetrievalService @Inject constructor(
 
     fun checkUserHasExchanges(): Boolean
     {
-        // Defensive: NPE-ing here would surface as a generic 500 with a misleading
-        // "Failed to check for exchanges" alert on the frontend. The auth
-        // filter normally guarantees appUser is populated, but treat a missing
-        // principal as "no sessions" rather than crashing,  the filter already
-        // rejects truly unauthenticated calls upstream, so reaching here with a
-        // null appUser is a soft anomaly, not a security boundary.
         if (authTokenContext.authToken.appUser?.id == null) return false
         return getAllSessionsForSignedInAppUser().isNotEmpty()
     }
@@ -157,13 +125,13 @@ class ExchangeRetrievalService @Inject constructor(
 
         if (session.requireRecipientSignIn)
         {
-            logger.error("Attempted to access a exchange that requires recipient sign-in")
+            logger.error("Attempted to access an Exchange that requires recipient sign-in")
             throw ExchangeNotFoundException("Exchange not found")
         }
 
         if (session.status != ACCEPTED_STARTED && session.status != INITIATED)
         {
-            logger.error("Attempted to access a exchange that is not in the correct status")
+            logger.error("Attempted to access an Exchange that is not in the correct status")
             throw ExchangeNotFoundException("Exchange not found")
         }
 
@@ -176,8 +144,6 @@ class ExchangeRetrievalService @Inject constructor(
                 (constraintsJson?.contains("\"allow_document_download\":true") == true ||
                         constraints?.canDownload == true)
         dto.allowDocumentDownload = downloadAllowed
-        // A draft still awaiting the accept/decline decision is verified by the one-time code on
-        // that decision, so it is not treated as needing a separate access-code prompt here.
         dto.accessVerificationRequired = session.status == ACCEPTED_STARTED &&
                 !noAuthExchangeAccessWindowService.isActive(session)
 
@@ -194,7 +160,6 @@ class ExchangeRetrievalService @Inject constructor(
         sortDirection: String
     ): SearchResult
     {
-//        ResourceEndpointDelayHelper.delayEndpoint(1000, 2000)
 
         val appUserId =
             authTokenContext.authToken.appUser?.id ?: throw IllegalArgumentException("User not authenticated")

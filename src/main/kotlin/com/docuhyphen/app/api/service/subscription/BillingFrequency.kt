@@ -1,9 +1,5 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * How often a paid subscription renews. Null on records that have never been billed, such as
- * the Free plan or a grandfathered account created before billing was wired up.
- */
 enum class BillingFrequency
 {
     MONTHLY,

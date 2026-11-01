@@ -4,7 +4,7 @@ import {MemoryRouter, Route, Routes} from "react-router-dom";
 import {afterEach, beforeAll, beforeEach, describe, expect, it, vi} from "vitest";
 import * as transport from "../../../../services/informationRequestReviewService.ts";
 import {usePlanFeature} from "../../../../hooks/subscription/usePlanFeature.ts";
-import {InformationRequestExecutionStandingKind, InformationRequestReviewState,} from "../../../models/models.tsx";
+import {InformationRequestExecutionStandingKind, InformationRequestReviewState, PlanCode} from "../../../models/models.tsx";
 import InformationRequestReviewQueue from "./InformationRequestReviewQueue.tsx";
 import {formatInformationRequestTime} from "../../shared/informationRequestFormatting.ts";
 
@@ -19,7 +19,7 @@ const availability = (isAvailable: boolean) => ({
     isEnforced: true,
     isDiscoverable: isAvailable,
     isAvailable,
-    upgradePlanCode: null,
+    upgradePlanCode: null as PlanCode | null,
 });
 
 const renderQueue = () => render(

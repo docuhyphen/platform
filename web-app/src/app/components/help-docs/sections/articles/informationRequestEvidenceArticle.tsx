@@ -7,28 +7,28 @@ export const informationRequestEvidenceArticle = (
         </p>
         <h3 id={"information-request-evidence-providing-heading"}>Providing files</h3>
         <ul id={"information-request-evidence-providing-list"}>
-            <li>
-                Select <b>Upload file</b> to add one file. Each upload becomes its own item, so a Requirement can hold
+            <li id={"information-request-evidence-article-li-1"}>
+                Select <b id={"information-request-evidence-article-b-1"}>Upload file</b> to add one file. Each upload becomes its own item, so a Requirement can hold
                 several independent files. A request stores files within the evidence allowance it was issued with and
                 the platform&apos;s upload limits.
             </li>
-            <li>
-                Select <b>Replace</b> on an item to add a corrected file as its next version. Earlier versions stay on
+            <li id={"information-request-evidence-article-li-2"}>
+                Select <b id={"information-request-evidence-article-b-2"}>Replace</b> on an item to add a corrected file as its next version. Earlier versions stay on
                 record.
             </li>
-            <li>
+            <li id={"information-request-evidence-article-li-3"}>
                 When the evidence policy asks for details such as the issuer, dates, or the period a file covers,
-                choosing a file opens <b>File details</b>. Fill in the details the file states; required ones are
+                choosing a file opens <b id={"information-request-evidence-article-b-3"}>File details</b>. Fill in the details the file states; required ones are
                 marked, a coverage period needs both its start and its end, and a listed issuer, jurisdiction, or
                 language is chosen from the list. A replacement starts from the details of the version it replaces. Each
                 item shows the details its latest version stated.
             </li>
-            <li>
-                Select <b>Withdraw</b> and give a reason when a file should no longer count. A withdrawn file stays on
+            <li id={"information-request-evidence-article-li-4"}>
+                Select <b id={"information-request-evidence-article-b-4"}>Withdraw</b> and give a reason when a file should no longer count. A withdrawn file stays on
                 record; nothing is deleted. If withdrawing is interrupted, select it again with the same reason: the
                 file is withdrawn once.
             </li>
-            <li>
+            <li id={"information-request-evidence-article-li-5"}>
                 A file belongs to the party that provided it. Anyone acting for that party, such as a member of its
                 group, its delegate, or the account its participant linked, can replace or withdraw it; another party on
                 the same Requirement adds its own files instead and sees that the file was provided by another party.
@@ -37,25 +37,25 @@ export const informationRequestEvidenceArticle = (
                 for the party that provided it and to people who manage the request&apos;s evidence; a removed file is
                 then shown only to people who manage evidence.
             </li>
-            <li>The same file cannot be provided twice for one Requirement.</li>
-            <li>
+            <li id={"information-request-evidence-article-li-6"}>The same file cannot be provided twice for one Requirement.</li>
+            <li id={"information-request-evidence-article-li-7"}>
                 A progress bar shows how much of a file has been sent. If an upload is interrupted, or the
                 Requirement&apos;s files changed while it was sent, the file and its details are kept on the page:
-                select <b>Retry</b> to send it again against the latest files, which never adds it twice,
-                or <b>Discard</b>.
+                select <b id={"information-request-evidence-article-b-5"}>Retry</b> to send it again against the latest files, which never adds it twice,
+                or <b id={"information-request-evidence-article-b-6"}>Discard</b>.
                 Each file that was not sent stays kept, also when you send another one. If an access-link session ends
                 while it is sent, the file is still kept after you verify again. It stays with the party who chose it:
                 another party or account responding in the tab does not see it.
             </li>
-            <li>
+            <li id={"information-request-evidence-article-li-8"}>
                 If a Requirement&apos;s files can no longer be read, for example after your verification lapses, its
-                files and their actions are hidden and the page says why; select <b>Try again</b> to read them again. A
-                file kept for <b>Retry</b> stays on the page and can be sent once its files are shown again.
+                files and their actions are hidden and the page says why; select <b id={"information-request-evidence-article-b-7"}>Try again</b> to read them again. A
+                file kept for <b id={"information-request-evidence-article-b-8"}>Retry</b> stays on the page and can be sent once its files are shown again.
             </li>
-            <li>
+            <li id={"information-request-evidence-article-li-9"}>
                 Once the part of the request holding a Requirement is submitted, its files cannot be added, replaced, or
-                withdrawn until that submission is withdrawn, so <b>Upload file</b>, <b>Replace</b>,
-                and <b>Withdraw</b> are
+                withdrawn until that submission is withdrawn, so <b id={"information-request-evidence-article-b-9"}>Upload file</b>, <b id={"information-request-evidence-article-b-10"}>Replace</b>,
+                and <b id={"information-request-evidence-article-b-11"}>Withdraw</b> are
                 not offered. The same holds while the request is closed or its changes are paused or stopped.
             </li>
         </ul>
@@ -75,7 +75,7 @@ export const informationRequestEvidenceArticle = (
         </p>
         <p id={"information-request-evidence-scanning-help"}>
             Files are not scanned for malware unless the deployment adds a malware scanner, and the workspace says so.
-            Where a deployment requires scanning, a file counts only after it passes the scan and shows <b>Awaiting
+            Where a deployment requires scanning, a file counts only after it passes the scan and shows <b id={"information-request-evidence-article-b-12"}>Awaiting
             checks</b> until then. A file in which malware is detected is quarantined: nobody can open it. Withdraw it
             and provide a clean copy.
         </p>
@@ -94,18 +94,18 @@ export const informationRequestEvidenceArticle = (
         </p>
         <h3 id={"information-request-evidence-status-heading"}>Requirement status</h3>
         <ul id={"information-request-evidence-status-list"}>
-            <li><b>No files provided</b>: nothing has been uploaded yet.</li>
-            <li><b>Awaiting checks</b>: a file is still being inspected or scanned.</li>
-            <li><b>More files needed</b>: the files are acceptable but there are too few.</li>
-            <li><b>Needs attention</b>: a file does not meet the policy; each file lists why.</li>
-            <li>
-                <b>Ready for review</b>: the Template lets a reviewer accept these files even though a detail is
+            <li id={"information-request-evidence-article-li-10"}><b id={"information-request-evidence-article-b-13"}>No files provided</b>: nothing has been uploaded yet.</li>
+            <li id={"information-request-evidence-article-li-11"}><b id={"information-request-evidence-article-b-14"}>Awaiting checks</b>: a file is still being inspected or scanned.</li>
+            <li id={"information-request-evidence-article-li-12"}><b id={"information-request-evidence-article-b-15"}>More files needed</b>: the files are acceptable but there are too few.</li>
+            <li id={"information-request-evidence-article-li-13"}><b id={"information-request-evidence-article-b-16"}>Needs attention</b>: a file does not meet the policy; each file lists why.</li>
+            <li id={"information-request-evidence-article-li-14"}>
+                <b id={"information-request-evidence-article-b-17"}>Ready for review</b>: the Template lets a reviewer accept these files even though a detail is
                 missing. Unsafe or expired files, and files still waiting for a required scan, are never offered for
                 review.
             </li>
-            <li><b>Complete</b>: every current file is accepted and enough are provided.</li>
-            <li>
-                <b>Waived</b> or <b>Waiver requested</b>: the Requirement was waived, either directly or pending
+            <li id={"information-request-evidence-article-li-15"}><b id={"information-request-evidence-article-b-18"}>Complete</b>: every current file is accepted and enough are provided.</li>
+            <li id={"information-request-evidence-article-li-16"}>
+                <b id={"information-request-evidence-article-b-19"}>Waived</b> or <b id={"information-request-evidence-article-b-20"}>Waiver requested</b>: the Requirement was waived, either directly or pending
                 approval, as the Template allows.
             </li>
         </ul>
@@ -125,9 +125,9 @@ export const informationRequestEvidenceArticle = (
             verified. If the session has ended, the page asks you to verify again. A preview or download that is still
             being read when you leave the page, when another party or account is found responding in the tab, or once
             the Requirement no longer shows that file, for example because its files are hidden or a newer version
-            replaced it, is not opened. Each download and preview is recorded. <b>Preview</b> opens a new tab at once
+            replaced it, is not opened. Each download and preview is recorded. <b id={"information-request-evidence-article-b-21"}>Preview</b> opens a new tab at once
             and shows the file in it once the file has been read; a tab for a file that cannot be shown closes again. If
-            your browser blocks the tab, the page says so: allow pop-ups for this site, or select <b>Download</b>.
+            your browser blocks the tab, the page says so: allow pop-ups for this site, or select <b id={"information-request-evidence-article-b-22"}>Download</b>.
         </p>
         <h3 id={"information-request-evidence-links-heading"}>Supporting evidence</h3>
         <p id={"information-request-evidence-links-help"}>

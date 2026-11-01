@@ -5,7 +5,9 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.dto.SubscriptionTrialRequestDecisionRequest
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestPage
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestView
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import io.quarkus.security.ForbiddenException

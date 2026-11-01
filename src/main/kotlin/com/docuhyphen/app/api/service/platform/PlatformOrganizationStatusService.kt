@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.dto.PlatformOrganizationStatusDto
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationStatusUpdateRequest
 import com.docuhyphen.app.api.model.entity.Organization
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
@@ -51,8 +51,6 @@ class PlatformOrganizationStatusService @Inject constructor(
         organizationRepository.update(organization)
         val afterSnapshot = statusSnapshot(organization)
 
-        // An organization that is now active and verified is a Business subscriber, so make sure
-        // it owns a subscription record instead of relying on an implicit default.
         if (organization.isActive && organization.verificationComplete)
         {
             runCatching { subscriptionPolicyService.ensureOrganizationPolicy(organization) }

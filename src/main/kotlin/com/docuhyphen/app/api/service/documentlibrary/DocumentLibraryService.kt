@@ -1,6 +1,12 @@
 package com.docuhyphen.app.api.service.documentlibrary
 
+import com.docuhyphen.app.api.model.DocumentLibraryDtoMapper
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.BlueprintScope
 import com.docuhyphen.app.api.model.entity.DocumentLibraryEntry
@@ -40,8 +46,6 @@ class DocumentLibraryService @Inject constructor(
     private val logger = LoggerFactory.getLogger(DocumentLibraryService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    // ── Read ──────────────────────────────────────────────────────────────────
-
     fun listEntries(scope: String?, tag: String?): List<DocumentLibraryEntrySummaryDto>
     {
         val principal = currentPrincipal()
@@ -53,7 +57,7 @@ class DocumentLibraryService @Inject constructor(
             .asSequence()
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
-            .map { it.toSummaryDto() }
+            .map(DocumentLibraryDtoMapper::toSummaryDto)
             .toList()
     }
 
@@ -65,10 +69,8 @@ class DocumentLibraryService @Inject constructor(
             ?: throw IllegalArgumentException("Document library entry not found: $id")
         checkReadAccess(entry, principal, context)
         documentLibrarySubscriptionGuard.requireEntryUse(principal.id, entry.scope, entry.organizationId)
-        return entry.toDto()
+        return DocumentLibraryDtoMapper.toDto(entry)
     }
-
-    // ── Write ─────────────────────────────────────────────────────────────────
 
     @Transactional
     fun createEntry(request: CreateDocumentLibraryEntryRequest): DocumentLibraryEntryDto
@@ -91,7 +93,7 @@ class DocumentLibraryService @Inject constructor(
             restrictedType = request.restrictedType
             required = request.required
         }
-        return repository.save(entry).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.save(entry))
     }
 
     @Transactional
@@ -112,7 +114,7 @@ class DocumentLibraryService @Inject constructor(
         request.required?.let { entry.required = it }
         entry.updatedAt = Timestamp.from(Instant.now())
 
-        return repository.update(entry).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.update(entry))
     }
 
     @Transactional
@@ -136,7 +138,7 @@ class DocumentLibraryService @Inject constructor(
         entry.contentHash = "hash"
         entry.updatedAt = Timestamp.from(Instant.now())
 
-        return repository.update(entry).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.update(entry))
     }
 
     fun downloadFile(id: UUID): File
@@ -167,7 +169,7 @@ class DocumentLibraryService @Inject constructor(
         documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
         entry.isActive = request.isActive
         entry.updatedAt = Timestamp.from(Instant.now())
-        return repository.update(entry).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.update(entry))
     }
 
     @Transactional
@@ -185,7 +187,7 @@ class DocumentLibraryService @Inject constructor(
         documentLibrarySubscriptionGuard.requireEntryManagement(principal.id, entry.scope, entry.organizationId)
         entry.isPublished = request.isPublished
         entry.updatedAt = Timestamp.from(Instant.now())
-        return repository.update(entry).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.update(entry))
     }
 
     @Transactional
@@ -228,7 +230,7 @@ class DocumentLibraryService @Inject constructor(
             sourceDocumentId = source.id
             createdByAppUserId = principal.id
         }
-        return repository.save(clone).toDto()
+        return DocumentLibraryDtoMapper.toDto(repository.save(clone))
     }
 
     fun resolveLibraryFileForBlueprintDocument(libraryDocumentId: UUID): File?
@@ -241,8 +243,6 @@ class DocumentLibraryService @Inject constructor(
         val path = entry.storagePath ?: return null
         return runCatching { fileStorageService.downloadDocument(path) }.getOrNull()
     }
-
-    // ── Access control ────────────────────────────────────────────────────────
 
     private fun checkReadAccess(entry: DocumentLibraryEntry, principal: PrincipalRef, context: AuthorizationContext)
     {
@@ -289,8 +289,6 @@ class DocumentLibraryService @Inject constructor(
                     throw ForbiddenException("App admin role required to modify APP-scoped library entries")
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()
@@ -355,56 +353,6 @@ class DocumentLibraryService @Inject constructor(
     private fun encodeTags(tags: List<String>): String =
         json.encodeToString(ListSerializer(String.serializer()), tags)
 
-    private fun DocumentLibraryEntry.toDto() = DocumentLibraryEntryDto(
-        id = id,
-        title = title,
-        description = description,
-        scope = scope.name,
-        organizationId = organizationId,
-        createdByAppUserId = createdByAppUserId,
-        documentType = documentType,
-        fileName = fileName,
-        fileSizeBytes = fileSizeBytes,
-        contentHash = contentHash,
-        isPublished = isPublished,
-        isActive = isActive,
-        hasFile = storagePath != null,
-        restrictType = restrictType,
-        restrictedType = restrictedType,
-        required = required,
-        generalTags = decodeTags(generalTags),
-        sourceDocumentId = sourceDocumentId,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
-
-    private fun DocumentLibraryEntry.toSummaryDto() = DocumentLibraryEntrySummaryDto(
-        id = id,
-        title = title,
-        description = description,
-        scope = scope.name,
-        organizationId = organizationId,
-        createdByAppUserId = createdByAppUserId,
-        documentType = documentType,
-        fileName = fileName,
-        fileSizeBytes = fileSizeBytes,
-        isPublished = isPublished,
-        isActive = isActive,
-        hasFile = storagePath != null,
-        restrictType = restrictType,
-        restrictedType = restrictedType,
-        required = required,
-        generalTags = decodeTags(generalTags),
-        sourceDocumentId = sourceDocumentId,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
-
-    /**
-     * Records document library downloads. Failures are
-     * caught and logged, never propagated, so audit plumbing can never break an actual file
-     * download response.
-     */
     private fun recordLibraryDownloadEvent(entry: DocumentLibraryEntry, actorId: UUID)
     {
         try

@@ -15,7 +15,6 @@ interface AuditEventCardListProps
     loading: boolean;
 }
 
-/** Shared, paginated card-list rendering of ledger-backed audit events (list variant of AuditEventTable). */
 const AuditEventCardList = (
     {
         items,
@@ -31,53 +30,72 @@ const AuditEventCardList = (
     if (!loading && items.length === 0)
     {
         return (
-            <Text id={"audit-event-card-list-empty"} className={styles.emptyText}>
+            <Text id={"audit-event-card-list-empty"}
+                  className={styles.emptyText}>
                 No audit events found.
             </Text>
         );
     }
 
     return (
-        <div id={"audit-event-card-list-container"} className={styles.container}>
-            <div className={styles.cardList}>
+        <div id={"audit-event-card-list-container"}
+             className={styles.container}>
+            <div id={"audit-event-card-list-div-1"}
+                 className={styles.cardList}>
                 {items.map((event) => (
-                    <button
+                    <Button
                         id={`audit-event-card-${event.eventId}`}
                         key={event.eventId}
-                        type={"button"}
+                        appearance={"transparent"}
+                        shape={"circular"}
                         className={styles.card}
                         onClick={() => onEventClick(event)}
                     >
-                        <div className={styles.cardTopRow}>
-                            <div className={styles.cardTopRowLeft}>
+                        <div id={"audit-event-card-list-div-2"}
+                             className={styles.cardTopRow}>
+                            <div id={"audit-event-card-list-div-3"}
+                                 className={styles.cardTopRowLeft}>
                                 <AuditCategoryBadge category={event.category}/>
                             </div>
-                            <Text size={200} className={styles.occurredAt}>{formatDateTime(event.occurredAt)}</Text>
+                            <Text id={"audit-event-card-list-text-1"}
+                                  size={200}
+                                  className={styles.occurredAt}>{formatDateTime(event.occurredAt)}</Text>
                         </div>
-                        <div className={styles.cardBottomRow}>
-                            <div className={styles.cardBottomRowItem}>
+                        <div id={"audit-event-card-list-div-4"}
+                             className={styles.cardBottomRow}>
+                            <div id={"audit-event-card-list-div-5"}
+                                 className={styles.cardBottomRowItem}>
                                 <Tag16Regular/>
-                                <Text className={styles.eventTypeLabel}>{formatAuditEventType(event.eventTypeKey)}</Text>
+                                <Text id={"audit-event-card-list-text-2"}
+                                      className={styles.eventTypeLabel}>{formatAuditEventType(event.eventTypeKey)}</Text>
                             </div>
-                            <div className={styles.cardBottomRowItem}>
+                            <div id={"audit-event-card-list-div-6"}
+                                 className={styles.cardBottomRowItem}>
                                 <Person16Regular/>
-                                <Text size={200} className={styles.truncate}>
+                                <Text id={"audit-event-card-list-text-3"}
+                                      size={200}
+                                      className={styles.truncate}>
                                     {formatAuditActor(event.actorKind, event.actorLabel)}
                                 </Text>
                             </div>
                         </div>
-                    </button>
+                    </Button>
                 ))}
             </div>
 
             {loading && (
-                <div id={"audit-event-card-list-loading"} className={styles.footer}>
-                    <Spinner size={"small"} label={"Loading audit events..."} labelPosition={"after"}/>
+                <div id={"audit-event-card-list-loading"}
+                     className={styles.footer}>
+                    <Spinner id={"audit-event-card-list-spinner-1"}
+                             size={"small"}
+                             label={"Loading audit events..."}
+                             labelPosition={"after"}/>
                 </div>
             )}
 
             {!loading && (
-                <div className={styles.footer}>
+                <div id={"audit-event-card-list-div-7"}
+                     className={styles.footer}>
                     <Button
                         id={"button-audit-event-card-list-load-more"}
                         appearance={"secondary"}

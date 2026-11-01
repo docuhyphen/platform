@@ -4,9 +4,9 @@ import com.docuhyphen.app.api.model.audit.archive.SegmentCloseResult
 import com.docuhyphen.app.api.model.audit.archive.SegmentVerificationResult
 import com.docuhyphen.app.api.model.audit.archive.StreamChainVerificationResult
 import com.docuhyphen.app.api.model.entity.AuditArchiveSegment
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import org.junit.jupiter.api.Assertions.assertEquals

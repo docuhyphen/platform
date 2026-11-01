@@ -1,6 +1,12 @@
 package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.model.audit.archive.ArchiveCoverageState
+import com.docuhyphen.app.api.model.audit.export.AuditExportBundleResult
+import com.docuhyphen.app.api.model.audit.export.AuditExportManifestEnvelope
+import com.docuhyphen.app.api.model.audit.export.ExportStreamIntegrityRecord
+import com.docuhyphen.app.api.model.audit.export.ExportedLedgerEventRecord
+import com.docuhyphen.app.api.model.audit.export.ManifestEntryDigest
+import com.docuhyphen.app.api.model.audit.export.SignedAuditExportManifest
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
@@ -10,7 +16,6 @@ import com.docuhyphen.app.api.service.audit.archive.AuditArchiver
 import com.docuhyphen.app.api.service.audit.archive.MerkleTree
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -20,113 +25,8 @@ import java.util.*
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/** One exported ledger event row, at full fidelity (no redaction - the requester's access was already gated by approval/authorization before the bundle was built). */
-@Serializable
-data class ExportedLedgerEventRecord(
-    val eventId: String,
-    val eventTypeKey: String,
-    val category: String,
-    val outcome: String,
-    val schemaVersion: Int,
-    val occurredAt: String,
-    val recordedAt: String,
-    val ledgerTime: String,
-    val streamId: String,
-    val streamSequence: Long,
-    val actorKind: String,
-    val actorId: String?,
-    val actorRole: String?,
-    val actorLabel: String?,
-    val sessionId: String?,
-    val serverTraceId: String?,
-    val correlationId: String?,
-    val causationId: String?,
-    val ownerType: String,
-    val ownerId: String?,
-    val organizationId: String?,
-    val organizationLabel: String?,
-    val targetType: String?,
-    val targetId: String?,
-    val targetLabel: String?,
-    val reason: String?,
-    val payloadJson: String,
-    val prevHash: String?,
-    val eventHash: String,
-)
-
-/** Per-stream integrity summary embedded in `integrity.json`, so the bundle discloses exactly what was checked and its result - never a false blanket "verified" claim. */
-@Serializable
-data class ExportStreamIntegrityRecord(
-    val streamId: String,
-    val chainValid: Boolean,
-    val chainNote: String,
-    val segmentsChecked: Int,
-    val segmentsValid: Int,
-)
-
-/** One protected bundle entry's content address, enabling independent detection of modifications, deletions, or substitutions without trusting ZIP metadata. */
-@Serializable
-data class ManifestEntryDigest(
-    val name: String,
-    val sha256Hex: String,
-    val byteLength: Long,
-)
-
-/** Canonical, signed manifest fields for one export bundle. Field order is fixed by declaration order so the same export always produces byte-identical manifest JSON (what the detached signature is computed over). */
-@Serializable
-data class AuditExportManifestEnvelope(
-    val formatVersion: Int,
-    val exportId: String,
-    val ownerType: String,
-    val ownerId: String?,
-    val organizationId: String?,
-    val platformOnly: Boolean,
-    val categories: String,
-    val occurredAfter: String,
-    val occurredBefore: String,
-    val eventCount: Int,
-    val schemaVersions: String,
-    val catalogVersion: Int,
-    /** Digest and length of every bundle entry other than `manifest.json` and `signature.json`, enabling independent bundle verification. */
-    val entryDigests: List<ManifestEntryDigest>,
-    /** Merkle root over every exported event's own `eventHash`, in the exact order written to `events.jsonl` - an independent, per-event cross-check that does not rely on `events.jsonl`'s own digest alone. */
-    val eventsMerkleRoot: String,
-    val signingKeyId: String,
-    val generatedAt: String,
-    val fidelityNote: String,
-)
-
-@Serializable
-data class SignedAuditExportManifest(
-    val manifestJson: String,
-    val signatureAlgorithm: String,
-    val signatureBase64: String,
-    val publicKeyPem: String,
-)
-
 class AuditExportIntegrityFailedException(message: String) : RuntimeException(message)
 
-data class AuditExportBundleResult(
-    val bundleObjectKey: String,
-    val bundleDigest: String,
-    val eventCount: Int,
-    val signingKeyId: String,
-)
-
-/**
- * Builds the signed, independently verifiable evidence bundle for one [AuditExport]. Fail-closed: verifies every touched
- * stream's segment-chain boundary checkpoint (not just that inner events link, which the
- * architecture explicitly calls out as insufficient - see [AuditArchiveVerifier.verifyStreamChain])
- * and every archived segment's own content/signature before a single bundle byte is written; any
- * failure throws [AuditExportIntegrityFailedException] rather than emit unverifiable evidence.
- *
- * The bundle is a single `bundle.zip` object containing `manifest.json`, `events.jsonl`,
- * `events.csv` (with an explicit fidelity note - CSV cannot represent the nested payload as
- * faithfully as JSON), `integrity.json`, `signature.json` (detached manifest signature plus the
- * PEM public key needed to verify it), and a `README.txt`. Storage reuses
- * [AuditArchiveStorage] (same S3 bucket/local directory,
- * different key prefix) - no new AWS service.
- */
 @ApplicationScoped
 class AuditExportBuilder @Inject constructor(
     private val auditLedgerEventRepository: AuditLedgerEventRepository,
@@ -173,11 +73,6 @@ class AuditExportBuilder @Inject constructor(
                     "events Merkle root before relying on the evidence.\n"
     }
 
-    /**
-     * Builds and archives the bundle for [export], then persists `READY` status plus bundle
-     * metadata. Throws [AuditExportIntegrityFailedException] (caller marks the export `FAILED`)
-     * if any touched stream fails its boundary-checkpoint or segment verification.
-     */
     fun build(export: AuditExport): AuditExportBundleResult
     {
         val organizationId = export.organizationId
@@ -198,15 +93,10 @@ class AuditExportBuilder @Inject constructor(
             )
         }
 
-        // Flush any small trailing range that has not yet reached the segment-size threshold, so
-        // a legitimately recent-but-unarchived tail does not by itself block the coverage gate
-        // below. This is a best-effort attempt: if the archiver's own view of the stream still
-        // cannot close a checkpoint over the full requested range, the gate rejects the export.
         for (streamId in streamIds)
         {
             while (auditArchiver.closeSegmentIfReady(streamId, force = true))
             {
-                // keep flushing until the stream has no more unarchived candidate events
             }
         }
 
@@ -261,9 +151,6 @@ class AuditExportBuilder @Inject constructor(
         val signingKeyId = signingKeyProvider.keyId()
         val generatedAt = Instant.now().toString()
 
-        // Every entry below other than manifest.json (this file) and signature.json (not yet
-        // computed - it wraps the signature over the manifest that includes these digests) is
-        // built first, so its content-address can be bound into the signed manifest.
         val eventsJsonlBytes = events.joinToString("\n") { event ->
             Json.encodeToString(ExportedLedgerEventRecord.serializer(), toRecord(event))
         }.toByteArray(StandardCharsets.UTF_8)
@@ -336,10 +223,6 @@ class AuditExportBuilder @Inject constructor(
             "README.txt" to readmeBytes,
             "verify.mjs" to verifierBytes,
         )
-        // The digest covers the final immutable bundle object itself (not just the manifest text),
-        // so a byte-level modification of the stored ZIP after it is written - not merely a
-        // modification of one entry's parsed content - is detectable by re-hashing the object at
-        // download time without needing to open it.
         val bundleDigest = MerkleTree.sha256Hex(bundleBytes)
 
         val buildAttempt = export.buildWorkerId?.replace(Regex("[^A-Za-z0-9._-]"), "_") ?: "unclaimed"
@@ -415,12 +298,6 @@ class AuditExportBuilder @Inject constructor(
         return (listOf(header.joinToString(",") { csvEscape(it) }) + rows).joinToString("\n")
     }
 
-    /**
-     * Neutralizes spreadsheet formula injection (a value beginning with `=`, `+`, `-`, or `@` is
-     * interpreted as a formula by common spreadsheet tools) by prefixing an escaping apostrophe.
-     * Applies only to the CSV convenience projection - [ExportedLedgerEventRecord] in
-     * `events.jsonl` is never altered, since that file is the canonical evidence.
-     */
     private fun neutralizeFormula(value: String): String =
         if (value.isNotEmpty() && value[0] in FORMULA_TRIGGER_CHARS) "'$value" else value
 

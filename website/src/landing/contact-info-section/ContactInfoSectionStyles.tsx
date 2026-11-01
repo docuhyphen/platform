@@ -8,6 +8,7 @@ import {
     SPACE_MD,
     SPACE_SM,
     SPACE_XL,
+    SUBHEADING_FONT_WEIGHT,
     WIDTH_CONTENT,
     WIDTH_SUBTITLE,
 } from "../shared.ts";
@@ -52,7 +53,7 @@ export const useContactInfoSectionStyles = makeStyles({
     subheading: {
         maxWidth: WIDTH_SUBTITLE,
         color: tokens.colorNeutralForeground1,
-        fontWeight: "100",
+        fontWeight: SUBHEADING_FONT_WEIGHT,
     },
 
     grid: {
@@ -110,7 +111,7 @@ export const useContactInfoSectionStyles = makeStyles({
         flexShrink: 0,
         width: "2rem",
         height: "2rem",
-        borderRadius: "0.5rem",
+        borderRadius: tokens.borderRadiusXLarge,
         backgroundColor: tokens.colorBrandBackground2,
         color: tokens.colorBrandForeground1,
         display: "flex",

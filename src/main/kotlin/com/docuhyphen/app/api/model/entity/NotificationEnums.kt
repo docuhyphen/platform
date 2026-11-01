@@ -2,7 +2,6 @@ package com.docuhyphen.app.api.model.entity
 
 import kotlinx.serialization.Serializable
 
-/** Delivery channels a notification can be routed to. */
 @Serializable
 enum class NotificationChannelType
 {
@@ -14,7 +13,6 @@ enum class NotificationChannelType
     WHATSAPP,
 }
 
-/** Whether the user receives notifications immediately or as a batched digest. */
 enum class NotificationDelivery
 {
     INSTANT,
@@ -22,7 +20,6 @@ enum class NotificationDelivery
     DIGEST_DAILY,
 }
 
-/** Outcome of a single delivery attempt (recorded in `notification_delivery_log`). */
 enum class NotificationDeliveryOutcome
 {
     DELIVERED,
@@ -33,14 +30,12 @@ enum class NotificationDeliveryOutcome
     SKIPPED,
 }
 
-/** Whether a rule notifies its assignees or explicitly suppresses delivery for matches. */
 enum class NotificationRuleAction
 {
     NOTIFY,
     SUPPRESS,
 }
 
-/** Scope of a [NotificationRule]: application-wide template or per-organisation. */
 enum class NotificationRuleScope
 {
     APP,

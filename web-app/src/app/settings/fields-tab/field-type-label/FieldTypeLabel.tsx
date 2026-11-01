@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type {ReactElement} from 'react';
 import {Badge} from '@fluentui/react-components';
 import {
     CalendarClockRegular,
@@ -15,7 +15,7 @@ import {FieldValueType} from '../../../models/models';
 import {VALUE_TYPE_LABELS} from '../fieldLabels';
 import {useFieldTypeLabelStyles} from './FieldTypeLabelStyles';
 
-const VALUE_TYPE_ICONS: Record<FieldValueType, ReactNode> = {
+const VALUE_TYPE_ICONS: Record<FieldValueType, ReactElement> = {
     [FieldValueType.SHORT_TEXT]: <TextCaseTitleRegular/>,
     [FieldValueType.LONG_TEXT]: <TextDescriptionRegular/>,
     [FieldValueType.BOOLEAN]: <ToggleLeftRegular/>,

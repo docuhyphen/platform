@@ -76,7 +76,8 @@ const SessionExpiryWarningDialog: React.FC<SessionExpiryWarningDialogProps> = (
                             shape={"circular"}
                             disabled={isContinuing}
                             onClick={onContinue}>
-                            {isContinuing && <Spinner size={"tiny"}/>}
+                            {isContinuing && <Spinner id={"session-expiry-warning-dialog-spinner-1"}
+                                                      size={"tiny"}/>}
                             Continue session
                         </Button>}
                         <Button

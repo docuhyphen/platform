@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.FieldDataClassification
 import com.docuhyphen.app.api.model.entity.SchemaFieldBinding
 import com.docuhyphen.app.api.model.fields.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -149,7 +149,7 @@ class FieldBindingPolicyTest
 
     private fun access(binding: SchemaFieldBinding, operation: FieldValueOperation) = FieldBindingAccess(
         resource = FieldsResourceRef("EXCHANGE", UUID.randomUUID()),
-        access = FieldsAccessContext(author, com.docuhyphen.app.api.service.auth.authz.AuthorizationContext()),
+        access = FieldsAccessContext(author, com.docuhyphen.app.api.model.auth.authz.AuthorizationContext()),
         valueSet = FieldValueSetRef.Root,
         binding = binding,
         operation = operation,

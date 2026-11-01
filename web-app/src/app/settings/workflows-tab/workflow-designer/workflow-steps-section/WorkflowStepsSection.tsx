@@ -4,8 +4,8 @@ import {
     WorkflowTriggerEventDto,
 } from "../../../../models/models.tsx";
 import {useEffect, useState} from "react";
-import WorkflowStepDetailPage from "./WorkflowStepDetailPage.tsx";
-import WorkflowStepListPage from "./WorkflowStepListPage.tsx";
+import WorkflowStepDetailPage from "./workflow-step-detail-page/WorkflowStepDetailPage.tsx";
+import WorkflowStepListPage from "./workflow-step-list-page/WorkflowStepListPage.tsx";
 
 interface Props
 {

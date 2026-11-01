@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.workflow
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.workflow.*
 import com.docuhyphen.app.api.repository.workflow.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull

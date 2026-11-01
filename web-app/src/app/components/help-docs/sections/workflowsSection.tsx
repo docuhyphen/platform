@@ -3,6 +3,7 @@ import {workflowOverviewArticle} from "./articles/workflowOverviewArticle";
 import {triggerEventsArticle} from "./articles/triggerEventsArticle";
 import {requestTriggerEventsArticle} from "./articles/requestTriggerEventsArticle";
 import {buildingAWorkflowArticle} from "./articles/buildingAWorkflowArticle";
+import {reviewingAndSavingAWorkflowArticle} from "./articles/reviewingAndSavingAWorkflowArticle";
 import {workflowApplicabilityArticle} from "./articles/workflowApplicabilityArticle";
 import {stepTypesArticle} from "./articles/stepTypesArticle";
 import {assigneesAndPortabilityArticle} from "./articles/assigneesAndPortabilityArticle";
@@ -21,6 +22,7 @@ export const workflowsSection: HelpDocSectionInput = {
         {id: "trigger-events",              title: "Trigger events",                     content: triggerEventsArticle},
         {id: "request-trigger-events",      title: "Information Request trigger events", content: requestTriggerEventsArticle},
         {id: "building-a-workflow",         title: "Building a workflow",                content: buildingAWorkflowArticle},
+        {id: "reviewing-and-saving-a-workflow", title: "Reviewing, saving and maintaining a workflow", content: reviewingAndSavingAWorkflowArticle},
         {id: "workflow-applicability",      title: "Field-based applicability",          content: workflowApplicabilityArticle},
         {id: "step-types",                  title: "Step types explained",               content: stepTypesArticle},
         {id: "workflow-diagram-preview",    title: "Workflow diagrams and preview",      content: workflowDiagramPreviewArticle},

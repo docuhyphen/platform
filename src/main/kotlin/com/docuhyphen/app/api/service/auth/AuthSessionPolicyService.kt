@@ -1,18 +1,12 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.AuthSessionPolicy
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderConfigRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
-
-data class AuthSessionPolicy(
-    val accessTokenExpiryMinutes: Long,
-    val refreshTokenExpiryMinutes: Long,
-    val maxSessionDurationHours: Long,
-    val idleTimeoutMinutes: Long,
-)
 
 @RequestScoped
 class AuthSessionPolicyService @Inject constructor(
@@ -96,5 +90,3 @@ class AuthSessionPolicyService @Inject constructor(
         )
     }
 }
-
-

@@ -19,7 +19,6 @@ class PrincipalGroupMemberRepository :
             .setParameter("gid", groupId)
             .resultList
 
-    /** Groups a given principal is an active member of (no nesting in V8). */
     fun findGroupsForPrincipal(kind: PrincipalKind, principalId: UUID): List<PrincipalGroupMember> =
         entityManager.createQuery(
             """SELECT m FROM PrincipalGroupMember m

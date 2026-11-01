@@ -28,7 +28,8 @@ const WorkflowViewSwitch = ({view, onChange}: Props) =>
     }[view];
 
     return (
-        <div className={styles.switchBar}>
+        <div id={"workflow-view-switch-div-1"}
+             className={styles.switchBar}>
             <Menu
                 checkedValues={{view: [view]}}
                 onCheckedValueChange={(_, data) =>
@@ -53,7 +54,7 @@ const WorkflowViewSwitch = ({view, onChange}: Props) =>
                         />
                     </Tooltip>
                 </MenuTrigger>
-                <MenuPopover>
+                <MenuPopover id={"workflow-view-switch-menu-popover-1"}>
                     <MenuList id="workflow-designer-view-switch">
                         <MenuItemRadio
                             id="workflow-designer-view-form"

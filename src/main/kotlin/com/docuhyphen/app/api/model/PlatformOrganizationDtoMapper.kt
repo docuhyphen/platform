@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyResponse
 import com.docuhyphen.app.api.service.subscription.PlatformOrganizationSubscriptionPolicyService
-import com.docuhyphen.app.api.service.subscription.PolicyResult
+import com.docuhyphen.app.api.model.subscription.PolicyResult
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 

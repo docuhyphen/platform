@@ -1,357 +1,390 @@
 package com.docuhyphen.app.api.resource.communication
 
+import com.docuhyphen.app.api.exception.RequestValidationException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.resource.RequestGuards
+import com.docuhyphen.app.api.resource.communication.operations.CommunicationResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.communication.CommunicationService
 import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.*
 
-/**
- * REST endpoints for communication management.
- *
- *   GET    /communications                     - list accessible communications
- *   POST   /communications                     - create communication
- *   GET    /communications/{id}                - get full communication
- *   PUT    /communications/{id}                - update communication
- *   PATCH  /communications/{id}/status         - activate / deactivate
- *   PATCH  /communications/{id}/published      - publish / unpublish (ORG/PLATFORM scope)
- *   DELETE /communications/{id}                - soft-delete
- *   POST   /communications/{id}/clone          - clone to PERSONAL scope
- *   POST   /communications/{id}/preview        - render communication with sample variables
- */
-@Path("/communications")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class CommunicationResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val communicationService: CommunicationService,
-)
+) : CommunicationResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(CommunicationResource::class.java)
+
+        private const val INVALID_COMMUNICATION_ID = "Invalid communication id"
     }
 
-    @GET
-    fun listTemplates(
-        @QueryParam("scope") scope: String?,
-        @QueryParam("tag") tag: String?,
-        @QueryParam("isTemplate") isTemplate: Boolean?,
+    override fun listTemplates(
+        scope: String?,
+        tag: String?,
+        isTemplate: Boolean?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
             val items = communicationService.listTemplates(scope, tag, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            logger.error("Failed to list communications", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list communications")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to list communications", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to list communications"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    fun createTemplate(request: CreateCommunicationRequest): Response
+    override fun createTemplate(request: CreateCommunicationRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        if (request.name.isBlank())
-        {
-            return Response.status(BAD_REQUEST).entity(ResponseError("name is required")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            RequestGuards.requireNotBlank(request.name, "name is required")
             val dto = communicationService.createTemplate(request)
             Response.status(CREATED).entity(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Creating a communication was refused by the subscription plan check: plan={}",
-                e.denial.planCode
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to create communication", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Creating a communication was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to create communication", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to create communication"))
+                        .build()
+                }
+            }
         }
     }
 
-    @GET
-    @Path("/{id}")
-    fun getTemplate(@PathParam("id") id: String): Response
+    override fun getTemplate(id: String): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val dto = communicationService.getTemplate(communicationId)
             Response.ok(dto).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to get communication {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to get communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to get communication {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to get communication")).build()
+                }
+            }
         }
     }
 
-    @PUT
-    @Path("/{id}")
-    fun updateTemplate(@PathParam("id") id: String, request: UpdateCommunicationRequest): Response
+    override fun updateTemplate(id: String, request: UpdateCommunicationRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val dto = communicationService.updateTemplate(communicationId, request)
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Updating communication {} was refused by the subscription plan check: plan={}",
-                id,
-                e.denial.planCode
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to update communication {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Updating communication {} was refused by the subscription plan check: plan={}",
+                        id,
+                        exception.denial.planCode
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to update communication {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to update communication"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{id}/status")
-    fun patchTemplateStatus(@PathParam("id") id: String, request: PatchCommunicationStatusRequest): Response
+    override fun patchTemplateStatus(id: String, request: PatchCommunicationStatusRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val dto = communicationService.patchStatus(communicationId, request)
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Changing communication status {} was refused by the subscription plan check: plan={}",
-                id,
-                e.denial.planCode
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to patch communication status {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch communication status")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Changing communication status {} was refused by the subscription plan check: plan={}",
+                        id,
+                        exception.denial.planCode
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to patch communication status {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to patch communication status"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{id}/published")
-    fun patchTemplatePublished(@PathParam("id") id: String, request: PatchCommunicationPublishedRequest): Response
+    override fun patchTemplatePublished(id: String, request: PatchCommunicationPublishedRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val dto = communicationService.patchPublished(communicationId, request)
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Publishing communication {} was refused by the subscription plan check: plan={}",
-                id,
-                e.denial.planCode
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to patch communication published {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch communication published"))
-                .build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Publishing communication {} was refused by the subscription plan check: plan={}",
+                        id,
+                        exception.denial.planCode
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to patch communication published {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to patch communication published"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    @Path("/{id}")
-    fun deleteTemplate(@PathParam("id") id: String): Response
+    override fun deleteTemplate(id: String): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             communicationService.deleteTemplate(communicationId)
             Response.noContent().build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Deleting communication {} was refused by the subscription plan check: plan={}",
-                id,
-                e.denial.planCode
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to delete communication {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Deleting communication {} was refused by the subscription plan check: plan={}",
+                        id,
+                        exception.denial.planCode
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to delete communication {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to delete communication"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{id}/preview")
-    fun previewTemplate(@PathParam("id") id: String, request: PreviewCommunicationRequest): Response
+    override fun previewTemplate(id: String, request: PreviewCommunicationRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val rendered = communicationService.preview(communicationId, request.sampleVariables)
             Response.ok(rendered).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to preview communication {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to preview communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to preview communication {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to preview communication"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{id}/clone")
-    fun cloneTemplate(@PathParam("id") id: String, request: CloneCommunicationRequest): Response
+    override fun cloneTemplate(id: String, request: CloneCommunicationRequest): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val communicationId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid communication id")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            val communicationId = RequestGuards.uuid(id, INVALID_COMMUNICATION_ID)
             val dto = communicationService.cloneTemplate(communicationId, request)
             Response.status(CREATED).entity(dto).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to clone communication {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone communication")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to clone communication {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to clone communication"))
+                        .build()
+                }
+            }
         }
     }
 }

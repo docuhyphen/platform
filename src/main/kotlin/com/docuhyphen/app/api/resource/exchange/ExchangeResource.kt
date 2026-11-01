@@ -17,7 +17,6 @@ import com.docuhyphen.app.api.service.informationrequest.template.InformationReq
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.TOO_MANY_REQUESTS
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -95,16 +94,10 @@ class ExchangeResource @Inject constructor(
                 is IllegalArgumentException,
                 is InvalidEmailException,
                 is AppUserNotFoundException ->
-                {
-                    logger.error("Error initiating Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 is ForbiddenException ->
                     Response.status(Response.Status.FORBIDDEN)
@@ -177,16 +170,10 @@ class ExchangeResource @Inject constructor(
             when (exception)
             {
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error getting app user Exchanges", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 else ->
                 {
@@ -215,28 +202,16 @@ class ExchangeResource @Inject constructor(
             when (exception)
             {
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error getting Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error getting Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 else ->
                 {
@@ -305,7 +280,12 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "granting Exchange access")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error granting Exchange access",
+                "An error occurred while granting Exchange access",
+                exception,
+            )
         }
     }
 
@@ -327,7 +307,12 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "inviting a trusted Exchange participant")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error inviting a trusted Exchange participant",
+                "An error occurred while inviting a trusted Exchange participant",
+                exception,
+            )
         }
     }
 
@@ -342,7 +327,12 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "resending the primary recipient invitation")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error resending the primary recipient invitation",
+                "An error occurred while resending the primary recipient invitation",
+                exception,
+            )
         }
     }
 
@@ -365,7 +355,12 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "updating Exchange access role")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error updating Exchange access role",
+                "An error occurred while updating Exchange access role",
+                exception,
+            )
         }
     }
 
@@ -385,7 +380,12 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "revoking Exchange access")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error revoking Exchange access",
+                "An error occurred while revoking Exchange access",
+                exception,
+            )
         }
     }
 
@@ -405,46 +405,14 @@ class ExchangeResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            mapAccessMutationError(exception, "replacing the primary recipient")
+            ExchangeAccessHttp.refused(
+                logger,
+                "Error replacing the primary recipient",
+                "An error occurred while replacing the primary recipient",
+                exception,
+            )
         }
     }
-
-    private fun mapAccessMutationError(exception: Exception, context: String): Response =
-        when (exception)
-        {
-            is SubscriptionDenialException ->
-            {
-                logger.warn(
-                    "Refused by the subscription plan check while $context: reason={} plan={}",
-                    exception.denial.reason,
-                    exception.denial.planCode,
-                )
-
-                throw exception
-            }
-
-            is ForbiddenException ->
-                Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
-
-            is ExchangeNotFoundException ->
-                Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
-
-            is OrganizationTrustException ->
-                Response.status(Response.Status.CONFLICT)
-                    .entity(ResponseError("This trusted recipient can no longer be selected"))
-                    .build()
-
-            is IllegalArgumentException ->
-                Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
-
-            else ->
-            {
-                logger.error("Error $context", exception)
-                Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(ResponseError("An error occurred while $context"))
-                    .build()
-            }
-        }
 
     override fun updateExchange(
         exchangeId: String,
@@ -491,17 +459,10 @@ class ExchangeResource @Inject constructor(
                 }
 
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error adding Exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-
-                }
 
                 is ForbiddenException -> {
                     logger.warn("Exchange update refused: {}", exception.message)
@@ -512,16 +473,10 @@ class ExchangeResource @Inject constructor(
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error updating Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 else ->
                 {
@@ -592,30 +547,7 @@ class ExchangeResource @Inject constructor(
         {
             when (exception)
             {
-                is NoAuthOtpException ->
-                {
-                    val response = Response
-                        .status(
-                            if (exception.reasonCode == "OTP_RATE_LIMITED" || exception.reasonCode == "OTP_LOCKED")
-                                TOO_MANY_REQUESTS
-                            else
-                                Response.Status.BAD_REQUEST,
-                        )
-                        .entity(
-                            ResponseError(
-                                errorMessage = exception.message,
-                                reasonCode = exception.reasonCode,
-                                retryAfterSeconds = exception.retryAfterSeconds,
-                            )
-                        )
-
-                    if (exception.retryAfterSeconds != null)
-                    {
-                        response.header("Retry-After", exception.retryAfterSeconds)
-                    }
-
-                    response.build()
-                }
+                is NoAuthOtpException -> NoAuthExchangeHttp.otpRefused(exception)
 
                 is ExchangeNotFoundException ->
                 {
@@ -665,28 +597,16 @@ class ExchangeResource @Inject constructor(
             when (exception)
             {
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error deleting Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error deleting Exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
                     Response
                         .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message))
                         .build()
-                }
 
                 else ->
                 {
@@ -727,11 +647,7 @@ class ExchangeResource @Inject constructor(
             when (exception)
             {
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error searching Exchanges", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {

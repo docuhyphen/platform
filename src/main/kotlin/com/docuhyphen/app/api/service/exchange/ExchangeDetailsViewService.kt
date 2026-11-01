@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
 import com.docuhyphen.app.api.model.dto.ExchangeDetailedDto
 import com.docuhyphen.app.api.model.entity.DocumentType
-import com.docuhyphen.app.api.service.auth.authz.ShareConstraints
+import com.docuhyphen.app.api.model.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.service.organization.PrincipalGroupService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.user.AppUserService

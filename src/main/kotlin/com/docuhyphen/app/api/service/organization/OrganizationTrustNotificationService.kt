@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
+import com.docuhyphen.app.api.model.organization.OrganizationTrustNotificationDetails
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -78,62 +79,60 @@ class OrganizationTrustNotificationService @Inject constructor(
         }
     }
 
-    private fun notificationDetails(eventType: AuditEventType): NotificationDetails = when (eventType)
+    private fun notificationDetails(eventType: AuditEventType): OrganizationTrustNotificationDetails = when (eventType)
     {
-        AuditEventType.ORG_TRUST_REQUESTED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_REQUESTED -> OrganizationTrustNotificationDetails(
             "Trusted Organization request",
             "A trust request was created with",
         )
 
-        AuditEventType.ORG_TRUST_REREQUESTED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_REREQUESTED -> OrganizationTrustNotificationDetails(
             "Trusted Organization requested again",
             "A new trust request was created with",
         )
 
-        AuditEventType.ORG_TRUST_ACCEPTED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_ACCEPTED -> OrganizationTrustNotificationDetails(
             "Trusted Organization request accepted",
             "Trust is now active with",
         )
 
-        AuditEventType.ORG_TRUST_REJECTED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_REJECTED -> OrganizationTrustNotificationDetails(
             "Trusted Organization request rejected",
             "A trust request was rejected with",
         )
 
-        AuditEventType.ORG_TRUST_WITHDRAWN -> NotificationDetails(
+        AuditEventType.ORG_TRUST_WITHDRAWN -> OrganizationTrustNotificationDetails(
             "Trusted Organization request withdrawn",
             "A trust request was withdrawn with",
         )
 
-        AuditEventType.ORG_TRUST_EXPIRED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_EXPIRED -> OrganizationTrustNotificationDetails(
             "Trusted Organization request expired",
             "A trust request expired with",
         )
 
-        AuditEventType.ORG_TRUST_SUSPENDED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_SUSPENDED -> OrganizationTrustNotificationDetails(
             "Trusted Organization suspended",
             "Trust was suspended with",
         )
 
-        AuditEventType.ORG_TRUST_RESUMED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_RESUMED -> OrganizationTrustNotificationDetails(
             "Trusted Organization resumed",
             "A suspension was cleared with",
         )
 
-        AuditEventType.ORG_TRUST_ENDED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_ENDED -> OrganizationTrustNotificationDetails(
             "Trusted Organization ended",
             "Trust was ended with",
         )
 
-        AuditEventType.ORG_TRUST_POLICY_UPDATED -> NotificationDetails(
+        AuditEventType.ORG_TRUST_POLICY_UPDATED -> OrganizationTrustNotificationDetails(
             "Trusted Organization policy updated",
             "Trust policy was updated with",
         )
 
         else -> throw IllegalArgumentException("Unsupported Trusted Organization notification event")
     }
-
-    private data class NotificationDetails(val title: String, val message: String)
 
     companion object
     {

@@ -30,10 +30,6 @@ export const lightTheme: Theme = {
     ...createLightTheme(mainBrand),
 };
 
-/**
- * Lightens a hex color (#rrggbb) toward white by the given ratio (0..1).
- * Ratio 0.2 means each channel moves 20% of the distance to 255.
- */
 function lighten(hex: string, ratio: number): string {
     const m = /^#?([0-9a-f]{6})$/i.exec(hex);
     if (!m) return hex;
@@ -54,9 +50,6 @@ function lighten(hex: string, ratio: number): string {
 
 const baseDarkTheme = createDarkTheme(mainBrand);
 
-// Tokens that drive the perceived darkness of surfaces, borders, and dividers.
-// Lifting these slightly makes the dark theme a touch softer while
-// preserving the overall palette and contrast relationships.
 const LIGHTEN_RATIO = 0.08;
 const tokensToLighten: (keyof Theme)[] = [
     "colorNeutralBackground1",

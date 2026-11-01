@@ -13,11 +13,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * A Principal Group states its own owner so an authorization decision about it no longer has to
- * fall back to whichever organization the caller has selected. A group with no single owner, and
- * a group that does not exist, resolve to nothing and are refused.
- */
 class PrincipalGroupAuthorizationContextProviderTest
 {
     @Test
@@ -79,10 +74,6 @@ class PrincipalGroupAuthorizationContextProviderTest
     {
         assertEquals(ResourceKind.PRINCIPAL_GROUP, providerWith(mock<PrincipalGroupRepository>()).supportedKind)
     }
-
-    // -------------------------------------------------------------------------
-    // fixtures
-    // -------------------------------------------------------------------------
 
     private fun group(groupId: UUID, configure: PrincipalGroup.() -> Unit) = PrincipalGroup().apply {
         id = groupId

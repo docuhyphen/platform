@@ -26,7 +26,8 @@ const NotificationPreferenceRow: React.FC<NotificationPreferenceRowProps> = (pro
         <div id={`notification-channels-selected-${props.id}`}
              className={styles.selectedChannels}>
             {props.channels.length === 0 ? (
-                <Text size={200}
+                <Text id={"notification-preference-row-text-1"}
+                      size={200}
                       className={styles.emptySelection}>
                     None
                 </Text>

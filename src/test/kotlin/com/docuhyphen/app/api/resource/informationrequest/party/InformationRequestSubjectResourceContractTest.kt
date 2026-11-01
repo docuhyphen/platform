@@ -14,8 +14,8 @@ import com.docuhyphen.app.api.resource.informationrequest.party.operations.Infor
 import com.docuhyphen.app.api.resource.informationrequest.party.operations.InformationRequestSubjectResourceOperations
 import com.docuhyphen.app.api.resource.model.AssignInformationRequestSubjectRequest
 import com.docuhyphen.app.api.resource.model.InformationRequestSubjectReferenceRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestSubjectService
 import io.quarkus.security.ForbiddenException

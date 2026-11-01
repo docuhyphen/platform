@@ -22,7 +22,6 @@ data class OrganizationDetailedDto(
     val settings: OrganizationSettingsDto
 )
 
-
 @Serializable
 data class DocumentCommentDetailedDto(
     @Serializable(with = UUIDSerializer::class)
@@ -91,8 +90,6 @@ data class ExchangeDetailedDto(
     var requestRecipientSignIn: Boolean = false,
     var noAuthAccessValidityDays: Int = 7,
     val documents: List<DocumentDetailedDto?>,
-    // Document permissions are stored on the recipient's Share constraints_json.
-    // They are populated at the resource layer from the primary recipient's share.
     var allowDocumentAddition: Boolean = false,
     var allowDocumentDeletion: Boolean = false,
     var allowDocumentDownload: Boolean = false,
@@ -153,7 +150,6 @@ data class DocumentAuditDetailedDto(
     val action: String?,
     val performedBy: AppUserPublicDto?,
     val performedByEmail: String?,
-    // Populated by the ledger-backed Exchange-level projection.
     val documentId: String? = null,
     val documentTitle: String? = null,
 )

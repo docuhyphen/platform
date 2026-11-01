@@ -1,20 +1,15 @@
 package com.docuhyphen.app.api.service.user
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.user.AvatarContent
 import com.docuhyphen.app.api.service.storage.ProfilePictureStorageService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import java.io.File
 import java.util.*
 
-/**
- * Handles the storage lifecycle of a user's profile picture (avatar): uploading a new
- * image, streaming the current image back, and removing it. The binary is kept in the
- * dedicated profile-picture storage location while the owning user row only holds the
- * storage key. Persistence of the user row is delegated to [AppUserService] so this
- * service never touches the user repository directly.
- */
 @RequestScoped
 class AppUserAvatarService @Inject constructor(
     private val authTokenContext: AuthTokenContext,
@@ -26,8 +21,6 @@ class AppUserAvatarService @Inject constructor(
     {
         private const val MAX_AVATAR_SIZE_BYTES = 5L * 1024 * 1024
 
-        // Image formats accepted for an avatar, mapped to the content type used when
-        // streaming the stored image back to the browser.
         private val ALLOWED_EXTENSIONS: Map<String, String> = mapOf(
             "png" to "image/png",
             "jpg" to "image/jpeg",
@@ -37,18 +30,7 @@ class AppUserAvatarService @Inject constructor(
         )
     }
 
-    data class AvatarContent(val bytes: ByteArray, val contentType: String)
-    {
-        override fun equals(other: Any?): Boolean
-        {
-            if (this === other) return true
-            if (other !is AvatarContent) return false
-            return contentType == other.contentType && bytes.contentEquals(other.bytes)
-        }
-
-        override fun hashCode(): Int = 31 * bytes.contentHashCode() + contentType.hashCode()
-    }
-
+    @Transactional
     fun uploadAvatar(file: File, extension: String?)
     {
         val appUser = authTokenContext.authToken.appUser
@@ -76,8 +58,6 @@ class AppUserAvatarService @Inject constructor(
 
         profilePictureStorageService.store(file, newKey)
 
-        // Remove any previously stored image whose extension differs, otherwise it is
-        // overwritten in place and there is nothing to clean up.
         if (previousKey != null && previousKey != newKey)
         {
             runCatching { profilePictureStorageService.delete(previousKey) }
@@ -100,11 +80,6 @@ class AppUserAvatarService @Inject constructor(
         return AvatarContent(bytes, contentType)
     }
 
-    /**
-     * Streams the profile picture of any user by id. A profile picture is low-sensitivity
-     * presentation data, so any authenticated user may load another user's avatar. Returns
-     * null when the target user does not exist or has no stored picture.
-     */
     fun getAvatar(userId: UUID): AvatarContent?
     {
         authTokenContext.authToken.appUser
@@ -119,6 +94,7 @@ class AppUserAvatarService @Inject constructor(
         return AvatarContent(bytes, contentType)
     }
 
+    @Transactional
     fun deleteAvatar()
     {
         val appUser = authTokenContext.authToken.appUser
@@ -132,5 +108,3 @@ class AppUserAvatarService @Inject constructor(
         appUserService.update(appUser)
     }
 }
-
-

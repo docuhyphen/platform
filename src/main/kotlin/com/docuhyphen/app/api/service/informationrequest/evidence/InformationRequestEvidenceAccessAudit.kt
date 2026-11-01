@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.informationrequest.evidence
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceContentUse
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceRelease
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome

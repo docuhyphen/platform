@@ -20,8 +20,6 @@ data class ExchangeBasicDto(
     @Serializable(with = UUIDSerializer::class)
     val initiator: UUID?,
     val status: String?,
-    // Recipients/participants are exposed via the unified access view
-    // (GET /exchanges/{id}/access), not embedded recipient columns.
 )
 
 @Serializable
@@ -41,8 +39,6 @@ data class NoAuthExchangeBasicDto(
     var noAuthAccessValidityDays: Int = 7,
     val documents: List<DocumentBasicDto?>,
     var allowDocumentDownload: Boolean = false,
-    // True when the recipient has no live verified access window, so the UI can ask for a fresh
-    // access code up front rather than letting them discover it only when an upload fails.
     var accessVerificationRequired: Boolean = false,
 )
 
@@ -65,8 +61,6 @@ data class OrganizationBasicDto(
     val createdDate: Timestamp?,
     val name: String?,
     val registrationNumber: String?,
-//    val isActive: Boolean?,
-//    val verificationComplete: Boolean?,
 )
 
 @Serializable
@@ -109,10 +103,6 @@ data class DocumentBasicDto(
     val hash: String?,
 )
 
-/**
- * Safe public view of another user. Never includes private settings, notification preferences,
- * identification numbers, or contact details. Used anywhere one user can see another user's data.
- */
 @Serializable
 data class PersonPublicDto(
     val firstName: String? = null,

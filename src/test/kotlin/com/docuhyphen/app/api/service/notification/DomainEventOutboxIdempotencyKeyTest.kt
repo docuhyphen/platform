@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.notification
 
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test

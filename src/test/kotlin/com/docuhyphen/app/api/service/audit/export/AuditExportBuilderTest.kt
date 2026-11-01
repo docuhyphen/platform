@@ -2,7 +2,11 @@ package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.export.AuditExportManifestEnvelope
 import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
+import com.docuhyphen.app.api.model.audit.export.SignedAuditExportManifest
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.audit.*
 import com.docuhyphen.app.api.service.audit.*
@@ -10,9 +14,9 @@ import com.docuhyphen.app.api.service.audit.archive.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService

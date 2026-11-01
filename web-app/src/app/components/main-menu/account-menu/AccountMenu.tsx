@@ -80,7 +80,7 @@ const AccountMenu = ({onToggleHelpSidebar}: AccountMenuProps) =>
                             avatar={appUser?.avatarUrl ? {image: {src: appUser.avatarUrl}} : undefined}/>
                     </Button>
                 </MenuTrigger>
-                <MenuPopover>
+                <MenuPopover id={"account-menu-menu-popover-1"}>
                     <MenuList id={"account-menu-list"}>
                         <MenuItem id={"account-menu-personal-workspace"}
                                   disabled={!currentSession || currentSession.activeOrganizationId === null}
@@ -95,7 +95,7 @@ const AccountMenu = ({onToggleHelpSidebar}: AccountMenuProps) =>
                                 {organization.name}
                             </MenuItem>
                         ))}
-                        <MenuDivider/>
+                        <MenuDivider id={"account-menu-menu-divider-1"}/>
                         <MenuItem
                             id={"account-menu-settings"}
                             onClick={() => navigate("/settings")}

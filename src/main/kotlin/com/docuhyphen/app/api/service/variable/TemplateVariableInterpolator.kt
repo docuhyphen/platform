@@ -1,9 +1,9 @@
 package com.docuhyphen.app.api.service.variable
 
 import com.docuhyphen.app.api.model.dto.formatSequenceValue
-import com.docuhyphen.app.api.model.entity.AppUser
-import com.docuhyphen.app.api.model.entity.Organization
+import com.docuhyphen.app.api.model.variable.InterpolationResult
 import com.docuhyphen.app.api.model.variable.SequenceAllocation
+import com.docuhyphen.app.api.model.variable.VariableResolutionContext
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -12,22 +12,9 @@ import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
-import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.*
-
-data class VariableResolutionContext(
-    val user: AppUser,
-    val organization: Organization?,
-    val timestamp: Instant,
-    val overrides: Map<String, String> = emptyMap(),
-)
-
-data class InterpolationResult(
-    val resolved: String,
-    val unresolvedTokens: List<String> = emptyList(),
-)
 
 @ApplicationScoped
 class TemplateVariableInterpolator @Inject constructor(
@@ -78,16 +65,14 @@ class TemplateVariableInterpolator @Inject constructor(
         unresolved: MutableList<String>,
     ): String?
     {
-        if (token.startsWith("SEQ:")) return null  // handled separately when transactional
+        if (token.startsWith("SEQ:")) return null
 
         val systemResolved = resolveSystemToken(token, context)
         if (systemResolved != null) return systemResolved
 
-        // Check caller-supplied overrides first
         val overrideValue = context.overrides[token]
         if (overrideValue != null) return overrideValue
 
-        // Org variable
         if (context.organization != null)
         {
             val orgVar = variableRepository.findByOrganizationIdAndKeyAndIsDeletedFalse(
@@ -96,7 +81,6 @@ class TemplateVariableInterpolator @Inject constructor(
             if (orgVar != null && orgVar.isActive) return orgVar.defaultValue ?: ""
         }
 
-        // Personal variable
         val personalVar = variableRepository.findByCreatedByAppUserIdAndKeyAndIsDeletedFalse(
             context.user.id, token
         )

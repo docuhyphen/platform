@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.audit.export
 
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.audit.archive.StreamCoverageReport
 import com.docuhyphen.app.api.model.audit.export.OrganizationIntegrityReport
 import com.docuhyphen.app.api.model.audit.export.StreamIntegrityReport

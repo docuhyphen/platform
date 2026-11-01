@@ -11,12 +11,10 @@ import {
     Input,
     Spinner
 } from "@fluentui/react-components";
-import React, {useState} from "react";
-import {useAuth} from "../../../../context/AuthContext.tsx";
-import apiClient from "../../../../services/apiClient";
-import {AppUserDetailedDto} from "../../../models/models.tsx";
+import React from "react";
 import {useBasicDetailsEditDialogStyles} from "./BasicDetailsEditDialogStyles.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {useBasicDetailsForm} from "./useBasicDetailsForm.ts";
 
 interface BasicDetailsEditDialogProps
 {
@@ -31,142 +29,64 @@ const BasicDetailsEditDialog: React.FC<BasicDetailsEditDialogProps> = (
     }
 ) =>
 {
-    const styles = useBasicDetailsEditDialogStyles()
-    const globalStyles = useGlobalStyles()
-    const {appUser, token, setAppUser} = useAuth()
-    const [firstName, setFirstName] = useState(appUser?.person.firstName);
-    const [lastName, setLastName] = useState(appUser?.person.lastName);
-    const [updatingProfile, setUpdatingProfile] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const onUpdate = async () =>
-    {
-        if (updatingProfile)
-        {
-            return
-        }
-
-        if (!firstName?.trim() || !lastName?.trim())
-        {
-            setError("First name and last name are required")
-            return;
-        }
-
-        setUpdatingProfile(true)
-        setError(null);
-
-        try
-        {
-            const updatedPersonRequest = {
-                firstName,
-                lastName
-            }
-
-            await apiClient.put('/app-user/person', updatedPersonRequest, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            const updatedAppUser = {
-                ...appUser,
-                person: {
-                    ...appUser?.person,
-                    firstName,
-                    lastName
-                }
-            } as AppUserDetailedDto
-
-            setAppUser({
-                ...updatedAppUser,
-                person: {...updatedAppUser?.person, firstName, lastName}
-            });
-
-            onClose();
-        }
-        catch (e: unknown)
-        {
-            console.error("Failed to update profile:", e);
-            const serverMsg = e?.response?.data?.message || e?.response?.data?.errorMessage;
-            if (serverMsg)
-            {
-                setError(serverMsg);
-            }
-            else if (e?.response?.status >= 500 || !e?.response)
-            {
-                setError("Something went wrong on our side. Please try again in a moment.");
-            }
-            else
-            {
-                setError("Failed to update profile");
-            }
-        }
-        finally
-        {
-            setUpdatingProfile(false)
-        }
-    }
-
-    const onClose = () =>
-    {
-        setFirstName(appUser?.person.firstName || '')
-        setLastName(appUser?.person.lastName || '')
-        setError(null);
-        onDismiss()
-    }
+    const styles = useBasicDetailsEditDialogStyles();
+    const globalStyles = useGlobalStyles();
+    const form = useBasicDetailsForm(onDismiss);
 
     return <Dialog modalType="alert"
                    open={isOpen}>
-        <DialogSurface>
-            <DialogBody>
-                <DialogTitle>Update your profile</DialogTitle>
-                <DialogContent className={styles.dialogContentContainer}>
-                    { error && <div className={styles.errorContainer}>{error}</div>}
+        <DialogSurface id={"basic-details-edit-dialog-dialog-surface-1"}>
+            <DialogBody id={"basic-details-edit-dialog-dialog-body-1"}>
+                <DialogTitle id={"basic-details-edit-dialog-dialog-title-1"}>Update your profile</DialogTitle>
+                <DialogContent id={"basic-details-edit-dialog-dialog-content-1"}
+                               className={styles.dialogContentContainer}>
+                    {form.error && <div id={"basic-details-edit-dialog-div-1"}
+                                        className={styles.errorContainer}>{form.error}</div>}
 
-                    <Field label={"Your first name"}>
+                    <Field id={"basic-details-edit-dialog-field-1"}
+                           label={"Your first name"}>
                         <Input id={"input-first-name"}
                                type={"text"}
-                               value={firstName}
+                               value={form.firstName}
                                maxLength={30}
-                               onChange={(e) => setFirstName(e.target.value)}
-                               onKeyDown={(e) => { if (e.key === "Enter") onUpdate(); }}/>
+                               onChange={(e) => form.setFirstName(e.target.value)}
+                               onKeyDown={(e) => { if (e.key === "Enter") form.onUpdate(); }}/>
                     </Field>
 
-                    <Field label={"Your last name"}>
+                    <Field id={"basic-details-edit-dialog-field-2"}
+                           label={"Your last name"}>
                         <Input id={"input-last-name"}
                                type={"text"}
-                               value={lastName}
+                               value={form.lastName}
                                maxLength={30}
-                               onChange={(e) => setLastName(e.target.value)}
-                               onKeyDown={(e) => { if (e.key === "Enter") onUpdate(); }}/>
+                               onChange={(e) => form.setLastName(e.target.value)}
+                               onKeyDown={(e) => { if (e.key === "Enter") form.onUpdate(); }}/>
                     </Field>
                 </DialogContent>
             </DialogBody>
-            <DialogActions>
+            <DialogActions id={"basic-details-edit-dialog-dialog-actions-1"}>
                 <Button id={"button-update-profile"}
                         appearance="primary"
                         shape={"circular"}
                         className={globalStyles.buttonWithLoading}
-                        disabled={
-                            updatingProfile ||
-                            (firstName === appUser?.person.firstName && lastName === appUser?.person.lastName)
-                        }
-                        onClick={onUpdate}>
-                    {updatingProfile && <Spinner size={"tiny"}/>}
-                    {updatingProfile ? "Updating…" : "Update"}
+                        disabled={form.updatingProfile || form.isUnchanged}
+                        onClick={form.onUpdate}>
+                    {form.updatingProfile && <Spinner id={"basic-details-edit-dialog-spinner-1"}
+                                                      size={"tiny"}/>}
+                    {form.updatingProfile ? "Updating…" : "Update"}
                 </Button>
                 <DialogTrigger disableButtonEnhancement>
                     <Button id={"button-basic-details-close"}
                             appearance="secondary"
                             shape={"circular"}
-                            disabled={updatingProfile}
-                            onClick={onClose}>
+                            disabled={form.updatingProfile}
+                            onClick={form.onClose}>
                         Close
                     </Button>
                 </DialogTrigger>
             </DialogActions>
         </DialogSurface>
-    </Dialog>
-}
+    </Dialog>;
+};
 
 export default BasicDetailsEditDialog;

@@ -7,15 +7,4 @@ export const useApprovalSlaFieldsStyles = makeStyles({
         gap: tokens.spacingHorizontalXS,
         minWidth: 0,
     },
-
-    escalationTargets: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalS,
-        minWidth: 0,
-    },
-
-    escalationHint: {
-        color: tokens.colorNeutralForeground3,
-    },
 });

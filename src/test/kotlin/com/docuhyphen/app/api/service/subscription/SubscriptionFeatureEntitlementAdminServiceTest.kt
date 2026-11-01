@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.informationrequest.evidence.*
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import java.util.*
 

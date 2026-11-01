@@ -1,30 +1,26 @@
 package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
+import com.docuhyphen.app.api.resource.exchange.operations.ExchangeParticipantResourceOperations
 import com.docuhyphen.app.api.resource.model.AddExchangeParticipantRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.exchange.ExchangeParticipantService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/exchanges/{exchangeId}/participants")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class ExchangeParticipantResource @Inject constructor(
     private val exchangeParticipantService: ExchangeParticipantService
-)
+) : ExchangeParticipantResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeParticipantResource::class.java)
     }
 
-    @POST
-    fun addParticipant(
-        @PathParam("exchangeId") exchangeId: String,
+    override fun addParticipant(
+        exchangeId: String,
         request: AddExchangeParticipantRequest
     ): Response
     {
@@ -38,49 +34,25 @@ class ExchangeParticipantResource @Inject constructor(
             when (exception)
             {
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error adding exchange participant", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error adding exchange participant", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error initiating exchange", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating exchange")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error adding Exchange participant", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while adding Exchange participant"))
                         .build()
                 }
             }
         }
     }
 
-    @DELETE
-    @Path("/{participantId}")
-    fun removeParticipant(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("participantId") participantId: String
+    override fun removeParticipant(
+        exchangeId: String,
+        participantId: String
     ): Response
     {
         return try
@@ -93,25 +65,13 @@ class ExchangeParticipantResource @Inject constructor(
             when (exception)
             {
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error initiating exchange", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error initiating exchange", exception)
-
-                    val responseError = ResponseError("An error occurred while initiating exchange")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error removing Exchange participant", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while removing Exchange participant"))
                         .build()
                 }
             }

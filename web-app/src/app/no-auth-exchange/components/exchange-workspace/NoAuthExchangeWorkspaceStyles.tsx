@@ -70,8 +70,8 @@ export const useNoAuthExchangeWorkspaceStyles = makeStyles({
         padding: `${tokens.spacingVerticalSNudge} ${tokens.spacingHorizontalMNudge}`,
         color: tokens.colorBrandForeground1,
         background: tokens.colorBrandBackground2,
-        borderRadius: "999px",
-        fontSize: "12px",
-        fontWeight: 600,
+        borderRadius: tokens.borderRadiusCircular,
+        fontSize: tokens.fontSizeBase200,
+        fontWeight: tokens.fontWeightSemibold,
     },
 });

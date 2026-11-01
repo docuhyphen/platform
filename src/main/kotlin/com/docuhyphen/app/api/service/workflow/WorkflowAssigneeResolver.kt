@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.workflow.AssigneeSpec
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationMembershipRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import kotlinx.serialization.json.Json
@@ -13,14 +13,6 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.*
 
-/**
- * Resolves an [AssigneeSpec] (potentially containing `$subject.<field>` placeholders) into
- * the concrete set of [PrincipalRef]s that should receive an APPROVAL step.
- *
- * Placeholder resolution reads from a `subjectDataJson` blob captured on the
- * [com.docuhyphen.app.api.model.entity.WorkflowInstance] at startup, never from the live
- * subject, so the resolution is replay-safe and immune to mid-flow mutations.
- */
 @ApplicationScoped
 class WorkflowAssigneeResolver
 {
@@ -68,7 +60,6 @@ class WorkflowAssigneeResolver
                 }.orEmpty()
         }
 
-    /** Resolves a literal UUID, or a `$subject.<field>` placeholder lookup. */
     private fun resolveRef(ref: String, subjectFields: Map<String, String>): UUID?
     {
         val raw = if (ref.startsWith("\$subject."))

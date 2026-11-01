@@ -38,7 +38,6 @@ const SessionInactivityGuard: React.FC<SessionInactivityGuardProps> = (
         }
         catch
         {
-            // Local sign-out still proceeds when the server has already ended the session.
         }
     }, [token]);
 

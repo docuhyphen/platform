@@ -11,7 +11,6 @@ import java.util.*
 class OrganizationMembershipRepository :
     BaseRepository<OrganizationMembership>(OrganizationMembership::class.java)
 {
-    /** Active member count for an organization. */
     fun countActiveMembersOfOrg(organizationId: UUID): Long =
         entityManager.createQuery(
             """SELECT COUNT(m) FROM OrganizationMembership m
@@ -47,7 +46,6 @@ class OrganizationMembershipRepository :
             .associate { row -> row[0] as UUID to row[1] as Long }
     }
 
-    /** Deletes all membership rows for a user in an org (used on hard-delete of the user). */
     @Transactional
     fun deleteByUserAndOrg(appUserId: UUID, organizationId: UUID): Int =
         entityManager.createQuery(

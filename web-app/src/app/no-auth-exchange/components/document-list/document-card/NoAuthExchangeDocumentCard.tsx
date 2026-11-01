@@ -13,7 +13,6 @@ interface NoAuthExchangeDocumentCardProps
     selectedFileName: string;
     uploading: boolean;
     uploadProgress: number;
-    /** Card-scoped failure only. Access-window failures are owned by the verification panel. */
     error: string;
     uploadsDisabled: boolean;
     downloadEnabled: boolean;
@@ -32,33 +31,42 @@ const NoAuthExchangeDocumentCard: React.FC<NoAuthExchangeDocumentCardProps> = (p
         <Card id={`no-auth-exchange-document-card-${documentId}`}
               className={styles.documentCard}>
             {!!props.error && (
-                <MessageBar intent="error"
+                <MessageBar id={"no-auth-exchange-document-card-message-bar-1"}
+                            intent="error"
                             className={styles.documentError}>
-                    <MessageBarBody className={styles.documentErrorBody}>{props.error}</MessageBarBody>
+                    <MessageBarBody id={"no-auth-exchange-document-card-message-bar-body-1"}
+                                    className={styles.documentErrorBody}>{props.error}</MessageBarBody>
                 </MessageBar>
             )}
             {props.document.uploadDate && (
                 <NoAuthExchangeDocumentThumbnail document={props.document}
                                                  exchangeId={props.exchangeId}/>
             )}
-            <CardHeader className={styles.documentCardHeader}
+            <CardHeader id={"no-auth-exchange-document-card-card-header-1"}
+                        className={styles.documentCardHeader}
                         header={
-                            <div className={styles.documentName}>
-                                <Text size={300}
+                            <div id={"no-auth-exchange-document-card-div-1"}
+                                 className={styles.documentName}>
+                                <Text id={"no-auth-exchange-document-card-text-1"}
+                                      size={300}
                                       weight={"semibold"}
                                       className={styles.documentTitle}>
                                     {props.document.title}
                                 </Text>
                                 {props.document.uploadDate && (
-                                    <Text className={styles.uploadedDate}>
+                                    <Text id={"no-auth-exchange-document-card-text-2"}
+                                          className={styles.uploadedDate}>
                                         File received {formatDateTimeWithOrdinal(props.document.uploadDate)}
                                     </Text>
                                 )}
                             </div>
                         }/>
-            <div className={styles.documentActions}>
-                <div className={styles.documentActionsLine1}>
-                    <div className={styles.uploadActions}>
+            <div id={"no-auth-exchange-document-card-div-2"}
+                 className={styles.documentActions}>
+                <div id={"no-auth-exchange-document-card-div-3"}
+                     className={styles.documentActionsLine1}>
+                    <div id={"no-auth-exchange-document-card-div-4"}
+                         className={styles.uploadActions}>
                         <Button id={`no-auth-exchange-doc-choose-file-btn-${documentId}`}
                                 appearance="secondary"
                                 size={"small"}
@@ -67,7 +75,8 @@ const NoAuthExchangeDocumentCard: React.FC<NoAuthExchangeDocumentCardProps> = (p
                                 disabled={props.uploadsDisabled}
                                 className={mergeClasses(styles.uploadButton1, styles.actionButton)}>
                             {props.selectedFileName ? "Choose another file" : "Choose file"}
-                            <input type="file"
+                            <input id={"no-auth-exchange-document-card-input-1"}
+                                   type="file"
                                    onChange={props.onFileSelected}
                                    className={styles.uploadButton2}
                                    disabled={props.uploadsDisabled}/>
@@ -80,7 +89,8 @@ const NoAuthExchangeDocumentCard: React.FC<NoAuthExchangeDocumentCardProps> = (p
                                 onClick={props.onUpload}
                                 disabled={props.uploadsDisabled}
                                 className={styles.actionButton}>
-                            {props.uploading ? <Spinner size="tiny"/> : "Upload file"}
+                            {props.uploading ? <Spinner id={"no-auth-exchange-document-card-spinner-1"}
+                                                        size="tiny"/> : "Upload file"}
                         </Button>
                     </div>
                     {props.downloadEnabled && (
@@ -96,9 +106,11 @@ const NoAuthExchangeDocumentCard: React.FC<NoAuthExchangeDocumentCardProps> = (p
                         </Button>
                     )}
                 </div>
-                <div className={styles.documentActionsLine2}>
+                <div id={"no-auth-exchange-document-card-div-5"}
+                     className={styles.documentActionsLine2}>
                     {props.selectedFileName && (
-                        <Text size={300}
+                        <Text id={"no-auth-exchange-document-card-text-3"}
+                              size={300}
                               weight="semibold"
                               className={styles.fileNameText}>
                             Chosen file: {props.selectedFileName}
@@ -106,7 +118,8 @@ const NoAuthExchangeDocumentCard: React.FC<NoAuthExchangeDocumentCardProps> = (p
                     )}
                 </div>
             </div>
-            {props.uploading && <ProgressBar value={props.uploadProgress / 100}/>}
+            {props.uploading && <ProgressBar id={"no-auth-exchange-document-card-progress-bar-1"}
+                                             value={props.uploadProgress / 100}/>}
         </Card>
     );
 };

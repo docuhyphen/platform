@@ -1,9 +1,13 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.Grant
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -21,14 +25,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * A resource whose type declares that it carries its own authorization facts is refused when
- * those facts cannot be resolved, and its organization-role grants come from the resolved owner
- * rather than from whichever organization the caller happens to have selected.
- *
- * Types that deliberately carry no resource context, being the platform control-plane types,
- * keep their previous behavior including the active-organization fallback.
- */
 class UnresolvedResourceContextPolicyTest
 {
     private val userId = UUID.randomUUID()
@@ -36,10 +32,6 @@ class UnresolvedResourceContextPolicyTest
     private val ownerOrgId = UUID.randomUUID()
     private val principal = PrincipalRef.user(userId)
     private val context = AuthorizationContext(activeOrgId = activeOrgId)
-
-    // -------------------------------------------------------------------------
-    // resolution outcomes
-    // -------------------------------------------------------------------------
 
     @Test
     fun `resolution separates a governed resource from one that carries no context`()
@@ -75,10 +67,6 @@ class UnresolvedResourceContextPolicyTest
         )
     }
 
-    // -------------------------------------------------------------------------
-    // authorize
-    // -------------------------------------------------------------------------
-
     @Test
     fun `a governed kind with no registered provider denies with the unresolved reason`()
     {
@@ -113,10 +101,6 @@ class UnresolvedResourceContextPolicyTest
             (decision as Decision.Deny).reasonCode,
         )
     }
-
-    // -------------------------------------------------------------------------
-    // grants
-    // -------------------------------------------------------------------------
 
     @Test
     fun `a governed kind with no registered provider contributes no grants`()
@@ -209,10 +193,6 @@ class UnresolvedResourceContextPolicyTest
             "group management must keep resolving the group's owning organization"
         }
     }
-
-    // -------------------------------------------------------------------------
-    // fixtures
-    // -------------------------------------------------------------------------
 
     private fun contextOwnedBy(owner: OwnerContext) = ResourceAuthorizationContext(ownerContext = owner)
 

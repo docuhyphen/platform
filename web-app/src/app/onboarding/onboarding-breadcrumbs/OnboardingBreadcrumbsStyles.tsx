@@ -25,7 +25,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
             background: tokens.colorNeutralForegroundOnBrand,
             opacity: 0.3,
             position: "absolute",
-            left: "8px",
+            left: tokens.spacingHorizontalS,
             top: "27px",
         },
 
@@ -35,7 +35,7 @@ export const useOnboardingBreadcrumbsStyles = makeStyles({
     },
 
     onBoardingBreadcrumbItemIcon: {
-        fontSize: "18px",
+        fontSize: tokens.fontSizeBase500,
         position: "relative"
     },
 

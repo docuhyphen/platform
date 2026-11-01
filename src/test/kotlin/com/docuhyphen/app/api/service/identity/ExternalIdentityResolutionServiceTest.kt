@@ -8,13 +8,13 @@ import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.identity.ExternalIdentityResolutionRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationTrustConfigService
-import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation
+import com.docuhyphen.app.api.model.organization.TrustedExchangePolicyValidation
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import com.docuhyphen.app.api.service.user.AppUserService
 import org.junit.jupiter.api.Assertions.assertEquals

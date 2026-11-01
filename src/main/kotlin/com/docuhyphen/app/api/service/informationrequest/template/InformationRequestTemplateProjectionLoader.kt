@@ -1,9 +1,8 @@
 package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
+import com.docuhyphen.app.api.model.InformationRequestTemplateProjectionDtoMapper
 import com.docuhyphen.app.api.model.dto.*
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
-import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateVersion
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateProjectionBindingConfiguration
 import com.docuhyphen.app.api.repository.informationrequest.template.*
@@ -38,24 +37,15 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         val requirementsById = requirementRepository
             .findAllByDefinition(version.templateDefinitionId)
             .associateBy { it.id }
-        val keyByBindingId = bindings.associate { binding ->
-            binding.id to requirementsById.getValue(binding.templateRequirementId).requirementKey
-        }
-        val bindingsBySection = bindings.groupBy { it.templateSectionId }
         val configuration = loadBindingConfiguration(version.id)
 
         val storedSections = sectionRepository.findOrdered(version.id)
-        val sections = storedSections.map { section ->
-            InformationRequestTemplateDtoMapper.toDto(
-                section = section,
-                requirements = bindingsBySection[section.id]
-                    .orEmpty()
-                    .sortedBy { it.displayOrder }
-                    .map { binding ->
-                        requirementDto(binding, requirementsById, keyByBindingId, configuration)
-                    },
-            )
-        }
+        val sections = InformationRequestTemplateProjectionDtoMapper.toSectionDtos(
+            storedSections,
+            bindings,
+            requirementsById,
+            configuration,
+        )
 
         val projected = InformationRequestTemplateDtoMapper.toDto(
             version = version,
@@ -74,84 +64,20 @@ class InformationRequestTemplateProjectionLoader @Inject constructor(
         sectionKeyById: Map<UUID, String>,
     ): List<InformationRequestTemplateReviewStageDto>
     {
-        val coveredByStage = reviewStageSectionRepository.findForVersion(templateVersionId).groupBy { it.reviewStageId }
-        val orderedKeys = sectionKeyById.values.toList()
-        return reviewStageRepository.findForVersion(templateVersionId).map { stage ->
-            val covered = coveredByStage[stage.id].orEmpty().mapNotNull { sectionKeyById[it.templateSectionId] }.toSet()
-            InformationRequestTemplateDtoMapper.toDto(stage, orderedKeys.filter { it in covered })
-        }
+        val stageSections = reviewStageSectionRepository.findForVersion(templateVersionId)
+        val stages = reviewStageRepository.findForVersion(templateVersionId)
+        return InformationRequestTemplateProjectionDtoMapper.toReviewStageDtos(stages, stageSections, sectionKeyById)
     }
 
-    private fun loadGroups(templateVersionId: UUID): List<InformationRequestTemplateGroupDto>
-    {
-        val groups = groupRepository.findForVersion(templateVersionId).sortedBy { it.groupKey }
-        val keyById = groups.associate { it.id to it.groupKey }
-        return groups.map { group ->
-            InformationRequestTemplateDtoMapper.toDto(group, group.parentGroupId?.let(keyById::get))
-        }
-    }
+    private fun loadGroups(templateVersionId: UUID): List<InformationRequestTemplateGroupDto> =
+        InformationRequestTemplateProjectionDtoMapper.toGroupDtos(groupRepository.findForVersion(templateVersionId))
 
     fun loadConditionRules(templateVersionId: UUID): List<InformationRequestTemplateConditionRuleDto>
     {
         val predicates = conditionPredicateRepository.findForVersion(templateVersionId)
-        val literalsByPredicate = conditionPredicateLiteralRepository.findForVersion(templateVersionId)
-            .groupBy { it.conditionPredicateId }
-        val predicatesByRule = predicates
-            .sortedBy { it.displayOrder }
-            .groupBy { it.conditionRuleId }
-
-        return conditionRuleRepository.findForVersion(templateVersionId).sortedBy { it.ruleKey }.map { rule ->
-            InformationRequestTemplateDtoMapper.toDto(
-                rule = rule,
-                predicates = predicatesByRule[rule.id].orEmpty().map { predicate ->
-                    InformationRequestTemplateDtoMapper.toDto(
-                        predicate = predicate,
-                        literalValues = literalsByPredicate[predicate.id]
-                            .orEmpty()
-                            .sortedBy { it.displayOrder }
-                            .map { it.literalValue },
-                    )
-                },
-            )
-        }
-    }
-
-    private fun requirementDto(
-        binding: InformationRequestTemplateRequirementBinding,
-        requirementsById: Map<UUID, InformationRequestTemplateRequirement>,
-        keyByBindingId: Map<UUID, String>,
-        configuration: InformationRequestTemplateProjectionBindingConfiguration,
-    ): InformationRequestTemplateRequirementDto
-    {
-        val policy = configuration.policiesByBinding[binding.id]
-        return InformationRequestTemplateDtoMapper.toDto(
-            binding = binding,
-            requirement = requirementsById.getValue(binding.templateRequirementId),
-            permittedDispositions = configuration.dispositionsByBinding[binding.id]
-                .orEmpty()
-                .map { it.disposition }
-                .sortedBy { it.ordinal },
-            evidencePolicy = policy?.let {
-                InformationRequestTemplateDtoMapper.toDto(
-                    it,
-                    configuration.acceptedValuesByPolicy[it.id].orEmpty(),
-                )
-            },
-            substituteRequirementKeys = configuration.substitutesByBinding[binding.id]
-                .orEmpty()
-                .mapNotNull { keyByBindingId[it.substituteTemplateBindingId] }
-                .sorted(),
-            supportingEvidenceRequirementKeys = configuration.evidenceLinksByBinding[binding.id]
-                .orEmpty()
-                .mapNotNull { keyByBindingId[it.supportingTemplateBindingId] }
-                .sorted(),
-            attestationPolicy = configuration.attestationPoliciesByBinding[binding.id]?.let { attestation ->
-                InformationRequestTemplateDtoMapper.toDto(
-                    attestation,
-                    configuration.attestationRolesByPolicy[attestation.id].orEmpty(),
-                )
-            },
-        )
+        val literals = conditionPredicateLiteralRepository.findForVersion(templateVersionId)
+        val rules = conditionRuleRepository.findForVersion(templateVersionId)
+        return InformationRequestTemplateProjectionDtoMapper.toConditionRuleDtos(rules, predicates, literals)
     }
 
     private fun loadBindingConfiguration(templateVersionId: UUID) =

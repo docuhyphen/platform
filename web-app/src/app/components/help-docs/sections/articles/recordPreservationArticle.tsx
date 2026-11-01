@@ -2,7 +2,7 @@ export const recordPreservationArticle = (
     <>
         <p id={"record-preservation-intro"}>
             Record preservation keeps finished Information Requests for as long as they must be kept and then disposes
-            of them. Open it with <b>Record preservation</b> on the Information Request operations page.
+            of them. Open it with <b id={"record-preservation-article-b-1"}>Record preservation</b> on the Information Request operations page.
         </p>
 
         <h3 id={"record-preservation-access-heading"}>Who can use it</h3>
@@ -15,24 +15,24 @@ export const recordPreservationArticle = (
             Requests, and it says why new requests cannot be created. Switching to another organization or to your
             personal workspace shows only that workspace&apos;s holds, retention schedule, and disposals. When the
             holds,
-            the retention schedule, or the disposals cannot be read, the page says why and offers <b>Try again</b>.
+            the retention schedule, or the disposals cannot be read, the page says why and offers <b id={"record-preservation-article-b-2"}>Try again</b>.
         </p>
 
         <h3 id={"record-preservation-holds-heading"}>Preservation holds</h3>
         <p id={"record-preservation-holds-help"}>
             A hold stops a record from being disposed of. Place one from a request&apos;s Records tab, or with
-            <b> Place hold</b> on its row in the operations queue, with a reason and an optional case reference; it
+            <b id={"record-preservation-article-b-3"}> Place hold</b> on its row in the operations queue, with a reason and an optional case reference; it
             takes effect at once. Reasons allow up to 2048 characters and case
             references up to 256. It covers either the request only, or the request, its descendants, and
             the records it refers to. These pages place holds on requests only. A hold that is on the request&apos;s
             Exchange, its owner, or a subject it concerns also
             protects the request when that hold covers descendants and referenced records. A hold placed directly on
             one of the request&apos;s submissions, files, file versions, sent notices, or record exports also keeps
-            the whole request from being disposed of. <b>Change scope</b> on an active hold switches what it covers,
+            the whole request from being disposed of. <b id={"record-preservation-article-b-4"}>Change scope</b> on an active hold switches what it covers,
             with a reason. Releasing a hold needs a reason and lifts only that hold. Changing the scope and releasing
             apply only to the hold as you opened it: when it changed in the meantime, the page shows the latest
             version and asks you to try again. The hold and its history stay on record: when it was placed, every
-            scope change, and its release. <b>History</b> on a hold lists each of these with who made it, when, and why,
+            scope change, and its release. <b id={"record-preservation-article-b-5"}>History</b> on a hold lists each of these with who made it, when, and why,
             and a scope change also says what the hold covered before. A hold names one of your own records of a kind
             that can be held; a record
             of another owner, or of a kind that is never disposed of here, is refused. A request&apos;s Records tab
@@ -78,7 +78,7 @@ export const recordPreservationArticle = (
             Access, export, restriction, and deletion requests about a subject are recorded on the Privacy tab of
             Information Request operations, with their purpose and policy basis; a correction is recorded from the
             request&apos;s page, under Corrections. An access or export request produces a verified record of every
-            request about the subject, which <b>Download record</b> on the privacy request saves as a file. A record
+            request about the subject, which <b id={"record-preservation-article-b-6"}>Download record</b> on the privacy request saves as a file. A record
             still being read when you leave the Privacy tab or switch workspace, or once the privacy records can no
             longer be read, is not saved. A correction adds a new, audited revision of a submitted answer without
             changing the submission. A restriction stops accepted facts about the subject from being promoted or offered

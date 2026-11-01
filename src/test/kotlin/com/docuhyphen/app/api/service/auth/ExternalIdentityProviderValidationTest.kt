@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.service.auth.idp.MicrosoftIdentityProvider
 import com.docuhyphen.app.api.service.auth.idp.OidcHttpClient
 import com.docuhyphen.app.api.service.auth.idp.OidcJwksService
 import com.docuhyphen.app.api.service.auth.idp.OidcTokenValidator
-import com.docuhyphen.app.api.service.auth.idp.RuntimeIdpCredentials
+import com.docuhyphen.app.api.model.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue

@@ -33,7 +33,8 @@ const TruncatedDocumentTitle: React.FC<TruncatedDocumentTitleProps> = ({document
     );
 
     return isTruncated ? (
-        <Tooltip content={title} relationship="description">
+        <Tooltip content={title}
+                 relationship="description">
             {titleText}
         </Tooltip>
     ) : titleText;

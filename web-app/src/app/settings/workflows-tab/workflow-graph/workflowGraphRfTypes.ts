@@ -1,11 +1,6 @@
 import {Edge, EdgeProps, Node, NodeProps} from "@xyflow/react";
 import {WorkflowGraphDirection, WorkflowGraphNode} from "./workflowGraphModels.ts";
 
-/**
- * React Flow node/edge typing for the workflow graph renderer.
- * Type-only bridge between the library-independent graph model and React Flow.
- */
-
 export type WorkflowRFNodeType = "step" | "terminal" | "invalid";
 
 export type WorkflowRFNodeData = { node: WorkflowGraphNode; direction: WorkflowGraphDirection };

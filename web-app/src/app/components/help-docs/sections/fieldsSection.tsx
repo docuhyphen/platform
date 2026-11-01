@@ -7,6 +7,6 @@ export const fieldsSection: HelpDocSectionInput = {
     title: "Fields & Schemas",
     articles: [
         {id: "fields-overview",        title: "Fields & Schemas overview",       content: fieldsOverviewArticle},
-        {id: "using-exchange-fields",  title: "Using fields on an exchange",      content: usingExchangeFieldsArticle},
+        {id: "using-exchange-fields",  title: "Using fields on an Exchange",      content: usingExchangeFieldsArticle},
     ],
 };

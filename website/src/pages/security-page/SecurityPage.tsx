@@ -1,56 +1,9 @@
 import {Text, Title1, Title3} from "@fluentui/react-components";
-import {
-    ClipboardTaskListLtr24Regular,
-    Globe24Regular,
-    LockClosed24Regular,
-    Person24Regular,
-    Server24Regular,
-    ShieldCheckmark24Regular,
-} from "@fluentui/react-icons";
-import type {ReactNode} from "react";
-import {Breadcrumbs} from "../../shared/Breadcrumbs.tsx";
+import {Breadcrumbs} from "../../shared/breadcrumbs/Breadcrumbs.tsx";
 import {LinkButton} from "../../shared/LinkButton.tsx";
-import {PageShell} from "../../shared/PageShell.tsx";
+import {PageShell} from "../../shared/page-shell/PageShell.tsx";
 import {useSecurityPageStyles} from "./SecurityPageStyles.tsx";
-
-type SecurityPillar = {
-    icon: ReactNode;
-    title: string;
-    body: string;
-};
-
-const securityPillars: SecurityPillar[] = [
-    {
-        icon: <LockClosed24Regular aria-hidden="true"/>,
-        title: "Protected documents",
-        body: "Connections and stored documents are protected with encryption controls throughout the Exchange lifecycle.",
-    },
-    {
-        icon: <Server24Regular aria-hidden="true"/>,
-        title: "Controlled infrastructure",
-        body: "The platform uses managed cloud infrastructure, protected storage, backups, and monitored application services.",
-    },
-    {
-        icon: <Person24Regular aria-hidden="true"/>,
-        title: "Identity and access",
-        body: "Organization boundaries, roles, and session controls restrict who can reach an Exchange and its documents.",
-    },
-    {
-        icon: <ClipboardTaskListLtr24Regular aria-hidden="true"/>,
-        title: "Traceable activity",
-        body: "Relevant document and administration activity is recorded so teams can review what happened and when.",
-    },
-    {
-        icon: <ShieldCheckmark24Regular aria-hidden="true"/>,
-        title: "Workflow controls",
-        body: "Configurable review and approval steps help teams apply consistent controls to sensitive document work.",
-    },
-    {
-        icon: <Globe24Regular aria-hidden="true"/>,
-        title: "Tenant isolation",
-        body: "Authentication and authorization checks keep organization data scoped to the appropriate principals.",
-    },
-];
+import {securityPillars} from "./securityPillars.tsx";
 
 export function SecurityPage()
 {
@@ -97,8 +50,9 @@ export function SecurityPage()
                         >
                             {pillar.icon}
                         </div>
-                        <Title3 as="h2">{pillar.title}</Title3>
-                        <Text>{pillar.body}</Text>
+                        <Title3 id={`security-control-title-${index}`}
+                                as="h2">{pillar.title}</Title3>
+                        <Text id={`security-control-body-${index}`}>{pillar.body}</Text>
                     </section>
                 ))}
             </div>
@@ -107,23 +61,33 @@ export function SecurityPage()
                 id="security-expectations"
                 className={styles.band}
             >
-                <Title3 as="h2">Controls teams can use</Title3>
-                <ul className={styles.list}>
-                    <li className={styles.listItem}>
-                        <Text weight="semibold">Role-based access</Text>
-                        <Text>Give participants only the access needed for their part of an Exchange.</Text>
+                <Title3 id={"security-page-title3-2"}
+                        as="h2">Controls teams can use</Title3>
+                <ul id={"security-page-ul-1"}
+                    className={styles.list}>
+                    <li id={"security-page-li-1"}
+                        className={styles.listItem}>
+                        <Text id={"security-page-text-2"}
+                              weight="semibold">Role-based access</Text>
+                        <Text id={"security-page-text-3"}>Give participants only the access needed for their part of an Exchange.</Text>
                     </li>
-                    <li className={styles.listItem}>
-                        <Text weight="semibold">Revocable sharing</Text>
-                        <Text>Manage access as participants, responsibilities, and document needs change.</Text>
+                    <li id={"security-page-li-2"}
+                        className={styles.listItem}>
+                        <Text id={"security-page-text-4"}
+                              weight="semibold">Revocable sharing</Text>
+                        <Text id={"security-page-text-5"}>Manage access as participants, responsibilities, and document needs change.</Text>
                     </li>
-                    <li className={styles.listItem}>
-                        <Text weight="semibold">Document history</Text>
-                        <Text>Review activity associated with documents and Exchange progress.</Text>
+                    <li id={"security-page-li-3"}
+                        className={styles.listItem}>
+                        <Text id={"security-page-text-6"}
+                              weight="semibold">Document history</Text>
+                        <Text id={"security-page-text-7"}>Review activity associated with documents and Exchange progress.</Text>
                     </li>
-                    <li className={styles.listItem}>
-                        <Text weight="semibold">Structured approvals</Text>
-                        <Text>Use workflows to guide review, decisions, and completion.</Text>
+                    <li id={"security-page-li-4"}
+                        className={styles.listItem}>
+                        <Text id={"security-page-text-8"}
+                              weight="semibold">Structured approvals</Text>
+                        <Text id={"security-page-text-9"}>Use workflows to guide review, decisions, and completion.</Text>
                     </li>
                 </ul>
             </section>
@@ -136,7 +100,6 @@ export function SecurityPage()
                     id="security-contact-button"
                     to="/#home-contact-info"
                     appearance="primary"
-                    shape="circular"
                 >
                     Discuss your security requirements
                 </LinkButton>

@@ -15,7 +15,7 @@ vi.mock("../../context/AuthContext.tsx", () => ({
     }),
 }));
 
-vi.mock("./AuthBootstrapSplash.tsx", () => ({
+vi.mock("./auth-bootstrap-splash/AuthBootstrapSplash.tsx", () => ({
     default: () => <div id={"auth-bootstrap-splash"}>Loading session</div>,
 }));
 

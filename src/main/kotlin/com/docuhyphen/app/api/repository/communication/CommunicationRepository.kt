@@ -9,14 +9,6 @@ import java.util.*
 class CommunicationRepository :
     BaseRepository<Communication>(Communication::class.java)
 {
-    /**
-     * Returns all communications the caller may see:
-     * - PERSONAL communications owned by [callerUserId]
-     * - ORG communications for [callerOrgId] (published-only unless [isOrgAdmin])
-     * - PLATFORM-scoped communications (isTemplate=true, always visible to all)
-     *
-     * Org admins cannot see other users' PERSONAL communications.
-     */
     fun findAllAccessibleForCaller(
         callerUserId: UUID,
         callerOrgId: UUID?,

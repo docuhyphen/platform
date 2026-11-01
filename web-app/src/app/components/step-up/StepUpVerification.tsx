@@ -11,13 +11,11 @@ export type StepUpVerificationMethod = "INTERNAL_EMAIL_OTP" | "EXTERNAL_RELOGIN"
 interface StepUpVerificationProps
 {
     method: StepUpVerificationMethod;
-    /** The clause completing "...to {actionLabel}" / "To {actionLabel}, you must re-authenticate...". */
     actionLabel: React.ReactNode;
     provider?: string | null;
     error?: string | null;
     message?: string | null;
 
-    // Internal verification-code fields only
     otp?: string;
     onOtpChange?: (value: string) => void;
     onSubmitOtp?: () => void;
@@ -31,12 +29,6 @@ interface StepUpVerificationProps
     resendLabel?: string;
 }
 
-/**
- * Shared body content (message + code input + resend, or external re-login message) for every
- * step-up re-authentication dialog. Callers own the surrounding Dialog/DialogTitle/DialogActions
- * so they can tailor actions (e.g. "Back to review" vs "Cancel"), but must render this for the
- * verification body rather than re-implementing the OTP/resend UI.
- */
 const StepUpVerification: React.FC<StepUpVerificationProps> = (
     {
         method,

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit.archive
 
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.model.audit.archive.SegmentVerificationResult
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind

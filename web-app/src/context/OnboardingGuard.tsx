@@ -7,12 +7,14 @@ const OnboardingProtectedRoute: React.FC<{ element: JSX.Element }> = ({element})
 
     if (!token)
     {
-        return <Navigate to="/sign-in" replace/>;
+        return <Navigate to="/sign-in"
+                         replace/>;
     }
 
     if (!appUser || !appUser.person)
     {
-        return <Navigate to="/onboarding/individual" replace/>;
+        return <Navigate to="/onboarding/individual"
+                         replace/>;
     }
 
     return element;

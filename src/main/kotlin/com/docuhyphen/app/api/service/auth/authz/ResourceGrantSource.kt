@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.auth.authz
 
 import com.docuhyphen.app.api.model.auth.authz.Grant
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Any

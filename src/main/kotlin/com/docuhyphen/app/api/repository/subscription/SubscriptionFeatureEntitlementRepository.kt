@@ -5,13 +5,6 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/**
- * Reads the platform-administered feature decisions recorded for one subscription owner.
- *
- * Each lookup names the owner column that belongs to its owner kind rather than matching an id
- * against both, so an organization and a person that happen to share an id never see each other's
- * decisions.
- */
 @ApplicationScoped
 class SubscriptionFeatureEntitlementRepository :
     BaseRepository<SubscriptionFeatureEntitlement>(SubscriptionFeatureEntitlement::class.java)

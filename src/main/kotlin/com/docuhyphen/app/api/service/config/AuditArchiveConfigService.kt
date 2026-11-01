@@ -4,18 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
-/**
- * Configuration for immutable WORM archive storage, segment signing, and verification. Kept as its own bean (not folded into
- * [OAuthConfigService]) per that class's own doc comment about keeping each `@ConfigProperty`
- * constructor well under the JVM 64 KB bytecode limit.
- *
- * Storage and signing each default to a local-filesystem provider so the archiver/verifier/
- * scheduler work out of the box in dev/CI without AWS credentials (mirrors the existing
- * local-first storage defaults elsewhere in this
- * codebase); set the `*.type`/`*.provider` properties to `aws` to use S3 + Secrets Manager in an
- * environment that has them configured. No new AWS service type is introduced either way - see
- * the archive's cost constraints.
- */
 @ApplicationScoped
 class AuditArchiveConfigService @Inject constructor(
 

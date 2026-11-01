@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.informationrequest.workflow.InformationReque
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionResult
 import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestQueryService
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventConsumer
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import jakarta.enterprise.context.ApplicationScoped

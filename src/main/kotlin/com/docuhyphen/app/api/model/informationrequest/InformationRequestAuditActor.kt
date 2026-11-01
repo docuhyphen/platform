@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.model.informationrequest
 
 import com.docuhyphen.app.api.model.entity.RequestAccessSession
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.util.*
 
 @ConsistentCopyVisibility

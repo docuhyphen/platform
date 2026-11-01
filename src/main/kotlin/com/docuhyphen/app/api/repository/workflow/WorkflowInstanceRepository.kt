@@ -40,11 +40,6 @@ class WorkflowInstanceRepository :
             .setParameter("statuses", WorkflowInstanceStatus.ACTIVE)
             .resultList
 
-    /**
-     * Returns the first active (RUNNING or ESCALATED) [WorkflowInstance] for [subjectResourceId]
-     * whose frozen trigger is [triggerEvent]. The frozen value remains valid when the backing
-     * definition is edited or deleted while an instance is running.
-     */
     fun findActiveForSubjectAndTrigger(subjectResourceId: UUID, triggerEvent: String): WorkflowInstance? =
         entityManager.createQuery(
             """SELECT i FROM WorkflowInstance i
@@ -72,7 +67,6 @@ class WorkflowInstanceRepository :
             .setParameter("statuses", WorkflowInstanceStatus.ACTIVE)
             .resultList
 
-    /** All active (RUNNING or ESCALATED) instances referencing [definitionId]. Used to block edits or deletes. */
     fun findActiveForDefinition(definitionId: UUID): List<WorkflowInstance> =
         entityManager.createQuery(
             """SELECT i FROM WorkflowInstance i
@@ -83,7 +77,6 @@ class WorkflowInstanceRepository :
             .setParameter("statuses", WorkflowInstanceStatus.ACTIVE)
             .resultList
 
-    /** All instances (any status) for a given subject resource, newest first. */
     fun findForSubject(resourceType: String, resourceId: UUID): List<WorkflowInstance> =
         entityManager.createQuery(
             """SELECT i FROM WorkflowInstance i
@@ -96,7 +89,6 @@ class WorkflowInstanceRepository :
             .setParameter("rid", resourceId)
             .resultList
 
-    /** All instances for a given subject resource owned by [organizationId], newest first. */
     fun findForSubject(resourceType: String, resourceId: UUID, organizationId: UUID): List<WorkflowInstance> =
         entityManager.createQuery(
             """SELECT i FROM WorkflowInstance i
@@ -111,13 +103,6 @@ class WorkflowInstanceRepository :
             .setParameter("oid", organizationId)
             .resultList
 
-    /**
-     * Own-org instances for [organizationId] PLUS any active (RUNNING or ESCALATED) instances from
-     * other orgs where [callerId] is an assignee on an active PENDING step (via the indexed
-     * workflow_step_assignee table). This preserves org sovereignty while still surfacing cross-org
-     * acceptance workflows where the calling user is the designated approver (e.g.
-     * exchange.acceptance_pending using $subject.recipientId), including escalated pending ones.
-     */
     fun findForSubjectIncludingCrossOrgPendingAssignee(
         resourceType: String,
         resourceId: UUID,
@@ -162,7 +147,6 @@ class WorkflowInstanceRepository :
         return merged
     }
 
-    /** All instances for a given subject resource NOT owned by [excludeOrgId], newest first. Used for counterparty clearance checks. */
     fun findForSubjectExcludingOrg(resourceType: String, resourceId: UUID, excludeOrgId: UUID): List<WorkflowInstance> =
         entityManager.createQuery(
             """SELECT i FROM WorkflowInstance i
@@ -177,10 +161,6 @@ class WorkflowInstanceRepository :
             .setParameter("oid", excludeOrgId)
             .resultList
 
-    /**
-     * Paginated instances for [organizationId]. Optionally filtered by [status] and
-     * [subjectResourceType]. Results are ordered newest first.
-     */
     fun findForOrg(
         organizationId: UUID,
         status: WorkflowInstanceStatus?,

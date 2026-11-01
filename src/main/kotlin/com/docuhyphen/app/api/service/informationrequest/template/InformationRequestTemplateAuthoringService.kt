@@ -2,7 +2,10 @@ package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.InformationRequestTemplateDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.command.CommandMutationResult
 import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.command.CommandReceiptDecision
@@ -14,8 +17,8 @@ import com.docuhyphen.app.api.model.informationrequest.template.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionContent
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome

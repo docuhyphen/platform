@@ -16,16 +16,6 @@ import java.util.UUID
 private class RootValueSetPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<RootValueSetPostgreSQLContainer>(imageName)
 
-/**
- * Typed answers must belong to a named set of answers rather than directly to the assignment, so a
- * process that repeats a group of questions can hold one answer per question per repetition. The
- * released schema keys an answer by its assignment and field contract, which allows exactly one
- * answer per question per resource forever.
- *
- * These contract tests prove that every answer already stored moves into its assignment's single
- * root set without changing, that a database with nothing to carry over gains the same shape, and
- * that uniqueness now belongs to the set rather than to the assignment.
- */
 class FieldValueRootValueSetContractTest
 {
     private val releasedVersion = "78"
@@ -57,7 +47,6 @@ class FieldValueRootValueSetContractTest
                 assertEquals(rootSetId, valueSetOf(connection, fixture.secondValueId))
                 assertEquals(otherRootSetId, valueSetOf(connection, fixture.otherValueId))
 
-                // Carrying an answer over must not rewrite what it says.
                 assertEquals("First answer", storedText(connection, fixture.firstValueId))
                 assertEquals("Second answer", storedText(connection, fixture.secondValueId))
                 assertEquals("Other answer", storedText(connection, fixture.otherValueId))
@@ -128,7 +117,6 @@ class FieldValueRootValueSetContractTest
         }
     }
 
-    /** One assignment answers once as itself; a second root set would make its answers ambiguous. */
     private fun assertRefusesASecondRootSet(connection: Connection, fixture: Fixture)
     {
         val refused = assertThrows<SQLException> {
@@ -157,10 +145,6 @@ class FieldValueRootValueSetContractTest
         )
     }
 
-    /**
-     * The capability the set exists for: one assignment may hold the same question more than once as
-     * long as each answer belongs to its own repetition.
-     */
     private fun assertAcceptsOneAnswerPerQuestionPerSet(
         connection: Connection,
         fixture: Fixture,
@@ -412,7 +396,6 @@ class FieldValueRootValueSetContractTest
         }
     }
 
-    /** Writes the released form, which is all the schema can express before the upgrade. */
     private fun insertAssignedValue(
         connection: Connection,
         fixture: Fixture,

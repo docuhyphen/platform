@@ -1,204 +1,274 @@
 package com.docuhyphen.app.api.resource.workflow
 
+import com.docuhyphen.app.api.exception.RequestValidationException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.resource.RequestGuards
+import com.docuhyphen.app.api.resource.model.RegisterWebhookRequestBody
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.application.RegisterWebhookRequest
+import com.docuhyphen.app.api.resource.workflow.handler.WorkflowWebhookEndpointRequestHandler
+import com.docuhyphen.app.api.resource.workflow.operations.WorkflowWebhookEndpointResourceOperations
 import com.docuhyphen.app.api.service.application.WorkflowWebhookEndpointManagementService
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
-import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
-import java.util.*
 
-@Path("/organizations/{orgId}/workflow-webhooks")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class WorkflowWebhookEndpointResource @Inject constructor(
-    private val webhookManagementService: WorkflowWebhookEndpointManagementService,
+    webhookManagementService: WorkflowWebhookEndpointManagementService,
     private val authorizationContextFactory: AuthorizationContextFactory,
-)
+) : WorkflowWebhookEndpointResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(WorkflowWebhookEndpointResource::class.java)
+
+        private const val AUTHENTICATION_REQUIRED = "Authentication required"
+        private const val FAILURE_MESSAGE = "An error occurred"
     }
 
-    @GET
-    fun listWebhooks(@PathParam("orgId") orgId: String): Response = guarded {
-        val orgUuid = parseUuid(orgId)
-        val endpoints = webhookManagementService.listByOrganization(orgUuid, principal(), context())
-        val dtos = endpoints.map { ep ->
-            WebhookEndpointDto(
-                id = ep.id.toString(),
-                ownerOrganizationId = ep.ownerOrganizationId.toString(),
-                workflowDefinitionId = ep.workflowDefinitionId.toString(),
-                registeredApplicationId = ep.registeredApplicationId?.toString(),
-                targetUrl = ep.targetUrl,
-                isEnabled = ep.isEnabled,
-                signingSecretVersion = ep.signingSecretVersion,
-                permittedEventTypes = ep.permittedEventTypes,
-                createdDate = ep.createdDate.toInstant().toString(),
-                updatedDate = ep.updatedDate.toInstant().toString(),
-            )
-        }
-        Response.ok(dtos).build()
-    }
+    private val handler = WorkflowWebhookEndpointRequestHandler(webhookManagementService)
 
-    @POST
-    fun registerWebhook(
-        @PathParam("orgId") orgId: String,
-        body: RegisterWebhookRequestBody
-    ): Response = guarded {
-        val orgUuid = parseUuid(orgId)
-        require(!body.workflowDefinitionId.isNullOrBlank()) { "workflowDefinitionId is required" }
-        require(!body.targetUrl.isNullOrBlank()) { "targetUrl is required" }
-        val request = RegisterWebhookRequest(
-            workflowDefinitionId = parseUuid(body.workflowDefinitionId),
-            targetUrl = body.targetUrl,
-            permittedEventTypes = body.permittedEventTypes ?: emptyList(),
-            registeredApplicationId = body.registeredApplicationId?.let { parseUuid(it) },
-        )
-        val (endpoint, secret) = webhookManagementService.register(orgUuid, request, principal(), context())
-        Response.status(CREATED).entity(
-            WebhookEndpointCreatedDto(
-                id = endpoint.id.toString(),
-                targetUrl = endpoint.targetUrl,
-                rawSigningSecret = secret.rawSecret,
-                signingSecretVersion = secret.version,
-            )
-        ).build()
-    }
-
-    @GET
-    @Path("/{id}")
-    fun getWebhook(
-        @PathParam("orgId") orgId: String,
-        @PathParam("id") id: String
-    ): Response = guarded {
-        val endpointId = parseUuid(id)
-        val ep = webhookManagementService.getById(endpointId, principal(), context())
-        Response.ok(
-            WebhookEndpointDto(
-                id = ep.id.toString(),
-                ownerOrganizationId = ep.ownerOrganizationId.toString(),
-                workflowDefinitionId = ep.workflowDefinitionId.toString(),
-                registeredApplicationId = ep.registeredApplicationId?.toString(),
-                targetUrl = ep.targetUrl,
-                isEnabled = ep.isEnabled,
-                signingSecretVersion = ep.signingSecretVersion,
-                permittedEventTypes = ep.permittedEventTypes,
-                createdDate = ep.createdDate.toInstant().toString(),
-                updatedDate = ep.updatedDate.toInstant().toString(),
-            )
-        ).build()
-    }
-
-    @POST
-    @Path("/{id}/enable")
-    fun enableWebhook(
-        @PathParam("orgId") orgId: String,
-        @PathParam("id") id: String
-    ): Response = guarded {
-        webhookManagementService.enable(parseUuid(id), principal(), context())
-        Response.ok().build()
-    }
-
-    @POST
-    @Path("/{id}/disable")
-    fun disableWebhook(
-        @PathParam("orgId") orgId: String,
-        @PathParam("id") id: String
-    ): Response = guarded {
-        webhookManagementService.disable(parseUuid(id), principal(), context())
-        Response.ok().build()
-    }
-
-    @POST
-    @Path("/{id}/signing-secret/rotate")
-    fun rotateSigningSecret(
-        @PathParam("orgId") orgId: String,
-        @PathParam("id") id: String
-    ): Response = guarded {
-        val result = webhookManagementService.rotateSigningSecret(parseUuid(id), principal(), context())
-        Response.ok(WebhookSigningSecretRotatedDto(result.rawSecret, result.version)).build()
-    }
-
-    // -------------------------------------------------------------------------
-
-    private fun principal() = authorizationContextFactory.currentPrincipal()
-        ?: throw SecurityException("Authentication required")
-
-    private fun context() = authorizationContextFactory.currentContext()
-
-    private fun parseUuid(value: String): UUID =
-        runCatching { UUID.fromString(value) }.getOrElse { throw IllegalArgumentException("Invalid id: $value") }
-
-    private fun guarded(block: () -> Response): Response
+    override fun listWebhooks(orgId: String): Response
     {
         return try
         {
-            block()
+            val organizationId = RequestGuards.uuid(orgId, "Invalid id: $orgId")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.list(organizationId, principal, authorizationContextFactory.currentContext())
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is SubscriptionDenialException)
+            when (exception)
             {
-                logger.warn("Workflow webhook management request refused by subscription policy", e)
-                throw e
-            }
-            logger.error("Error in webhook endpoint management", e)
-            when (e)
-            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook listing refused by subscription policy", exception)
+                    throw exception
+                }
+
                 is SecurityException ->
-                    Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
                 is NoSuchElementException ->
-                    Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
+                is RequestValidationException,
                 is IllegalArgumentException ->
-                    Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(ResponseError("An error occurred")).build()
+                {
+                    logger.error("Error listing workflow webhook endpoints", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun registerWebhook(
+        orgId: String,
+        body: RegisterWebhookRequestBody
+    ): Response
+    {
+        return try
+        {
+            val organizationId = RequestGuards.uuid(orgId, "Invalid id: $orgId")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.register(organizationId, body, principal, authorizationContextFactory.currentContext())
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook registration refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is NoSuchElementException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error registering workflow webhook endpoint", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun getWebhook(
+        orgId: String,
+        id: String
+    ): Response
+    {
+        return try
+        {
+            val endpointId = RequestGuards.uuid(id, "Invalid id: $id")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.get(endpointId, principal, authorizationContextFactory.currentContext())
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook read refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is NoSuchElementException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error getting workflow webhook endpoint", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun enableWebhook(
+        orgId: String,
+        id: String
+    ): Response
+    {
+        return try
+        {
+            val endpointId = RequestGuards.uuid(id, "Invalid id: $id")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.enable(endpointId, principal, authorizationContextFactory.currentContext())
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook enablement refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is NoSuchElementException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error enabling workflow webhook endpoint", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun disableWebhook(
+        orgId: String,
+        id: String
+    ): Response
+    {
+        return try
+        {
+            val endpointId = RequestGuards.uuid(id, "Invalid id: $id")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.disable(endpointId, principal, authorizationContextFactory.currentContext())
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook disablement refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is NoSuchElementException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error disabling workflow webhook endpoint", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
+            }
+        }
+    }
+
+    override fun rotateSigningSecret(
+        orgId: String,
+        id: String
+    ): Response
+    {
+        return try
+        {
+            val endpointId = RequestGuards.uuid(id, "Invalid id: $id")
+            val principal = authorizationContextFactory.currentPrincipal()
+                ?: throw SecurityException(AUTHENTICATION_REQUIRED)
+            handler.rotateSigningSecret(endpointId, principal, authorizationContextFactory.currentContext())
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Workflow webhook secret rotation refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is SecurityException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is NoSuchElementException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error rotating workflow webhook signing secret", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError(FAILURE_MESSAGE)).build()
+                }
             }
         }
     }
 }
-
-@Serializable
-data class RegisterWebhookRequestBody(
-    val workflowDefinitionId: String?,
-    val targetUrl: String?,
-    val permittedEventTypes: List<String>?,
-    val registeredApplicationId: String?,
-)
-
-@Serializable
-data class WebhookEndpointDto(
-    val id: String,
-    val ownerOrganizationId: String,
-    val workflowDefinitionId: String,
-    val registeredApplicationId: String?,
-    val targetUrl: String,
-    val isEnabled: Boolean,
-    val signingSecretVersion: Int,
-    val permittedEventTypes: String,
-    val createdDate: String,
-    val updatedDate: String,
-)
-
-@Serializable
-data class WebhookEndpointCreatedDto(
-    val id: String,
-    val targetUrl: String,
-    val rawSigningSecret: String,
-    val signingSecretVersion: Int,
-)
-
-@Serializable
-data class WebhookSigningSecretRotatedDto(val rawSecret: String, val version: Int)

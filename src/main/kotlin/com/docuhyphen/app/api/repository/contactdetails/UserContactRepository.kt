@@ -62,10 +62,6 @@ class UserContactRepository : BaseRepository<UserContact>(UserContact::class.jav
         return q.resultList
     }
 
-    /**
-     * Used by the temp-user signup merge to backfill the contactAppUserId on rows that
-     * previously only had an email (because the recipient was a temp AppUser).
-     */
     @Transactional
     fun backfillContactAppUserId(contactEmail: String, newContactAppUserId: UUID): Int
     {
@@ -83,10 +79,6 @@ class UserContactRepository : BaseRepository<UserContact>(UserContact::class.jav
         return updated
     }
 
-    /**
-     * Returns true when both sides of the contact relationship exist:
-     * [ownerAppUserId] lists [contactAppUserId] **and** vice-versa.
-     */
     fun isMutualContact(ownerAppUserId: UUID, contactAppUserId: UUID): Boolean
     {
         val count = entityManager.createQuery(

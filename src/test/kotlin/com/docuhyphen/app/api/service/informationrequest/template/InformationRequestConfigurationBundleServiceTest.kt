@@ -2,8 +2,8 @@ package com.docuhyphen.app.api.service.informationrequest.template
 
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionContent
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.exchange
 
-import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.realtime.RealtimeMessage
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.realtime.RealtimeMessage
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Status

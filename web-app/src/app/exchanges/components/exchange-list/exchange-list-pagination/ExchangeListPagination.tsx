@@ -25,7 +25,8 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
     }
 
     return (
-        <div className={styles.container}>
+        <div id={"exchange-list-pagination-div-1"}
+             className={styles.container}>
             <Tooltip
                 content={"First page"}
                 relationship={"description"}>
@@ -51,7 +52,7 @@ const ExchangeListPagination: React.FC<ExchangeListPaginationProps> = (
                     onClick={() => onPageChange(currentPage - 1)}/>
             </Tooltip>
 
-            <Text>
+            <Text id={"exchange-list-pagination-text-1"}>
                 {currentPage + 1} / {totalPages}
             </Text>
 

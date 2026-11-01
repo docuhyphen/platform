@@ -31,7 +31,7 @@ const PlatformBlueprintDeleteDialog = (
             if (!data.open) onDismiss();
         }}>
         <DialogSurface id={"platform-blueprint-delete-dialog"}>
-            <DialogBody>
+            <DialogBody id={"platform-blueprint-delete-dialog-dialog-body-1"}>
                 <DialogTitle id={"platform-blueprint-delete-title"}>
                     Delete platform Blueprint
                 </DialogTitle>

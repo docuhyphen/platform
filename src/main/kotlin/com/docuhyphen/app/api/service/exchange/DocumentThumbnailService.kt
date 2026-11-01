@@ -39,11 +39,6 @@ class DocumentThumbnailService @Inject constructor(
     private val generationLocks = ConcurrentHashMap<String, Any>()
     private val generationSlots = Semaphore(2, true)
 
-    // Dedicated executor for background thumbnail work. The JTA transaction
-    // context is explicitly cleared so this off-request rendering never joins
-    // the caller's transaction or touches its database connection. Sharing the
-    // caller's transaction across threads causes commits to fail with
-    // "Enlisted connection used without active transaction".
     private val backgroundExecutor: ManagedExecutor = ManagedExecutor.builder()
         .propagated(ThreadContext.ALL_REMAINING)
         .cleared(ThreadContext.TRANSACTION)

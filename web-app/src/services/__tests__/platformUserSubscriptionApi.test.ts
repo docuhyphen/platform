@@ -24,7 +24,7 @@ describe("platformUserSubscriptionApi", () =>
         const overrides = {
             appUserId: "user-1",
             email: "tier-user@example.com",
-            displayName: null,
+            displayName: null as string | null,
             entitlements: [{featureCode: "INFORMATION_REQUESTS", enabled: true}],
         };
         get.mockResolvedValueOnce({data: overrides});
@@ -70,7 +70,7 @@ describe("platformUserSubscriptionApi", () =>
             billingFrequency: "MONTHLY" as const,
             currentPeriodStart: "2026-08-01T00:00:00Z",
             currentPeriodEnd: "2026-09-01T00:00:00Z",
-            gracePeriodEnd: null,
+            gracePeriodEnd: null as string | null,
             changeReason: "Support correction",
         };
         await updatePlatformUserSubscription("user-1", request);

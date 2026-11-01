@@ -1,33 +1,14 @@
 package com.docuhyphen.app.api.service.config
 
+import com.docuhyphen.app.api.model.config.SecretLifecycleStatus
+import com.docuhyphen.app.api.model.config.SecretRotationResult
+import com.docuhyphen.app.api.model.config.SecretVersionInfo
 import jakarta.enterprise.context.ApplicationScoped
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
 import software.amazon.awssdk.services.secretsmanager.model.*
 import java.time.Instant
 import java.util.*
-
-data class SecretVersionInfo(
-    val versionId: String,
-    val stages: Set<String>,
-)
-
-data class SecretRotationResult(
-    val secretId: String,
-    val previousVersionId: String?,
-    val activeVersionId: String,
-    val overlapUntilEpochMillis: Long? = null,
-)
-
-data class SecretLifecycleStatus(
-    val secretId: String,
-    val disabled: Boolean,
-    val currentVersionId: String? = null,
-    val previousVersionId: String? = null,
-    val pendingVersionId: String? = null,
-    val overlapUntilEpochMillis: Long? = null,
-    val rotationPhase: String? = null,
-)
 
 @ApplicationScoped
 class AwsSecretsManagerService
@@ -341,4 +322,3 @@ class AwsSecretsManagerService
             .use(block)
     }
 }
-

@@ -3,12 +3,15 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialGrant
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequest
 import com.docuhyphen.app.api.model.entity.SubscriptionTrialRequestStatus
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialMutation
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestEligibility
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestView
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialState
 import com.docuhyphen.app.api.repository.subscription.SubscriptionTrialRequestRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify

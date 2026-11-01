@@ -1,27 +1,13 @@
-import React, {useState} from 'react';
-import {
-    Button,
-    Field,
-    Input,
-    Radio,
-    RadioGroup,
-    Spinner,
-    Tag,
-    Textarea,
-} from '@fluentui/react-components';
+import React from 'react';
+import {Button, Field, Input, Radio, RadioGroup, Spinner, Textarea} from '@fluentui/react-components';
 import {
     BlueprintDocumentConfig,
     BlueprintFieldDefaultConfig,
     BlueprintParticipantConfig,
-    BlueprintScope,
-    CreateBlueprintRequest,
 } from '../../../models/models.tsx';
-import {Capability} from '../../../models/models.tsx';
-import {createBlueprint, patchBlueprintPublished} from '../../../../services/blueprintService.ts';
-import {useAuth} from '../../../../context/AuthContext.tsx';
-import {useDocumentsTabStyles} from '../../../settings/document-library-tab/DocumentLibraryTabStyles.tsx';
-import {AddIcon} from '../../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
+import {SaveTarget, useSaveBlueprint} from './useSaveBlueprint.ts';
+import BlueprintTagEditor from './blueprint-tag-editor/BlueprintTagEditor.tsx';
 
 interface SaveBlueprintPanelProps
 {
@@ -34,104 +20,49 @@ interface SaveBlueprintPanelProps
     fieldDefaults?: BlueprintFieldDefaultConfig[];
 }
 
-type SaveTarget = 'PERSONAL' | 'ORG';
-
-const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
-    {
-        onSaved,
-        initialName,
-        configJson,
-        exchangeDocuments,
-        participants,
-        schemaDefinitionId,
-        fieldDefaults,
-    }) =>
+const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (props) =>
 {
-    const {appUserPersonOrganization, hasCapability} = useAuth();
-    const docStyles = useDocumentsTabStyles();
     const styles = useExchangeInitiationStyles();
-    const isAdmin =
-        appUserPersonOrganization?.isActive &&
-        hasCapability(Capability.ORG_POLICY_MANAGE);
-
-    const [name, setName] = useState(initialName || '');
-    const [summary, setSummary] = useState('');
-    const [tagInput, setTagInput] = useState('');
-    const [tags, setTags] = useState<string[]>([]);
-    const [saveTarget, setSaveTarget] = useState<SaveTarget>('PERSONAL');
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const addTag = () =>
-    {
-        const trimmed = tagInput.trim();
-        if (trimmed && !tags.includes(trimmed))
-        {
-            setTags(prev => [...prev, trimmed]);
-        }
-        setTagInput('');
-    };
-
-    const removeTag = (tag: string) => setTags(prev => prev.filter(t => t !== tag));
-
-    const handleSave = async () =>
-    {
-        if (!name.trim())
-        {
-            setError('Name is required');
-            return;
-        }
-        setSaving(true);
-        setError(null);
-        try
-        {
-            const scope: BlueprintScope = saveTarget === 'ORG' ? 'ORG' : 'PERSONAL';
-            const request: CreateBlueprintRequest = {
-                name: name.trim(),
-                summary: summary.trim() || undefined,
-                configJson,
-                exchangeDocuments,
-                participants,
-                schemaDefinitionId,
-                fieldDefaults: fieldDefaults && fieldDefaults.length > 0 ? fieldDefaults : undefined,
-                generalTags: tags,
-                scope,
-                isActive: true,
-                isTemplate: false,
-            };
-            const created = await createBlueprint(request);
-            if (saveTarget === 'ORG')
-            {
-                await patchBlueprintPublished(created.id, {isPublished: true});
-            }
-            onSaved();
-        }
-        catch (e: unknown)
-        {
-            setError(typeof e === 'string' ? e : 'Failed to save blueprint');
-        }
-        finally
-        {
-            setSaving(false);
-        }
-    };
+    const {
+        isAdmin,
+        name,
+        setName,
+        summary,
+        setSummary,
+        tags,
+        addTag,
+        removeTag,
+        saveTarget,
+        setSaveTarget,
+        saving,
+        error,
+        save,
+    } = useSaveBlueprint(props);
 
     return (
-        <div className={styles.saveBlueprintContainer}>
+        <div id={"save-blueprint-dialog-div-1"}
+             className={styles.saveBlueprintContainer}>
             {isAdmin && (
-                <Field label="Save to">
+                <Field id={"save-blueprint-dialog-field-1"}
+                       label="Save to">
                     <RadioGroup
                         id={"save-blueprint-target-group"}
                         value={saveTarget}
                         onChange={(_, d) => setSaveTarget(d.value as SaveTarget)}
                         layout="horizontal"
                     >
-                        <Radio value="PERSONAL" label="My Blueprints"/>
-                        <Radio value="ORG" label="Organization"/>
+                        <Radio id={"save-blueprint-dialog-radio-1"}
+                               value="PERSONAL"
+                               label="My Blueprints"/>
+                        <Radio id={"save-blueprint-dialog-radio-2"}
+                               value="ORG"
+                               label="Organization"/>
                     </RadioGroup>
                 </Field>
             )}
-            <Field label="Name" required>
+            <Field id={"save-blueprint-dialog-field-2"}
+                   label="Name"
+                   required>
                 <Input
                     id={"save-blueprint-name-input"}
                     value={name}
@@ -140,7 +71,8 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                     autoFocus
                 />
             </Field>
-            <Field label="Summary">
+            <Field id={"save-blueprint-dialog-field-3"}
+                   label="Summary">
                 <Textarea
                     id={"save-blueprint-summary-textarea"}
                     value={summary}
@@ -149,51 +81,31 @@ const SaveBlueprintPanel: React.FC<SaveBlueprintPanelProps> = (
                     rows={2}
                 />
             </Field>
-            <Field label="Tags">
-                <div className={docStyles.tagInput}>
-                    {tags.map(tag => (
-                        <Tag
-                            key={tag}
-                            size="small"
-                            dismissible
-                            onClick={() => removeTag(tag)}
-                        >
-                            {tag}
-                        </Tag>
-                    ))}
-                    <Input
-                        id={"save-blueprint-tag-input"}
-                        size="small"
-                        appearance="underline"
-                        placeholder="Add tag, press Enter"
-                        value={tagInput}
-                        onChange={(_, d) => setTagInput(d.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                    />
-                    <Button
-                        id={"save-blueprint-add-tag-btn"}
-                        shape="circular"
-                        appearance="subtle"
-                        size="medium"
-                        icon={<AddIcon/>}
-                        onClick={addTag}
-                    />
-                </div>
+            <Field id={"save-blueprint-dialog-field-4"}
+                   label="Tags">
+                <BlueprintTagEditor
+                    tags={tags}
+                    onAddTag={addTag}
+                    onRemoveTag={removeTag}
+                />
             </Field>
             {error && (
-                <span className={styles.saveBlueprintErrorText}>
+                <span id={"save-blueprint-dialog-span-1"}
+                      className={styles.saveBlueprintErrorText}>
                     {error}
                 </span>
             )}
-            <div className={styles.saveBlueprintActions}>
+            <div id={"save-blueprint-dialog-div-3"}
+                 className={styles.saveBlueprintActions}>
                 <Button
                     id={"save-blueprint-save-btn"}
                     appearance="primary"
                     shape="circular"
-                    onClick={handleSave}
+                    onClick={save}
                     disabled={saving}
                 >
-                    {saving ? <><Spinner size="tiny"/> Saving...</> : 'Save Blueprint'}
+                    {saving ? <><Spinner id={"save-blueprint-dialog-spinner-1"}
+                                         size="tiny"/> Saving...</> : 'Save Blueprint'}
                 </Button>
             </div>
         </div>

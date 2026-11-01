@@ -29,8 +29,8 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
         paddingLeft: tokens.spacingHorizontalM,
         color: tokens.colorNeutralForeground3,
         borderLeft: `1px solid ${tokens.colorNeutralStroke1}`,
-        fontSize: "12px",
-        fontWeight: 600,
+        fontSize: tokens.fontSizeBase200,
+        fontWeight: tokens.fontWeightSemibold,
         '@media (max-width: 520px)': {
             display: "none",
         },
@@ -45,7 +45,7 @@ export const useNoAuthExchangeHeaderStyles = makeStyles({
 
     signInPrompt: {
         color: tokens.colorNeutralForeground3,
-        fontSize: "13px",
+        fontSize: tokens.fontSizeBase300,
         '@media (max-width: 520px)': {
             display: "none",
         },

@@ -3,9 +3,9 @@ package com.docuhyphen.app.api.model
 import com.docuhyphen.app.api.model.dto.CurrentSubscriptionTrialRequestDto
 import com.docuhyphen.app.api.model.dto.PlatformSubscriptionTrialRequestListDto
 import com.docuhyphen.app.api.model.dto.SubscriptionTrialRequestDto
-import com.docuhyphen.app.api.service.subscription.CurrentSubscriptionTrialRequest
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialRequestPage
-import com.docuhyphen.app.api.service.subscription.SubscriptionTrialRequestView
+import com.docuhyphen.app.api.model.subscription.CurrentSubscriptionTrialRequest
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestPage
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialRequestView
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

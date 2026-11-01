@@ -1,6 +1,6 @@
 import {Text, Title1, Title3} from "@fluentui/react-components";
 import {LinkButton} from "../../shared/LinkButton.tsx";
-import {PageShell} from "../../shared/PageShell.tsx";
+import {PageShell} from "../../shared/page-shell/PageShell.tsx";
 import {useLegalDocumentPageStyles} from "./LegalDocumentPageStyles.tsx";
 
 export type LegalSection = {
@@ -87,7 +87,6 @@ export function LegalDocumentPage({document}: LegalDocumentPageProps)
                         id={`${document.pageId}-home-button`}
                         to="/"
                         appearance="primary"
-                        shape="circular"
                     >
                         Back home
                     </LinkButton>
@@ -95,7 +94,6 @@ export function LegalDocumentPage({document}: LegalDocumentPageProps)
                         id={`${document.pageId}-contact-button`}
                         to="/#home-contact-info"
                         appearance="secondary"
-                        shape="circular"
                     >
                         Contact DocuHyphen
                     </LinkButton>

@@ -8,15 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One decision (vote) recorded against a [WorkflowStepInstance]. Replaces the former
- * `decisions_json` read-modify-write blob. The unique constraint on
- * (step_instance_id, principal_kind, principal_id) enforces one vote per principal per
- * step at the database level; a re-vote updates the existing row.
- *
- * `decision` is a free string rather than an enum because the generic workflow engine
- * writes `APPROVE` / `REJECT` while the admin-approval flow writes `APPROVED`.
- */
 @Entity
 @Serializable
 @Table(name = "workflow_step_decision")

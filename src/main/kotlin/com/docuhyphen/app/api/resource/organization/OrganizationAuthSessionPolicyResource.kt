@@ -1,247 +1,96 @@
 package com.docuhyphen.app.api.resource.organization
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
-import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.AuthSessionPolicyService
-import com.docuhyphen.app.api.service.auth.RevocationReasonCode
-import com.docuhyphen.app.api.service.config.ConfigurationService
+import com.docuhyphen.app.api.model.organization.OrganizationIdentityProviderConfigDtoMapper
+import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationAuthSessionPolicyResourceOperations
 import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
-import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.organization.OrganizationAuthSessionPolicyService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.*
 
-@Path("organizations/{organizationId}/auth/session-policy")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationAuthSessionPolicyResource @Inject constructor(
-    private val authTokenContext: AuthTokenContext,
-    private val appUserService: AppUserService,
-    private val authSessionPolicyService: AuthSessionPolicyService,
-    private val authAuditService: AuthAuditService,
+    private val organizationAuthSessionPolicyService: OrganizationAuthSessionPolicyService,
     private val organizationIdentityProviderConfigService: OrganizationIdentityProviderConfigService,
-    private val configurationService: ConfigurationService,
-    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
-    private val organizationMembershipService: com.docuhyphen.app.api.service.organization.OrganizationMembershipService,
-)
+) : OrganizationAuthSessionPolicyResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAuthSessionPolicyResource::class.java)
     }
 
-    @GET
-    @Path("/effective")
-    fun getEffectivePolicy(
-        @PathParam("organizationId") organizationId: String,
-        @QueryParam("appUserId") appUserId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun getEffectivePolicy(
+        organizationId: String,
+        appUserId: String?,
+        requestId: String?,
     ): Response
     {
-        var actorId: UUID? = null
-        var resolvedOrgId: UUID? = null
-
         return try
         {
-            val currentUser = authTokenContext.authToken.appUser
-                ?: throw UnauthorizedException("User is not authenticated")
-            actorId = currentUser.id
-
-            val orgId = runCatching { UUID.fromString(organizationId) }
-                .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
-            resolvedOrgId = orgId
-
-            if (!userRoleService.isOrgAdminIn(currentUser.id, orgId))
-            {
-                throw UnauthorizedException("User does not have permission to view auth session policy")
-            }
-
-            val policy = if (!appUserId.isNullOrBlank())
-            {
-                val targetUserId = runCatching { UUID.fromString(appUserId) }
-                    .getOrElse { throw IllegalArgumentException("Invalid app user ID format") }
-                val targetUser = appUserService.getById(targetUserId)
-                    ?: throw IllegalArgumentException("App user not found")
-
-                if (!organizationMembershipService.isMember(targetUser.id, orgId))
-                {
-                    throw UnauthorizedException("App user does not belong to the organization")
-                }
-
-                authSessionPolicyService.resolveForAppUser(targetUser)
-            }
-            else
-            {
-                authSessionPolicyService.resolveForOrganization(orgId)
-            }
-
             Response.ok(
-                OrganizationAuthSessionPolicyResponse(
-                    organizationId = orgId.toString(),
-                    appUserId = appUserId,
-                    accessTokenExpiryMinutes = policy.accessTokenExpiryMinutes,
-                    refreshTokenExpiryMinutes = policy.refreshTokenExpiryMinutes,
-                    maxSessionDurationHours = policy.maxSessionDurationHours,
-                    idleTimeoutMinutes = policy.idleTimeoutMinutes,
-                )
-            ).build().also {
-                authAuditService.emit(
-                    action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
-                    outcome = "SUCCESS",
-                    actorId = actorId,
-                    organizationId = resolvedOrgId,
-                    requestId = requestId,
-                    reason = if (appUserId.isNullOrBlank()) "Viewed effective organization auth session policy" else "Viewed effective app-user auth session policy",
-                    afterSnapshot = "organizationId=$organizationId;appUserId=${appUserId ?: ""};accessTokenExpiryMinutes=${policy.accessTokenExpiryMinutes};refreshTokenExpiryMinutes=${policy.refreshTokenExpiryMinutes};maxSessionDurationHours=${policy.maxSessionDurationHours};idleTimeoutMinutes=${policy.idleTimeoutMinutes}",
-                )
-            }
+                organizationAuthSessionPolicyService.getEffectivePolicy(organizationId, appUserId, requestId),
+            ).build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error fetching effective auth session policy", exception)
-            authAuditService.emit(
-                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
-                outcome = "DENY",
-                reasonCode = RevocationReasonCode.SECURITY_POLICY,
-                actorId = actorId,
-                organizationId = resolvedOrgId,
-                requestId = requestId,
-                reason = exception.message,
-            )
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching effective auth session policy", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }
 
-    /**
-     * Returns the per-IdP session policy rows plus the resolved effective policy
-     * and platform guardrails. This backs the "Auth session policy" section in the
-     * organization settings UI; no separate admin page is introduced.
-     */
-    @GET
-    fun getSettings(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun getSettings(
+        organizationId: String,
+        requestId: String?,
     ): Response
     {
-        var actorId: UUID? = null
-        var resolvedOrgId: UUID? = null
-
         return try
         {
-            val currentUser = authTokenContext.authToken.appUser
-                ?: throw UnauthorizedException("User is not authenticated")
-            actorId = currentUser.id
-
-            val orgId = runCatching { UUID.fromString(organizationId) }
-                .getOrElse { throw IllegalArgumentException("Invalid organization ID format") }
-            resolvedOrgId = orgId
-
-            if (!userRoleService.isOrgAdminIn(currentUser.id, orgId))
-            {
-                throw UnauthorizedException("User does not have permission to view auth session policy")
-            }
-
-            // Auto-provision the INTERNAL IdP row so org admins can always tune the
-            // built-in identity provider's session policy without going through the
-            // full IdP-creation flow (which requires external OAuth credentials).
-            organizationIdentityProviderConfigService.ensureInternalConfig(orgId)
-
-            val configs = organizationIdentityProviderConfigService.listForPolicyView(organizationId)
-            val policy = authSessionPolicyService.resolveForOrganization(orgId)
-
-            val response = OrganizationAuthSessionPolicySettingsResponse(
-                organizationId = orgId.toString(),
-                effective = OrganizationAuthSessionPolicyEffectiveDto(
-                    accessTokenExpiryMinutes = policy.accessTokenExpiryMinutes,
-                    refreshTokenExpiryMinutes = policy.refreshTokenExpiryMinutes,
-                    maxSessionDurationHours = policy.maxSessionDurationHours,
-                    idleTimeoutMinutes = policy.idleTimeoutMinutes,
-                ),
-                guardrails = OrganizationAuthSessionPolicyGuardrailsDto(
-                    minAccessTokenExpiryMinutes = configurationService.getMinAccessTokenExpiryMinutes(),
-                    maxAccessTokenExpiryMinutes = configurationService.getMaxAccessTokenExpiryMinutes(),
-                    minRefreshTokenExpiryMinutes = configurationService.getMinRefreshTokenExpiryMinutes(),
-                    maxRefreshTokenExpiryMinutes = configurationService.getMaxRefreshTokenExpiryMinutes(),
-                    minSessionMaxDurationHours = configurationService.getMinSessionMaxDurationHours(),
-                    maxSessionMaxDurationHours = configurationService.getMaxSessionMaxDurationHours(),
-                    minIdleTimeoutMinutes = configurationService.getMinIdleTimeoutMinutes(),
-                    maxIdleTimeoutMinutes = configurationService.getMaxIdleTimeoutMinutes(),
-                ),
-                idpConfigs = configs.map { c ->
-                    OrganizationAuthSessionPolicyIdpDto(
-                        configId = c.id.toString(),
-                        provider = c.provider,
-                        isActive = c.isActive,
-                        accessTokenExpiryMinutes = c.accessTokenExpiryMinutes,
-                        refreshTokenExpiryMinutes = c.refreshTokenExpiryMinutes,
-                        maxSessionDurationHours = c.maxSessionDurationHours,
-                        idleTimeoutMinutes = c.idleTimeoutMinutes,
-                    )
-                },
-                hasActiveIdpConfig = configs.any { it.isActive },
-            )
-
-            authAuditService.emit(
-                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
-                outcome = "SUCCESS",
-                actorId = actorId,
-                organizationId = resolvedOrgId,
-                requestId = requestId,
-                reason = "Viewed organization auth session policy settings",
-            )
-
-            Response.ok(response).build()
+            Response.ok(organizationAuthSessionPolicyService.getSettings(organizationId, requestId)).build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error fetching auth session policy settings", exception)
-            authAuditService.emit(
-                action = "ORG_AUTH_EXCHANGE_POLICY_VIEW",
-                outcome = "DENY",
-                reasonCode = RevocationReasonCode.SECURITY_POLICY,
-                actorId = actorId,
-                organizationId = resolvedOrgId,
-                requestId = requestId,
-                reason = exception.message,
-            )
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching auth session policy settings", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }
 
-    /**
-     * Update the session-policy fields of a single IdP config that belongs to
-     * the target organization. Only access/refresh/session duration are mutated;
-     * provider, secrets, issuer, and claim configuration are left untouched.
-     */
-    @PUT
-    @Path("/{configId}")
-    fun updateIdpSessionPolicy(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun updateIdpSessionPolicy(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
         payload: OrganizationAuthSessionPolicyUpdateRequest,
     ): Response
     {
@@ -253,54 +102,29 @@ class OrganizationAuthSessionPolicyResource @Inject constructor(
                 request = payload,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-
-            Response.ok(
-                OrganizationIdpConfigResponse(
-                    id = updated.id.toString(),
-                    organizationId = updated.organization?.id?.toString().orEmpty(),
-                    provider = updated.provider,
-                    clientId = updated.clientId,
-                    clientSecretRef = updated.clientSecretRef,
-                    tenantId = updated.tenantId,
-                    scopes = splitCsv(updated.scopes),
-                    isActive = updated.isActive,
-                    accessTokenExpiryMinutes = updated.accessTokenExpiryMinutes,
-                    refreshTokenExpiryMinutes = updated.refreshTokenExpiryMinutes,
-                    maxSessionDurationHours = updated.maxSessionDurationHours,
-                    idleTimeoutMinutes = updated.idleTimeoutMinutes,
-                    oidcIssuer = updated.oidcIssuer,
-                    allowedAudiences = splitCsv(updated.allowedAudiences),
-                    allowedAlgs = splitCsv(updated.allowedAlgs),
-                    requiredClaims = splitCsv(updated.requiredClaims),
-                    createdDate = updated.createdDate.toString(),
-                    updatedDate = updated.updatedDate.toString(),
-                )
-            ).build()
+            Response.ok(OrganizationIdentityProviderConfigDtoMapper.toResponse(updated)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error updating IdP auth session policy", exception)
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is WebApplicationException -> throw exception
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error updating IdP auth session policy", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }
-
-    private fun splitCsv(value: String?): List<String>
-    {
-        return value
-            ?.split(',')
-            ?.map { it.trim() }
-            ?.filter { it.isNotBlank() }
-            ?: emptyList()
-    }
 }
-
 

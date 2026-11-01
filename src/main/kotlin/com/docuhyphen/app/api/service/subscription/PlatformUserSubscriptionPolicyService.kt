@@ -4,8 +4,11 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionLifecycleUpdate
+import com.docuhyphen.app.api.model.subscription.UserSubscriptionPolicyListResult
+import com.docuhyphen.app.api.model.subscription.UserSubscriptionPolicyResult
 import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -17,18 +20,6 @@ import jakarta.transaction.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-data class UserSubscriptionPolicyResult(
-    val user: AppUser,
-    val policy: UserSubscriptionPolicy,
-)
-
-data class UserSubscriptionPolicyListResult(
-    val total: Int,
-    val limit: Int,
-    val offset: Int,
-    val items: List<UserSubscriptionPolicyResult>,
-)
 
 @RequestScoped
 class PlatformUserSubscriptionPolicyService @Inject constructor(

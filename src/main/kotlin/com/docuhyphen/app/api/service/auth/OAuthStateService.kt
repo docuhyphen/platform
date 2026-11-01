@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.SignedOAuthState
+import com.docuhyphen.app.api.model.auth.VerifiedOAuthState
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.jsonwebtoken.Jwts
@@ -13,25 +15,6 @@ import java.security.SecureRandom
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.crypto.SecretKey
-
-data class VerifiedOAuthState(
-    val flow: String,
-    val provider: IdentityProviderType,
-    val nonce: String,
-    val orgIdpConfigId: UUID? = null,
-    val codeVerifier: String? = null,
-    val stepUpSessionId: UUID? = null,
-    val stepUpAppUserId: UUID? = null,
-    val stepUpExpectedSubjectId: String? = null,
-    val stepUpReturnTo: String? = null,
-    val linkAppUserId: UUID? = null,
-)
-
-data class SignedOAuthState(
-    val token: String,
-    val nonce: String,
-    val codeChallenge: String,
-)
 
 @RequestScoped
 class OAuthStateService @Inject constructor(
@@ -47,8 +30,6 @@ class OAuthStateService @Inject constructor(
         private val secureRandom = SecureRandom()
     }
 
-    // Derived per purpose so an OAuth state token can never be presented as a session token,
-    // and vice versa, regardless of what its claims say.
     private val stateSigningKey: SecretKey = tokenSigningKeyProvider.keyFor(TokenPurpose.OAUTH_STATE)
 
     fun createSignedState(
@@ -67,7 +48,6 @@ class OAuthStateService @Inject constructor(
         val ttlSeconds = configurationService.getOauthStateTtlSeconds()
         val expiration = Date(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(ttlSeconds))
 
-        // PKCE: 32-byte random verifier → S256 challenge (RFC 7636)
         val codeVerifier = generateCodeVerifier()
         val codeChallenge = deriveS256Challenge(codeVerifier)
 
@@ -135,7 +115,6 @@ class OAuthStateService @Inject constructor(
             return null
         }
 
-        // Pop the PKCE verifier atomically (GETDEL is the cleanest way; fall back to GET+DEL)
         val verifierResponse = redis.send(
             Request.cmd(Command.GETDEL).arg("$OAUTH_PKCE_PREFIX$nonce")
         ).await().indefinitely()

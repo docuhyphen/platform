@@ -5,12 +5,10 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/** Persistence for immutable [SchemaVersion] contracts of a [SchemaDefinition]. */
 @ApplicationScoped
 class SchemaVersionRepository :
     BaseRepository<SchemaVersion>(SchemaVersion::class.java)
 {
-    /** All versions for a definition, newest first. */
     fun findByDefinition(schemaDefinitionId: UUID): List<SchemaVersion> =
         entityManager.createQuery(
             """SELECT v FROM SchemaVersion v
@@ -21,7 +19,6 @@ class SchemaVersionRepository :
             .setParameter("did", schemaDefinitionId)
             .resultList
 
-    /** The single DRAFT version for a definition, or null. */
     fun findDraft(schemaDefinitionId: UUID): SchemaVersion? =
         entityManager.createQuery(
             """SELECT v FROM SchemaVersion v
@@ -34,7 +31,6 @@ class SchemaVersionRepository :
             .resultList
             .firstOrNull()
 
-    /** The latest PUBLISHED version for a definition, or null. */
     fun findLatestPublished(schemaDefinitionId: UUID): SchemaVersion? =
         entityManager.createQuery(
             """SELECT v FROM SchemaVersion v

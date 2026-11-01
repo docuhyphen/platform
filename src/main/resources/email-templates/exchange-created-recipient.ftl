@@ -43,7 +43,7 @@
         </td>
     </tr>
 </table>
-<p style="margin:0 0 14px 0;">Already have an account? <a href="${exchangeLink}" style="color:#1f73b7;">Sign in and open the exchange</a>.</p>
+<p style="margin:0 0 14px 0;">Already have an account? <a href="${exchangeLink}" style="color:#1f73b7;">Sign in and open the Exchange</a>.</p>
 <#else>
 <p style="margin:0 0 14px 0;">Open the Exchange to accept and upload: <a href="${exchangeLink}" style="color:#1f73b7;">${exchangeLink}</a></p>
 </#if>

@@ -37,22 +37,32 @@ const OrganizationPeopleTable = ({users, currentUserId, onEdit}: OrganizationPeo
             id="organization-people-table"
             className={styles.table}
         >
-            <TableHeader className={styles.tableHeader}>
-                <TableRow>
-                    <TableHeaderCell><Text weight="semibold">Person name</Text></TableHeaderCell>
-                    <TableHeaderCell><Text weight="semibold">Email</Text></TableHeaderCell>
-                    <TableHeaderCell><Text weight="semibold">Role</Text></TableHeaderCell>
-                    <TableHeaderCell className={styles.statusCell}><Text weight="semibold">Status</Text></TableHeaderCell>
-                    <TableHeaderCell className={styles.actionsCell}><Text weight="semibold">Actions</Text></TableHeaderCell>
+            <TableHeader id={"organization-people-table-table-header-1"}
+                         className={styles.tableHeader}>
+                <TableRow id={"organization-people-table-table-row-1"}>
+                    <TableHeaderCell id={"organization-people-table-table-header-cell-1"}><Text id={"organization-people-table-text-1"}
+                                           weight="semibold">Person name</Text></TableHeaderCell>
+                    <TableHeaderCell id={"organization-people-table-table-header-cell-2"}><Text id={"organization-people-table-text-2"}
+                                           weight="semibold">Email</Text></TableHeaderCell>
+                    <TableHeaderCell id={"organization-people-table-table-header-cell-3"}><Text id={"organization-people-table-text-3"}
+                                           weight="semibold">Role</Text></TableHeaderCell>
+                    <TableHeaderCell id={"organization-people-table-table-header-cell-4"}
+                                     className={styles.statusCell}><Text id={"organization-people-table-text-4"}
+                                                                         weight="semibold">Status</Text></TableHeaderCell>
+                    <TableHeaderCell id={"organization-people-table-table-header-cell-5"}
+                                     className={styles.actionsCell}><Text id={"organization-people-table-text-5"}
+                                                                          weight="semibold">Actions</Text></TableHeaderCell>
                 </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody id={"organization-people-table-table-body-1"}>
                 {users.map(user =>
                 {
                     const name = [user.person?.firstName, user.person?.lastName].filter(Boolean).join(" ");
                     return (
-                        <TableRow key={user.id}>
-                            <TableCell title={name}>
+                        <TableRow id={`organization-people-table-table-row-2-${user.id}`}
+                                  key={user.id}>
+                            <TableCell id={"organization-people-table-table-cell-1"}
+                                       title={name}>
                                 <div
                                     id={`organization-person-${user.id}`}
                                     className={styles.personCell}
@@ -70,25 +80,30 @@ const OrganizationPeopleTable = ({users, currentUserId, onEdit}: OrganizationPeo
                                     </Text>
                                 </div>
                             </TableCell>
-                            <TableCell title={user.email}>
-                                <div className={styles.truncateCell}>{user.email}</div>
+                            <TableCell id={"organization-people-table-table-cell-2"}
+                                       title={user.email}>
+                                <div id={"organization-people-table-div-1"}
+                                     className={styles.truncateCell}>{user.email}</div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell id={"organization-people-table-table-cell-3"}>
                                 <TagList
                                     tags={user.organizationRoles.map(role =>
                                         OrganizationRoleDisplayNames[role as OrganizationRoleName] || role)}
                                     max={1}
                                 />
                             </TableCell>
-                            <TableCell className={styles.statusCell}>
+                            <TableCell id={"organization-people-table-table-cell-4"}
+                                       className={styles.statusCell}>
                                 <Badge
+                                    id={"organization-people-table-badge-1"}
                                     color={user.isActive ? "success" : "danger"}
                                     appearance="outline"
                                 >
                                     {user.isActive ? "Active" : "Inactive"}
                                 </Badge>
                             </TableCell>
-                            <TableCell className={styles.actionsCell}>
+                            <TableCell id={"organization-people-table-table-cell-5"}
+                                       className={styles.actionsCell}>
                                 <Menu positioning={{autoSize: true}}>
                                     <MenuTrigger disableButtonEnhancement>
                                         <Button
@@ -98,8 +113,8 @@ const OrganizationPeopleTable = ({users, currentUserId, onEdit}: OrganizationPeo
                                             shape="circular"
                                         />
                                     </MenuTrigger>
-                                    <MenuPopover>
-                                        <MenuList>
+                                    <MenuPopover id={"organization-people-table-menu-popover-1"}>
+                                        <MenuList id={"organization-people-table-menu-list-1"}>
                                             <MenuItem
                                                 id={`org-people-edit-menu-item-${user.id}`}
                                                 icon={<PersonEditRegular/>}

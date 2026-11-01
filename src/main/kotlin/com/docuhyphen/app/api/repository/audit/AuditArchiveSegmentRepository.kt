@@ -8,7 +8,6 @@ import jakarta.persistence.NoResultException
 @RequestScoped
 class AuditArchiveSegmentRepository : BaseRepository<AuditArchiveSegment>(AuditArchiveSegment::class.java)
 {
-    /** The most recently closed segment for [streamId], or null if none has ever been archived. */
     fun findLatestByStream(streamId: String): AuditArchiveSegment?
     {
         return try
@@ -45,11 +44,6 @@ class AuditArchiveSegmentRepository : BaseRepository<AuditArchiveSegment>(AuditA
         ).resultList
     }
 
-    /**
-     * Segments not (re)verified since [since], oldest verification first (nulls first), capped
-     * at [limit]. Backs [com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier]'s
-     * periodic continuous-verification pass.
-     */
     fun findDueForVerification(since: java.sql.Timestamp, limit: Int): List<AuditArchiveSegment>
     {
         return entityManager.createQuery(

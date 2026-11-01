@@ -71,17 +71,13 @@ class MfaService(
     @Transactional
     fun regenerateOtp(mfaRecord: MfaRecord): String
     {
-        // Generate new OTP
         val newOtp = otpService.generateEmailOtp()
         val hashedOtp = otpService.hashOtp(newOtp)
         val now = Timestamp.from(Instant.now())
 
-        // Update record
         mfaRecord.mfaToken = hashedOtp
-        // Optionally reset attempts count
         mfaRecord.attemptCount = 0
         mfaRecord.createdDate = now
-        // Update expiry time to give full time again
         mfaRecord.expiryDateTime = Timestamp.from(
             Instant.now().plusMillis(MINUTES.toMillis(configurationService.getSignInEmailOtpMFAExpiryMins()))
         )

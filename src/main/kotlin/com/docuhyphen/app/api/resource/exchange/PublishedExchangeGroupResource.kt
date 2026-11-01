@@ -1,35 +1,56 @@
 package com.docuhyphen.app.api.resource.exchange
 
+import com.docuhyphen.app.api.exception.RequestValidationException
 import com.docuhyphen.app.api.model.dto.PublishedExchangeGroupDto
+import com.docuhyphen.app.api.resource.RequestGuards
+import com.docuhyphen.app.api.resource.exchange.operations.PublishedExchangeGroupResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.organization.TrustedExternalGroupQueryService
+import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
-import java.util.*
+import jakarta.ws.rs.core.Response.Status.*
+import org.slf4j.LoggerFactory
 
-@Path("organizations/{targetOrganizationId}/published-exchange-groups")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PublishedExchangeGroupResource @Inject constructor(
     private val queryService: TrustedExternalGroupQueryService,
-)
+) : PublishedExchangeGroupResourceOperations
 {
-    @GET
-    fun list(@PathParam("targetOrganizationId") targetOrganizationId: String): Response
+    companion object
     {
-        val organizationId = runCatching { UUID.fromString(targetOrganizationId) }
-            .getOrElse {
-                return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ResponseError("Target organization id is invalid"))
-                    .build()
+        private val logger = LoggerFactory.getLogger(PublishedExchangeGroupResource::class.java)
+    }
+
+    override fun list(targetOrganizationId: String): Response
+    {
+        return try
+        {
+            val organizationId = RequestGuards.uuid(targetOrganizationId, "Target organization id is invalid")
+            val groups = queryService.listPublishedGroups(organizationId)
+            Response.ok(
+                object : GenericEntity<List<PublishedExchangeGroupDto>>(groups)
+                {},
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing published Exchange groups", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while listing published Exchange groups"))
+                        .build()
+                }
             }
-        val groups = queryService.listPublishedGroups(organizationId)
-        return Response.ok(
-            object : GenericEntity<List<PublishedExchangeGroupDto>>(groups)
-            {},
-        ).build()
+        }
     }
 }

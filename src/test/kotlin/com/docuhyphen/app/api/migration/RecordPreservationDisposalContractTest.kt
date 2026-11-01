@@ -109,7 +109,7 @@ class RecordPreservationDisposalContractTest
                 """
                 UPDATE audit_legal_hold
                 SET status = 'RELEASED', released_at = now(), released_by_principal_kind = 'USER',
-                    released_by_principal_id = ?, release_reason = 'matter closed', hold_revision = hold_revision + 1
+                    released_by_principal_id = ?, release_reason = 'case closed', hold_revision = hold_revision + 1
                 WHERE id = ?
                 """.trimIndent(),
                 preservation.runtime.template.userId,

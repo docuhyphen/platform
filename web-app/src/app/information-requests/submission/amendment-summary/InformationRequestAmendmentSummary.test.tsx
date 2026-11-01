@@ -5,6 +5,7 @@ import * as transport from "../../../../services/informationRequestSubmissionSer
 import {
     InformationRequestAmendmentChangeKind,
     InformationRequestNoticeDeliveryState,
+    InformationRequestNoticeIntentDto,
     InformationRequestNoticeKind,
 } from "../../../models/models.tsx";
 import InformationRequestAmendmentSummary from "./InformationRequestAmendmentSummary.tsx";
@@ -92,7 +93,7 @@ describe("InformationRequestAmendmentSummary", () =>
                 },
             ],
             undisclosedChangeCount: 0,
-            notices: [],
+            notices: [] as InformationRequestNoticeIntentDto[],
         }]);
 
         render(<InformationRequestAmendmentSummary requestId={"request-a"}
@@ -117,7 +118,7 @@ describe("InformationRequestAmendmentSummary", () =>
                 reconfirmationRequired: false
             }],
             undisclosedChangeCount: 0,
-            notices: [],
+            notices: [] as InformationRequestNoticeIntentDto[],
         };
         vi.mocked(transport.getInformationRequestAmendments).mockResolvedValueOnce([amendment]);
         const view = render(<InformationRequestAmendmentSummary requestId={"request-a"}

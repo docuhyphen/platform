@@ -12,9 +12,9 @@ export const useBillingTabStyles = makeStyles({
         margin: '0 auto',
     },
     heroIcon: {
-        fontSize: '4rem',
+        fontSize: tokens.fontSizeHero1000,
         color: tokens.colorBrandForeground1,
-        lineHeight: 1,
+        lineHeight: tokens.lineHeightHero1000,
     },
     headingGroup: {
         display: 'flex',
@@ -53,7 +53,7 @@ export const useBillingTabStyles = makeStyles({
         color: tokens.colorNeutralForeground1,
     },
     featureIcon: {
-        fontSize: '1.125rem',
+        fontSize: tokens.fontSizeBase500,
         color: tokens.colorBrandForeground1,
         flexShrink: 0,
     },

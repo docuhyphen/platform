@@ -1,19 +1,10 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.exception.StepUpRequiredException
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import java.util.*
-
-/**
- * Correlation data for an admin action. The only thing the API layer needs to pass
- * through is an optional request id used to correlate audit events with the original
- * HTTP request. Step-up state is derived from the verified server-side session and
- * MUST NOT be supplied by callers.
- */
-data class AdminApprovalContext(
-    val requestId: String? = null,
-)
 
 @RequestScoped
 class AdminActionGuardService @Inject constructor(
@@ -21,15 +12,6 @@ class AdminActionGuardService @Inject constructor(
     private val stepUpAuthService: StepUpAuthService,
 )
 {
-    /**
-     * Enforce step-up authentication for a sensitive admin action.
-     *
-     * Step-up freshness is derived from the current session's [StepUpAuthService.isFresh]
-     * check (which reads the verified `auth_time` claim). There is no client-controlled
-     * input that can satisfy this guard.
-     *
-     * If [requireStepUp] is `false`, the guard only emits a success audit event.
-     */
     fun enforce(
         action: String,
         actorId: UUID?,

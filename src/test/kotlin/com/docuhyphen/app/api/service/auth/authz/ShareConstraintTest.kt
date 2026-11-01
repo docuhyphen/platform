@@ -1,8 +1,13 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -19,29 +24,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Exchange Share constraint enforcement.
- *
- * Rules verified:
- *  - Malformed constraints_json denies access (fail-closed parse).
- *  - MFA constraint blocks when context.mfaSatisfied=false.
- *  - IP allowlist: non-empty list with mismatched IP denies; matching IP allows.
- *  - IP allowlist: null clientIp with non-empty list denies (fail-closed).
- *  - IP allowlist: empty list allows any IP.
- *  - CIDR matching: IPv4 address inside /24 block allows; outside denies.
- *  - max_views is rejected at write time.
- *  - allowedDownloadFormats is returned as an obligation (not a capability shaper).
- *  - allowedDownloadFormats obligation: most-restrictive intersection across shares.
- *  - Watermark obligation: any-wins semantics across shares.
- *  - canDownload=false removes DOCUMENT_DOWNLOAD from the grant.
- *  - canDownload=true on a VIEWER share adds DOCUMENT_DOWNLOAD.
- *  - Group-inherited shares propagate constraints to members.
- */
 class ShareConstraintTest
 {
-    // -----------------------------------------------------------------------
-    // Constraint parsing
-    // -----------------------------------------------------------------------
 
     @Test
     fun `malformed constraints_json returns null from parse`()
@@ -73,10 +57,6 @@ class ShareConstraintTest
             ShareConstraints.normalizeForStorage("""{"require_mfa":true,"max_views":10}""")
         }
     }
-
-    // -----------------------------------------------------------------------
-    // IP allowlist — ShareConstraints.isIpAllowed
-    // -----------------------------------------------------------------------
 
     @Test
     fun `empty allowed_ip_ranges permits any IP`()
@@ -116,7 +96,7 @@ class ShareConstraintTest
     }
 
     @Test
-    fun `multiple ranges — match in second range allows`()
+    fun `multiple ranges - match in second range allows`()
     {
         assertTrue(
             ShareConstraints.isIpAllowed("172.16.0.5", listOf("10.0.0.0/8", "172.16.0.0/12"))
@@ -129,10 +109,6 @@ class ShareConstraintTest
         assertTrue(ShareConstraints.isIpAllowed("203.0.113.1", listOf("203.0.113.1/32")))
         assertFalse(ShareConstraints.isIpAllowed("203.0.113.2", listOf("203.0.113.1/32")))
     }
-
-    // -----------------------------------------------------------------------
-    // IP allowlist validation at write time
-    // -----------------------------------------------------------------------
 
     @Test
     fun `invalid CIDR notation is rejected by validate`()
@@ -153,10 +129,6 @@ class ShareConstraintTest
     {
         ShareConstraints(allowedIpRanges = listOf("10.0.0.0/8", "192.168.1.1")).validate()
     }
-
-    // -----------------------------------------------------------------------
-    // Capability shaping: canDownload
-    // -----------------------------------------------------------------------
 
     @Test
     fun `canDownload=false strips DOCUMENT_DOWNLOAD from EDITOR base set`()
@@ -184,10 +156,6 @@ class ShareConstraintTest
         val constrained = ShareConstraints(canDownload = null).adjustCapabilities(base)
         assertEquals(initial, Capability.DOCUMENT_DOWNLOAD in constrained)
     }
-
-    // -----------------------------------------------------------------------
-    // Obligations: allowedDownloadFormats and watermark
-    // -----------------------------------------------------------------------
 
     @Test
     fun `allowedDownloadFormats from share is returned as obligation`()
@@ -279,10 +247,6 @@ class ShareConstraintTest
         assertNull((decision as Decision.Allow).obligations.allowedDownloadFormats)
     }
 
-    // -----------------------------------------------------------------------
-    // MFA constraint enforcement via DefaultAuthorizationService
-    // -----------------------------------------------------------------------
-
     @Test
     fun `MFA-required share denies when mfaSatisfied=false`()
     {
@@ -312,10 +276,6 @@ class ShareConstraintTest
 
         assertTrue(svc.authorize(principal, Action.EXCHANGE_VIEW, resource, context).isAllowed)
     }
-
-    // -----------------------------------------------------------------------
-    // IP allowlist enforcement via DefaultAuthorizationService
-    // -----------------------------------------------------------------------
 
     @Test
     fun `IP-restricted share denies when clientIp is outside the range`()
@@ -377,10 +337,6 @@ class ShareConstraintTest
         assertFalse(decision.isAllowed)
         assertEquals(Decision.REASON_INVALID_CONSTRAINTS, (decision as Decision.Deny).reasonCode)
     }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
 
     @Test
     fun `pending recipient Share grants acceptance only`()

@@ -76,29 +76,32 @@ const ExchangeRescindDialog: React.FC<ExchangeRescindDialogProps> = (
         <Dialog
             modalType="alert"
             open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Rescind Exchange: {exchange?.name}</DialogTitle>
-                    <DialogContent>
+            <DialogSurface id={"exchange-rescind-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-rescind-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-rescind-dialog-dialog-title-1"}>Rescind Exchange: {exchange?.name}</DialogTitle>
+                    <DialogContent id={"exchange-rescind-dialog-dialog-content-1"}>
                         {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+                            <MessageBar id={"exchange-rescind-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-rescind-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-rescind-dialog-text-1"}
+                                          size={200}>{dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        <Text>
-                            This will cancel the exchange without deleting it and move it to archive.
+                        <Text id={"exchange-rescind-dialog-text-2"}>
+                            This will cancel the Exchange without deleting it and move it to archive.
                         </Text>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"exchange-rescind-dialog-dialog-actions-1"}>
                         <Button
                             id={"rescind-exchange-submit-btn"}
                             appearance="primary"
                             className={globalStyles.buttonWithLoading}
                             shape={"circular"}
                             onClick={onConfirmRescind}>
-                            {isSubmitting && <Spinner size={"tiny"}/>}
+                            {isSubmitting && <Spinner id={"exchange-rescind-dialog-spinner-1"}
+                                                      size={"tiny"}/>}
                             Rescind Exchange
                         </Button>
                         <DialogTrigger disableButtonEnhancement>

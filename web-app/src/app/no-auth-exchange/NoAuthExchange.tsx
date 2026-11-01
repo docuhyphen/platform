@@ -1,128 +1,23 @@
-﻿import React, {useEffect, useState} from "react";
-import {useNavigate} from "react-router-dom";
-import {NoAuthExchangeBasicDto, ExchangeStatus, DocumentDetailedDto} from "../models/models.tsx";
+﻿import React from "react";
 import NoAuthExchangeHeader from "./components/header/NoAuthExchangeHeader.tsx";
 import {useNoAuthExchangeStyles} from "./NoAuthExchangeStyles.tsx";
 import NoAuthExchangeUserDecision from "./components/exchange-use-decision/NoAuthExchangeUserDecision.tsx";
 import {FluentProvider, Spinner} from "@fluentui/react-components";
-import {fetchNoAuthExchange, storeNoAuthExchangeAccessToken} from "../../services/exchangeApi.ts";
 import NoAuthExchangeWorkspace from "./components/exchange-workspace/NoAuthExchangeWorkspace.tsx";
 import {lightTheme} from "../../context/theme.ts";
+import useNoAuthExchange from "./useNoAuthExchange.ts";
 
 const NoAuthExchange: React.FC = () =>
 {
     const styles = useNoAuthExchangeStyles();
-    const navigate = useNavigate();
-
-    const [isLoadingExchange, setIsLoadingExchange] = useState(false);
-    const [exchangeId, setExchangeId] = useState<string | null>(null);
-    const [exchangeAccepted, setExchangeAccepted] = useState(false);
-    const [exchange, setExchange] = useState<NoAuthExchangeBasicDto>(null);
-
-    useEffect(() =>
-    {
-        const queryParams = new URLSearchParams(window.location.search);
-        const exchangeIdParam = queryParams.get('s');
-        const accessTokenParam = queryParams.get('t');
-
-        if (!exchangeIdParam)
-        {
-            navigate('/sign-in');
-        }
-        else
-        {
-            if (accessTokenParam)
-            {
-                storeNoAuthExchangeAccessToken(exchangeIdParam, accessTokenParam);
-                queryParams.delete('t');
-                const remainingQuery = queryParams.toString();
-                window.history.replaceState(
-                    null,
-                    '',
-                    `${window.location.pathname}${remainingQuery ? `?${remainingQuery}` : ''}`,
-                );
-            }
-            setExchangeId(exchangeIdParam);
-        }
-    }, [navigate]);
-
-    const fetchExchange = async () =>
-    {
-        if (!exchangeId)
-        {
-            return;
-        }
-
-        if (isLoadingExchange)
-        {
-            return;
-        }
-
-        setIsLoadingExchange(true);
-
-        try
-        {
-            const exchange = await fetchNoAuthExchange(exchangeId) as NoAuthExchangeBasicDto;
-
-            if (exchange.status === ExchangeStatus.INITIATED)
-            {
-                setExchangeAccepted(false);
-            }
-            else if (exchange.status === ExchangeStatus.ACCEPTED_STARTED)
-            {
-                setExchangeAccepted(true);
-            }
-            else if (exchange.status === ExchangeStatus.RESCINDED)
-            {
-                navigate('/sign-in');
-                return;
-            }
-            else
-            {
-                navigate('/sign-in');
-            }
-
-            setExchange(exchange);
-        }
-        catch (error)
-        {
-            console.error(error);
-            navigate('/sign-in');
-        }
-        finally
-        {
-            setIsLoadingExchange(false);
-        }
-    };
-
-    useEffect(() =>
-    {
-        if (exchangeId)
-        {
-            fetchExchange();
-        }
-    }, [exchangeId]);
-
-    const onExchangeAccepted = (exchange: NoAuthExchangeBasicDto) =>
-    {
-        setExchange(exchange);
-        setExchangeAccepted(true)
-    }
-
-    const onDocumentUploaded = (uploadedDocument: DocumentDetailedDto) =>
-    {
-        setExchange((prev) =>
-        {
-            if (!prev)
-            {
-                return prev;
-            }
-            const updatedDocuments = (prev.documents || []).map((document) =>
-                document.id === uploadedDocument.id ? {...document, ...uploadedDocument} : document
-            );
-            return {...prev, documents: updatedDocuments};
-        });
-    }
+    const {
+        isLoadingExchange,
+        exchange,
+        exchangeAccepted,
+        onExchangeAccepted,
+        onExchangeDeclined,
+        onDocumentUploaded,
+    } = useNoAuthExchange();
 
     return (
         <FluentProvider
@@ -142,6 +37,7 @@ const NoAuthExchange: React.FC = () =>
                         className={styles.exchangeLoadingContainer}
                     >
                         <Spinner
+                            id={"no-auth-exchange-spinner-1"}
                             size={"medium"}
                             label={"Preparing your secure document request"}
                         />
@@ -151,7 +47,8 @@ const NoAuthExchange: React.FC = () =>
                 {!isLoadingExchange && exchange && (
                     <>
                         {exchangeAccepted ? (
-                            <NoAuthExchangeWorkspace exchange={exchange} onDocumentUploaded={onDocumentUploaded}/>
+                            <NoAuthExchangeWorkspace exchange={exchange}
+                                                     onDocumentUploaded={onDocumentUploaded}/>
                         ) : (
                             <section
                                 id={"no-auth-exchange-decision"}
@@ -160,7 +57,7 @@ const NoAuthExchange: React.FC = () =>
                                 <NoAuthExchangeUserDecision
                                     exchange={exchange}
                                     onAccepted={onExchangeAccepted}
-                                    onDeclined={() => navigate("/sign-in/")}
+                                    onDeclined={onExchangeDeclined}
                                 />
                             </section>
                         )}

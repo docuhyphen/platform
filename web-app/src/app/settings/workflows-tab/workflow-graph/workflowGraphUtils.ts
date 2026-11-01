@@ -1,11 +1,5 @@
-/**
- * Shared formatting helpers for the workflow graph.
- * Must not import React.
- */
 
 import {WorkflowGraphStepKind, WorkflowGraphNodeState, WorkflowGraphEdgeState} from "./workflowGraphModels.ts";
-
-// ── Step kind display labels ──────────────────────────────────────────────────
 
 const STEP_KIND_LABELS: Record<WorkflowGraphStepKind, string> = {
     APPROVAL: "Approval",
@@ -21,8 +15,6 @@ export function stepKindLabel(kind: WorkflowGraphStepKind): string
 {
     return STEP_KIND_LABELS[kind] ?? "Step";
 }
-
-// ── Node state display labels and accessibility ───────────────────────────────
 
 export interface NodeStatePresentation
 {
@@ -50,8 +42,6 @@ export function nodeStatePresentation(state: WorkflowGraphNodeState): NodeStateP
     return NODE_STATE_LABELS[state] ?? NODE_STATE_LABELS.UNKNOWN;
 }
 
-// ── Edge state labels ─────────────────────────────────────────────────────────
-
 export interface EdgeStatePresentation
 {
     accessibilityLabel: string;
@@ -71,8 +61,6 @@ export function edgeStatePresentation(state: WorkflowGraphEdgeState): EdgeStateP
     return EDGE_STATE_LABELS[state] ?? EDGE_STATE_LABELS.DEFAULT;
 }
 
-// ── Outcome labels ────────────────────────────────────────────────────────────
-
 const OUTCOME_LABELS: Record<string, string> = {
     DEFAULT:  "",
     APPROVE:  "Approve",
@@ -85,8 +73,6 @@ export function outcomeLabel(outcome: string): string
 {
     return OUTCOME_LABELS[outcome] ?? outcome;
 }
-
-// ── Node accessibility label ──────────────────────────────────────────────────
 
 export function buildNodeAccessibilityLabel(
     stepIndex: number | undefined,
@@ -103,14 +89,6 @@ export function buildNodeAccessibilityLabel(
     return `${stepPart}${label}`;
 }
 
-// ── Numeric next-step parsing ─────────────────────────────────────────────────
-
-/**
- * Parse a `StepOutcomeSpec.nextStep` value.
- * Returns `"END"` if the value is the string `"END"`.
- * Returns a non-negative integer index if the value is a numeric string.
- * Returns `null` if the value is null, undefined, empty, or otherwise invalid.
- */
 export function parseNextStep(raw: string | null | undefined): "END" | number | null
 {
     if (raw === null || raw === undefined || raw === "")
@@ -121,7 +99,6 @@ export function parseNextStep(raw: string | null | undefined): "END" | number | 
     {
         return "END";
     }
-    // Must be a non-negative integer string. Do not use permissive parsing.
     if (/^\d+$/.test(raw))
     {
         return parseInt(raw, 10);

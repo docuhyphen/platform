@@ -24,7 +24,7 @@ class WorkflowSubjectDataEnrichmentTest
         val initiatorId = UUID.randomUUID()
         val exchange = Exchange().apply {
             id = exchangeId
-            name = "Supplier onboarding"
+            name = "Partner onboarding"
             ownerOrganizationId = orgId
             initiator = AppUser().apply {
                 id = initiatorId
@@ -45,7 +45,7 @@ class WorkflowSubjectDataEnrichmentTest
 
         val enriched = enrich(request)
 
-        assertEquals("Supplier onboarding", enriched.subjectData["exchangeName"])
+        assertEquals("Partner onboarding", enriched.subjectData["exchangeName"])
         assertEquals(initiatorId.toString(), enriched.subjectData["initiatorId"])
         assertEquals("Amina Patel", enriched.subjectData["initiatorName"])
         assertEquals(orgId.toString(), enriched.subjectData["orgId"])

@@ -1,4 +1,3 @@
-import React from "react";
 
 export const workflowApplicabilityArticle = (
     <>
@@ -11,7 +10,7 @@ export const workflowApplicabilityArticle = (
         <h3 id={"workflow-applicability-where-to-find-it-heading"}>Where to find it</h3>
         <p id={"workflow-applicability-where-to-find-it-paragraph"}>
             Open the Workflow Designer in Settings for an organization workflow.
-            Open the <b>Applicability</b> card on the Workflow Designer's Form pane.
+            Open the <b id={"workflow-applicability-article-b-1"}>Applicability</b> card on the Workflow Designer's Form pane.
             It is available only for organization-scoped workflows, because
             conditions reference an organization Exchange schema. Use the fixed
             arrow button to return to the three main workflow cards.
@@ -19,23 +18,23 @@ export const workflowApplicabilityArticle = (
 
         <h3 id={"workflow-applicability-how-conditions-work-heading"}>How conditions work</h3>
         <ul id={"workflow-applicability-how-conditions-work-list"}>
-            <li>
-                Pick an organization <b>schema</b> (target Exchange), then add a
+            <li id={"workflow-applicability-article-li-1"}>
+                Pick an organization <b id={"workflow-applicability-article-b-2"}>schema</b> (target Exchange), then add a
                 condition for one of its fields.
             </li>
-            <li>
-                Each condition has a <b>field</b>, an <b>operator</b> (the operators
+            <li id={"workflow-applicability-article-li-2"}>
+                Each condition has a <b id={"workflow-applicability-article-b-3"}>field</b>, an <b id={"workflow-applicability-article-b-4"}>operator</b> (the operators
                 offered depend on the field type), and, for most operators, a{" "}
-                <b>value</b>. The <code>is empty</code> and <code>is not empty</code>{" "}
+                <b id={"workflow-applicability-article-b-5"}>value</b>. The <code id={"workflow-applicability-article-code-1"}>is empty</code> and <code id={"workflow-applicability-article-code-2"}>is not empty</code>{" "}
                 operators take no value.
             </li>
-            <li>
+            <li id={"workflow-applicability-article-li-3"}>
                 A condition on a Date and time field compares moments, not wall-clock
                 readings. The moment you pick is recorded with your browser&apos;s time zone
                 offset, so it matches a stored answer that names the same moment even if it
                 was entered in a different zone.
             </li>
-            <li>
+            <li id={"workflow-applicability-article-li-4"}>
                 All conditions must match (AND). If any condition fails, the workflow
                 is skipped for that Exchange.
             </li>
@@ -60,11 +59,11 @@ export const workflowApplicabilityArticle = (
         </p>
         <p id={"workflow-applicability-when-a-workflow-is-paragraph-2"}>
             An unanswered field is judged rather than skipped over. It fails every
-            operator that compares a value, so a condition such as <code>equals</code>{" "}
+            operator that compares a value, so a condition such as <code id={"workflow-applicability-article-code-3"}>equals</code>{" "}
             needs the field answered before the workflow fires, which is why the Business
-            Fields step of Exchange creation runs first. It matches <code>is empty</code>{" "}
-            and fails <code>is not empty</code>, so a condition written with{" "}
-            <code>is empty</code> deliberately starts the workflow for the Exchange that
+            Fields step of Exchange creation runs first. It matches <code id={"workflow-applicability-article-code-4"}>is empty</code>{" "}
+            and fails <code id={"workflow-applicability-article-code-5"}>is not empty</code>, so a condition written with{" "}
+            <code id={"workflow-applicability-article-code-6"}>is empty</code> deliberately starts the workflow for the Exchange that
             left the field blank. A selection whose stored options are gone counts as
             unanswered in exactly the same way.
         </p>
@@ -72,7 +71,7 @@ export const workflowApplicabilityArticle = (
         <h3 id={"workflow-applicability-example-heading"}>Example</h3>
         <p id={"workflow-applicability-example-paragraph"}>
             On a Client Onboarding schema, add the condition{" "}
-            <code>Category equals Onboarding</code>. The workflow then starts only for
+            <code id={"workflow-applicability-article-code-7"}>Category equals Onboarding</code>. The workflow then starts only for
             Exchanges whose Category field is set to Onboarding.
         </p>
     </>

@@ -34,7 +34,8 @@ const ExternalRecipientBadge: React.FC<ExternalRecipientBadgeProps> = (props) =>
     }
 
     return (
-        <div className={styles.externalBadgeRow}>
+        <div id={"external-recipient-badge-div-1"}
+             className={styles.externalBadgeRow}>
             <Badge id={"exchange-recipient-external-badge"}
                    appearance="outline"
                    color="warning">External recipient</Badge>

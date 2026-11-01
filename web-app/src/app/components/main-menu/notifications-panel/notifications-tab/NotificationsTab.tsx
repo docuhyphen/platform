@@ -100,7 +100,7 @@ const NotificationsTab: React.FC = () =>
                                 appearance="subtle"
                                 shape="circular"
                                 size="small"
-                                onClick={() => void loadMoreNotifications()}
+                                onClick={() => { void loadMoreNotifications(); }}
                             >
                                 Load more
                             </Button>

@@ -2,15 +2,11 @@ package com.docuhyphen.app.api.model.document
 
 import com.docuhyphen.app.api.model.entity.DocumentVersion
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-/**
- * A stored version states its creator as one canonical principal, and that principal is exactly
- * what it reads back as, whatever kind of principal it is.
- */
 class DocumentVersionCreatorMapperTest
 {
     @Test

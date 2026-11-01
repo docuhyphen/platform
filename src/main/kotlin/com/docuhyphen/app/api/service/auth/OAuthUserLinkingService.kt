@@ -3,9 +3,10 @@ package com.docuhyphen.app.api.service.auth
 import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.SignUpRequiredException
 import com.docuhyphen.app.api.extension.maskEmailForLogs
+import com.docuhyphen.app.api.model.auth.LinkOrCreateResult
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.identity.IdentityProviderLinkRepository
-import com.docuhyphen.app.api.service.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.model.auth.idp.OAuthUserInfo
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -14,13 +15,6 @@ import jakarta.inject.Inject
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.util.*
-
-data class LinkOrCreateResult(
-    val appUser: AppUser,
-    val isNewUser: Boolean,
-    val requiresLinkConfirmation: Boolean = false,
-    val linkToken: String? = null,
-)
 
 @RequestScoped
 class OAuthUserLinkingService @Inject constructor(
@@ -43,7 +37,6 @@ class OAuthUserLinkingService @Inject constructor(
         trustedOrganization: Organization? = null,
     ): LinkOrCreateResult
     {
-        // Check if there's already a link for this provider + subject
         var existingLink = identityProviderLinkRepository.findByProviderAndExternalSubjectId(
             provider, userInfo.subjectId
         )
@@ -69,13 +62,11 @@ class OAuthUserLinkingService @Inject constructor(
             return LinkOrCreateResult(appUser = linkedUser, isNewUser = false)
         }
 
-        // Check if an AppUser exists with this email
         val existingUser = appUserService.findByEmail(userInfo.email.lowercase())
 
         if (existingUser != null)
         {
             requireSignInEligible(existingUser)
-            // Enforce single external IDP: reject if user already has a different external provider
             val existingExternal = findExternalLink(existingUser.id)
 
             if (existingExternal != null && existingExternal.provider != provider)
@@ -86,7 +77,6 @@ class OAuthUserLinkingService @Inject constructor(
                 )
             }
 
-            // User exists but no link for this provider,  needs password confirmation to link
             logger.info("AppUser exists for email={}, requesting link confirmation", userInfo.email.maskEmailForLogs())
 
             val linkToken = authenticationService.generateLinkToken(
@@ -103,9 +93,6 @@ class OAuthUserLinkingService @Inject constructor(
             )
         }
 
-        // No account exists yet. Provisioning one from an address the provider never confirmed
-        // would let anyone who controls their own directory claim someone else's identity here,
-        // so an unverified address cannot create an account at all.
         if (!userInfo.emailVerified)
         {
             logger.warn(
@@ -125,12 +112,7 @@ class OAuthUserLinkingService @Inject constructor(
             this.email = userInfo.email.lowercase()
             this.password = null
             this.passwordSalt = null
-            // Reached only when the provider asserted domain ownership of this mailbox, which is
-            // the same standard the internal sign-up OTP flow meets.
             this.emailVerificationComplete = true
-            // Org membership for JIT/IDP-provisioned users is recorded against the IDP's
-            // organization in the identity-provider linking flow (organization_membership),
-            // not as a standalone role on the user row.
         }
 
         if (userInfo.firstName != null || userInfo.lastName != null)
@@ -144,8 +126,6 @@ class OAuthUserLinkingService @Inject constructor(
 
         val savedUser = appUserService.create(newUser)
 
-        // JIT users become members of the organization that owns their email domain, recorded
-        // in the organization_membership model so role resolution (UserRoleService) sees them.
         trustedOrganization?.let { organization ->
             organizationMembershipService.assignOrgRole(
                 appUserId = savedUser.id,
@@ -190,7 +170,6 @@ class OAuthUserLinkingService @Inject constructor(
             return
         }
 
-        // Enforce single external IDP
         if (provider != IdentityProviderType.INTERNAL)
         {
             val existingExternal = findExternalLink(appUser.id)
@@ -220,10 +199,6 @@ class OAuthUserLinkingService @Inject constructor(
         return identityProviderLinkRepository.findAllByAppUserId(userId)
     }
 
-    /**
-     * Idempotent backfill: creates an INTERNAL link for a user who already has a password
-     * but was signed up before the IDP-link table was introduced.
-     */
     @Transactional
     fun ensureInternalLink(appUser: AppUser)
     {
@@ -252,7 +227,6 @@ class OAuthUserLinkingService @Inject constructor(
             throw IllegalStateException("Cannot unlink the last identity provider")
         }
 
-        // If unlinking external provider, ensure user has INTERNAL (password set) as fallback
         if (provider != IdentityProviderType.INTERNAL)
         {
             val hasInternal = links.any { it.provider == IdentityProviderType.INTERNAL }
@@ -264,7 +238,6 @@ class OAuthUserLinkingService @Inject constructor(
                 )
             }
 
-            // Auto-create INTERNAL link if user has a password but no INTERNAL link
             if (!hasInternal && !appUser.password.isNullOrBlank())
             {
                 createLink(appUser, IdentityProviderType.INTERNAL, appUser.id.toString(), appUser.email)
@@ -304,9 +277,4 @@ class OAuthUserLinkingService @Inject constructor(
 
 class ExternalProviderAlreadyLinkedException(message: String) : RuntimeException(message)
 
-/**
- * Raised when an external provider returns an email address it has not confirmed the user owns,
- * and no local account exists to fall back on.
- */
 class UnverifiedExternalEmailException(message: String) : RuntimeException(message)
-

@@ -5,9 +5,9 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.service.communication.CommunicationResolver
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
-import com.docuhyphen.app.api.service.variable.InterpolationResult
+import com.docuhyphen.app.api.model.variable.InterpolationResult
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
-import com.docuhyphen.app.api.service.variable.VariableResolutionContext
+import com.docuhyphen.app.api.model.variable.VariableResolutionContext
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*

@@ -1,12 +1,11 @@
 import apiClient from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     BlueprintDefinitionDto,
     BlueprintDefinitionSummaryDto,
     CreateBlueprintRequest,
     UpdateBlueprintRequest,
 } from '../app/models/models';
-
-// ── Request shapes ────────────────────────────────────────────────────────────
 
 export interface PatchBlueprintStatusRequest
 {
@@ -31,8 +30,6 @@ export interface ListBlueprintsParams
     isTemplate?: boolean;
 }
 
-// ── Internal helper ───────────────────────────────────────────────────────────
-
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
 {
     try
@@ -40,14 +37,11 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
         const { data } = await fn();
         return data;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
-
-// ── Blueprints ────────────────────────────────────────────────────────────────
 
 export const listBlueprints = (
     params?: ListBlueprintsParams,

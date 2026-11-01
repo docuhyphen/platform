@@ -23,15 +23,6 @@ const NO_PERMISSIONS: ExchangePermissions = {
     canDeleteExchange: false,
 };
 
-/**
- * Resolve effective permissions for `appUser` on `exchange`. Accepts any user-like object
- * (AppUser or AppUserDetailedDto) as long as it carries an `id`.
- *
- * - Initiator: full permissions while the exchange is active; only delete after it is terminal.
- * - Recipient: permissions are derived from the exchange's per-document flags (which the
- *   backend populates from the recipient share's constraints JSON).
- * - No exchange or no signed-in user: no permissions.
- */
 export const getPermissions = (
     exchange: ExchangeDetailedDto | null | undefined,
     appUser: { id?: string | null } | null | undefined,

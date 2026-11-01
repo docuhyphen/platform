@@ -4,54 +4,39 @@ import com.docuhyphen.app.api.exception.OrganizationGroupNotFoundException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.resourceservice.OrganizationGroupMemberModel
-import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
 import com.docuhyphen.app.api.resource.model.AddOrganizationGroupRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationGroupRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationGroupResourceOperations
 import com.docuhyphen.app.api.service.auth.DirectoryLookupGuardService
-import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import jakarta.inject.Inject
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
-import org.jboss.resteasy.reactive.RestForm
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.util.*
 
-@Path("organizations")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationGroupResource @Inject constructor(
     private val organizationGroupService: OrganizationGroupService,
-    private val configurationService: ConfigurationService,
     private val directoryLookupGuardService: DirectoryLookupGuardService,
-    private val principalGroupRepository: PrincipalGroupRepository,
-)
+) : OrganizationGroupResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationGroupResource::class.java)
-
+        private const val GROUP_LOOKUP_ENDPOINT_KEY = "organization-groups"
     }
 
-    @Path("/{organizationId}/groups")
-    @POST
-    @Transactional
-    fun addOrganizationGroup(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
-        addOrganizationGroupRequest: AddOrganizationGroupRequest
+    override fun addOrganizationGroup(
+        organizationId: String,
+        requestId: String?,
+        addOrganizationGroupRequest: AddOrganizationGroupRequest,
     ): Response
     {
         return try
         {
-
             val members = addOrganizationGroupRequest.members?.map { member ->
                 OrganizationGroupMemberModel(
                     appUserId = member.appUserId ?: throw IllegalArgumentException("Member ID cannot be null"),
@@ -59,72 +44,50 @@ class OrganizationGroupResource @Inject constructor(
                 )
             } ?: emptyList()
 
-            val adminApprovalContext = AdminApprovalContext(
-                requestId = requestId,
-            )
-
             organizationGroupService.addOrganizationGroup(
                 organizationId,
                 addOrganizationGroupRequest.name,
                 members,
-                adminApprovalContext,
+                AdminApprovalContext(requestId = requestId),
                 addOrganizationGroupRequest.externallyPublished,
             )
 
-            return Response.status(CREATED).build()
-        }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.warn("Organization group creation refused by subscription policy", exception)
-            throw exception
+            Response.status(CREATED).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error adding organization group", exception)
-
             when (exception)
             {
-                is OrganizationNotFoundException ->
+                is SubscriptionDenialException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
+                    logger.warn("Organization group creation refused by subscription policy", exception)
+                    throw exception
                 }
+
+                is WebApplicationException -> throw exception
+
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while adding an organization group")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error adding organization group", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while adding an organization group"))
                         .build()
                 }
             }
         }
     }
 
-    @Path("/{organizationId}/groups/{groupId}")
-    @PUT
-    fun updateOrganizationGroup(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("groupId") groupId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
-        updateOrganizationGroupRequest: UpdateOrganizationGroupRequest
+    override fun updateOrganizationGroup(
+        organizationId: String,
+        groupId: String,
+        requestId: String?,
+        updateOrganizationGroupRequest: UpdateOrganizationGroupRequest,
     ): Response
     {
         return try
@@ -136,65 +99,58 @@ class OrganizationGroupResource @Inject constructor(
                 )
             } ?: emptyList()
 
-            val adminApprovalContext = AdminApprovalContext(
-                requestId = requestId,
-            )
-
             with(updateOrganizationGroupRequest) {
                 organizationGroupService.updateOrganizationGroup(
-                    organizationId, groupId, name, isActive, groupMembers, adminApprovalContext, externallyPublished
+                    organizationId,
+                    groupId,
+                    name,
+                    isActive,
+                    groupMembers,
+                    AdminApprovalContext(requestId = requestId),
+                    externallyPublished,
                 )
             }
 
             Response.ok().build()
         }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.warn("Organization group update refused by subscription policy", exception)
-            throw exception
-        }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error updating organization group", exception)
-
             when (exception)
             {
-                is OrganizationNotFoundException, is OrganizationGroupNotFoundException ->
+                is SubscriptionDenialException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(NOT_FOUND).entity(responseError).build()
+                    logger.warn("Organization group update refused by subscription policy", exception)
+                    throw exception
                 }
+
+                is WebApplicationException -> throw exception
+
+                is OrganizationNotFoundException, is OrganizationGroupNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while updating an organization group")
-
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error updating organization group", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while updating an organization group"))
+                        .build()
                 }
             }
         }
     }
 
-    @Path("/{organizationId}/groups")
-    @GET
-    fun getOrganizationGroups(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun getOrganizationGroups(
+        organizationId: String,
+        requestId: String?,
     ): Response
     {
         return try
         {
             val limitedResponse = directoryLookupGuardService.enforce(
-                endpointKey = "organization-groups",
+                endpointKey = GROUP_LOOKUP_ENDPOINT_KEY,
                 targetOrganizationId = organizationId,
                 requestId = requestId,
             )
@@ -203,171 +159,146 @@ class OrganizationGroupResource @Inject constructor(
                 return limitedResponse
             }
 
-            val groups = organizationGroupService
-                .getOrganizationGroupViews(organizationId)
-                .take(configurationService.getDirectoryLookupMaxResults())
+            val groups = directoryLookupGuardService
+                .capResults(organizationGroupService.getOrganizationGroupViews(organizationId))
                 .toTypedArray()
 
             Response.ok(groups).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error getting organization groups", exception)
-
             when (exception)
             {
-                is OrganizationNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
+                is WebApplicationException -> throw exception
 
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while getting organization groups")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error getting organization groups", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting organization groups"))
                         .build()
                 }
             }
         }
     }
 
-    @DELETE
-    @Path("/{organizationId}/groups/{groupId}")
-    fun deleteOrganizationGroup(
-        @PathParam("organizationId") organizationId: String?,
-        @PathParam("groupId") groupId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun deleteOrganizationGroup(
+        organizationId: String?,
+        groupId: String?,
+        requestId: String?,
     ): Response
     {
-
         return try
         {
-            val adminApprovalContext = AdminApprovalContext(
-                requestId = requestId,
+            organizationGroupService.deleteOrganizationGroup(
+                organizationId,
+                groupId,
+                AdminApprovalContext(requestId = requestId),
             )
-            organizationGroupService.deleteOrganizationGroup(organizationId, groupId, adminApprovalContext)
 
             Response.status(NO_CONTENT).build()
         }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.warn("Organization group deletion refused by subscription policy", exception)
-            throw exception
-        }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error deleting organization group", exception)
-
             when (exception)
             {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization group deletion refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is WebApplicationException -> throw exception
+
                 is OrganizationNotFoundException,
                 is OrganizationGroupNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while deleting organization group")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error deleting organization group", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while deleting organization group"))
                         .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("/{organizationId}/groups/{groupId}/icon")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Transactional
-    fun uploadOrganizationGroupIcon(
-        @RestForm("file") file: File?,
-        @RestForm("contentType") contentType: String?,
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("groupId") groupId: String,
+    override fun uploadOrganizationGroupIcon(
+        file: File?,
+        contentType: String?,
+        organizationId: String,
+        groupId: String,
     ): Response
     {
         return try
         {
-            if (file == null) return Response.status(BAD_REQUEST).entity(ResponseError("No file provided")).build()
-            val bytes = file.readBytes()
-            if (bytes.isEmpty()) return Response.status(BAD_REQUEST).entity(ResponseError("Uploaded file is empty"))
-                .build()
-            val mime = contentType?.takeIf { it.startsWith("image/") } ?: "image/png"
-            val dataUrl = "data:$mime;base64,${Base64.getEncoder().encodeToString(bytes)}"
-            val gid = UUID.fromString(groupId)
-            val group = principalGroupRepository.findById(gid)
-                ?: return Response.status(NOT_FOUND).entity(ResponseError("Group not found")).build()
-            group.iconData = dataUrl
-            principalGroupRepository.save(group)
-            Response.ok(organizationGroupService.getOrganizationGroupViews(organizationId).find { it.id == gid })
-                .build()
+            Response.ok(
+                organizationGroupService.updateOrganizationGroupIcon(organizationId, groupId, file, contentType),
+            ).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error uploading organization group icon", exception)
-            Response.status(INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An error occurred while uploading the group icon")).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is OrganizationGroupNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error uploading organization group icon", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while uploading the group icon"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    @Path("/{organizationId}/groups/{groupId}/icon")
-    @Transactional
-    fun deleteOrganizationGroupIcon(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("groupId") groupId: String,
+    override fun deleteOrganizationGroupIcon(
+        organizationId: String,
+        groupId: String,
     ): Response
     {
         return try
         {
-            val gid = UUID.fromString(groupId)
-            val group = principalGroupRepository.findById(gid)
-                ?: return Response.status(NOT_FOUND).entity(ResponseError("Group not found")).build()
-            group.iconData = null
-            principalGroupRepository.save(group)
-            Response.ok(organizationGroupService.getOrganizationGroupViews(organizationId).find { it.id == gid })
-                .build()
+            Response.ok(organizationGroupService.removeOrganizationGroupIcon(organizationId, groupId)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error removing organization group icon", exception)
-            Response.status(INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An error occurred while removing the group icon")).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is OrganizationGroupNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error removing organization group icon", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while removing the group icon"))
+                        .build()
+                }
+            }
         }
     }
 }

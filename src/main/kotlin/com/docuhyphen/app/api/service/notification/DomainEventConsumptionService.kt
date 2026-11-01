@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.notification
 
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionResult
 import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
 import jakarta.enterprise.context.ApplicationScoped

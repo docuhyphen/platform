@@ -92,8 +92,8 @@ const PlatformBlueprintCard = (
                         icon={<MoreVerticalRegular/>}
                         aria-label={`More actions for ${blueprint.name}`}/>
                 </MenuTrigger>
-                <MenuPopover>
-                    <MenuList>
+                <MenuPopover id={"platform-blueprint-card-menu-popover-1"}>
+                    <MenuList id={"platform-blueprint-card-menu-list-1"}>
                         <MenuItem
                             id={`platform-blueprint-edit-${blueprint.id}`}
                             icon={<EditIcon/>}

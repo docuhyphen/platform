@@ -72,7 +72,7 @@ const OrganizationEditorDialog = ({organization, onDismiss, onSaved}: Organizati
                             appearance={"primary"}
                             shape={"circular"}
                             disabled={editor.saving}
-                            onClick={() => void editor.save()}>
+                            onClick={() => { void editor.save(); }}>
                             <OrganizationEditorSaveContent saving={editor.saving}/>
                         </Button>
                         <Button

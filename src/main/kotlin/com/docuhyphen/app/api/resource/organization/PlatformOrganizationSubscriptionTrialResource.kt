@@ -1,36 +1,37 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.model.PlatformSubscriptionTrialDtoMapper
-import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialConversionRequest
+import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialEndRequest
+import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialExtensionRequest
+import com.docuhyphen.app.api.resource.model.PlatformSubscriptionTrialStartRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.PlatformOrganizationSubscriptionTrialResourceOperations
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialService
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialTransitionService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/platform/organizations/{organizationId}/subscription-trials")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
     private val service: PlatformSubscriptionTrialService,
     private val transitionService: PlatformSubscriptionTrialTransitionService,
     private val mapper: PlatformSubscriptionTrialDtoMapper,
-)
+) : PlatformOrganizationSubscriptionTrialResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformOrganizationSubscriptionTrialResource::class.java)
     }
 
-    @POST
-    fun start(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun start(
+        organizationId: String,
+        requestId: String?,
         request: PlatformSubscriptionTrialStartRequest,
     ): Response
     {
@@ -41,20 +42,37 @@ class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
                 request,
                 AdminApprovalContext(requestId = requestId),
             )
-            Response.status(Response.Status.CREATED).entity(mapper.toDto(result)).build()
+            Response.status(CREATED).entity(mapper.toDto(result)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error starting platform organization subscription trial", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error starting platform organization subscription trial", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/current")
-    fun extend(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun extend(
+        organizationId: String,
+        requestId: String?,
         request: PlatformSubscriptionTrialExtensionRequest,
     ): Response
     {
@@ -69,16 +87,33 @@ class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error extending platform organization subscription trial", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error extending platform organization subscription trial", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    @Path("/current")
-    fun end(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun end(
+        organizationId: String,
+        requestId: String?,
         request: PlatformSubscriptionTrialEndRequest,
     ): Response
     {
@@ -93,16 +128,33 @@ class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error ending platform organization subscription trial", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error ending platform organization subscription trial", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/current/conversions")
-    fun convert(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun convert(
+        organizationId: String,
+        requestId: String?,
         request: PlatformSubscriptionTrialConversionRequest,
     ): Response
     {
@@ -113,31 +165,31 @@ class PlatformOrganizationSubscriptionTrialResource @Inject constructor(
                 request,
                 AdminApprovalContext(requestId = requestId),
             )
-            Response.status(Response.Status.CREATED).entity(mapper.toDto(result)).build()
+            Response.status(CREATED).entity(mapper.toDto(result)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error converting platform organization subscription trial", exception)
-        }
-    }
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
 
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        logger.error(message, exception)
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError(exception.message)).build()
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-            is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-            is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-            else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error converting platform organization subscription trial", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 }

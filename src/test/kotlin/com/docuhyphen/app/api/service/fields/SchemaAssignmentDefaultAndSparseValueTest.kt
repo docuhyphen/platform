@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.auth.authz.ScopeReference
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.repository.fields.*
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.model.DefaultAndSparseValueFixture
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull

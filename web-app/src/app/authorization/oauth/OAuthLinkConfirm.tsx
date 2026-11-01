@@ -79,27 +79,36 @@ const OAuthLinkConfirm: React.FC = () =>
     };
 
     return (
-        <section className={authorizationStyles.auth}>
-            <section className={authorizationStyles.authSection}>
-                <section className={authorizationStyles.authSection1}>
-                    <div>
+        <section id={"o-auth-link-confirm-section-1"}
+                 className={authorizationStyles.auth}>
+            <section id={"o-auth-link-confirm-section-2"}
+                     className={authorizationStyles.authSection}>
+                <section id={"o-auth-link-confirm-section-3"}
+                         className={authorizationStyles.authSection1}>
+                    <div id={"o-auth-link-confirm-div-1"}>
                         <AppLogo/>
                     </div>
-                    <div className={authorizationStyles.authorizationFormSection}>
-                        <Subtitle1 align={"center"}>Link Account</Subtitle1>
+                    <div id={"o-auth-link-confirm-div-2"}
+                         className={authorizationStyles.authorizationFormSection}>
+                        <Subtitle1 id={"o-auth-link-confirm-subtitle1-1"}
+                                   align={"center"}>Link Account</Subtitle1>
 
-                        <Text size={300} align={"center"}>
-                            An account with <strong>{email}</strong> already exists.
-                            Enter your password to link your <strong>{providerDisplayName}</strong> account.
+                        <Text id={"o-auth-link-confirm-text-1"}
+                              size={300}
+                              align={"center"}>
+                            An account with <strong id={"o-auth-link-confirm-strong-1"}>{email}</strong> already exists.
+                            Enter your password to link your <strong id={"o-auth-link-confirm-strong-2"}>{providerDisplayName}</strong> account.
                         </Text>
 
                         {errorMessage && (
-                            <MessageBar intent={"error"}>
-                                <MessageBarBody>{errorMessage}</MessageBarBody>
+                            <MessageBar id={"o-auth-link-confirm-message-bar-1"}
+                                        intent={"error"}>
+                                <MessageBarBody id={"o-auth-link-confirm-message-bar-body-1"}>{errorMessage}</MessageBarBody>
                             </MessageBar>
                         )}
 
-                        <Field label={"Password"}>
+                        <Field id={"o-auth-link-confirm-field-1"}
+                               label={"Password"}>
                             <Input
                                 id={"oauth-link-password-input"}
                                 type="password"
@@ -115,7 +124,8 @@ const OAuthLinkConfirm: React.FC = () =>
                             shape={"circular"}
                             className={globalStyles.buttonWithLoading}
                             disabled={loading}>
-                            {loading && <Spinner size={"tiny"}/>}
+                            {loading && <Spinner id={"o-auth-link-confirm-spinner-1"}
+                                                 size={"tiny"}/>}
                             {loading ? "Linking..." : "Link Account"}
                         </Button>
 

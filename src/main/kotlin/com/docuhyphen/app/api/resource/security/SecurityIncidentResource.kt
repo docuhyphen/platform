@@ -1,52 +1,47 @@
 package com.docuhyphen.app.api.resource.security
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.resource.model.SecurityIncidentResponse
-import com.docuhyphen.app.api.service.auth.UserRoleService
-import com.docuhyphen.app.api.service.security.SecurityIncidentService
+import com.docuhyphen.app.api.resource.security.operations.SecurityIncidentResourceOperations
+import com.docuhyphen.app.api.service.security.SecurityIncidentQueryService
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
 
-@Path("/auth/security-incidents")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class SecurityIncidentResource @Inject constructor(
-    private val authTokenContext: AuthTokenContext,
-    private val securityIncidentService: SecurityIncidentService,
-    private val userRoleService: UserRoleService,
-)
+    private val securityIncidentQueryService: SecurityIncidentQueryService,
+) : SecurityIncidentResourceOperations
 {
-    @GET
-    fun list(
-        @QueryParam("limit") @DefaultValue("25") limit: Int,
-        @QueryParam("incidentType") incidentType: String?,
-    ): Response
+    companion object
     {
-        val actor = authTokenContext.authToken.appUser
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
+        private val logger = LoggerFactory.getLogger(SecurityIncidentResource::class.java)
+    }
 
-        if (!userRoleService.isAppAdmin(actor.id))
+    override fun list(limit: Int, incidentType: String?): Response
+    {
+        return try
         {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
+            Response.ok(securityIncidentQueryService.listRecent(limit = limit, incidentType = incidentType)).build()
         }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-        val incidents = securityIncidentService.findRecent(limit = limit, incidentType = incidentType)
-        val response = incidents.map {
-            SecurityIncidentResponse(
-                id = it.id.toString(),
-                incidentType = it.incidentType,
-                severity = it.severity,
-                actorId = it.actorId?.toString(),
-                requestId = it.requestId,
-                details = it.details,
-                createdDate = it.createdDate.toInstant().toString(),
-            )
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing security incidents", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to list security incidents"))
+                        .build()
+                }
+            }
         }
-
-        return Response.ok(response).build()
     }
 }
-

@@ -57,10 +57,6 @@ class Exchange
     @Serializable(with = UUIDSerializer::class)
     var ownerUserId: UUID? = null
 
-    // Recipients, participants and per-document permissions now live in the unified Share model
-    // (recipient_id / recipient_type / group_id / allow_document_* columns dropped by the cutover
-    // migration). Resolve them via ShareService / the access view.
-
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     var status: ExchangeStatus = ExchangeStatus.INITIATED
@@ -82,8 +78,6 @@ class Exchange
     @Column(name = "is_deleted", nullable = false)
     var isDeleted: Boolean = false
 
-    // OTP issued to a no-auth recipient when they accept/reject the session.
-    // Stored hashed (bcrypt) with an expiry; never returned to the client.
     @Column(name = "recipient_otp_hash", nullable = true)
     var recipientOtpHash: String? = null
 

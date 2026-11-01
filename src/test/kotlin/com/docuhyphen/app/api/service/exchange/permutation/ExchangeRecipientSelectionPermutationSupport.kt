@@ -7,15 +7,16 @@ import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.OrganizationTrustPartyPolicy
 import com.docuhyphen.app.api.model.entity.OrganizationTrustRelationship
 import com.docuhyphen.app.api.model.entity.PrincipalGroup
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
 import com.docuhyphen.app.api.resource.model.ExchangeRecipientSelectionRequest
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.exchange.ExchangeRecipientSelectionResolver
-import com.docuhyphen.app.api.service.exchange.ResolvedExchangeRecipientSelection
+import com.docuhyphen.app.api.model.exchange.ResolvedExchangeRecipientSelection
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation
-import com.docuhyphen.app.api.service.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.model.organization.TrustedExchangePolicyValidation
+import com.docuhyphen.app.api.model.organization.TrustedGroupValidation
 import com.docuhyphen.app.api.service.organization.TrustedRecipientAuditService
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import org.mockito.kotlin.any
@@ -144,7 +145,7 @@ internal class ExchangeRecipientSelectionProbe
             id = resolutionId
             targetOrganizationId = this@ExchangeRecipientSelectionProbe.targetOrganizationId
         }
-        val prepared = ExternalIdentityResolutionService.PreparedPersonResolution(
+        val prepared = PreparedPersonResolution(
             resolution = resolution,
             appUser = user,
             membership = mock<OrganizationMembership>(),

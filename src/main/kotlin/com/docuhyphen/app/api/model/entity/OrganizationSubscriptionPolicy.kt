@@ -5,12 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * The subscription held by a registered organization. Business is the only organization plan,
- * and `maxUsers` is the purchased seat capacity that active provisioned memberships consume.
- * A null `maxUsers` means seat capacity has not been assigned yet and the organization is
- * uncapped until a platform administrator sets it.
- */
 @Entity
 @Table(
     name = "organization_subscription_policy",

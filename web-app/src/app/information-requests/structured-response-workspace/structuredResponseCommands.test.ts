@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
-import {InformationRequestResponseDisposition} from "../../models/models.tsx";
+import {InformationRequestResponseDisposition, InformationRequestResponseDto} from "../../models/models.tsx";
 import {structuredResponseCommands} from "./structuredResponseCommands.ts";
 
 const patchInformationRequestResponses = vi.fn();
@@ -21,7 +21,7 @@ const patchRequest = {
             disposition: InformationRequestResponseDisposition.PROVIDED,
         },
     ],
-    confirmedHiddenResponseClearRequirementIds: [],
+    confirmedHiddenResponseClearRequirementIds: [] as string[],
 };
 
 describe("structuredResponseCommands", () =>
@@ -113,7 +113,7 @@ describe("structuredResponseCommands", () =>
     });
 
     const interrupted = {isAxiosError: true, message: "Network Error"};
-    const savedOccurrences = {outcome: "SAVED", responseETag: "\"responses:2\"", data: []};
+    const savedOccurrences = {outcome: "SAVED", responseETag: "\"responses:2\"", data: [] as InformationRequestResponseDto[]};
     const transports = {
         save: patchInformationRequestResponses,
         add: addInformationRequestGroupOccurrence,

@@ -6,9 +6,9 @@ import com.docuhyphen.app.api.model.fields.*
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.fields.*
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeFieldBindingPolicy
 import com.docuhyphen.app.api.service.exchange.ExchangeFieldResourceAdapter
 import com.docuhyphen.app.api.service.fields.model.AudienceAuthorizationFixture

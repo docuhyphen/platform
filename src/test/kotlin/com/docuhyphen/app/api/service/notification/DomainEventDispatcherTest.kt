@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.DomainEventOutboxEntry
+import com.docuhyphen.app.api.model.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEventJson
 import com.docuhyphen.app.api.repository.notification.DomainEventOutboxRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -19,13 +21,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-/**
- * The dispatcher must deliver committed outbox rows exactly once per successful route, keep a row
- * pending and back off after a routing failure (never discarding a required event), and mark only a
- * non-retryable decode error terminally failed. The dispatcher uses field injection, so the
- * repository and router are set reflectively with Mockito mocks; `self` is intentionally left
- * uninitialized so per-row delivery runs directly (transactions are a no-op outside CDI).
- */
 class DomainEventDispatcherTest
 {
     private val outboxRepository: DomainEventOutboxRepository = mock()
@@ -96,7 +91,6 @@ class DomainEventDispatcherTest
         assertEquals(DomainEventOutboxEntry.STATUS_PENDING, row.status)
         assertEquals(1, row.attemptCount)
         assertNotNull(row.lastError)
-        // First retry backs off by the 30s base interval.
         assertEquals(now.toInstant().plusSeconds(30), row.nextAttemptAt.toInstant())
         assertTrue(row.nextAttemptAt.after(now))
         verify(outboxRepository).update(row)
@@ -111,7 +105,6 @@ class DomainEventDispatcherTest
 
         dispatcher.deliverNext(now)
 
-        // A summary is recorded, but it is length-bounded and prefixed with a stable context label.
         assertTrue(row.lastError!!.startsWith("routing failed:"))
         assertTrue(row.lastError!!.length <= 1024)
     }

@@ -1,79 +1,29 @@
-import {lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {
-    Button,
-    Dialog,
-    DialogActions,
-    DialogBody,
-    DialogContent,
-    DialogSurface,
-    DialogTitle,
-    mergeClasses,
-    MessageBar,
-    MessageBarBody,
-    Spinner,
-    Text,
-} from "@fluentui/react-components";
-import {WorkflowDesignerState, WorkflowStepSpecDraft, WorkflowTriggerEventDto} from "../../../models/models.tsx";
-import {
-    createWorkflowDefinition,
-    getWorkflowDefinition,
-    listWorkflowTriggers,
-    updateWorkflowDefinition,
-} from "../../../../services/workflowService.ts";
+import {useEffect, useState} from "react";
+import {MessageBar, MessageBarBody, Spinner} from "@fluentui/react-components";
 import {useWorkflowDesignerStyles} from "./WorkflowDesignerStyles.tsx";
 import {useHelpSidebar} from "../../../../context/HelpSidebarContext.tsx";
 import SaveWorkflowDialog from "../save-workflow-dialog/SaveWorkflowDialog.tsx";
-import WorkflowApplicabilityPage from "./workflow-applicability-page/WorkflowApplicabilityPage.tsx";
 import WorkflowDesignerHeader from "./workflow-designer-header/WorkflowDesignerHeader.tsx";
-import WorkflowMetadataForm from "./workflow-metadata-form/WorkflowMetadataForm.tsx";
-import WorkflowStepsSection from "./workflow-steps-section/WorkflowStepsSection.tsx";
 import WorkflowDesignerActionBar from "./workflow-designer-action-bar/WorkflowDesignerActionBar.tsx";
-import WorkflowSectionCard from "./workflow-steps-section/step-summary-card/WorkflowSectionCard.tsx";
-import {
-    BackIcon,
-    WorkflowApplicabilityIcon,
-    WorkflowConfigurationIcon,
-    WorkflowStepsIcon,
-} from "../../../components/IconBundles.tsx";
-import {formatTriggerName} from "../workflowUtils.ts";
-import {appendStep, deleteStepAndRemap, replaceStep} from "./stepMutations.ts";
-import {
-    applicabilitySummaryOf,
-    applicabilityTriggerKindOf,
-    normalizedApplicability,
-    savedApplicability,
-} from "./workflowApplicability.ts";
-import {buildDefinitionGraph} from "../workflow-graph/workflowDefinitionGraphAdapter.ts";
-import {validateWorkflowGraph} from "../workflow-graph/workflowGraphValidation.ts";
-
-const WorkflowDefinitionPreview = lazy(
-    () => import("./workflow-definition-preview/WorkflowDefinitionPreview.tsx"),
-);
+import WorkflowDesignerFormPages from "./workflow-designer-form-pages/WorkflowDesignerFormPages.tsx";
+import WorkflowDiagramPanel from "./workflow-diagram-panel/WorkflowDiagramPanel.tsx";
+import WorkflowDiscardDialog from "./workflow-discard-dialog/WorkflowDiscardDialog.tsx";
+import WorkflowFormColumn from "./workflow-form-column/WorkflowFormColumn.tsx";
+import WorkflowScopeViolation from "./workflow-scope-violation/WorkflowScopeViolation.tsx";
+import {useFormPageNavigation} from "./useFormPageNavigation.ts";
+import {useWorkflowDefinitionEditor} from "./useWorkflowDefinitionEditor.ts";
+import {WorkflowScope} from "./workflowDesignerDefaults.ts";
 
 interface Props
 {
     definitionId?: string;
-    scope?: 'PERSONAL' | 'ORG' | 'APP';
+    scope?: WorkflowScope;
     backDestinationLabel: string;
     onBack: () => void;
     onSaved: () => void;
     enforcedScope?: 'APP';
     createAsTemplate?: boolean;
 }
-
-const defaultStep = (): WorkflowStepSpecDraft => ({
-    type: "APPROVAL",
-    assignees: [],
-    quorum: {kind: "ANY"},
-    addons: [],
-});
-
-const defaultState = (): WorkflowDesignerState => ({
-    name: "", summary: "", generalTags: [], triggerEvent: "", isActive: false, steps: [],
-});
-
-type FormPage = "overview" | "configuration" | "applicability" | "steps";
-type FormPageTransitionDirection = "forward" | "back" | null;
 
 const WorkflowDesigner = ({
                               definitionId,
@@ -87,288 +37,32 @@ const WorkflowDesigner = ({
 {
     const styles = useWorkflowDesignerStyles();
     const {openHelpArticle} = useHelpSidebar();
-    const [state, setState] = useState<WorkflowDesignerState>(defaultState());
-    const [triggers, setTriggers] = useState<WorkflowTriggerEventDto[]>([]);
-    const [triggersError, setTriggersError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [scopeViolation, setScopeViolation] = useState(false);
     const [showDiscardDialog, setShowDiscardDialog] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
-    const [defScope, setDefScope] = useState<'PERSONAL' | 'ORG' | 'APP' | undefined>(scope);
-    const [formPage, setFormPage] = useState<FormPage>("overview");
-    const [formPageTransitionDirection, setFormPageTransitionDirection] =
-        useState<FormPageTransitionDirection>(null);
-    const initialStateRef = useRef<string | null>(null);
+    const editor = useWorkflowDefinitionEditor({definitionId, scope, enforcedScope, createAsTemplate, onSaved});
+    const {formPage, transitionDirection, navigate, reset: resetFormPage} = useFormPageNavigation();
+    const {load} = editor;
 
-    const isDirty = () =>
-        initialStateRef.current !== null &&
-        initialStateRef.current !== JSON.stringify(state);
-
-    const patch = (p: Partial<WorkflowDesignerState>) => setState(s => ({...s, ...p}));
-
-    const selectedTrigger = triggers.find(t => t.eventName === state.triggerEvent);
-    const triggerKind = applicabilityTriggerKindOf(selectedTrigger);
-    const subjectFields = selectedTrigger?.subjectFields ?? [];
-
-    const load = useCallback(async () =>
+    useEffect(() =>
     {
-        setScopeViolation(false);
-        setFormPage("overview");
-        setFormPageTransitionDirection(null);
-        try
-        {
-            setTriggers(await listWorkflowTriggers());
-        }
-        catch
-        {
-            setTriggersError("Could not load trigger events. Check your connection and reload.");
-        }
-
-        if (definitionId)
-        {
-            setLoading(true);
-            try
-            {
-                const def = await getWorkflowDefinition(definitionId);
-                if (enforcedScope && def.scope !== enforcedScope)
-                {
-                    setError("This workflow is outside the Platform Administration scope.");
-                    setScopeViolation(true);
-                    return;
-                }
-                const parsed = JSON.parse(def.stepsJson || '{"steps":[]}');
-                const loaded: WorkflowDesignerState = {
-                    id: def.id,
-                    name: def.name,
-                    summary: def.summary ?? "",
-                    generalTags: def.generalTags ?? [],
-                    triggerEvent: def.triggerEvent,
-                    isActive: def.isActive,
-                    steps: parsed.steps ?? [],
-                    applicability: normalizedApplicability(parsed.applicability),
-                };
-                setState(loaded);
-                setDefScope(def.scope);
-                initialStateRef.current = JSON.stringify(loaded);
-            }
-            catch (e: unknown)
-            {
-                setError(typeof e === "string" ? e : "Failed to load workflow");
-            }
-            finally
-            {
-                setLoading(false);
-            }
-        }
-        else
-        {
-            const fresh = defaultState();
-            setState(fresh);
-            initialStateRef.current = JSON.stringify(fresh);
-        }
-    }, [definitionId, enforcedScope]);
-
-    useEffect(() => {
+        resetFormPage();
         load();
-    }, [load]);
-
-    const updateStep = (index: number, step: WorkflowStepSpecDraft) =>
-        patch({steps: replaceStep(state.steps, index, step)});
-
-    const removeStep = (index: number) =>
-        patch({steps: deleteStepAndRemap(state.steps, index)});
-
-    const graphWarnings = useMemo(
-        () => validateWorkflowGraph(buildDefinitionGraph(state)).warnings,
-        [state],
-    );
+    }, [load, resetFormPage]);
 
     const requestSave = () =>
     {
-        if (!state.name.trim())
-        {
-            setError("Workflow name is required.");
-            return;
-        }
-        if (!state.triggerEvent)
-        {
-            setError("Please select a trigger event.");
-            return;
-        }
-        setError(null);
-        setShowSaveDialog(true);
+        if (editor.validateForSave()) setShowSaveDialog(true);
     };
 
-    const performSave = async () =>
+    const handleBack = () => editor.isDirty() ? setShowDiscardDialog(true) : onBack();
+
+    if (editor.loading) return <Spinner id={"workflow-designer-loading-workflow-spinner"}
+                                        label="Loading workflow..."
+                                        size="small"/>;
+    if (editor.scopeViolation)
     {
-        if (enforcedScope && defScope !== enforcedScope)
-        {
-            throw new Error("Cannot save a workflow outside the Platform Administration scope.");
-        }
-        const applicability = savedApplicability(state.applicability, triggerKind);
-        const stepsJson = JSON.stringify({steps: state.steps, applicability});
-        if (definitionId)
-        {
-            await updateWorkflowDefinition(definitionId, {
-                name: state.name, summary: state.summary || undefined,
-                generalTags: state.generalTags, isActive: state.isActive, stepsJson,
-            });
-        }
-        else
-        {
-            await createWorkflowDefinition({
-                name: state.name, summary: state.summary || undefined,
-                triggerEvent: state.triggerEvent, generalTags: state.generalTags,
-                isActive: state.isActive, stepsJson, scope: enforcedScope ?? scope,
-                isTemplate: createAsTemplate,
-            });
-        }
-        onSaved();
-    };
-
-    const handleBack = () => isDirty() ? setShowDiscardDialog(true) : onBack();
-
-    const navigateFormPage = (nextPage: FormPage) =>
-    {
-        setFormPageTransitionDirection(nextPage === "overview" ? "back" : "forward");
-        setFormPage(nextPage);
-    };
-
-    const formBackButton = (label: string, onBackClick: () => void) => (
-        <div id={"workflow-designer-form-navigation-header"}
-             className={styles.formNavigationHeader}>
-            <Button
-                id={`workflow-form-back-${label.toLowerCase().replaceAll(" ", "-")}`}
-                size="small"
-                appearance="subtle"
-                shape="circular"
-                icon={<BackIcon/>}
-                aria-label={`Back from ${label}`}
-                onClick={onBackClick}
-            />
-            <Text
-                id={`workflow-form-heading-${label.toLowerCase().replaceAll(" ", "-")}`}
-                weight="semibold"
-                size={400}
-            >
-                {label}
-            </Text>
-        </div>
-    );
-
-    const applicabilitySummary = applicabilitySummaryOf(state.applicability, defScope, triggerKind);
-    const stepsSummary = state.steps.length === 0
-        ? "No steps configured"
-        : `${state.steps.length} ${state.steps.length === 1 ? "step" : "steps"} configured`;
-    const configurationSummary = state.name.trim()
-        ? `${state.name}${state.triggerEvent ? `, ${formatTriggerName(state.triggerEvent)}` : ""}`
-        : "Workflow name and trigger are not configured";
-
-    const formContent = formPage === "overview" ? (
-        <div id={"workflow-designer-form-section-cards"}
-             className={styles.formSectionCards}>
-            <WorkflowSectionCard
-                id="workflow-configuration-card"
-                title="Workflow configuration"
-                description="Name, trigger event, summary, tags, and active status."
-                summary={configurationSummary}
-                icon={<WorkflowConfigurationIcon/>}
-                onClick={() => navigateFormPage("configuration")}
-            />
-            <WorkflowSectionCard
-                id="workflow-applicability-card"
-                title="Applicability"
-                description="Choose which matching Exchanges can start this workflow."
-                summary={applicabilitySummary}
-                icon={<WorkflowApplicabilityIcon/>}
-                onClick={() => navigateFormPage("applicability")}
-            />
-            <WorkflowSectionCard
-                id="workflow-steps-card"
-                title="Steps"
-                description="Build the approvals, notifications, conditions, and actions in this workflow."
-                summary={stepsSummary}
-                icon={<WorkflowStepsIcon/>}
-                onClick={() => navigateFormPage("steps")}
-            />
-        </div>
-    ) : formPage === "configuration" ? (
-        <div id={"workflow-designer-form-page"}
-             className={styles.formPage}>
-            {formBackButton("Workflow configuration", () => navigateFormPage("overview"))}
-            <WorkflowMetadataForm
-                state={state}
-                onPatch={patch}
-                triggers={triggers}
-                triggersError={triggersError}
-                triggerDisabled={!!definitionId}
-            />
-        </div>
-    ) : formPage === "steps" ? (
-        <WorkflowStepsSection
-            steps={state.steps}
-            triggers={triggers}
-            subjectFields={subjectFields}
-            onAdd={() => patch({steps: appendStep(state.steps, defaultStep())})}
-            onUpdate={updateStep}
-            onRemove={removeStep}
-            onBack={() => navigateFormPage("overview")}
-            platformMode={enforcedScope === "APP"}
-        />
-    ) : (
-        <div id={"workflow-designer-form-page-2"}
-             className={styles.formPage}>
-            {formBackButton("Applicability", () => navigateFormPage("overview"))}
-            <WorkflowApplicabilityPage scope={defScope}
-                                       triggerKind={triggerKind}
-                                       applicability={state.applicability}
-                                       onChange={a => patch({applicability: a})}/>
-        </div>
-    );
-
-    const diagramContent = (
-        <Suspense
-            fallback={
-                <div id={"workflow-designer-preview-loading"}
-                     className={styles.previewLoading}>
-                    <Spinner
-                        id="workflow-designer-preview-spinner"
-                        label="Loading preview"
-                    />
-                </div>
-            }
-        >
-            <WorkflowDefinitionPreview
-                state={state}
-                defaultDirection="TB"
-                fillHeight={true}
-            />
-        </Suspense>
-    );
-
-    if (loading) return <Spinner id={"workflow-designer-loading-workflow-spinner"}
-                                 label="Loading workflow..."
-                                 size="small"/>;
-    if (scopeViolation)
-    {
-        return (
-            <div
-                id={"platform-workflow-scope-violation"}
-                className={styles.container}>
-                <MessageBar id={"workflow-designer-container-message-bar"}
-                            intent={"error"}>
-                    <MessageBarBody id={"workflow-designer-error-message-bar-body"}>{error}</MessageBarBody>
-                </MessageBar>
-                <Button
-                    id={"platform-workflow-scope-violation-back"}
-                    appearance={"secondary"}
-                    shape={"circular"}
-                    onClick={onBack}>
-                    Back to Platform Content
-                </Button>
-            </div>
-        );
+        return <WorkflowScopeViolation message={editor.error}
+                                       onBack={onBack}/>;
     }
 
     return (
@@ -378,46 +72,44 @@ const WorkflowDesigner = ({
                  className={styles.stickyToolbar}>
                 <WorkflowDesignerHeader
                     isEdit={!!definitionId}
-                    workflowName={state.name}
+                    workflowName={editor.state.name}
                     backDestinationLabel={backDestinationLabel}
                     onBack={handleBack}
                     onHelp={() => openHelpArticle("building-a-workflow")}
                 />
-
             </div>
 
             <div id={"workflow-designer-split-content-shell"}
                  className={styles.splitContentShell}>
-                {error && (
+                {editor.error && (
                     <MessageBar id={"workflow-designer-split-content-shell-message-bar"}
                                 intent="error">
-                        <MessageBarBody id={"workflow-designer-error-message-bar-body-2"}>{error}</MessageBarBody>
+                        <MessageBarBody id={"workflow-designer-error-message-bar-body-2"}>{editor.error}</MessageBarBody>
                     </MessageBar>
                 )}
 
                 <div id={"workflow-designer-split-content"}
                      className={styles.splitContent}>
-                    <div id={"workflow-designer-split-diagram-column"}
-                         className={styles.splitDiagramColumn}>
-                        <div id={"workflow-designer-diagram-panel"}
-                             className={styles.diagramPanel}>
-                            {diagramContent}
-                        </div>
-                    </div>
-                    <div id={"workflow-designer-split-form-column"}
-                         className={styles.splitFormColumn}>
-                        <div
-                            id={`workflow-designer-form-page-${formPage}`}
-                            key={formPage}
-                            className={mergeClasses(
-                                styles.formPageTransitionFrame,
-                                formPageTransitionDirection === "forward" ? styles.formPageSlideLeft : undefined,
-                                formPageTransitionDirection === "back" ? styles.formPageSlideRight : undefined,
-                            )}
-                        >
-                            {formContent}
-                        </div>
-                    </div>
+                    <WorkflowDiagramPanel state={editor.state}/>
+                    <WorkflowFormColumn formPage={formPage}
+                                        transitionDirection={transitionDirection}>
+                        <WorkflowDesignerFormPages
+                            formPage={formPage}
+                            state={editor.state}
+                            onPatch={editor.patch}
+                            triggers={editor.triggers}
+                            triggersError={editor.triggersError}
+                            isEdit={!!definitionId}
+                            subjectFields={editor.subjectFields}
+                            defScope={editor.defScope}
+                            triggerKind={editor.triggerKind}
+                            platformMode={enforcedScope === "APP"}
+                            onAddStep={editor.addStep}
+                            onUpdateStep={editor.updateStep}
+                            onRemoveStep={editor.removeStep}
+                            onNavigate={navigate}
+                        />
+                    </WorkflowFormColumn>
                 </div>
             </div>
 
@@ -429,43 +121,19 @@ const WorkflowDesigner = ({
             <SaveWorkflowDialog
                 open={showSaveDialog}
                 onClose={() => setShowSaveDialog(false)}
-                onConfirm={performSave}
+                onConfirm={editor.performSave}
                 isEdit={!!definitionId}
-                state={state}
-                triggers={triggers}
-                warnings={graphWarnings}
+                state={editor.state}
+                triggers={editor.triggers}
+                warnings={editor.graphWarnings}
             />
 
-            <Dialog open={showDiscardDialog}
-                    onOpenChange={(_, d) => setShowDiscardDialog(d.open)}>
-                <DialogSurface id={"workflow-designer-container-dialog-surface"}>
-                    <DialogBody id={"workflow-designer-container-dialog-body"}>
-                        <DialogTitle id={"workflow-designer-discard-changes-dialog-title"}>Discard
-                            changes?</DialogTitle>
-                        <DialogContent id={"workflow-designer-container-dialog-content"}>
-                            You have unsaved changes. If you leave now they will be lost.
-                        </DialogContent>
-                        <DialogActions id={"workflow-designer-container-dialog-actions"}>
-                            <Button
-                                id="workflow-designer-discard-btn"
-                                appearance="primary"
-                                shape={"circular"}
-                                onClick={onBack}
-                            >
-                                Discard
-                            </Button>
-                            <Button
-                                id="workflow-designer-keep-editing-btn"
-                                appearance="secondary"
-                                shape={"circular"}
-                                onClick={() => setShowDiscardDialog(false)}
-                            >
-                                Keep editing
-                            </Button>
-                        </DialogActions>
-                    </DialogBody>
-                </DialogSurface>
-            </Dialog>
+            <WorkflowDiscardDialog
+                open={showDiscardDialog}
+                onOpenChange={setShowDiscardDialog}
+                onDiscard={onBack}
+                onKeepEditing={() => setShowDiscardDialog(false)}
+            />
         </div>
     );
 };

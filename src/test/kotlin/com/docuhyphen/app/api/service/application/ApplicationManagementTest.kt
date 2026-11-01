@@ -8,9 +8,9 @@ import com.docuhyphen.app.api.model.entity.ApplicationType
 import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.repository.application.ApplicationRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -26,17 +26,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Application registration management.
- *
- * Verifies that:
- * - APP_ADMIN (APP_REG_ADMIN) can list, create, rotate credentials, update capabilities, deactivate.
- * - A principal without APP_REG_ADMIN is denied at every mutating operation.
- * - rotateCredentials replaces both apiKey and apiSecretHash.
- * - deactivate marks the application inactive and is idempotent.
- * - Newly generated API key and raw secret are non-empty and distinct per call.
- * - ApplicationNotFoundException is thrown when the target does not exist.
- */
 @ExtendWith(MockitoExtension::class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ApplicationManagementTest
@@ -191,10 +180,6 @@ class ApplicationManagementTest
             "Each credential rotation must produce a unique raw secret"
         }
     }
-
-    // -------------------------------------------------------------------------
-    // helpers
-    // -------------------------------------------------------------------------
 
     private fun activeApp(): Application = Application().apply {
         id = appId

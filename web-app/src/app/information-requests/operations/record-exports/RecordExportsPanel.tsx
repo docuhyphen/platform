@@ -44,7 +44,7 @@ const RecordExportsPanel = ({requestId}: RecordExportsPanelProps) =>
                             appearance={"primary"}
                             shape={"circular"}
                             disabled={records.busy}
-                            onClick={() => void create()}>
+                            onClick={() => { void create(); }}>
                         {records.busy && (
                             <Spinner id={"information-request-record-exports-create-spinner"}
                                      size={"tiny"}/>

@@ -18,11 +18,6 @@ import java.util.UUID
 private class SubscriptionPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<SubscriptionPostgreSQLContainer>(imageName)
 
-/**
- * Verifies that introducing explicit subscription ownership never removes access from data that
- * already exists: registered accounts keep a working plan, organizations keep their seat
- * capacity, and the new constraints reject plans assigned to the wrong kind of owner.
- */
 class SubscriptionMigrationContractTest
 {
     private val subscriptionMigrationVersion = "71"
@@ -54,29 +49,21 @@ class SubscriptionMigrationContractTest
                 insertOrganizationPolicy(connection, cappedOrganizationId, tierCode = "FREE", maxUsers = 25)
             }
 
-            // Stops at the subscription migration so this contract stays about that migration
-            // and is not disturbed by later schema work.
             val currentFlyway = flyway(postgres, target = subscriptionMigrationVersion)
             currentFlyway.migrate()
 
             postgres.createConnection("").use { connection ->
                 assertTrue(tableExists(connection, "user_subscription_policy"))
 
-                // An account that already existed is grandfathered so enforcement never takes
-                // away a feature it was already using.
                 assertEquals("PERSONAL", userPlanCode(connection, registeredUserId))
                 assertEquals("ACTIVE", userStatus(connection, registeredUserId))
 
-                // Recipient placeholders are not subscribers.
                 assertNull(userPlanCode(connection, temporaryUserId))
 
-                // Purchased seat capacity is preserved exactly.
                 assertEquals("BUSINESS", organizationTierCode(connection, cappedOrganizationId))
                 assertEquals(25L, organizationMaxUsers(connection, cappedOrganizationId))
                 assertEquals("ACTIVE", organizationStatus(connection, cappedOrganizationId))
 
-                // An organization that relied on an implicit default now owns an explicit record
-                // and stays uncapped until seats are purchased.
                 assertEquals("BUSINESS", organizationTierCode(connection, uncappedOrganizationId))
                 assertNull(organizationMaxUsers(connection, uncappedOrganizationId))
             }
@@ -109,14 +96,12 @@ class SubscriptionMigrationContractTest
                 insertAppUser(connection, appUserId, "constraint.user@example.com", temporary = false)
                 insertOrganization(connection, organizationId, "Constraint Org", "REG-CONSTRAINT")
 
-                // One individual plan row per account.
                 insertUserPolicy(connection, appUserId, planCode = "FREE")
                 assertNotNull(userPlanCode(connection, appUserId))
                 assertThrows(SQLException::class.java) {
                     insertUserPolicy(connection, appUserId, planCode = "PERSONAL")
                 }
 
-                // Business belongs to an organization and is refused on an individual account.
                 val secondUserId = UUID.randomUUID()
                 insertAppUser(connection, secondUserId, "business.user@example.com", temporary = false)
                 assertThrows(SQLException::class.java) {
@@ -292,8 +277,4 @@ class SubscriptionMigrationContractTest
             }
         }
 }
-
-
-
-
 

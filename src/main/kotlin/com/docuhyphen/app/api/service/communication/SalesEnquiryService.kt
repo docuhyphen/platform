@@ -9,11 +9,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-/**
- * Handles public "Speak to Sales" enquiries submitted from the marketing site. It applies spam
- * protection and validation, then routes a valid enquiry by email to the first active platform
- * administrator so a human can follow up.
- */
 @ApplicationScoped
 class SalesEnquiryService @Inject constructor(
     private val appAdminNotificationService: AppAdminNotificationService,
@@ -34,8 +29,6 @@ class SalesEnquiryService @Inject constructor(
 
     fun submitEnquiry(request: SalesEnquiryRequest)
     {
-        // Honeypot: real users never see or fill this field. A filled value is automated spam,
-        // so accept the request silently without routing or notifying anyone.
         if (!request.website.isNullOrBlank())
         {
             logger.info("Discarding sales enquiry that tripped the honeypot")

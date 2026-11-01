@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.service.fields.model
 
 import com.docuhyphen.app.api.model.entity.FieldValueProvenance
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 
 data class StoredAnswer(
     val text: String,

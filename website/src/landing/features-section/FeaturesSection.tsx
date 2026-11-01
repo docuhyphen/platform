@@ -1,4 +1,4 @@
-import {IndustryExperience} from "./IndustryExperience.tsx";
+import {IndustryExperience} from "./industry-experience/IndustryExperience.tsx";
 import {useFeaturesSectionStyles} from "./FeaturesSectionStyles.tsx";
 
 interface FeaturesSectionProps

@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.TokenTriple
 import com.docuhyphen.app.api.service.identity.OrganizationIdentityPolicyService
 import com.docuhyphen.app.api.exception.InactiveAccountException
 import com.docuhyphen.app.api.exception.InvalidSignInCredentialsException

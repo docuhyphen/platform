@@ -14,10 +14,10 @@ export const trustedOrganizationsAdministrationArticle = (
         <h3 id={"trusted-organizations-administration-allowing-other-organizations-to-heading"}>Allowing other
             organizations to find you</h3>
         <ol id={"trusted-organizations-administration-allowing-other-organizations-to-list"}>
-            <li>Open <b>Settings</b>, then select <b>Administration</b> under <b>Organization</b>.</li>
-            <li>Open <b>Details</b>.</li>
-            <li>
-                Enable <b>Allow verified organizations to find us for trust requests</b> under Organization Preferences.
+            <li id={"trusted-organizations-administration-article-li-1"}>Open <b id={"trusted-organizations-administration-article-b-1"}>Settings</b>, then select <b id={"trusted-organizations-administration-article-b-2"}>Administration</b> under <b id={"trusted-organizations-administration-article-b-3"}>Organization</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-2"}>Open <b id={"trusted-organizations-administration-article-b-4"}>Details</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-3"}>
+                Enable <b id={"trusted-organizations-administration-article-b-5"}>Allow verified organizations to find us for trust requests</b> under Organization Preferences.
             </li>
         </ol>
         <p id={"trusted-organizations-administration-allowing-other-organizations-to-paragraph"}>
@@ -25,7 +25,7 @@ export const trustedOrganizationsAdministrationArticle = (
             active, verified organizations that opted in, and organizations with a current pending or active
             relationship are excluded.
         </p><p id={"trusted-organizations-administration-allowing-other-organizations-to-paragraph-2"}>
-        The separate <b>Require a trusted organization for sharing with other organizations</b>{" "}
+        The separate <b id={"trusted-organizations-administration-article-b-6"}>Require a trusted organization for sharing with other organizations</b>{" "}
         preference is on by default. While it is on, a member can share an Exchange with a recipient in another
         organization only while both organizations, the relationship review, and both directional policies are
         current and eligible. Individual customers are separate. Email invitations recheck current eligibility at
@@ -33,10 +33,10 @@ export const trustedOrganizationsAdministrationArticle = (
         <h3 id={"trusted-organizations-administration-sending-and-deciding-requests-heading"}>Sending and deciding
             requests</h3>
         <ol id={"trusted-organizations-administration-sending-and-deciding-requests-list"}>
-            <li>Open <b>Settings</b>, select <b>Administration</b> under <b>Organization</b>, then <b>Trusted Organizations</b>.</li>
-            <li>Select <b>New request</b> and search by organization name.</li>
-            <li>Select the organization, add an optional message, and send the request.</li>
-            <li>The requested organization's administrators can accept or reject it.</li>
+            <li id={"trusted-organizations-administration-article-li-4"}>Open <b id={"trusted-organizations-administration-article-b-7"}>Settings</b>, select <b id={"trusted-organizations-administration-article-b-8"}>Administration</b> under <b id={"trusted-organizations-administration-article-b-9"}>Organization</b>, then <b id={"trusted-organizations-administration-article-b-10"}>Trusted Organizations</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-5"}>Select <b id={"trusted-organizations-administration-article-b-11"}>New request</b> and search by organization name.</li>
+            <li id={"trusted-organizations-administration-article-li-6"}>Select the organization, add an optional message, and send the request.</li>
+            <li id={"trusted-organizations-administration-article-li-7"}>The requested organization's administrators can accept or reject it.</li>
         </ol>
         <p id={"trusted-organizations-administration-sending-and-deciding-requests-paragraph"}>
             The requesting organization can withdraw a pending request. Requests expire if they are not decided within
@@ -49,19 +49,19 @@ export const trustedOrganizationsAdministrationArticle = (
             organization deliberately enables the directions it supports. Only your organization can edit its policy.
         </p>
         <ul id={"trusted-organizations-administration-directional-policy-list"}>
-            <li><b>Allow Exchanges to partner</b> controls outbound Trusted Organization Exchanges.</li>
-            <li><b>Allow Exchanges from partner</b> controls inbound Trusted Organization Exchanges.</li>
-            <li><b>Allow exact-email member resolution</b> controls partner verification of a known member email.</li>
-            <li><b>Allow published group discovery</b> controls partner access to published group destinations.</li>
-            <li><b>Share resolved member display names</b> controls display-name projection after a successful exact match.</li>
+            <li id={"trusted-organizations-administration-article-li-8"}><b id={"trusted-organizations-administration-article-b-12"}>Allow Exchanges to partner</b> controls outbound Trusted Organization Exchanges.</li>
+            <li id={"trusted-organizations-administration-article-li-9"}><b id={"trusted-organizations-administration-article-b-13"}>Allow Exchanges from partner</b> controls inbound Trusted Organization Exchanges.</li>
+            <li id={"trusted-organizations-administration-article-li-10"}><b id={"trusted-organizations-administration-article-b-14"}>Allow exact-email member resolution</b> controls partner verification of a known member email.</li>
+            <li id={"trusted-organizations-administration-article-li-11"}><b id={"trusted-organizations-administration-article-b-15"}>Allow published group discovery</b> controls partner access to published group destinations.</li>
+            <li id={"trusted-organizations-administration-article-li-12"}><b id={"trusted-organizations-administration-article-b-16"}>Share resolved member display names</b> controls display-name projection after a successful exact match.</li>
         </ul>
         <h3 id={"trusted-organizations-administration-verifying-a-known-member-heading"}>Verifying a known member by
             exact email</h3>
         <ol id={"trusted-organizations-administration-verifying-a-known-member-list"}>
-            <li>Start an Exchange and open the <b>Recipients</b> step.</li>
-            <li>Select <b>Trusted Organization</b> and choose an active relationship.</li>
-            <li>Select <b>Person by exact email</b>.</li>
-            <li>Enter the complete work email address and select <b>Verify membership</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-13"}>Start an Exchange and open the <b id={"trusted-organizations-administration-article-b-17"}>Recipients</b> step.</li>
+            <li id={"trusted-organizations-administration-article-li-14"}>Select <b id={"trusted-organizations-administration-article-b-18"}>Trusted Organization</b> and choose an active relationship.</li>
+            <li id={"trusted-organizations-administration-article-li-15"}>Select <b id={"trusted-organizations-administration-article-b-19"}>Person by exact email</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-16"}>Enter the complete work email address and select <b id={"trusted-organizations-administration-article-b-20"}>Verify membership</b>.</li>
         </ol>
         <p id={"trusted-organizations-administration-verifying-a-known-member-paragraph"}>
             This is an exact lookup, not a directory search. Names, email prefixes, domains, and partial addresses
@@ -70,7 +70,7 @@ export const trustedOrganizationsAdministrationArticle = (
         </p>
         <p id={"trusted-organizations-administration-verifying-a-known-member-paragraph-2"}>
             A successful result shows the normalized email, organization, verification expiry, and the member's display
-            name only when the target organization's policy permits it. The assurance label is <b>Membership verified by
+            name only when the target organization's policy permits it. The assurance label is <b id={"trusted-organizations-administration-article-b-21"}>Membership verified by
             [organization]</b>. It does not claim that DocuHyphen verified the person's real-world identity.
         </p>
         <p id={"trusted-organizations-administration-verifying-a-known-member-paragraph-3"}>
@@ -94,10 +94,10 @@ export const trustedOrganizationsAdministrationArticle = (
         <h3 id={"trusted-organizations-administration-sending-an-exchange-to-2-heading"}>Sending an Exchange to a
             published group</h3>
         <ol id={"trusted-organizations-administration-sending-an-exchange-to-2-list"}>
-            <li>Start an Exchange and open the <b>Recipients</b> step.</li>
-            <li>Select <b>Trusted Organization</b>.</li>
-            <li>Select an active Trusted Organization, then choose one of its published groups.</li>
-            <li>Complete the remaining Exchange details and select <b>Start Exchange</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-17"}>Start an Exchange and open the <b id={"trusted-organizations-administration-article-b-22"}>Recipients</b> step.</li>
+            <li id={"trusted-organizations-administration-article-li-18"}>Select <b id={"trusted-organizations-administration-article-b-23"}>Trusted Organization</b>.</li>
+            <li id={"trusted-organizations-administration-article-li-19"}>Select an active Trusted Organization, then choose one of its published groups.</li>
+            <li id={"trusted-organizations-administration-article-li-20"}>Complete the remaining Exchange details and select <b id={"trusted-organizations-administration-article-b-24"}>Start Exchange</b>.</li>
         </ol>
         <p id={"trusted-organizations-administration-sending-an-exchange-to-2-paragraph"}>
             Published group discovery is available only when the relationship is active, neither organization has
@@ -112,7 +112,7 @@ export const trustedOrganizationsAdministrationArticle = (
             role are checked again at acceptance time.
         </p>
         <p id={"trusted-organizations-administration-sending-an-exchange-to-2-paragraph-3"}>
-            In an Exchange, open <b>Manage access</b>, then <b>Access &amp; permissions</b>, <b>Add person</b>, and <b>Trusted
+            In an Exchange, open <b id={"trusted-organizations-administration-article-b-25"}>Manage access</b>, then <b id={"trusted-organizations-administration-article-b-26"}>Access &amp; permissions</b>, <b id={"trusted-organizations-administration-article-b-27"}>Add person</b>, and <b id={"trusted-organizations-administration-article-b-28"}>Trusted
             Organization</b> to add a verified member or published group as an additional participant. Its separate
             invitation appears in Requests, and its Share stays inactive until that person, or a current group Owner or
             Manager, accepts. Declining affects only that invitation, not the Exchange or primary recipient. Acceptance

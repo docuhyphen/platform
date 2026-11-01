@@ -6,9 +6,9 @@ import BlueprintEditorDialog from "./BlueprintEditorDialog.tsx";
 
 vi.mock("../../../services/blueprintService.ts", () => ({createBlueprint: vi.fn(), updateBlueprint: vi.fn()}));
 vi.mock("../../../services/variableService.ts", () => ({getAvailableVariables: vi.fn(async () => [])}));
-vi.mock("./blueprint-business-fields-tab/BlueprintBusinessFieldsTab.tsx", () => ({default: () => null}));
-vi.mock("./blueprint-information-request-tab/BlueprintInformationRequestTab.tsx", () => ({default: () => null}));
-vi.mock("../../exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx", () => ({default: () => null}));
+vi.mock("./blueprint-business-fields-tab/BlueprintBusinessFieldsTab.tsx", () => ({default: (): null => null}));
+vi.mock("./blueprint-information-request-tab/BlueprintInformationRequestTab.tsx", () => ({default: (): null => null}));
+vi.mock("../../exchange-initiation/components/document-library-picker/DocumentLibraryPicker.tsx", () => ({default: (): null => null}));
 
 describe("saving a Blueprint", () => {
     beforeAll(() => {

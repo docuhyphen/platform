@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.migration.queryString
 import com.docuhyphen.app.api.model.document.*
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
 import com.docuhyphen.app.api.repository.document.DocumentVersionStorageCleanupRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.storage.DocumentVersionStorageService
 import io.quarkus.narayana.jta.QuarkusTransaction

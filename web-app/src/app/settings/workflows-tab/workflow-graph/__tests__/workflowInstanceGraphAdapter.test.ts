@@ -8,8 +8,6 @@ import {
 import {buildInstanceGraph} from "../workflowInstanceGraphAdapter.ts";
 import {WEBHOOK_DELIVER_HANDLER_KEY} from "../workflowGraphModels.ts";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
 const approvalStep = (overrides: Partial<WorkflowStepSpecDraft> = {}): WorkflowStepSpecDraft => ({
     type: "APPROVAL",
     assignees: [],
@@ -45,8 +43,6 @@ const instance = (
     ...overrides,
 });
 
-// ── topology reuse ──────────────────────────────────────────────────────────────
-
 describe("buildInstanceGraph: topology", () =>
 {
     it("reuses the builder topology from the frozen snapshot", () =>
@@ -59,7 +55,6 @@ describe("buildInstanceGraph: topology", () =>
         expect(graph.nodes.some(n => n.kind === "START")).toBe(true);
         expect(graph.nodes.some(n => n.kind === "END")).toBe(true);
         expect(graph.nodes.filter(n => n.kind === "STEP")).toHaveLength(2);
-        // Instance render IDs are namespaced by instance id.
         expect(graph.nodes.every(n => n.id.startsWith("inst:inst-1:"))).toBe(true);
     });
 
@@ -78,8 +73,6 @@ describe("buildInstanceGraph: topology", () =>
             .toThrow();
     });
 });
-
-// ── node state overlay ──────────────────────────────────────────────────────────
 
 describe("buildInstanceGraph: node state", () =>
 {
@@ -153,8 +146,6 @@ describe("buildInstanceGraph: node state", () =>
     });
 });
 
-// ── edge traversal overlay ──────────────────────────────────────────────────────
-
 describe("buildInstanceGraph: edge traversal", () =>
 {
     const transition = (
@@ -211,8 +202,6 @@ describe("buildInstanceGraph: edge traversal", () =>
         expect(falseEdge?.state).toBe("NOT_TRAVERSED");
     });
 });
-
-// ── webhook detection ───────────────────────────────────────────────────────────
 
 describe("buildInstanceGraph: webhook", () =>
 {

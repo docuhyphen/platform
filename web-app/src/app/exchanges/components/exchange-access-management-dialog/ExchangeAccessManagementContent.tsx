@@ -2,12 +2,12 @@ import {MessageBar, MessageBarBody, Tab, TabList, Text} from "@fluentui/react-co
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {ExchangeDetailedDto} from "../../../models/models.tsx";
 import AccessPermissionsPanel from "./access-permissions-panel/AccessPermissionsPanel.tsx";
-import AddPersonPanel from "./AddPersonPanel.tsx";
+import AddPersonPanel from "./add-person-panel/AddPersonPanel.tsx";
 import {accessManagementTabIds} from "./exchangeAccessManagementTypes.ts";
 import {useAccessManagementDialogStyles} from "./ExchangeAccessManagementDialogStyles.tsx";
 import ExchangeSettingsPanel from "./exchange-settings-panel/ExchangeSettingsPanel.tsx";
 import PeopleSummaryPanel from "./people-summary-panel/PeopleSummaryPanel.tsx";
-import ReplacePrimaryRecipientPanel from "./ReplacePrimaryRecipientPanel.tsx";
+import ReplacePrimaryRecipientPanel from "./replace-primary-recipient-panel/ReplacePrimaryRecipientPanel.tsx";
 import {ExchangeAccessManagementDialogState} from "./useExchangeAccessManagementDialog.ts";
 
 interface ExchangeAccessManagementContentProps
@@ -23,22 +23,29 @@ const ExchangeAccessManagementContent = ({exchange, state}: ExchangeAccessManage
     return (
         <>
             {state.dialogErrorMessage && (
-                <MessageBar intent={"error"}>
-                    <MessageBarBody>
-                        <Text size={200}>{state.dialogErrorMessage}</Text>
+                <MessageBar id={"exchange-access-management-content-message-bar-1"}
+                            intent={"error"}>
+                    <MessageBarBody id={"exchange-access-management-content-message-bar-body-1"}>
+                        <Text id={"exchange-access-management-content-text-1"}
+                              size={200}>{state.dialogErrorMessage}</Text>
                     </MessageBarBody>
                 </MessageBar>
             )}
             <TabList
+                id={"exchange-access-management-content-tab-list-1"}
                 selectedValue={state.selectedTab}
                 onTabSelect={state.onTabSelect}
                 className={styles.tabList}
             >
-                <Tab value={accessManagementTabIds.people}>Summary</Tab>
-                <Tab value={accessManagementTabIds.access}>Access &amp; permissions</Tab>
-                <Tab value={accessManagementTabIds.settings}>Exchange settings</Tab>
+                <Tab id={"exchange-access-management-content-tab-1"}
+                     value={accessManagementTabIds.people}>Summary</Tab>
+                <Tab id={"exchange-access-management-content-tab-2"}
+                     value={accessManagementTabIds.access}>Access &amp; permissions</Tab>
+                <Tab id={"exchange-access-management-content-tab-3"}
+                     value={accessManagementTabIds.settings}>Exchange settings</Tab>
             </TabList>
-            <div className={styles.tabPanel}>
+            <div id={"exchange-access-management-content-div-1"}
+                 className={styles.tabPanel}>
                 {state.accessView === "replace-primary" && (
                     <ReplacePrimaryRecipientPanel
                         exchangeId={exchange.id}

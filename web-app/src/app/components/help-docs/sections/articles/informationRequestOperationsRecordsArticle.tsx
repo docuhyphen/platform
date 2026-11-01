@@ -13,7 +13,7 @@ export const informationRequestOperationsRecordsArticle = (
             meanwhile takes effect, with its overdue notice, at the first check after the suspension ends; until then no
             clock can be paused, resumed, or extended either. Once the request&apos;s execution grant is revoked, or
             when it does not allow reminders, its clocks record none of these again, though they can still be paused or
-            extended. <b>Manage this request</b> opens the request&apos;s page, where a clock is paused, resumed, or
+            extended. <b id={"information-request-operations-records-article-b-1"}>Manage this request</b> opens the request&apos;s page, where a clock is paused, resumed, or
             extended with a lowercase reason code. A clock reset at issue or acceptance says Counting reset; deferral
             alone does not change its edit version.
         </p>
@@ -36,7 +36,7 @@ export const informationRequestOperationsRecordsArticle = (
         <p id={"information-request-operations-audit-help"}>
             The Audit history tab lists the request&apos;s audit records newest first, 50 to a page, with their outcome
             and
-            whether they are sealed; <b>Previous</b> and <b>Next</b> move between pages. Values that are not approved
+            whether they are sealed; <b id={"information-request-operations-records-article-b-2"}>Previous</b> and <b id={"information-request-operations-records-article-b-3"}>Next</b> move between pages. Values that are not approved
             for display
             are withheld and counted instead of shown. A follow-up or replacement request is named only when you can
             open it;
@@ -79,25 +79,25 @@ export const informationRequestOperationsRecordsArticle = (
         <p id={"information-request-operations-records-help"}>
             The Records tab explains whether the request can be disposed of yet and when it becomes eligible, lists
             every preservation hold
-            that covers it, also while it is open, and lets people who manage preservation holds place one. <b>Create
+            that covers it, also while it is open, and lets people who manage preservation holds place one. <b id={"information-request-operations-records-article-b-4"}>Create
             export</b> freezes the
-            request&apos;s whole record with a SHA-256 hash; an optional <b>Transfer region</b> names where it is sent,
+            request&apos;s whole record with a SHA-256 hash; an optional <b id={"information-request-operations-records-article-b-5"}>Transfer region</b> names where it is sent,
             and a region the owner may not transfer to is refused. Each export states its hash, its size, where it is
             stored, and its transfer decision. The hash covers the stored record, so a saved file&apos;s own checksum
-            differs from it. <b>Download</b> checks that hash again first, and an export whose content no
+            differs from it. <b id={"information-request-operations-records-article-b-6"}>Download</b> checks that hash again first, and an export whose content no
             longer matches is not downloaded. A download still being read when you open another request or leave the
             Records tab is not
             saved. An export that includes confidential information says so, and reading it asks you to verify again. An
             export names the
             request that replaced this one, or the request behind an accepted fact it reused, only when its maker could
             open that request,
-            and <b>Download</b> also leaves out any that you cannot open. When it leaves any out, the page says how
+            and <b id={"information-request-operations-records-article-b-7"}>Download</b> also leaves out any that you cannot open. When it leaves any out, the page says how
             many. Each owner can make up to 100 record exports a day, subject
             exports included, across all of its requests, also when several are made at once; the next export then says
             when to try again. Facts and recertifications of withheld Requirements contain only identifiers and a
             withheld marker. Exports are limited to 25 MiB by default. Reading a subject export records a read for each
             request it covers.
-            If <b>Create export</b> is interrupted, select it again: it is sent as the same request, so one export is
+            If <b id={"information-request-operations-records-article-b-8"}>Create export</b> is interrupted, select it again: it is sent as the same request, so one export is
             made and counted, also after you leave the tab. Reminders, holds, and privacy requests are retried the same
             way.
         </p>

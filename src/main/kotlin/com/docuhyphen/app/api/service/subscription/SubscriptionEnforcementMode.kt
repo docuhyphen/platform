@@ -1,12 +1,5 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * How strictly commercial plan decisions are applied to a request.
- *
- * `OFF` skips evaluation entirely. `REPORT_ONLY` evaluates every decision and records what
- * would have been refused without changing the outcome of the request, which is how a new
- * environment is validated before anything is actually blocked. `ENFORCE` refuses the request.
- */
 enum class SubscriptionEnforcementMode
 {
     OFF,

@@ -9,7 +9,7 @@ import {
     Text,
 } from "@fluentui/react-components";
 import {UserSessionDto} from "../../../models/models.tsx";
-import {useSessionsTabStyles} from "../SessionsTabStyles.tsx";
+import {useSessionsTableStyles} from "./SessionsTableStyles.tsx";
 import SessionTableRow from "../session-table-row/SessionTableRow.tsx";
 
 interface SessionsTableProps
@@ -31,7 +31,7 @@ const SessionsTable: React.FC<SessionsTableProps> = (
     }
 ) =>
 {
-    const styles = useSessionsTabStyles();
+    const styles = useSessionsTableStyles();
 
     return (
         <div
@@ -40,21 +40,29 @@ const SessionsTable: React.FC<SessionsTableProps> = (
             <Table
                 id={"device-sessions-table"}
                 className={styles.table}>
-                <TableHeader>
-                    <TableRow>
-                        <TableHeaderCell className={styles.deviceColumn}>Device</TableHeaderCell>
-                        <TableHeaderCell className={styles.ipColumn}>IP Address</TableHeaderCell>
-                        <TableHeaderCell className={styles.dateColumn}>Last Active</TableHeaderCell>
-                        <TableHeaderCell className={styles.dateColumn}>Created</TableHeaderCell>
-                        <TableHeaderCell className={styles.dateColumn}>Expires</TableHeaderCell>
-                        <TableHeaderCell className={styles.statusColumn}>Status</TableHeaderCell>
-                        <TableHeaderCell className={styles.actionsColumn}></TableHeaderCell>
+                <TableHeader id={"sessions-table-table-header-1"}>
+                    <TableRow id={"sessions-table-table-row-1"}>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-1"}
+                                         className={styles.deviceColumn}>Device</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-2"}
+                                         className={styles.ipColumn}>IP Address</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-3"}
+                                         className={styles.dateColumn}>Last Active</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-4"}
+                                         className={styles.dateColumn}>Created</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-5"}
+                                         className={styles.dateColumn}>Expires</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-6"}
+                                         className={styles.statusColumn}>Status</TableHeaderCell>
+                        <TableHeaderCell id={"sessions-table-table-header-cell-7"}
+                                         className={styles.actionsColumn}></TableHeaderCell>
                     </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody id={"sessions-table-table-body-1"}>
                     {sessions.length === 0 && (
-                        <TableRow>
-                            <TableCell colSpan={7}>
+                        <TableRow id={"sessions-table-table-row-2"}>
+                            <TableCell id={"sessions-table-table-cell-1"}
+                                       colSpan={7}>
                                 <Text id={"device-sessions-empty"}>No session records found.</Text>
                             </TableCell>
                         </TableRow>

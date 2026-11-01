@@ -5,7 +5,6 @@ import FieldBooleanEditor from './FieldBooleanEditor';
 
 afterEach(cleanup);
 
-/** The dropdown trigger carries the reading it is currently showing as its own text. */
 const trigger = (container: HTMLElement) =>
     container.querySelector<HTMLButtonElement>('#process-flag');
 

@@ -6,8 +6,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-// ── Response DTOs ─────────────────────────────────────────────────────────────
-
 @Serializable
 data class CommunicationDto(
     @Serializable(with = UUIDSerializer::class)
@@ -33,8 +31,6 @@ data class CommunicationDto(
     @Serializable(with = TimestampSerializer::class)
     val updatedAt: Timestamp,
 )
-
-// ── Request types ─────────────────────────────────────────────────────────────
 
 @Serializable
 data class CreateCommunicationRequest(

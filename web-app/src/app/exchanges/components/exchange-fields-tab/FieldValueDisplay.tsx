@@ -29,7 +29,7 @@ const FieldValueDisplay = ({valueType, value, options, isEmpty}: FieldValueDispl
     if (valueType === FieldValueType.BOOLEAN)
     {
         return (
-            <div>
+            <div id={"field-value-display-div-1"}>
                 <Badge id="exchange-field-boolean-badge"
                        appearance="tint"
                        color={value === true ? 'success' : 'subtle'}
@@ -48,7 +48,8 @@ const FieldValueDisplay = ({valueType, value, options, isEmpty}: FieldValueDispl
             <div id="exchange-field-chip-row"
                  className={styles.valueBadgeRow}>
                 {labels.map(label => (
-                    <Badge key={label}
+                    <Badge id={`field-value-display-badge-1-${label}`}
+                           key={label}
                            appearance="outline"
                            color="informative"
                            size="medium">
@@ -67,7 +68,8 @@ const FieldValueDisplay = ({valueType, value, options, isEmpty}: FieldValueDispl
             <div id="exchange-field-chip-row"
                  className={styles.valueBadgeRow}>
                 {labels.map(label => (
-                    <Badge key={label}
+                    <Badge id={`field-value-display-badge-2-${label}`}
+                           key={label}
                            appearance="outline"
                            color="informative"
                            size="medium">

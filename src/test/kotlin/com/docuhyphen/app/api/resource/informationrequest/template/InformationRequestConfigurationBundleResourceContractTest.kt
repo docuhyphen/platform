@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.resource.informationrequest.template
 import com.docuhyphen.app.api.model.dto.InformationRequestConfigurationBundleValidationDto
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.resource.informationrequest.template.operations.InformationRequestConfigurationBundleResourceOperations
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleService
 import com.docuhyphen.app.api.service.informationrequest.template.InformationRequestConfigurationBundleValidator

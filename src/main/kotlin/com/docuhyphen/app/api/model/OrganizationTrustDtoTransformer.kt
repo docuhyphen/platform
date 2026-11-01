@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.model
 
 import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
+import com.docuhyphen.app.api.model.dto.OrganizationTrustPoliciesDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustPolicyDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
 import com.docuhyphen.app.api.model.entity.Organization
@@ -74,4 +75,7 @@ class OrganizationTrustDtoTransformer
         revision = policy.revision,
         updatedAt = policy.updatedAt,
     )
+
+    fun toPoliciesDto(relationshipId: UUID, policies: List<OrganizationTrustPolicyDto>): OrganizationTrustPoliciesDto =
+        OrganizationTrustPoliciesDto(relationshipId, policies)
 }

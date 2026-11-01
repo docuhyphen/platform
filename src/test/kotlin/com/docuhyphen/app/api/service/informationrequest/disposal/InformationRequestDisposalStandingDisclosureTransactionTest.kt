@@ -9,8 +9,8 @@ import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.recordpreservation.PlaceRecordPreservationHoldCommand
 import com.docuhyphen.app.api.model.recordpreservation.PublishRecordRetentionScheduleCommand
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.disposal.model.HeldDisposalFixture
 import com.docuhyphen.app.api.service.recordpreservation.RecordPreservationHoldService
@@ -212,7 +212,7 @@ class InformationRequestDisposalStandingDisclosureTransactionTest {
         }
 
     private companion object {
-        const val REASON = "Preserve the collection for a pending matter"
-        const val CASE_REFERENCE = "matter-reference-1"
+        const val REASON = "Preserve the collection for a pending case"
+        const val CASE_REFERENCE = "case-reference-1"
     }
 }

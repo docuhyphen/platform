@@ -1,18 +1,11 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.Grant
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 
-/**
- * Single entry point for "may this principal perform this action on this resource?".
- *
- * All sharing/collaboration code paths SHOULD route their authorisation checks through
- * this interface rather than hand-rolling boolean checks on entity fields. This is the
- * mechanism that lets us add roles, capabilities, constraints, and deny rules without
- * touching service code.
- *
- * Implementation lives in [DefaultAuthorizationService].
- */
 interface AuthorizationService
 {
     fun authorize(
@@ -28,7 +21,6 @@ interface AuthorizationService
         context: AuthorizationContext = AuthorizationContext.ANONYMOUS,
     ): Set<Capability>
 
-    /** Returns the per-grant breakdown that produced the union, for UI / audit / debugging. */
     fun grantsOn(
         principal: PrincipalRef,
         resource: ResourceRef,

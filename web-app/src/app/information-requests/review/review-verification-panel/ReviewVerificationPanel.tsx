@@ -61,7 +61,7 @@ const ReviewVerificationPanel = ({awaiting, onVerified}: Props) => {
                         )
                         : <ShieldCheckmarkRegular/>}
                     disabled={busy}
-                    onClick={() => void verify()}>
+                    onClick={() => { void verify(); }}>
                 Verify again
             </Button>
         </section>

@@ -44,9 +44,9 @@ vi.mock("../structured-response-workspace/InformationRequestStructuredResponseWo
         ),
     };
 });
-vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: () => null}));
-vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({default: () => null}));
-vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: () => null}));
+vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: (): null => null}));
+vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({default: (): null => null}));
+vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: (): null => null}));
 
 const panelId = "information-request-evidence-root-supporting-record-PANEL";
 const workspacePath = "/no-auth/information-requests/request-a/response-workspace";

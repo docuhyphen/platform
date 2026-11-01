@@ -8,16 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Operational lifecycle record for one closed, signed, archived range of `audit_ledger_event`
- * rows for a single [streamId].
- *
- * Not itself the WORM evidence - the evidence is the segment content object plus its signed
- * manifest object, uploaded via `AuditArchiveStorage` to [segmentObjectKey]/[manifestObjectKey].
- * This row is a normal mutable table (see `V44__audit_archive_segment.sql`), not append-only:
- * [status]/[lastVerificationAt]/[lastVerificationNote] are updated as
- * `com.docuhyphen.app.api.service.audit.archive.AuditArchiveVerifier` (re)checks the segment.
- */
 @Entity
 @Table(name = "audit_archive_segment")
 class AuditArchiveSegment
@@ -69,7 +59,6 @@ class AuditArchiveSegment
     @Column(name = "manifest_object_key", nullable = false, length = 512)
     lateinit var manifestObjectKey: String
 
-    /** One of: CLOSED, VERIFIED, VERIFICATION_FAILED. */
     @Column(name = "status", nullable = false, length = 32)
     var status: String = "CLOSED"
 

@@ -21,7 +21,8 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
     const initiatorEmail = exchange.initiator?.email || 'Not provided';
 
     return (
-        <div id={'exchange-acceptance-request-summary'} className={styles.container}>
+        <div id={'exchange-acceptance-request-summary'}
+             className={styles.container}>
             <div
                 id={'exchange-acceptance-requester-section'}
                 className={styles.section}
@@ -51,7 +52,6 @@ const ExchangeAcceptanceRequestSummary = ({exchange}: ExchangeAcceptanceRequestS
                         id={'exchange-acceptance-requester-persona'}
                         name={initiatorName}
                         secondaryText={initiatorEmail}
-                        tertiaryText={exchange.initiator?.organization?.name}
                         size={'medium'}
                     />
                     <Text

@@ -12,8 +12,8 @@ import com.docuhyphen.app.api.resource.informationrequest.occurrence.operations.
 import com.docuhyphen.app.api.resource.model.CreateInformationRequestGroupOccurrenceRequest
 import com.docuhyphen.app.api.resource.model.ReorderInformationRequestGroupOccurrencesRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException

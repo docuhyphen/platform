@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React from "react";
 import {ContactDetailsDetailedDto} from "../../models/models.tsx";
 import {
     Button,
@@ -13,22 +13,11 @@ import {
     Input,
     Spinner
 } from "@fluentui/react-components";
-import {useAuth} from "../../../context/AuthContext.tsx";
-import {
-    completeEmailAddition,
-    completeEmailUpdate,
-    initiateEmailAddition,
-    initiateEmailUpdate
-} from "../../../services/contactDetailsApi";
 import {useEmailManagementDialogStyles} from "./EmailManagementDialogStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import {isValidEmail} from "../../../utils/helpers.ts";
+import {EmailManagementMode, useEmailManagement} from "./useEmailManagement.ts";
 
-export enum EmailManagementMode
-{
-    ADD,
-    EDIT
-}
+export {EmailManagementMode} from "./useEmailManagement.ts";
 
 interface EmailManagementDialogProps
 {
@@ -48,243 +37,35 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
         onComplete
     }) =>
 {
-    const styles = useEmailManagementDialogStyles()
-    const globalStyles = useGlobalStyles()
-    const {token} = useAuth();
-
-    const extractErrorMessage = (e: unknown): string =>
-    {
-        if (typeof e === "string") return e;
-        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
-        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
-        if (msg) return msg;
-        return "Something went wrong. Please try again in a moment.";
-    }
-
-    const validateEmail = (value: string | undefined): string | null =>
-    {
-        if (!value || !value.trim()) return "Email is required";
-        if (!isValidEmail(value.trim())) return "Please enter a valid email address";
-        return null;
-    }
-    const [email, setEmail] = useState<string | undefined>(contactDetails?.email);
-    const [processing, setProcessing] = useState(false);
-    const [addOrEditInitiated, setAddOrEditInitiated] = useState(false);
-    const [verificationCode, setVerificationCode] = useState('');
-    const [error, setError] = useState<string | null>(null);
-
-    const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        setEmail(e.target.value);
-    }
-
-    const onVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        setVerificationCode(e.target.value);
-    }
-
-    const onInitiateAddEmail = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validateEmail(email);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await initiateEmailAddition(contactDetails.id, email, token);
-            setAddOrEditInitiated(true);
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e));
-            console.error("Failed to initiate email addition:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onCompleteAddEmail = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validateEmail(email);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        if (!verificationCode.trim())
-        {
-            setError("Verification code is required");
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await completeEmailAddition(contactDetails.id, email!, verificationCode, token);
-
-            const updatedContactDetails = {
-                ...contactDetails,
-                email: email
-            } as ContactDetailsDetailedDto;
-
-            if (onComplete)
-            {
-                onComplete(updatedContactDetails);
-                resetDialog()
-            }
-
-            onDismiss();
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e));
-            console.error("Failed to complete email addition:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onInitiateEditEmail = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validateEmail(email);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await initiateEmailUpdate(contactDetails.id, email, token);
-            setAddOrEditInitiated(true);
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e));
-            console.error("Failed to initiate email update:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onCompleteEditEmail = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validateEmail(email);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        if (!verificationCode.trim())
-        {
-            setError("Verification code is required");
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await completeEmailUpdate(contactDetails.id, email!, verificationCode, token);
-
-            const updatedContactDetails = {
-                ...contactDetails,
-                email: email
-            } as ContactDetailsDetailedDto;
-
-            if (onComplete)
-            {
-                onComplete(updatedContactDetails);
-                resetDialog()
-            }
-
-            onDismiss();
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e));
-            console.error("Failed to complete email update:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onAddOrUpdateEmail = () =>
-    {
-        if (addOrEditInitiated)
-        {
-            if (mode === EmailManagementMode.ADD)
-            {
-                onCompleteAddEmail();
-            }
-            else
-            {
-                onCompleteEditEmail();
-            }
-        }
-        else
-        {
-            if (mode === EmailManagementMode.ADD)
-            {
-                onInitiateAddEmail();
-            }
-            else
-            {
-                onInitiateEditEmail();
-            }
-        }
-    }
-
-    const resetDialog = () =>
-    {
-        setEmail(contactDetails?.email);
-        setVerificationCode('');
-        setAddOrEditInitiated(false);
-        setError(null);
-        onDismiss();
-    }
+    const styles = useEmailManagementDialogStyles();
+    const globalStyles = useGlobalStyles();
+    const {
+        email,
+        processing,
+        addOrEditInitiated,
+        verificationCode,
+        error,
+        onEmailChange,
+        onVerificationCodeChange,
+        onAddOrUpdateEmail,
+        resetDialog,
+    } = useEmailManagement({contactDetails, mode, onDismiss, onComplete});
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"email-management-dialog-dialog-surface-1"}>
+                <DialogBody id={"email-management-dialog-dialog-body-1"}>
+                    <DialogTitle id={"email-management-dialog-dialog-title-1"}>
                         {mode === EmailManagementMode.ADD ? "Add new email" : "Edit email"}
                     </DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        { error && <div className={styles.errorContainer}>{error}</div>}
+                    <DialogContent id={"email-management-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        {error && <div id={"email-management-dialog-div-1"}
+                                       className={styles.errorContainer}>{error}</div>}
 
-                        <Field label="Email">
+                        <Field id={"email-management-dialog-field-1"}
+                               label="Email">
                             <Input
                                 id={"email-management-email-input"}
                                 type="email"
@@ -297,7 +78,8 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         </Field>
 
                         {addOrEditInitiated && (
-                            <Field label="Verification code">
+                            <Field id={"email-management-dialog-field-2"}
+                                   label="Verification code">
                                 <Input
                                     id={"email-management-verification-input"}
                                     type="text"
@@ -310,7 +92,7 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         )}
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
+                <DialogActions id={"email-management-dialog-dialog-actions-1"}>
                     <Button
                         id={"email-management-submit-btn"}
                         appearance="primary"
@@ -319,7 +101,8 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
                         disabled={processing}
                         onClick={onAddOrUpdateEmail}
                     >
-                        {processing && <Spinner size="tiny"/>}
+                        {processing && <Spinner id={"email-management-dialog-spinner-1"}
+                                                size="tiny"/>}
                         {addOrEditInitiated ? "Verify" : (mode === EmailManagementMode.ADD ? "Add" : "Update")}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
@@ -336,6 +119,6 @@ const EmailManagementDialog: React.FC<EmailManagementDialogProps> = (
             </DialogSurface>
         </Dialog>
     );
-}
+};
 
 export default EmailManagementDialog;

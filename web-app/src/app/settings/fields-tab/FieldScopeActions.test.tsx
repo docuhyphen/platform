@@ -2,8 +2,8 @@
 import {cleanup, render} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
 import {FieldDefinitionDto, FieldLifecycleStatus, FieldScopeKind, SchemaDefinitionDto,} from "../../models/models.tsx";
-import FieldDefinitionsPanel from "./FieldDefinitionsPanel.tsx";
-import SchemaCard from "./SchemaCard.tsx";
+import FieldDefinitionsPanel from "./field-definitions-panel/FieldDefinitionsPanel.tsx";
+import SchemaCard from "./schema-card/SchemaCard.tsx";
 
 const definition = (scopeKind: FieldScopeKind): FieldDefinitionDto => ({
     id: `field-${scopeKind}`,

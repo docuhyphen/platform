@@ -23,16 +23,25 @@ const ProfileSectionCard = (
 {
     const styles = useProfileSectionCardStyles();
 
-    return <Card id={id} className={styles.card}>
-        <div id={`${id}-header`} className={styles.header}>
-            <div id={`${id}-copy`} className={styles.copyBlock}>
-                <Text id={`${id}-title`} size={500} weight={"semibold"}>{title}</Text>
-                <Text id={`${id}-description`} size={200} className={styles.description}>{description}</Text>
+    return <Card id={id}
+                 className={styles.card}>
+        <div id={`${id}-header`}
+             className={styles.header}>
+            <div id={`${id}-copy`}
+                 className={styles.copyBlock}>
+                <Text id={`${id}-title`}
+                      size={500}
+                      weight={"semibold"}>{title}</Text>
+                <Text id={`${id}-description`}
+                      size={200}
+                      className={styles.description}>{description}</Text>
             </div>
-            {action && <div id={`${id}-action`} className={styles.action}>{action}</div>}
+            {action && <div id={`${id}-action`}
+                            className={styles.action}>{action}</div>}
         </div>
 
-        <div id={`${id}-content`} className={styles.content}>
+        <div id={`${id}-content`}
+             className={styles.content}>
             {children}
         </div>
     </Card>;

@@ -36,9 +36,11 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
 
     return (
         <>
-            <div className={styles.dialogTitle1}>
+            <div id={"exchange-initiation-dialog-title-section-div-1"}
+                 className={styles.dialogTitle1}>
                 {!exchangeInitiatedSuccessfully &&
-                    <Text size={500}>
+                    <Text id={"exchange-initiation-dialog-title-section-text-1"}
+                          size={500}>
                         {choosingBlueprint
                             ? 'Choose a Blueprint'
                             : selectedBlueprintName
@@ -59,7 +61,9 @@ const ExchangeInitiationDialogTitleSection: React.FC<DialogTitleSectionProps> = 
                 }
             </div>
             {choosingBlueprint && (
-                <Text size={300} className={styles.choosingBlueprintSubtext}>
+                <Text id={"exchange-initiation-dialog-title-section-text-2"}
+                      size={300}
+                      className={styles.choosingBlueprintSubtext}>
                     Select a blueprint to pre-fill the Exchange form
                 </Text>
             )}

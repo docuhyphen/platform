@@ -12,8 +12,8 @@ import {
     Tooltip,
 } from "@fluentui/react-components";
 import {CheckmarkIcon, FilterIcon, SortDownIcon, SortUpIcon} from "../../../components/IconBundles";
-import ViewModeToggle from "../../../components/ViewModeToggle";
-import CommunicationsFilterPopover from "./CommunicationsFilterPopover";
+import ViewModeToggle from "../../../components/view-mode-toggle/ViewModeToggle";
+import CommunicationsFilterPopover from "./communications-filter-popover/CommunicationsFilterPopover";
 import {
     CommunicationsToolbarProps,
     CommunicationSortOrder,
@@ -63,7 +63,8 @@ const CommunicationsToolbar = (props: CommunicationsToolbarProps) =>
                 </Field>
                 <Popover positioning={"below-end"}>
                     <PopoverTrigger disableButtonEnhancement>
-                        <Tooltip content={"Filter communications"} relationship={"description"}>
+                        <Tooltip content={"Filter communications"}
+                                 relationship={"description"}>
                             <Button
                                 id={"communications-filter"}
                                 icon={<FilterIcon/>}
@@ -85,7 +86,8 @@ const CommunicationsToolbar = (props: CommunicationsToolbarProps) =>
                 </Popover>
                 <Menu>
                     <MenuTrigger>
-                        <Tooltip content={sortLabels[props.sortOrder]} relationship={"description"}>
+                        <Tooltip content={sortLabels[props.sortOrder]}
+                                 relationship={"description"}>
                             <Button
                                 id={"communications-sort"}
                                 icon={props.sortOrder === "nameDesc" ? <SortDownIcon/> : <SortUpIcon/>}
@@ -94,8 +96,8 @@ const CommunicationsToolbar = (props: CommunicationsToolbarProps) =>
                             />
                         </Tooltip>
                     </MenuTrigger>
-                    <MenuPopover>
-                        <MenuList>
+                    <MenuPopover id={"communications-toolbar-menu-popover-1"}>
+                        <MenuList id={"communications-toolbar-menu-list-1"}>
                             {(Object.keys(sortLabels) as CommunicationSortOrder[]).map(option => (
                                 <MenuItem
                                     id={`communications-sort-${option}`}

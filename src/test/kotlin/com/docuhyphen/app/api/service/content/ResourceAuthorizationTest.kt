@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.content
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.dto.UpdateBlueprintRequest
 import com.docuhyphen.app.api.model.dto.UpdateCommunicationRequest
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
@@ -13,7 +15,7 @@ import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
 import com.docuhyphen.app.api.repository.variable.VariableDefinitionRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
@@ -31,22 +33,11 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Central authorization gates for content service read/write paths.
- *
- * Rules verified:
- *  - PERSONAL scope: only the creator can read or write.
- *  - ORG scope: the matching resource authorization action is required.
- *  - APP/PLATFORM scope: reads are open to authenticated users; writes are scope-specific.
- *  - Unauthenticated principal (null from factory) throws ForbiddenException before any access check.
- */
 class ResourceAuthorizationTest
 {
     private val userId: UUID = UUID.randomUUID()
     private val otherUserId: UUID = UUID.randomUUID()
     private val principal = PrincipalRef.user(userId)
-
-    // ── Shared helpers ────────────────────────────────────────────────────────
 
     private fun makeFactory(context: AuthorizationContext = AuthorizationContext.ANONYMOUS): AuthorizationContextFactory
     {
@@ -83,10 +74,6 @@ class ResourceAuthorizationTest
         whenever(svc.isOrgAdminIn(any(), any())).thenReturn(orgAdmin)
         return svc
     }
-
-    // =========================================================================
-    // CommunicationService — PERSONAL / ORG / PLATFORM gates
-    // =========================================================================
 
     private fun makeCommunication(
         scope: CommunicationScope,
@@ -179,7 +166,6 @@ class ResourceAuthorizationTest
         val repo = mock<CommunicationRepository>()
         whenever(repo.findById(comm.id)).thenReturn(comm)
 
-        // No actions allowed — still accessible because PLATFORM read is open
         val svc = makeCommunicationService(authSvc = makeAuthService(), repo = repo)
         val dto = svc.getTemplate(comm.id)
         assertEquals("Test Comm", dto.name)
@@ -235,10 +221,6 @@ class ResourceAuthorizationTest
         }
     }
 
-    // =========================================================================
-    // SequenceDefinitionService — ORG-only scope with no-context guard
-    // =========================================================================
-
     private fun makeSequence(): SequenceDefinition = SequenceDefinition().apply {
         this.organizationId = UUID.randomUUID()
         this.name = "Test Seq"
@@ -261,7 +243,6 @@ class ResourceAuthorizationTest
     @Test
     fun `SequenceDefinitionService listSequences - no active org returns empty list`()
     {
-        // ANONYMOUS context has no activeOrgId
         val svc = makeSequenceService(factory = makeFactory(AuthorizationContext.ANONYMOUS))
         assertEquals(emptyList<Any>(), svc.listSequences())
     }
@@ -317,10 +298,6 @@ class ResourceAuthorizationTest
         }
     }
 
-    // =========================================================================
-    // VariableDefinitionService — PERSONAL ownership + ORG auth-service gate
-    // =========================================================================
-
     private fun makeVariable(
         scope: VariableScope,
         createdBy: UUID = userId,
@@ -366,7 +343,6 @@ class ResourceAuthorizationTest
         whenever(repo.update(any())).thenReturn(variable)
 
         val svc = makeVariableService(repo = repo)
-        // Auth gate passes; any exception from deeper logic is not a 403.
         try
         {
             svc.updateVariable(variable.id, UpdateVariableRequest(), AdminApprovalContext())
@@ -402,10 +378,6 @@ class ResourceAuthorizationTest
             svc.updateVariable(variable.id, UpdateVariableRequest(), AdminApprovalContext())
         }
     }
-
-    // =========================================================================
-    // BlueprintDefinitionService — PERSONAL / ORG / APP gates
-    // =========================================================================
 
     private fun makeBlueprint(
         scope: BlueprintScope,
@@ -488,7 +460,6 @@ class ResourceAuthorizationTest
         val partRepo = mock<BlueprintParticipantDefaultRepository>()
         whenever(partRepo.findAllByBlueprintDefinitionId(any())).thenReturn(emptyList())
 
-        // No capabilities granted — APP reads are open to all authenticated callers
         val svc = makeBlueprintService(
             authSvc = makeAuthService(),
             repo = repo,

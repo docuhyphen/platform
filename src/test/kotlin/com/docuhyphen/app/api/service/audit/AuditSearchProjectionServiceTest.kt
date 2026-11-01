@@ -1,12 +1,16 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEngagementAccess
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -145,7 +149,7 @@ class AuditSearchProjectionServiceTest
             .thenReturn(listOf(event))
         whenever(engagementService.resolveAccess(any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(
-                AuditEngagementService.EngagementAccess(
+                AuditEngagementAccess(
                     engagementId = UUID.randomUUID(),
                     sensitivityLevel = com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
                     exportPermitted = false,
@@ -190,7 +194,7 @@ class AuditSearchProjectionServiceTest
             .thenReturn(listOf(event))
         whenever(engagementService.resolveAccess(any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(
-                AuditEngagementService.EngagementAccess(
+                AuditEngagementAccess(
                     engagementId = UUID.randomUUID(),
                     sensitivityLevel = com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
                     exportPermitted = false,
@@ -351,7 +355,7 @@ class AuditSearchProjectionServiceTest
                 any(), eq(organizationId), any(), eq("visible-1"), any(), any(), any(), any(),
             )
         ).thenReturn(
-            AuditEngagementService.EngagementAccess(
+            AuditEngagementAccess(
                 UUID.randomUUID(),
                 com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
                 false,
@@ -364,7 +368,7 @@ class AuditSearchProjectionServiceTest
                 any(), eq(organizationId), any(), eq("visible-2"), any(), any(), any(), any(),
             )
         ).thenReturn(
-            AuditEngagementService.EngagementAccess(
+            AuditEngagementAccess(
                 UUID.randomUUID(),
                 com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity.STANDARD,
                 false,

@@ -1,6 +1,10 @@
 package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionUsage
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory

@@ -19,7 +19,7 @@ import com.docuhyphen.app.api.service.informationrequest.clock.InformationReques
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException

@@ -45,7 +45,6 @@ class AuditAnalyticsFactRepository : BaseRepository<AuditAnalyticsFact>(AuditAna
         return query.singleResult
     }
 
-    /** Ledger event ids missing a fact row, for reconciliation diagnostics; bounded by [limit]. */
     fun findMissingLedgerEventIds(organizationId: UUID?, platformOnly: Boolean, limit: Int): List<UUID>
     {
         val where = mutableListOf("NOT EXISTS (SELECT 1 FROM AuditAnalyticsFact f WHERE f.ledgerEventId = l.eventId)")

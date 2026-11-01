@@ -14,7 +14,6 @@ interface AuditExportsSectionProps
     scope: AuditScope;
 }
 
-/** Export request/approval/download list section of the Audit workspace. */
 const AuditExportsSection = (
     {
         scope,
@@ -53,7 +52,8 @@ const AuditExportsSection = (
     };
 
     return (
-        <div id={"audit-exports-section"} className={styles.container}>
+        <div id={"audit-exports-section"}
+             className={styles.container}>
             <div
                 id={"audit-exports-header"}
                 className={styles.header}
@@ -75,8 +75,12 @@ const AuditExportsSection = (
                 )}
             </div>
 
-            {loading && <Spinner size={"small"} label={"Loading exports..."} labelPosition={"after"}/>}
-            {error && <Text id={"audit-exports-error"} className={styles.errorText}>{error}</Text>}
+            {loading && <Spinner id={"audit-exports-section-spinner-1"}
+                                 size={"small"}
+                                 label={"Loading exports..."}
+                                 labelPosition={"after"}/>}
+            {error && <Text id={"audit-exports-error"}
+                            className={styles.errorText}>{error}</Text>}
             {!loading && exports.length === 0 && (
                 <Text id={"audit-exports-empty"}>No audit exports requested yet.</Text>
             )}

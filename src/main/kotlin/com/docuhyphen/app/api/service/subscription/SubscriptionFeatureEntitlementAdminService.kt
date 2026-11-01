@@ -3,6 +3,7 @@ package com.docuhyphen.app.api.service.subscription
 import com.docuhyphen.app.api.model.entity.SubscriptionFeatureEntitlement
 import com.docuhyphen.app.api.model.subscription.FeatureEntitlementDecision
 import com.docuhyphen.app.api.model.subscription.FeatureEntitlementReplacement
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.repository.subscription.SubscriptionFeatureEntitlementRepository
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

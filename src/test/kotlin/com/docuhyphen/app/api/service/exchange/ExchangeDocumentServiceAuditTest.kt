@@ -1,9 +1,12 @@
 package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -21,11 +24,6 @@ import org.mockito.kotlin.*
 import java.io.File
 import java.util.*
 
-/**
- * Verifies that [ExchangeDocumentService.downloadDocument]
- * must call [AuditRecorder.record] exactly once with DOCUMENT_DOWNLOAD/EXCHANGE/HUMAN, and must
- * never let an [AuditRecorder] failure break the actual file download response.
- */
 class ExchangeDocumentServiceAuditTest
 {
     private val exchangeId = UUID.randomUUID()

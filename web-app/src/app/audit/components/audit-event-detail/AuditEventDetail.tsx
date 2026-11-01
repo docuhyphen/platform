@@ -15,8 +15,8 @@ import {
     formatAuditEventType,
 } from "../../auditDisplayFormatters.ts";
 import AuditCategoryBadge from "../audit-category-badge/AuditCategoryBadge.tsx";
-import AuditEventDetailCard from "./AuditEventDetailCard.tsx";
-import AuditEventDetailMoreInfo from "./AuditEventDetailMoreInfo.tsx";
+import AuditEventDetailCard from "./audit-event-detail-card/AuditEventDetailCard.tsx";
+import AuditEventDetailMoreInfo from "./audit-event-detail-more-info/AuditEventDetailMoreInfo.tsx";
 import {useAuditEventDetailStyles} from "./AuditEventDetailStyles.tsx";
 import {
     Box24Regular,
@@ -32,7 +32,6 @@ interface AuditEventDetailProps
     onDismiss: () => void;
 }
 
-/** Shared full-detail view for one ledger-backed audit event, used across every audit surface. */
 const AuditEventDetail = (
     {
         event,
@@ -64,13 +63,17 @@ const AuditEventDetail = (
                 }
             }}
         >
-            <DialogSurface id={"audit-event-detail-surface"} className={styles.surface}>
-                <DialogBody>
-                    <DialogTitle action={<AuditCategoryBadge category={event.category}/>}>
+            <DialogSurface id={"audit-event-detail-surface"}
+                           className={styles.surface}>
+                <DialogBody id={"audit-event-detail-dialog-body-1"}>
+                    <DialogTitle id={"audit-event-detail-dialog-title-1"}
+                                 action={<AuditCategoryBadge category={event.category}/>}>
                         Audit event detail
                     </DialogTitle>
-                    <DialogContent id={"audit-event-detail-content"} className={styles.body}>
-                        <div className={styles.cardList}>
+                    <DialogContent id={"audit-event-detail-content"}
+                                   className={styles.body}>
+                        <div id={"audit-event-detail-div-1"}
+                             className={styles.cardList}>
                             <AuditEventDetailCard
                                 id={"audit-event-detail-event-type"}
                                 icon={<Tag24Regular/>}
@@ -109,7 +112,7 @@ const AuditEventDetail = (
 
                         <AuditEventDetailMoreInfo event={event}/>
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"audit-event-detail-dialog-actions-1"}>
                         <Button
                             id={"button-audit-event-detail-dismiss"}
                             appearance={"secondary"}

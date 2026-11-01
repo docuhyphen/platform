@@ -1,76 +1,6 @@
-﻿import {makeStyles, tokens, typographyStyles,} from "@fluentui/react-components";
+﻿import {makeStyles, tokens} from "@fluentui/react-components";
 
 const useExchangeStyles = makeStyles({
-
-    caption2: typographyStyles.caption2,
-    caption1: typographyStyles.caption1,
-    body1Strong: typographyStyles.body1Strong,
-
-    emptyState: {
-        display: "flex",
-        width: "100%",
-        height: "100%",
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: `calc(${tokens.spacingHorizontalXXXL} + ${tokens.spacingHorizontalXXL} + ${tokens.spacingHorizontalXS})`,
-        boxSizing: "border-box"
-    },
-
-    skeletonRecipientEmail: {
-        width: "150px",
-    },
-
-    skeletonExchangeName: {
-        flex: 1,
-        marginRight: tokens.spacingHorizontalMNudge,
-    },
-
-    skeletonCreatedDate: {
-        width: "50px",
-        marginRight: tokens.spacingHorizontalMNudge,
-    },
-
-    skeletonExchangeDescription: {
-        flex: "1",
-        marginRight: tokens.spacingHorizontalMNudge,
-    },
-
-    truncatedText: {
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "100%"
-    },
-
-    name: {
-        display: "block",
-        flex: 1,
-        minWidth: 0,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "none",
-    },
-
-    exchangeDescription: {
-        display: "flex",
-        alignItems: "center",
-        minHeight: "18px",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        maxWidth: "100%",
-        width: "100%",
-    },
-
-    createdDate: {
-        minWidth: "74px",
-        display: "flex",
-        justifyContent: "end",
-        alignItems: "center",
-        whiteSpace: "nowrap",
-    },
 
     exchangesListContainer: {
         width: "400px",
@@ -83,14 +13,8 @@ const useExchangeStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        // Include the 1px border in the width calc so `width: 100%` on
-        // mobile doesn't render 2px wider than the parent (which was
-        // causing horizontal overflow / a sliver of scrollable space).
         boxSizing: "border-box",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
-        // Phones: fill the available width. The desktop collapse/hover
-        // mechanic isn't useful here because we swap panes entirely
-        // (see ExchangesStyles containerMobileShowing* classes).
         "@media (max-width: 768px)": {
             width: "100%",
             minWidth: 0,
@@ -100,7 +24,6 @@ const useExchangeStyles = makeStyles({
     },
 
     exchangesListContainerCollapsed: {
-
         width: "2.8rem",
         minWidth: "2.8rem",
         maxWidth: "2.8rem",
@@ -113,8 +36,6 @@ const useExchangeStyles = makeStyles({
         flexDirection: "column",
         boxSizing: "border-box",
         transition: "width 220ms ease, min-width 220ms ease, max-width 220ms ease",
-        // Collapsed sidebar is a desktop affordance: don't try to render
-        // a 45px-wide column on a phone, expand back to full width.
         "@media (max-width: 768px)": {
             width: "100%",
             minWidth: 0,
@@ -123,101 +44,13 @@ const useExchangeStyles = makeStyles({
         },
     },
 
-    exchangesListHeader: {
-        background: tokens.colorNeutralBackground1,
-        width: "100%",
-        height: "48px",
-        paddingTop: tokens.spacingVerticalS,
-        paddingLeft: tokens.spacingVerticalS,
-        paddingRight: tokens.spacingVerticalS,
-        boxSizing: "border-box",
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        transitionProperty: "box-shadow",
-        transitionDuration: "160ms",
-        transitionTimingFunction: "ease",
-    },
-
-    exchangesListHeaderElevated: {
-        boxShadow: tokens.shadow4,
-    },
-
-    filterSearchField: {
-        flex: 1,
-    },
-
     listCard: {
         width: "100%",
         padding: tokens.spacingHorizontalS,
         borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
         boxSizing: "border-box",
-        // Allow flex children inside this card to shrink (the text rows
-        // would otherwise force the card wider than the sidebar on
-        // narrow viewports, producing the overflow scroll bar).
         minWidth: 0,
         overflow: "hidden",
-    },
-
-    listCardLastChild: {
-        borderBottom: "none",
-    },
-
-    listCardHover: {
-        transition: "all 0.1s ease",
-        background: tokens.colorNeutralBackground1,
-        borderLeft: "3px solid",
-        borderLeftColor: tokens.colorBrandBackground,
-    },
-
-    exchangesListFooter: {
-        background: tokens.colorNeutralBackground1,
-        padding: tokens.spacingHorizontalS,
-        fontSize: "12px",
-        width: "100%",
-        boxSizing: "border-box",
-        display: "flex",
-        justifyContent: "space-between",
-        marginTop: "auto",
-        transitionProperty: "box-shadow",
-        transitionDuration: "160ms",
-        transitionTimingFunction: "ease",
-    },
-
-    exchangesListFooterElevated: {
-        boxShadow: tokens.shadow4,
-    },
-    footerControls: {
-        display: "flex"
-    },
-
-    exchangesListBody: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalXS,
-        overflow: "auto",
-        height: "100%",
-        paddingTop: tokens.spacingVerticalXXS,
-        boxSizing: "border-box",
-        scrollbarWidth: "thin",
-        scrollbarColor: `${tokens.colorNeutralStroke1} transparent`,
-        flex: 1,
-        minWidth: "380px",
-        // Drop the 380px minWidth on phones, otherwise the list scrolls
-        // horizontally inside a narrow viewport.
-        "@media (max-width: 768px)": {
-            minWidth: 0,
-        },
-        "&::-webkit-scrollbar": {
-            width: "6px",
-            height: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-            backgroundColor: tokens.colorNeutralStroke1,
-            borderRadius: tokens.borderRadiusCircular,
-        },
-        "&::-webkit-scrollbar-track": {
-            backgroundColor: "transparent",
-        },
     },
 
     listCardItem: {
@@ -226,9 +59,6 @@ const useExchangeStyles = makeStyles({
         gap: tokens.spacingHorizontalM,
         boxSizing: "border-box",
         maxWidth: "100%",
-        // Without min-width: 0, the inner text rows (with whiteSpace:
-        // nowrap) would expand the row past the sidebar's width on
-        // narrow viewports instead of truncating with ellipsis.
         minWidth: 0,
     },
 
@@ -237,10 +67,6 @@ const useExchangeStyles = makeStyles({
         flexDirection: "column",
         gap: tokens.spacingHorizontalXS,
         flex: 1,
-        // calc(100% - 86px) was the original intent (avatar + gap budget),
-        // but combined with a flex item that can't shrink it overflowed
-        // narrow containers. Use flex: 1 + min-width: 0 so the column
-        // takes whatever room the avatar leaves and lets text truncate.
         minWidth: 0,
     },
 
@@ -251,99 +77,11 @@ const useExchangeStyles = makeStyles({
         minWidth: 0,
     },
 
-    titleMetaRow: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalSNudge,
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-    },
-
-    titleMetaDivider: {
-        height: "14px",
-        alignSelf: "center",
-    },
-
-    archiveStatusChipDeclined: {
-        fontWeight: "600",
-        minWidth: "68px",
-        textAlign: "right",
-        whiteSpace: "nowrap",
-    },
-
-    archiveStatusChipEnded: {
-        fontWeight: "600",
-        minWidth: "68px",
-        textAlign: "right",
-        whiteSpace: "nowrap",
-        color: tokens.colorNeutralForeground4,
-        borderTopColor: tokens.colorNeutralForeground4,
-        borderRightColor: tokens.colorNeutralForeground4,
-        borderBottomColor: tokens.colorNeutralForeground4,
-        borderLeftColor: tokens.colorNeutralForeground4,
-    },
-
     exchangesListSelectedItem: {
         background: tokens.colorNeutralBackground2,
         borderLeft: "3px solid",
         transition: "all 0.1s ease",
         borderLeftColor: tokens.colorBrandForeground1,
-    },
-
-    exchangesListItem: {
-        "&:hover": {
-            background: tokens.colorNeutralBackground1Hover,
-            borderLeft: "3px solid",
-            borderLeftColor: tokens.colorBrandForeground1,
-            transition: "all 0.1s ease",
-        },
-    },
-
-    exchangeListItemEnter: {
-        opacity: 0,
-        transform: "translateX(-18px)",
-        animationName: {
-            from: {
-                opacity: 0,
-                transform: "translateX(-18px)",
-            },
-            to: {
-                opacity: 1,
-                transform: "translateX(0)",
-            },
-        },
-        animationDuration: "220ms",
-        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
-        animationFillMode: "both",
-        willChange: "opacity, transform",
-        "@media (prefers-reduced-motion: reduce)": {
-            animationName: "none",
-            animationDuration: "0ms",
-            opacity: 1,
-            transform: "none",
-        },
-    },
-
-    inboxActions: {
-        display: "flex",
-        gap: tokens.spacingHorizontalSNudge,
-        marginTop: tokens.spacingVerticalSNudge,
-        paddingTop: tokens.spacingVerticalSNudge,
-        borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    },
-
-    tabsContainer: {
-        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    },
-
-    inboxRoleTabList: {
-        width: "100%",
-    },
-
-    tabContentFlex: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalXS,
     },
 });
 

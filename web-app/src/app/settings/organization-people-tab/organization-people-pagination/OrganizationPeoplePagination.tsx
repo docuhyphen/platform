@@ -31,7 +31,8 @@ const OrganizationPeoplePagination = (
                 id="organization-people-pagination-controls"
                 className={styles.controls}
             >
-                <Tooltip content="First page" relationship="description">
+                <Tooltip content="First page"
+                         relationship="description">
                     <Button
                         id="organization-people-pagination-first"
                         icon={<FirstPageIcon/>}
@@ -41,7 +42,8 @@ const OrganizationPeoplePagination = (
                         onClick={() => onPageChange(0)}
                     />
                 </Tooltip>
-                <Tooltip content="Previous page" relationship="description">
+                <Tooltip content="Previous page"
+                         relationship="description">
                     <Button
                         id="organization-people-pagination-previous"
                         icon={<PreviousPageIcon/>}
@@ -54,7 +56,8 @@ const OrganizationPeoplePagination = (
                 <Text id="organization-people-pagination-page">
                     {currentPage + 1} / {totalPages}
                 </Text>
-                <Tooltip content="Next page" relationship="description">
+                <Tooltip content="Next page"
+                         relationship="description">
                     <Button
                         id="organization-people-pagination-next"
                         icon={<NextPageIcon/>}
@@ -64,7 +67,8 @@ const OrganizationPeoplePagination = (
                         onClick={() => onPageChange(currentPage + 1)}
                     />
                 </Tooltip>
-                <Tooltip content="Last page" relationship="description">
+                <Tooltip content="Last page"
+                         relationship="description">
                     <Button
                         id="organization-people-pagination-last"
                         icon={<LastPageIcon/>}

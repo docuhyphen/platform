@@ -1,10 +1,5 @@
-﻿import {
-    DocumentDetailedDto,
-    DocumentType,
-    ImageType,
-    UpdateShareExchangeDocumentRequest,
-} from "../../../models/models.tsx";
-import React, {useCallback, useEffect, useState} from "react";
+﻿import {DocumentDetailedDto} from "../../../models/models.tsx";
+import React from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -15,20 +10,17 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Dropdown,
     Field,
     Input,
     MessageBar,
     MessageBarBody,
-    Option,
-    OptionGroup,
     Spinner,
-    Switch,
     Text,
 } from "@fluentui/react-components";
-import {updateExchangeDocument} from "../../../../services/exchangeApi.ts";
-import useToken from "../../../../context/useToken.tsx";
-import {useExchangeDocumentAddDialogStyles} from "../exchange-document-add-dialog/ExchangeDocumentAddDialogStyles.tsx";
+import {useExchangeDocumentUpdateDialogStyles} from "./ExchangeDocumentUpdateDialogStyles.tsx";
+import {useExchangeDocumentUpdateDialog} from "./useExchangeDocumentUpdateDialog.ts";
+import DocumentRestrictionControls
+    from "../exchange-document-add-dialog/document-restriction-controls/DocumentRestrictionControls.tsx";
 
 interface UpdateDocumentDialogProps
 {
@@ -48,172 +40,70 @@ const ExchangeDocumentUpdateDialog: React.FC<UpdateDocumentDialogProps> = (
         onDocumentUpdated,
     }) =>
 {
-    const token = useToken();
-    const [documentTitle, setDocumentTitle] = useState<string>("");
-    const [isRestrictionEnabled, setIsRestrictionEnabled] = useState<boolean>(false);
-    const [updatingDocument, setUpdatingDocument] = useState<boolean>(false);
-    const [selectedRestrictionType, setSelectedRestrictionType] = useState<DocumentType | ImageType | string>("PDF");
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
-
     const globalStyles = useGlobalStyles();
-    const styles = useExchangeDocumentAddDialogStyles();
-
-    useEffect(() =>
-    {
-        if (exchangeDocument)
-        {
-            setDocumentTitle(exchangeDocument.title);
-
-            const normalizedRestriction = exchangeDocument.restrictedType
-                ? String(exchangeDocument.restrictedType).trim()
-                : "";
-            const hasRestriction = !!normalizedRestriction && normalizedRestriction.toLowerCase() !== "null";
-
-            if (hasRestriction)
-            {
-                setSelectedRestrictionType(normalizedRestriction);
-                setIsRestrictionEnabled(true);
-            }
-            else
-            {
-                setSelectedRestrictionType("PDF");
-                setIsRestrictionEnabled(false);
-            }
-        }
-
-
-    }, [exchangeDocument]);
-
-    const resetState = useCallback(() =>
-    {
-        setDocumentTitle("");
-        setIsRestrictionEnabled(false);
-        setSelectedRestrictionType("PDF");
-        setDialogErrorMessage(null);
-    }, []);
-
-    const handleDismiss = useCallback(() =>
-    {
-        resetState();
-        onDismiss();
-    }, [onDismiss, resetState]);
-
-    const handleUpdateDocument = async () =>
-    {
-        if (updatingDocument) return;
-
-        setUpdatingDocument(true);
-
-        try
-        {
-            const updatedDocument: UpdateShareExchangeDocumentRequest = {
-                title: documentTitle,
-                restrictedType: isRestrictionEnabled ? selectedRestrictionType : undefined,
-                restrictType: isRestrictionEnabled,
-            };
-
-            const result = await updateExchangeDocument(
-                exchangeId,
-                exchangeDocument.id,
-                updatedDocument
-            );
-            onDocumentUpdated(result);
-            resetState();
-            onDismiss();
-        }
-        catch (error: unknown)
-        {
-            console.error("Error updating document", error);
-            setDialogErrorMessage("Error updating document");
-        }
-        finally
-        {
-            setUpdatingDocument(false);
-        }
-    };
-
-    const handleOptionSelect = (
-        _event: unknown,
-        data: { optionValue: DocumentType | ImageType }
-    ) =>
-    {
-        setSelectedRestrictionType(data.optionValue);
-    };
+    const styles = useExchangeDocumentUpdateDialogStyles();
+    const {
+        documentTitle,
+        setDocumentTitle,
+        isRestrictionEnabled,
+        setIsRestrictionEnabled,
+        selectedRestrictionType,
+        updatingDocument,
+        dialogErrorMessage,
+        handleDismiss,
+        handleUpdateDocument,
+        handleOptionSelect
+    } = useExchangeDocumentUpdateDialog(exchangeId, exchangeDocument, onDismiss, onDocumentUpdated);
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Update exchange document</DialogTitle>
-                    <DialogContent>
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"exchange-document-update-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-document-update-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-document-update-dialog-dialog-title-1"}>Update Exchange document</DialogTitle>
+                    <DialogContent id={"exchange-document-update-dialog-dialog-content-1"}>
                         {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+                            <MessageBar id={"exchange-document-update-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-document-update-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-document-update-dialog-text-1"}
+                                          size={200}>{dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        <Field className={styles.documentTitleField}
+                        <Field id={"exchange-document-update-dialog-field-1"}
+                               className={styles.documentTitleField}
                                label="New document name">
-                            <Input
-                                id={"input-update-document-title"}
-                                type="text"
-                                value={documentTitle}
-                                required
-                                onChange={(e) => setDocumentTitle(e.target.value)}
-                            />
+                            <Input id={"input-update-document-title"}
+                                   type="text"
+                                   value={documentTitle}
+                                   required
+                                   onChange={(e) => setDocumentTitle(e.target.value)}/>
                         </Field>
-                        <div className={styles.documentRestriction}>
-                            <Field label="">
-                                <Switch
-                                    id={"switch-update-document-restrict-type"}
-                                    label="Restrict upload type"
-                                    checked={isRestrictionEnabled}
-                                    onChange={(e) => setIsRestrictionEnabled(e.target.checked)}
-                                />
-                            </Field>
-                            <Dropdown
-                                id={"dropdown-update-document-type"}
-                                disabled={!isRestrictionEnabled}
-                                value={selectedRestrictionType}
-                                placeholder="Select allowed upload type"
-                                onOptionSelect={handleOptionSelect}
-                            >
-                                <OptionGroup label="Documents">
-                                    {Object.values(DocumentType).map((option) => (
-                                        <Option key={option} value={option}>
-                                            {option}
-                                        </Option>
-                                    ))}
-                                </OptionGroup>
-                                <OptionGroup label="Images">
-                                    {Object.values(ImageType).map((option) => (
-                                        <Option key={option} value={option}>
-                                            {option}
-                                        </Option>
-                                    ))}
-                                </OptionGroup>
-                            </Dropdown>
-                        </div>
+                        <DocumentRestrictionControls idPrefix={"exchange-document-update-dialog"}
+                                                     switchId={"switch-update-document-restrict-type"}
+                                                     dropdownId={"dropdown-update-document-type"}
+                                                     restrictionEnabled={isRestrictionEnabled}
+                                                     selectedType={selectedRestrictionType}
+                                                     onRestrictionToggle={setIsRestrictionEnabled}
+                                                     onOptionSelect={handleOptionSelect}/>
                     </DialogContent>
-                    <DialogActions>
-                        <Button
-                            id="update-document-submit-btn"
-                            appearance="primary"
-                            className={globalStyles.buttonWithLoading}
-                            shape="circular"
-                            onClick={handleUpdateDocument}>
-                            {updatingDocument && <Spinner size="tiny"/>}
+                    <DialogActions id={"exchange-document-update-dialog-dialog-actions-1"}>
+                        <Button id="update-document-submit-btn"
+                                appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                shape="circular"
+                                onClick={handleUpdateDocument}>
+                            {updatingDocument && <Spinner id={"exchange-document-update-dialog-spinner-1"}
+                                                          size="tiny"/>}
                             Update
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button
-                                id="update-document-close-btn"
-                                appearance="secondary"
-                                onClick={handleDismiss}
-                                shape="circular"
-                                disabled={updatingDocument}
-                            >
+                            <Button id="update-document-close-btn"
+                                    appearance="secondary"
+                                    onClick={handleDismiss}
+                                    shape="circular"
+                                    disabled={updatingDocument}>
                                 Close
                             </Button>
                         </DialogTrigger>

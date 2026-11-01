@@ -365,10 +365,6 @@ class SignUpService @Inject constructor(
         val passwordSalt = authenticationService.generatePasswordSalt()
         val hashedPassword = authenticationService.hashPassword(password, passwordSalt)
 
-        // Temp-user merge: if the no-auth recipient flow previously created a placeholder
-        // AppUser for this email, upgrade it in place. The id is preserved so Exchange,
-        // ExchangeParticipant, and other FK references all keep pointing at the same
-        // row, no re-pointing or cascading updates needed.
         val existingTemp = appUserRepository.findTemporaryByEmail(email)
         val savedUser = if (existingTemp != null)
         {
@@ -402,8 +398,6 @@ class SignUpService @Inject constructor(
         runCatching { seedContactsAfterSignup(savedUser) }
             .onFailure { logger.warn("Failed to seed contacts after sign-up for {}", email.maskEmailForLogs(), it) }
 
-        // A newly registered account starts on the default individual plan. An upgraded temp
-        // placeholder keeps any record it already had rather than being reset.
         runCatching { subscriptionPolicyService.ensureUserPolicy(savedUser.id) }
             .onFailure {
                 logger.warn(
@@ -436,19 +430,6 @@ class SignUpService @Inject constructor(
         return savedUser
     }
 
-    /**
-     * After a sign-up completes, whether it was a fresh new user or an upgrade of a temp
-     * placeholder, seed the contact graph for any reciprocity-gated relationships that were
-     * deferred at accept time:
-     *
-     * - Backfill `UserContact.contactAppUserId` for rows that previously stored only the
-     *   email (the initiator's view of this user when this user was still temp).
-     * - For every accepted session where this user was the recipient, write the recipient-side
-     *   contact entry (owner=newUser, contact=session.initiator). The initiator-side was
-     *   already recorded at accept time; this completes the bidirectional pair.
-     *
-     * Failures here must never block the sign-up; the caller wraps this in runCatching.
-     */
     private fun seedContactsAfterSignup(newUser: AppUser)
     {
         val updatedRows = userContactService.backfillContactAppUserIdForEmail(newUser.email, newUser.id)
@@ -466,11 +447,6 @@ class SignUpService @Inject constructor(
             }
     }
 
-    /**
-     * Creates the INTERNAL identity-provider link for a user who registered with email + password.
-     * Idempotent, if the link already exists (e.g. for an upgraded temp user) this is a no-op.
-     * Failures must never block sign-up; callers wrap this in runCatching.
-     */
     private fun createInternalIdpLink(appUser: AppUser)
     {
         val existing = identityProviderLinkRepository.findByProviderAndExternalSubjectId(

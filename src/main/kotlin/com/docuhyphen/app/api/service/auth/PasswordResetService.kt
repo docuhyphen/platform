@@ -50,8 +50,6 @@ class PasswordResetService @Inject constructor(
 
         if (!appUser.isActive || appUser.deprovisionedAt != null)
         {
-            // Don't reveal account state on the public initiate endpoint,  surface the
-            // same neutral outcome the resource layer maps EmailNotFoundException to.
             throw EmailNotFoundException().also {
                 logger.warn("Password reset blocked: inactive/deprovisioned account for {}", email!!.maskEmailForLogs())
             }
@@ -154,9 +152,6 @@ class PasswordResetService @Inject constructor(
             logger.error("Failed to send password-changed confirmation to {}", appUser.email.maskEmailForLogs(), e)
         }
 
-        // Revoke every active session + refresh token for this user. Any other browser that
-        // was already signed in receives EXCHANGE_REVOKED over the realtime channel and is
-        // logged out immediately; subsequent API calls also fail at the auth filter.
         runCatching {
             signOutService.signOutByUserId(appUser.id, RevocationReasonCode.PASSWORD_CHANGED)
         }.onFailure { e ->

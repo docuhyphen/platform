@@ -94,6 +94,12 @@ export const useLandingHeaderStyles = makeStyles({
         },
     },
 
+    navMenuButton: {
+        minWidth: "unset",
+        fontWeight: tokens.fontWeightRegular,
+        lineHeight: tokens.lineHeightBase300,
+    },
+
     activeNavLink: {
         color: tokens.colorBrandForeground1,
 

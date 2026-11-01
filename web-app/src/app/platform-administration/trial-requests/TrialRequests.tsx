@@ -28,10 +28,14 @@ const TrialRequests = () =>
                         id={"platform-trial-requests-status-filter"}
                         value={state.status}
                         onChange={event => state.chooseStatus(event.target.value)}>
-                        <option id={"platform-trial-requests-filter-pending"} value={"PENDING"}>Pending</option>
-                        <option id={"platform-trial-requests-filter-approved"} value={"APPROVED"}>Approved</option>
-                        <option id={"platform-trial-requests-filter-rejected"} value={"REJECTED"}>Rejected</option>
-                        <option id={"platform-trial-requests-filter-all"} value={""}>All</option>
+                        <option id={"platform-trial-requests-filter-pending"}
+                                value={"PENDING"}>Pending</option>
+                        <option id={"platform-trial-requests-filter-approved"}
+                                value={"APPROVED"}>Approved</option>
+                        <option id={"platform-trial-requests-filter-rejected"}
+                                value={"REJECTED"}>Rejected</option>
+                        <option id={"platform-trial-requests-filter-all"}
+                                value={""}>All</option>
                     </Select>
                 </Field>
             </div>

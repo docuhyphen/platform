@@ -18,13 +18,6 @@ import java.util.UUID
 private class DocumentVersionCreatorPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<DocumentVersionCreatorPostgreSQLContainer>(imageName)
 
-/**
- * A stored document version names its creator with exactly one canonical principal, so a
- * participant, a group, a registered application, and a service principal are named the same way a
- * registered user is. There is no registered-user key or email beside it, a version cannot be
- * stored without it, and a row whose creator could only be stated by an email does not survive the
- * migration.
- */
 class DocumentVersionCreatorPrincipalColumnContractTest
 {
     @Test
@@ -197,8 +190,6 @@ class DocumentVersionCreatorPrincipalColumnContractTest
             }
         }
     }
-
-    // Support
 
     private fun withPostgres(block: (DocumentVersionCreatorPostgreSQLContainer) -> Unit)
     {

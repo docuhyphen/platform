@@ -9,14 +9,6 @@ import java.util.*
 class BlueprintDefinitionRepository :
     BaseRepository<BlueprintDefinition>(BlueprintDefinition::class.java)
 {
-    /**
-     * Returns all blueprints the caller may see:
-     * - PERSONAL blueprints owned by [callerUserId]
-     * - ORG blueprints for [callerOrgId] (published-only unless [isOrgAdmin])
-     * - APP-scoped platform templates (isTemplate=true, always visible)
-     *
-     * Org admins CANNOT see other users' PERSONAL blueprints.
-     */
     fun findAllAccessibleForCaller(
         callerUserId: UUID,
         callerOrgId: UUID?,
@@ -64,7 +56,6 @@ class BlueprintDefinitionRepository :
         }
     }
 
-    /** All ORG-scoped blueprints for [organizationId] regardless of isPublished (admin management view). */
     fun findOrgBlueprints(organizationId: UUID): List<BlueprintDefinition> =
         entityManager.createQuery(
             """SELECT b FROM BlueprintDefinition b

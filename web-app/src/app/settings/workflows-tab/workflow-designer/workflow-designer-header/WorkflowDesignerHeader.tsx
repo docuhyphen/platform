@@ -16,9 +16,12 @@ const WorkflowDesignerHeader = ({isEdit, workflowName, backDestinationLabel, onB
     const styles = useWorkflowDesignerHeaderStyles();
 
     return (
-        <div className={styles.topBar}>
-            <div className={styles.topBarLeft}>
-                <span className={styles.backNavButton}>
+        <div id={"workflow-designer-header-div-1"}
+             className={styles.topBar}>
+            <div id={"workflow-designer-header-div-2"}
+                 className={styles.topBarLeft}>
+                <span id={"workflow-designer-header-span-1"}
+                      className={styles.backNavButton}>
                     <Button
                         id="workflow-designer-back-btn"
                         appearance="subtle"
@@ -29,7 +32,8 @@ const WorkflowDesignerHeader = ({isEdit, workflowName, backDestinationLabel, onB
                     Back to {backDestinationLabel}
                     </Button>
                 </span>
-                <Text size={500}
+                <Text id={"workflow-designer-header-text-1"}
+                      size={500}
                       weight="semibold">
                     {isEdit ? "Edit Workflow" : "New Workflow"}
                 </Text>

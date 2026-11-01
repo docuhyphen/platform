@@ -33,7 +33,6 @@ interface ThemeProviderProps
 
 export const ThemeProvider = ({children}: ThemeProviderProps) =>
 {
-    // Bootstrap from local storage to keep the theme stable across refresh/sign-in boundaries.
     const [mode, setModeState] = useState<ThemeMode>(() => getStoredMode() ?? "light");
     const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => getSystemPrefersDark());
 
@@ -50,7 +49,6 @@ export const ThemeProvider = ({children}: ThemeProviderProps) =>
             mql.addEventListener("change", listener);
             return () => mql.removeEventListener("change", listener);
         }
-        // Safari fallback
         mql.addListener(listener);
         return () => mql.removeListener(listener);
     }, []);
@@ -74,7 +72,6 @@ export const ThemeProvider = ({children}: ThemeProviderProps) =>
 
     const theme = resolvedMode === "dark" ? darkTheme : lightTheme;
 
-    // Keep <html data-theme="..."> in sync for any plain CSS that wants to react.
     useEffect(() =>
     {
         if (typeof document !== "undefined")

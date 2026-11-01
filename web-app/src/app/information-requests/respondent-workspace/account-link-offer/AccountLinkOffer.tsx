@@ -62,7 +62,7 @@ const AccountLinkOffer = ({
                                 shape={"circular"}
                                 icon={<LinkRegular/>}
                                 disabled={state.busy}
-                                onClick={() => void state.link()}>
+                                onClick={() => { void state.link(); }}>
                             Link to my account
                         </Button>
                     )
@@ -82,7 +82,7 @@ const AccountLinkOffer = ({
                                     appearance={"subtle"}
                                     shape={"circular"}
                                     disabled={state.busy}
-                                    onClick={() => void state.checkSignIn()}>
+                                    onClick={() => { void state.checkSignIn(); }}>
                                 I have signed in
                             </Button>
                         </>

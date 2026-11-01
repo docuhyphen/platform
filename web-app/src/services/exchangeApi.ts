@@ -1,4 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     DocumentDetailedDto,
     DownloadDocumentsZipRequest,
@@ -16,7 +17,7 @@ import {
     UpdateExchangeRequest,
     WorkflowInstanceSummaryDto,
 } from "../app/models/models.tsx";
-import {AxiosProgressEvent, AxiosRequestConfig} from "axios";
+import axios, {AxiosProgressEvent, AxiosRequestConfig} from "axios";
 import {
     GrantExchangeShareRequest,
     ExchangeAccessEntryDto,
@@ -33,7 +34,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -57,9 +58,9 @@ const getNoAuthAccessHeaders = (exchangeId: string): Record<string, string> => (
     'x-no-auth-access-token': window.sessionStorage.getItem(noAuthAccessTokenKey(exchangeId)) ?? '',
 });
 
-export const initiateExchange = (request: ExchangeInitiationRequest) =>
+export const initiateExchange = (request: ExchangeInitiationRequest): Promise<ExchangeBasicDto> =>
     executeRequest(() =>
-        apiClient.post(`/exchanges/`, request)
+        apiClient.post<ExchangeBasicDto>(`/exchanges/`, request)
     );
 
 export const fetchSignedInUserAppUserExchanges = (): Promise<ExchangeBasicDto[] | ResponseError> =>
@@ -80,31 +81,27 @@ export const checkSignedInAppUserHasExchanges = async (token: string | null): Pr
             headers: getAuthHeaders(token),
         });
 
-        // If the response status is 204 (No Content), return false
         if (response.status === 204)
         {
             return false;
         }
 
-        // If the status is within the 2xx range (excluding 204), return true
         if (response.status >= 200 && response.status < 300)
         {
             return true;
         }
 
-        // For other non-2xx statuses, throw an error
         throw new Error(`Request failed with status: ${response.status}`);
     }
     catch (error: unknown)
     {
-        // Log and rethrow,  callers decide how to surface the failure. Service-
-        // layer alert() popups blocked the UI and double-fired (caller also alerted).
         console.error("Error checking exchanges:", error);
-        if (error.response)
+        const response = axios.isAxiosError<unknown>(error) ? error.response : undefined;
+        if (response)
         {
-            console.error("Error response data:", error.response.data);
+            console.error("Error response data:", response.data);
         }
-        throw error.response?.data || error;
+        throw response?.data || error;
     }
 };
 
@@ -217,11 +214,11 @@ export const downloadNoAuthExchangeDocument = (exchangeId: string, documentId?: 
         headers: getNoAuthAccessHeaders(exchangeId),
     }));
 
-export const downloadExchangeDocument = (exchangeId: string, documentId?: string) =>
-    executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/file`, blobRequest));
+export const downloadExchangeDocument = (exchangeId: string, documentId?: string): Promise<Blob> =>
+    executeRequest(() => apiClient.get<Blob>(`/exchanges/${exchangeId}/documents/${documentId}/file`, blobRequest));
 
-export const downloadExchangeDocumentZip = (exchangeId: string, request: DownloadDocumentsZipRequest) =>
-    executeRequest(() => apiClient.post(`/exchanges/${exchangeId}/documents/zip-file`, request, blobRequest));
+export const downloadExchangeDocumentZip = (exchangeId: string, request: DownloadDocumentsZipRequest): Promise<Blob> =>
+    executeRequest(() => apiClient.post<Blob>(`/exchanges/${exchangeId}/documents/zip-file`, request, blobRequest));
 
 export const downloadPreviewPDFExchangeDocument = (exchangeId: string, documentId?: string) =>
     executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/preview`, blobRequest));
@@ -329,8 +326,6 @@ export const getLatestDocumentVersion = (exchangeId: string, documentId: string)
     executeRequest(() =>
         apiClient.get(`/exchanges/${exchangeId}/documents/${documentId}/versions/latest`)
     );
-
-// ── Exchange Access Management ──
 
 export const listExchangeAccess = (exchangeId: string): Promise<ExchangeAccessEntryDto[]> =>
     executeRequest(() => apiClient.get(`/exchanges/${exchangeId}/access`));

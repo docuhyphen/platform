@@ -2,6 +2,7 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -9,13 +10,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Confirms that the features an organization pays for can never be unlocked by an individual
- * account, whichever individual plan that account holds.
- *
- * These refusals name Business as the plan that lifts them rather than offering an upgrade to
- * Personal, because no individual plan will ever include them.
- */
 class PersonalContextBusinessFeatureTest
 {
     private val appUserId: UUID = UUID.randomUUID()
@@ -74,5 +68,4 @@ class PersonalContextBusinessFeatureTest
         }
     }
 }
-
 

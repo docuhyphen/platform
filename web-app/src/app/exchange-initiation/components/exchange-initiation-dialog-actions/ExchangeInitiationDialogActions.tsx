@@ -49,7 +49,8 @@ const ExchangeInitiationDialogActions: React.FC<ExchangeInitiationDialogActionsP
                     className={styles.buttonWithLoading}>
                     {!initiatingExchange ? (requestingDocuments ? "Start Exchange" : "Start Exchange") : (
                         <>
-                            <Spinner size="tiny"/> Starting
+                            <Spinner id={"exchange-initiation-dialog-actions-spinner-1"}
+                                     size="tiny"/> Starting
                         </>
                     )}
                 </Button>

@@ -1,13 +1,13 @@
 package com.docuhyphen.app.api.model
 
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
 import com.docuhyphen.app.api.service.subscription.PlanCatalog
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialFactory
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import com.docuhyphen.app.api.service.subscription.SubscriptionStatus
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsage
+import com.docuhyphen.app.api.model.subscription.SubscriptionUsage
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull

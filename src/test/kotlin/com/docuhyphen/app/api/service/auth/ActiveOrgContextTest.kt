@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.auth
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.AuthSessionPolicy
 import com.docuhyphen.app.api.model.entity.AppRoleName
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthToken
@@ -15,7 +16,6 @@ import com.docuhyphen.app.api.service.subscription.SessionSubscriptionService
 import io.quarkus.security.UnauthorizedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -25,24 +25,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-/**
- * Explicit active organization context and current-session capability contract.
- *
- * Rules verified:
- *  - No active-org header -> session has null activeOrganizationId (personal mode).
- *  - Valid active-org header -> session reflects that organization and its roles.
- *  - Capabilities are the union of app-role and org-role capability sets.
- *  - Multiple concurrent org roles compose their capability sets.
- *  - Session unauthenticated (no appUser) -> UnauthorizedException.
- *  - Active org is caller context only; no capabilities are added by setting it alone.
- *  - Removing org context (null header) drops org-role capabilities.
- *  - APP_USER role provides EXCHANGE_INITIATE; org-only capabilities absent without active org.
- *  - ORG_BILLING_ADMIN + ORG_MEMBER compose independently: billing + member capabilities both present.
- *  - ORG_MEMBER capabilities not present when user has org billing role only.
- *  - APP_ADMIN gains APP_ADMIN, APP_AUDIT_READ, APP_REG_READ, APP_REG_ADMIN.
- *  - Organization switching preserves app capabilities and recalculates organization capabilities.
- *  - Stale roles reflect immediately because capabilities are resolved at call time.
- */
 class ActiveOrgContextTest
 {
     private val userId = UUID.randomUUID()
@@ -141,10 +123,6 @@ class ActiveOrgContextTest
         )
     }
 
-    // -----------------------------------------------------------------------
-    // Personal mode (no active org header)
-    // -----------------------------------------------------------------------
-
     @Test
     fun `no active org header produces null activeOrganizationId in session`()
     {
@@ -179,10 +157,6 @@ class ActiveOrgContextTest
 
         assertThrows<Exception> { svc.currentSession() }
     }
-
-    // -----------------------------------------------------------------------
-    // Active org selection
-    // -----------------------------------------------------------------------
 
     @Test
     fun `valid active org produces correct organization roles and capabilities`()
@@ -241,10 +215,6 @@ class ActiveOrgContextTest
         assertTrue(Capability.ORG_POLICY_MANAGE.name in caps)
     }
 
-    // -----------------------------------------------------------------------
-    // Multi-role composition
-    // -----------------------------------------------------------------------
-
     @Test
     fun `ORG_BILLING_ADMIN and ORG_MEMBER compose independently`()
     {
@@ -281,10 +251,6 @@ class ActiveOrgContextTest
         assertFalse(Capability.DOC_LIBRARY_WRITE.name in caps)
         assertFalse(Capability.BLUEPRINT_WRITE.name in caps)
     }
-
-    // -----------------------------------------------------------------------
-    // Platform roles
-    // -----------------------------------------------------------------------
 
     @Test
     fun `APP_ADMIN session has platform capabilities but not org-admin capabilities`()
@@ -362,10 +328,6 @@ class ActiveOrgContextTest
         assertFalse(Capability.ORG_POLICY_MANAGE.name in personalSession.capabilities)
         assertTrue(personalSession.organizationRoles.isEmpty())
     }
-
-    // -----------------------------------------------------------------------
-    // Session DTO shape
-    // -----------------------------------------------------------------------
 
     @Test
     fun `session DTO carries user identity fields`()
@@ -456,10 +418,6 @@ class ActiveOrgContextTest
         assertEquals(orgId, ctx.activeOrganizationId)
         assertEquals(membershipId, ctx.activeMembershipId)
     }
-
-    // -----------------------------------------------------------------------
-    // Available organizations (auto-select / picker source data)
-    // -----------------------------------------------------------------------
 
     @Test
     fun `zero active memberships yields empty availableOrganizations`()

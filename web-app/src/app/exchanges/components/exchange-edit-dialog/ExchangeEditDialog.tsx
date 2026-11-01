@@ -1,5 +1,5 @@
-﻿import {ExchangeDetailedDto, UpdateExchangeRequest} from "../../../models/models.tsx";
-import React, {useEffect, useState} from "react";
+﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
+import React from "react";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -10,20 +10,16 @@ import {
     DialogSurface,
     DialogTitle,
     DialogTrigger,
-    Field,
-    Input,
-    InputOnChangeData,
     MessageBar,
     MessageBarBody,
     Spinner,
-    Text,
-    Textarea
+    Text
 } from "@fluentui/react-components";
-import {fetchSignedInUserAppUserExchange, updateExchange} from "../../../../services/exchangeApi.ts";
-import {publishExchangeUpdate} from "../../../observable/exchangeObservables.ts";
 import {useExchangeEditDialogStyles} from "./ExchangeEditDialogStyles.tsx";
+import {useExchangeEdit} from "./useExchangeEdit.ts";
+import ExchangeEditFormFields from "./exchange-edit-form-fields/ExchangeEditFormFields.tsx";
 
-interface ExchangeDeleteDialogProps
+interface ExchangeEditDialogProps
 {
     isOpen: boolean;
     onDismiss: () => void;
@@ -31,7 +27,7 @@ interface ExchangeDeleteDialogProps
     onExchangeEdited: (exchange: ExchangeDetailedDto) => void;
 }
 
-const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
+const ExchangeEditDialog: React.FC<ExchangeEditDialogProps> = (
     {
         isOpen,
         onDismiss,
@@ -39,113 +35,48 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
         onExchangeEdited
     }) =>
 {
-    const styles = useExchangeEditDialogStyles()
-    const [editingExchange, setEditingExchange] = React.useState(false);
-    const [name, setExchangeName] = React.useState('')
-    const [description, setDescription] = React.useState('')
-    const globalStyles = useGlobalStyles()
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
+    const styles = useExchangeEditDialogStyles();
+    const globalStyles = useGlobalStyles();
+    const edit = useExchangeEdit(exchange, onExchangeEdited, onDismiss);
 
-    useEffect(() =>
-    {
-        if (exchange)
-        {
-            setExchangeName(exchange.name)
-            setDescription(exchange.description)
-            setDialogErrorMessage(null);
-        }
-    }, [exchange]);
-
-    const onEdit = async () =>
-    {
-
-        setEditingExchange(true)
-
-        try
-        {
-            const request = {
-                name,
-                description
-            } as UpdateExchangeRequest
-
-            await updateExchange(exchange.id, request);
-            const updatedExchange = await fetchSignedInUserAppUserExchange(exchange.id);
-            onExchangeEdited(updatedExchange as ExchangeDetailedDto);
-            publishExchangeUpdate(updatedExchange as ExchangeDetailedDto)
-            onDismiss();
-        }
-        catch (error)
-        {
-            setDialogErrorMessage("Error updating exchange");
-            console.error("Error updating exchange", error);
-        }
-        finally
-        {
-            setEditingExchange(false);
-        }
-    }
-
-    const onCancel = () =>
-    {
-        setExchangeName('')
-        setDescription('')
-        onDismiss()
-    }
-
-    const onExchangeNameChange = (_e: React.ChangeEvent<HTMLInputElement>, newValue: InputOnChangeData) =>
-    {
-        setExchangeName(newValue.value || '');
-    }
-
-    const onDescriptionChange = (_e: React.ChangeEvent<HTMLTextAreaElement>, newValue: { value: string }) =>
-    {
-        setDescription(newValue.value || '');
-    }
-
-    return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Edit {exchange && exchange.name}</DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+    return (
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"exchange-edit-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-edit-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-edit-dialog-dialog-title-1"}>Edit {exchange && exchange.name}</DialogTitle>
+                    <DialogContent id={"exchange-edit-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        {edit.dialogErrorMessage && (
+                            <MessageBar id={"exchange-edit-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-edit-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-edit-dialog-text-1"}
+                                          size={200}>{edit.dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        <Field label={"Exchange name"}>
-                            <Input
-                                id={"input-edit-exchange-name"}
-                                type={"text"}
-                                value={name}
-                                onChange={onExchangeNameChange}/>
-                        </Field>
-                        <Field label={"Description"}>
-                            <Textarea
-                                id={"textarea-edit-exchange-description"}
-                                value={description}
-                                onChange={onDescriptionChange}/>
-                        </Field>
+                        <ExchangeEditFormFields name={edit.name}
+                                                description={edit.description}
+                                                onNameChange={edit.setName}
+                                                onDescriptionChange={edit.setDescription}/>
                     </DialogContent>
-                    <DialogActions>
-                        <Button
-                            id={"edit-exchange-submit-btn"}
-                            appearance="primary"
-                            className={globalStyles.buttonWithLoading}
-                            shape={"circular"}
-                            onClick={onEdit}>
-                            {editingExchange && <Spinner size={"tiny"}/>}
+                    <DialogActions id={"exchange-edit-dialog-dialog-actions-1"}>
+                        <Button id={"edit-exchange-submit-btn"}
+                                appearance="primary"
+                                className={globalStyles.buttonWithLoading}
+                                shape={"circular"}
+                                onClick={edit.onEdit}>
+                            {edit.editingExchange && <Spinner id={"exchange-edit-dialog-spinner-1"}
+                                                              size={"tiny"}/>}
                             Edit
                         </Button>
                         <DialogTrigger disableButtonEnhancement>
-                            <Button
-                                id={"edit-exchange-cancel-btn"}
-                                appearance="secondary"
-                                shape={"circular"}
-                                disabled={editingExchange}
-                                onClick={onCancel}>
+                            <Button id={"edit-exchange-cancel-btn"}
+                                    appearance="secondary"
+                                    shape={"circular"}
+                                    disabled={edit.editingExchange}
+                                    onClick={edit.onCancel}>
                                 Cancel
                             </Button>
                         </DialogTrigger>
@@ -153,8 +84,7 @@ const ExchangeEditDialog: React.FC<ExchangeDeleteDialogProps> = (
                 </DialogBody>
             </DialogSurface>
         </Dialog>
-        }
-    </>
-}
+    );
+};
 
 export default ExchangeEditDialog;

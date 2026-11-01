@@ -12,13 +12,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Second-admin approval for sensitive admin actions, backed by the generic workflow engine
- * (replaces the bespoke `AdminApprovalRequest`). An approval is a single-step `APPROVAL`
- * [WorkflowInstance]: `initiate` opens it (RUNNING / step PENDING), `approve` closes it
- * (COMPLETED / step APPROVED) under a different admin, and `validateApprovedRequest` gates the
- * actual privileged operation. The "approvalId" exposed to the API is the [WorkflowInstance] id.
- */
 @RequestScoped
 class AdminApprovalWorkflowService @Inject constructor(
     private val workflowDefinitionRepository: WorkflowDefinitionRepository,
@@ -58,9 +51,6 @@ class AdminApprovalWorkflowService @Inject constructor(
                 this.currentStepIndex = 0
                 this.initiatedByAppUserId = requesterId
                 this.subjectDataJson = buildSubjectJson(action, reason)
-                // This subsystem closes the instance here and never routes it through the shared
-                // engine, but the frozen execution fields are still populated so no instance row
-                // is left without a snapshot or trigger to satisfy the shared instance contract.
                 this.definitionSnapshotJson = definition.stepsJson
                 this.triggerEventSnapshot = definition.triggerEvent
                 this.createdAt = Timestamp.from(now)
@@ -94,9 +84,6 @@ class AdminApprovalWorkflowService @Inject constructor(
         val instance = workflowInstanceRepository.findById(approvalId)
             ?: throw IllegalArgumentException("Approval request not found")
 
-        // Admin-action approvals are a self-contained single-step subsystem: they are opened and
-        // closed here and never routed through the shared engine's SLA escalation, so a pending
-        // one is only ever RUNNING. ESCALATED is deliberately not accepted as pending here.
         if (instance.status != WorkflowInstanceStatus.RUNNING)
         {
             throw IllegalArgumentException("Approval request is not pending")

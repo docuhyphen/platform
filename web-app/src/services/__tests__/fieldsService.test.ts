@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {FieldValueDto} from '../../app/models/models.tsx';
 
 const get = vi.fn();
 const patch = vi.fn();
@@ -25,7 +26,7 @@ const savedAssignment = {
     versionNumber: 1,
     assignmentSource: 'MANUAL',
     assignedAt: Date.parse('2024-03-01T00:00:00Z'),
-    fields: [],
+    fields: [] as FieldValueDto[],
     etag: '"set-1:8"',
 };
 

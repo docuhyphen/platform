@@ -47,7 +47,7 @@ const AccessLinkDialog = ({link, onDismiss}: Props) =>
                     appearance={"secondary"}
                     shape={"circular"}
                     icon={<CopyRegular/>}
-                    onClick={() => void copy()}>
+                    onClick={() => { void copy(); }}>
                 Copy link
             </Button>
             <Text id={"information-request-access-link-copied"}

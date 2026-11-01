@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewDelegationCandidate
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewSnapshot
 import com.docuhyphen.app.api.model.informationrequest.review.InformationRequestReviewStageState
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestRequirementAuthorizationContextProvider
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyQueryService

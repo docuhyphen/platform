@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.auth.authz
 
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.auth.authz.ResourceReference
 import com.docuhyphen.app.api.model.entity.ResourceType
 import jakarta.annotation.PostConstruct

@@ -44,8 +44,6 @@ const AuditWorkspace = ({
     const isAuthorized = hasOrgAudit || hasPlatformAudit;
     const organizationId = currentSession?.activeOrganizationId ?? null;
     const canSelectScope = !fixedScope && hasOrgAudit && hasPlatformAudit && organizationId !== null;
-    // A user holding only one of the two capabilities has no scope to choose - fall back to
-    // whichever surface their capability actually grants, ignoring the (stale-by-default) toggle.
     const effectiveScopeSelection = fixedScope ?? scopeSelection;
     const scope: AuditScope = hasOrgAudit && organizationId &&
     (!hasPlatformAudit || effectiveScopeSelection === "organization")
@@ -67,9 +65,13 @@ const AuditWorkspace = ({
     if (!isAuthorized)
     {
         return (
-            <div id={"audit-not-authorized"} className={styles.notAuthorized}>
-                <Text weight={"semibold"}>You do not have access to the Audit workspace.</Text>
-                <Text size={200} className={styles.scopeNote}>
+            <div id={"audit-not-authorized"}
+                 className={styles.notAuthorized}>
+                <Text id={"audit-workspace-text-1"}
+                      weight={"semibold"}>You do not have access to the Audit workspace.</Text>
+                <Text id={"audit-workspace-text-2"}
+                      size={200}
+                      className={styles.scopeNote}>
                     Ask an organization or platform administrator to grant audit read access.
                 </Text>
             </div>
@@ -121,10 +123,12 @@ const AuditWorkspace = ({
                     value={scopeSelection === "organization" ? "Organization" : "Platform"}
                     onOptionSelect={onScopeSelect}
                 >
-                    <Option id={"audit-workspace-scope-option-organization"} value={"organization"}>
+                    <Option id={"audit-workspace-scope-option-organization"}
+                            value={"organization"}>
                         Organization
                     </Option>
-                    <Option id={"audit-workspace-scope-option-platform"} value={"platform"}>
+                    <Option id={"audit-workspace-scope-option-platform"}
+                            value={"platform"}>
                         Platform
                     </Option>
                 </Dropdown>

@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.party
 
 import com.docuhyphen.app.api.model.informationrequest.access.InformationRequestRequirementDelegatedAuthorityFact
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestDelegatedAuthorityRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp

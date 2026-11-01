@@ -1,10 +1,3 @@
-/**
- * Structural graph analysis: detects unreachable nodes, cycles, missing
- * terminal paths, invalid targets, and ambiguous transitions.
- *
- * All checks are informational. None introduce new save-blocking behaviour
- * beyond what the backend already validates.
- */
 
 import { WorkflowGraph } from "./workflowGraphModels.ts";
 
@@ -13,10 +6,6 @@ export interface WorkflowGraphValidationResult
     warnings: string[];
 }
 
-/**
- * Run all structural checks on a built graph and return the warnings.
- * The graph's own `warnings` array (from the adapter) is merged in.
- */
 export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValidationResult
 {
     const warnings: string[] = [...graph.warnings];
@@ -25,7 +14,6 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
     const endNodes = new Set(graph.nodes.filter(n => n.kind === "END").map(n => n.id));
     const startNodes = new Set(graph.nodes.filter(n => n.kind === "START").map(n => n.id));
 
-    // Build adjacency maps.
     const children = new Map<string, Set<string>>();
     const parents = new Map<string, Set<string>>();
     for (const n of graph.nodes)
@@ -42,7 +30,6 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
         }
     }
 
-    // Unreachable steps: not reachable from any START node.
     const reachable = bfsReachable(startNodes, children);
     for (const n of graph.nodes)
     {
@@ -52,7 +39,6 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
         }
     }
 
-    // No path to End: step nodes from which End is not reachable.
     const reverseChildren = parents;
     const reachableFromEnd = bfsReachable(endNodes, reverseChildren);
     for (const n of graph.nodes)
@@ -63,7 +49,6 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
         }
     }
 
-    // Cycles: detect using DFS.
     const cycleNodes = detectCycleNodes(graph.nodes.map(n => n.id), children);
     if (cycleNodes.size > 0)
     {
@@ -74,10 +59,6 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
         warnings.push(`Cycle detected involving: ${labels}.`);
     }
 
-    // Ambiguous transitions: a single source with two or more outgoing edges
-    // that share the same non-default outcome cannot be interpreted reliably.
-    // Distinct outcomes pointing at the same target are NOT ambiguous and are
-    // intentionally preserved by the adapter.
     const outcomesBySource = new Map<string, Map<string, number>>();
     for (const e of graph.edges)
     {
@@ -100,13 +81,8 @@ export function validateWorkflowGraph(graph: WorkflowGraph): WorkflowGraphValida
         }
     }
 
-    // Invalid targets are already flagged by the adapter via INVALID_TARGET nodes.
-    // No additional check needed here.
-
     return { warnings };
 }
-
-// ── Private helpers ───────────────────────────────────────────────────────────
 
 function bfsReachable(
     sources: Set<string>,

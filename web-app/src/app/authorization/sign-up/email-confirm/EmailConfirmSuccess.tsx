@@ -27,7 +27,7 @@ const EmailConfirmSuccess = () =>
             id={"email-confirm-success-security-note"}
             align={"center"}
             italic>
-            <strong> Your account is protected </strong>.
+            <strong id={"email-confirm-success-strong-1"}> Your account is protected </strong>.
             Two-factor authentication (2FA) is enabled by default to enhance
             your account security. We also recommend keeping your password
             secure with a trusted password manager.

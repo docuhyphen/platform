@@ -47,7 +47,7 @@ const NotificationsPanel: React.FC = () =>
                     )}
                 </div>
             </PopoverTrigger>
-            <PopoverSurface>
+            <PopoverSurface id={"notifications-panel-popover-surface-1"}>
                 <div
                     id="notifications-panel-content"
                     className={styles.popoverContent}

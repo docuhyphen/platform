@@ -70,7 +70,7 @@ const ReviewItemContent = ({requestId, packageId, item, label}: Props) =>
                                     shape={"circular"}
                                     appearance={"subtle"}
                                     aria-label={`Preview version ${file.versionNumber} of ${label}`}
-                                    onClick={() => void files.open(file, "preview")}>
+                                    onClick={() => { void files.open(file, "preview"); }}>
                                 Preview
                             </Button>
                             <Button id={`${id}-evidence-${file.evidenceVersionId}-download`}
@@ -78,7 +78,7 @@ const ReviewItemContent = ({requestId, packageId, item, label}: Props) =>
                                     shape={"circular"}
                                     appearance={"subtle"}
                                     aria-label={`Download version ${file.versionNumber} of ${label}`}
-                                    onClick={() => void files.open(file, "content")}>
+                                    onClick={() => { void files.open(file, "content"); }}>
                                 Download
                             </Button>
                         </li>

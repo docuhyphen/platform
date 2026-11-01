@@ -5,12 +5,6 @@ import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.util.*
 
-/**
- * One internal participant default attached to a [BlueprintDefinition]. Replaces the
- * `participants[]` array formerly embedded in `config_json`. The principal is polymorphic
- * (`principalKind` is the blueprint-level token APP_USER or PRINCIPAL_GROUP), so there is no
- * single FK target; `principalId` is stored as text to round-trip the value losslessly.
- */
 @Entity
 @Serializable
 @Table(name = "blueprint_participant_default")

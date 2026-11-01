@@ -1,25 +1,24 @@
-import React from "react";
 
 export const usingExchangeFieldsArticle = (
     <>
         <p id={"using-exchange-fields-intro-paragraph"}>
             Once your organization has published at least one schema, Exchange creators can
             attach it to an Exchange and record typed business values against it. The Exchange{" "}
-            <b>Details</b> tab is shown when your own plan includes Business Fields.
+            <b id={"using-exchange-fields-article-b-1"}>Details</b> tab is shown when your own plan includes Business Fields.
         </p>
 
         <h3 id={"using-exchange-fields-assigning-a-schema-heading"}>Assigning a schema</h3>
         <p id={"using-exchange-fields-assigning-a-schema-paragraph"}>
             You can classify an Exchange in two places. When you start a new Exchange and your
             organization has at least one eligible published schema, the creation wizard shows a
-            <b> Business Fields</b> step. Search by schema name, namespace, or schema key, then pick
-            a schema and fill in its values before you select <b>Start Exchange</b>. The values are
+            <b id={"using-exchange-fields-article-b-2"}> Business Fields</b> step. Search by schema name, namespace, or schema key, then pick
+            a schema and fill in its values before you select <b id={"using-exchange-fields-article-b-3"}>Start Exchange</b>. The values are
             saved with the Exchange as it is created. You can also do this later: open an Exchange
-            and select the <b>Details</b> tab.
+            and select the <b id={"using-exchange-fields-article-b-4"}>Details</b> tab.
         </p>
         <p id={"using-exchange-fields-assigning-a-schema-paragraph-2"}>
-            While the Exchange is still a draft (status <b>Pending</b>), choose a published schema
-            from the list and select <b>Assign</b>. Each Exchange has one primary schema assignment,
+            While the Exchange is still a draft (status <b id={"using-exchange-fields-article-b-5"}>Pending</b>), choose a published schema
+            from the list and select <b id={"using-exchange-fields-article-b-6"}>Assign</b>. Each Exchange has one primary schema assignment,
             pinned to the schema version that was current when you assigned it.
         </p>
         <p id={"using-exchange-fields-assigning-a-schema-paragraph-3"}>
@@ -28,14 +27,14 @@ export const usingExchangeFieldsArticle = (
             Someone who has been given edit access can still fill in and save values against the
             schema you assigned, but cannot swap it for another schema or remove it. The Details tab
             shows each control only to the people allowed to use it: without owner or administrator
-            access you see no schema list and no <b>Remove schema</b>, and without edit access the
+            access you see no schema list and no <b id={"using-exchange-fields-article-b-7"}>Remove schema</b>, and without edit access the
             values are shown read-only.
         </p>
 
         <h3 id={"using-exchange-fields-removing-a-schema-heading"}>Removing a schema</h3>
         <p id={"using-exchange-fields-removing-a-schema-paragraph"}>
-            While the Exchange is <b>Pending</b>, an owner or administrator can select{" "}
-            <b>Remove schema</b> on the schema summary and confirm. Removing the schema also removes
+            While the Exchange is <b id={"using-exchange-fields-article-b-8"}>Pending</b>, an owner or administrator can select{" "}
+            <b id={"using-exchange-fields-article-b-9"}>Remove schema</b> on the schema summary and confirm. Removing the schema also removes
             every value recorded against it on that Exchange; earlier recorded versions of those
             values stay on record. You can then assign another schema.
         </p>
@@ -45,7 +44,7 @@ export const usingExchangeFieldsArticle = (
             After a schema is assigned, the Details tab shows an editor for each field. The
             control matches the field type: a text box, a Yes or No choice, a number, a
             date picker, or a selection dropdown. Required fields are marked, and read-only
-            fields cannot be changed. Select <b>Save values</b> to store them. Values are
+            fields cannot be changed. Select <b id={"using-exchange-fields-article-b-10"}>Save values</b> to store them. Values are
             validated on the server against the schema before they are saved.
         </p>
         <p id={"using-exchange-fields-entering-values-paragraph-2"}>
@@ -65,22 +64,22 @@ export const usingExchangeFieldsArticle = (
         <p id={"using-exchange-fields-entering-values-paragraph-4"}>
             Every change to an Exchange&apos;s Fields carries that protection. Saving values and
             removing the schema each states the version of the values it read in the{" "}
-            <b>If-Match</b> header, and a change stating no version is refused. Removing the schema is
+            <b id={"using-exchange-fields-article-b-11"}>If-Match</b> header, and a change stating no version is refused. Removing the schema is
             refused when the values changed after they were read. Choosing a schema states that the
-            Exchange had no schema when it was read, using <b>If-None-Match: *</b>, so when someone
+            Exchange had no schema when it was read, using <b id={"using-exchange-fields-article-b-12"}>If-None-Match: *</b>, so when someone
             else chose one in the meantime nothing changes and the tab shows the schema they chose.
         </p>
         <p id={"using-exchange-fields-entering-values-paragraph-5"}>
             Every change to a value is recorded against the person or recipient that made it, and
             each earlier value is kept rather than overwritten. Values filled in from a schema
             default when the schema is assigned are recorded the same way. Administrators can see
-            that values changed, when, and who changed them under <b>Settings</b> in the{" "}
-            <b>Audit</b> tab; the values themselves are never copied into the audit trail, so they
+            that values changed, when, and who changed them under <b id={"using-exchange-fields-article-b-13"}>Settings</b> in the{" "}
+            <b id={"using-exchange-fields-article-b-14"}>Audit</b> tab; the values themselves are never copied into the audit trail, so they
             stay governed by the sharing rules below. A save that stores nothing new is not recorded
             as a change.
         </p>
         <p id={"using-exchange-fields-entering-values-paragraph-6"}>
-            A Yes or No field has three states, not two: <b>Yes</b>, <b>No</b>, and not answered. A
+            A Yes or No field has three states, not two: <b id={"using-exchange-fields-article-b-15"}>Yes</b>, <b id={"using-exchange-fields-article-b-16"}>No</b>, and not answered. A
             field you have not reached yet is left unanswered rather than recorded as No, and a
             deliberate No is stored as an answer. Use the clear control on the choice to take an
             answer back. A field with one choice from a list has the same clear control; a field
@@ -96,12 +95,12 @@ export const usingExchangeFieldsArticle = (
 
         <h3 id={"using-exchange-fields-read-only-fields-heading"}>Read-only fields</h3>
         <p id={"using-exchange-fields-read-only-fields-paragraph"}>
-            A field the schema marks <b>Read only</b> is shown on the Details tab with a Read only
+            A field the schema marks <b id={"using-exchange-fields-article-b-17"}>Read only</b> is shown on the Details tab with a Read only
             badge, and its control is disabled there and in the creation wizard. The server refuses
             a value sent for one whoever sends it, so nobody fills one in by another route.
         </p>
         <p id={"using-exchange-fields-read-only-fields-paragraph-2"}>
-            A read-only field is filled only from the <b>Default value</b> set for it in the schema
+            A read-only field is filled only from the <b id={"using-exchange-fields-article-b-18"}>Default value</b> set for it in the schema
             editor, which is recorded on the Exchange the moment the schema is assigned. Blueprint
             field defaults do not fill it: they pre-fill the creation wizard, which never sends a
             read-only field.
@@ -109,8 +108,8 @@ export const usingExchangeFieldsArticle = (
 
         <h3 id={"using-exchange-fields-when-values-can-change-heading"}>When values can change</h3>
         <p id={"using-exchange-fields-when-values-can-change-paragraph"}>
-            Fields can be assigned, edited, and removed only while the Exchange is <b>Pending</b>.
-            Once the Exchange becomes <b>Active</b> or is ended, the Details tab shows the
+            Fields can be assigned, edited, and removed only while the Exchange is <b id={"using-exchange-fields-article-b-19"}>Pending</b>.
+            Once the Exchange becomes <b id={"using-exchange-fields-article-b-20"}>Active</b> or is ended, the Details tab shows the
             recorded values as read-only. This keeps the business data consistent with the
             point at which the Exchange started.
         </p>
@@ -128,7 +127,7 @@ export const usingExchangeFieldsArticle = (
         <p id={"using-exchange-fields-visibility-paragraph"}>
             Access to an Exchange is still governed by its sharing rules. Members of the
             organization that owns the Exchange see every field value. Recipients from another
-            organization only see fields the schema makes <b>Public</b>, and only when their own
+            organization only see fields the schema makes <b id={"using-exchange-fields-article-b-21"}>Public</b>, and only when their own
             plan includes Business Fields, because that is what shows them the Details tab. When none
             of a schema&apos;s fields are shared with them, the Details tab shows a message that no
             fields have been shared, rather than an empty schema summary.

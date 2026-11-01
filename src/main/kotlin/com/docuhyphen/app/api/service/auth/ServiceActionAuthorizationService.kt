@@ -6,11 +6,6 @@ import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 
-/**
- * Action-level authorization checks for user/org settings flows. Roles are resolved through
- * [UserRoleService] (organization_membership_role and app_role_assignment), the legacy `AppUser.role`
- * enum is gone.
- */
 @ApplicationScoped
 class ServiceActionAuthorizationService @Inject constructor(
     private val userRoleService: UserRoleService,
@@ -18,13 +13,7 @@ class ServiceActionAuthorizationService @Inject constructor(
 {
     fun validateAppUserPhoneNumberModification(appUser: AppUser)
     {
-        // Normal users may manage their phone number; application admins operate as users and
-        // are not the target of this self-service flow.
         //ToDO: admins must be able to update org phone numbers
-//        if (userRoleService.isAppAdmin(appUser.id))
-//        {
-//            throw UnauthorizedException("Application administrators cannot add a phone number here")
-//        }
     }
 
     fun validateAppUserEmailModification(appUser: AppUser)
@@ -42,7 +31,6 @@ class ServiceActionAuthorizationService @Inject constructor(
 
     fun validateUpdateAppUserSettings(appUser: AppUser, targetUser: AppUser)
     {
-        // (Intentionally permissive, retained from the legacy implementation.)
     }
 
     fun validateUpdateNotificationSettings(appUser: AppUser, targetUser: AppUser)
@@ -59,8 +47,6 @@ class ServiceActionAuthorizationService @Inject constructor(
         throw UnauthorizedException("User cannot update document preview settings")
     }
 
-    // Organization Settings validation methods
-
     fun validateUpdateOrganizationSettings(appUser: AppUser)
     {
         if (userRoleService.isOrgAdmin(appUser.id)) return
@@ -70,7 +56,7 @@ class ServiceActionAuthorizationService @Inject constructor(
     fun validateUpdateTrustedOrganizationB2bSetting(appUser: AppUser)
     {
         if (userRoleService.isOrgAdmin(appUser.id)) return
-        throw UnauthorizedException("Only organization admins can update exchange settings")
+        throw UnauthorizedException("Only organization admins can update Exchange settings")
     }
 
     fun validateUpdateProfileUpdatePermission(appUser: AppUser)
@@ -84,8 +70,6 @@ class ServiceActionAuthorizationService @Inject constructor(
         if (userRoleService.isOrgAdmin(appUser.id)) return
         throw UnauthorizedException("Only organization admins can update email update permissions")
     }
-
-    // Validation for user profile/email updates based on org settings
 
     fun validateUserProfileUpdate(appUser: AppUser, organization: Organization)
     {

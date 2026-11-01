@@ -6,7 +6,7 @@ import com.docuhyphen.app.api.model.informationrequest.evidence.InformationReque
 import com.docuhyphen.app.api.model.informationrequest.response.InformationRequestCompletenessItemState
 import com.docuhyphen.app.api.model.informationrequest.review.*
 import com.docuhyphen.app.api.model.informationrequest.submission.InformationRequestSubmissionPackageView
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.RevisionETag
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
 import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequestSupport

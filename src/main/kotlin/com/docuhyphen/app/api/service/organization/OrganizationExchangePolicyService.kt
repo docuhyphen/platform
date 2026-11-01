@@ -8,24 +8,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Enforces an organization's outbound-sharing policy on the share-initiation path. The policy
- * distinguishes by the **nature of the recipient**, because sharing to a person is not
- * the same act as federating into another managed tenant:
- *
- *   * **B2C, recipient is an individual with no organization.** Allowed by default. Gated only by
- *     [OrganizationSettings.allowExternalCustomerSharing] (**default `true`**); an org may opt out.
- *     This is the headline B2C topology and must be ergonomic out of the box.
- *   * **Internal, recipient is in the initiator's own org.** Always allowed.
- *   * **B2B, recipient belongs to another organization.** When the initiator org has
- *     [OrganizationSettings.requireTrustedOrganizationForB2b] set (**default `true`**), the share is
- *     allowed only when both organizations, the relationship, and both directional policies are
- *     currently eligible. When the requirement is disabled, B2B sharing is unrestricted.
- *
- * The caller supplies its validated active organization explicitly. When it is null the initiator
- * belongs to no organization for this action, the policy is an org-level control and there is no org
- * to read the settings from, so the share is unconstrained.
- */
 @ApplicationScoped
 class OrganizationExchangePolicyService @Inject constructor(
     private val organizationService: OrganizationService,
@@ -39,11 +21,6 @@ class OrganizationExchangePolicyService @Inject constructor(
         private val logger = LoggerFactory.getLogger(OrganizationExchangePolicyService::class.java)
     }
 
-    /**
-     * Throws [IllegalArgumentException] when the initiator's org policy forbids the share.
-     * [recipientAppUserId] is null for recipients with no resolvable account (e.g. a brand-new
-     * external email), treated as an external individual (B2C).
-     */
     fun assertCanShareWithUser(
         callerOrganizationId: UUID?,
         initiatorAppUserId: UUID,
@@ -60,12 +37,8 @@ class OrganizationExchangePolicyService @Inject constructor(
             ?.let { organizationMembershipService.activeOrganizationIds(it) }
             ?: emptySet()
 
-        // Internal share (same org) is always allowed.
         if (initiatorOrgId in recipientOrgIds) return
 
-        // B2C, recipient is an external individual with no org. Allowed by default; an org may
-        // opt out via allowExternalCustomerSharing. Audit-logged because it bypasses the B2B trust
-        // gate, so admins retain visibility into external-customer shares.
         if (recipientOrgIds.isEmpty())
         {
             val allowExternalCustomerSharing = settings?.allowExternalCustomerSharing ?: true
@@ -79,7 +52,6 @@ class OrganizationExchangePolicyService @Inject constructor(
             return
         }
 
-        // B2B, recipient belongs to another organization.
         val requireTrustedOrganizationForB2b = settings?.requireTrustedOrganizationForB2b ?: true
         if (!requireTrustedOrganizationForB2b) return
         if (recipientOrgIds.any {

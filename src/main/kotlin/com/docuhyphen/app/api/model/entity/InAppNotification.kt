@@ -11,10 +11,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Persisted in-app notification (the inbox). Written by the [InAppChannel] delivery bean
- * and pushed to connected WebSocket clients (iteration 5 wires the WS endpoint).
- */
 @Entity
 @Serializable
 @Table(name = "in_app_notification")

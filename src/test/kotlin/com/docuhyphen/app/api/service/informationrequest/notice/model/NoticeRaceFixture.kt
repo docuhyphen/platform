@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.notice.model
 
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.time.Instant
 import java.util.*
 

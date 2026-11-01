@@ -41,7 +41,7 @@ const StepUpModal: React.FC = () =>
                     <DialogContent id={"step-up-dialog-content"}>
                         <StepUpVerification
                             method={isOtpFlow ? "INTERNAL_EMAIL_OTP" : "EXTERNAL_RELOGIN"}
-                            actionLabel={<>continue with <b>{friendlyStepUpActionLabel(prompt?.action)}</b></>}
+                            actionLabel={<>continue with <b id={"step-up-modal-b-1"}>{friendlyStepUpActionLabel(prompt?.action)}</b></>}
                             provider={prompt?.provider}
                             message={verificationMessage}
                             error={displayError}

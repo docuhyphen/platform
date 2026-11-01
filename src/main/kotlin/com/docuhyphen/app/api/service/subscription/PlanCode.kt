@@ -1,10 +1,5 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * The commercial plans DocuHyphen sells. `FREE` and `PERSONAL` are owned by an individual
- * registered user. `BUSINESS` is owned by a registered organization and is priced per
- * purchased seat.
- */
 enum class PlanCode
 {
     FREE,

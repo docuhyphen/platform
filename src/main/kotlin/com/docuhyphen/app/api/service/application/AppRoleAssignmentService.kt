@@ -21,15 +21,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Write-side API over app role assignments. Lets multiple App Admins be
- * granted / revoked at runtime, with a "never drop below one effective App Admin" invariant. App roles
- * are *additive*, a user keeps all their org/group/personal grants; an APP_ADMIN row simply
- * unions APP-wide capabilities on top (see [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService]).
- *
- * Authorization of *who* may call grant/revoke lives at the endpoint
- * ([com.docuhyphen.app.api.resource.application.AppRoleResource]); this service trusts its actorId.
- */
 @ApplicationScoped
 class AppRoleAssignmentService @Inject constructor(
     private val appRoleAssignmentRepository: AppRoleAssignmentRepository,
@@ -43,7 +34,6 @@ class AppRoleAssignmentService @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(AppRoleAssignmentService::class.java)
 
-        /** Roles that may be granted at APP scope via this service. */
         private val GRANTABLE_APP_ROLES = setOf(
             AppRoleName.APP_ADMIN,
             AppRoleName.APP_AUDITOR,
@@ -51,7 +41,6 @@ class AppRoleAssignmentService @Inject constructor(
         )
     }
 
-    /** Effective APP_ADMIN assignments held by active, provisioned users. */
     fun listAppAdmins(actorId: UUID): List<AppRoleAssignment>
     {
         val assignments = appRoleAssignmentRepository.findActiveAppAdmins()
@@ -93,7 +82,6 @@ class AppRoleAssignmentService @Inject constructor(
         return candidates
     }
 
-    /** Require app administration privilege. Throws [SecurityException] if the actor lacks it. */
     fun requireAppAdmin(actorId: UUID, attemptedAction: String = "APP_ADMIN_OPERATION_DENIED")
     {
         if (!userRoleService.isAppAdmin(actorId))
@@ -109,7 +97,6 @@ class AppRoleAssignmentService @Inject constructor(
         }
     }
 
-    /** Grant an APP-scope role to a user. Idempotent: reactivates a soft-deleted row if present. */
     @Transactional
     fun grantAppRole(targetAppUserId: UUID, roleName: AppRoleName, actorId: UUID?): AppRoleAssignment
     {
@@ -162,9 +149,6 @@ class AppRoleAssignmentService @Inject constructor(
         return assignment
     }
 
-    /**
-     * Revoke (soft-delete) an APP-scope assignment. Refuses to remove the last effective APP_ADMIN.
-     */
     @Transactional
     fun revokeAppRole(assignmentId: UUID, actorId: UUID?)
     {
@@ -207,12 +191,6 @@ class AppRoleAssignmentService @Inject constructor(
         )
     }
 
-    /**
-     * First-run bootstrap: if no effective App Admin exists and `app.security.app-admin.bootstrap-email`
-     * names an existing user, promote them to APP_ADMIN. Idempotent and safe to run on every boot
-     * (incl. a fresh from-empty migration run). Blank/absent config disables it; an unmatched email
-     * is logged and skipped (the user can be created later and re-bootstrapped on the next boot).
-     */
     @Transactional
     fun bootstrapFirstAppAdmin(@Observes event: StartupEvent)
     {

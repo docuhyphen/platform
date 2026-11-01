@@ -16,15 +16,28 @@ export const useAuditEventCardListStyles = makeStyles({
     card: {
         display: "flex",
         flexDirection: "column",
+        alignItems: "stretch",
+        justifyContent: "flex-start",
         gap: tokens.spacingVerticalXS,
         padding: tokens.spacingVerticalS,
         borderRadius: tokens.borderRadiusMedium,
         backgroundColor: tokens.colorNeutralBackground3,
+        color: tokens.colorNeutralForeground1,
+        fontWeight: tokens.fontWeightRegular,
         cursor: "pointer",
         textAlign: "left",
         border: "none",
         width: "100%",
+        maxWidth: "none",
         minWidth: 0,
+        ":hover": {
+            backgroundColor: tokens.colorNeutralBackground3Hover,
+            color: tokens.colorNeutralForeground1,
+        },
+        ":hover:active": {
+            backgroundColor: tokens.colorNeutralBackground3Pressed,
+            color: tokens.colorNeutralForeground1,
+        },
     },
     cardTopRow: {
         display: "flex",

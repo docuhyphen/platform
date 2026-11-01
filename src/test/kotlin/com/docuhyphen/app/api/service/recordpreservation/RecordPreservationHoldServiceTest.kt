@@ -11,7 +11,7 @@ import com.docuhyphen.app.api.repository.recordpreservation.RecordDisposalClaimR
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldEventRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

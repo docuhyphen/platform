@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { layoutWorkflowGraph, stepNodeDimensions, terminalNodeDimensions } from "../workflowGraphLayout.ts";
 import { WorkflowGraphLayoutEdge, WorkflowGraphLayoutNode } from "../workflowGraphModels.ts";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
 const step = (id: string): WorkflowGraphLayoutNode => ({
     id,
     ...stepNodeDimensions(),
@@ -20,8 +18,6 @@ const edge = (source: string, target: string): WorkflowGraphLayoutEdge => ({
     target,
 });
 
-// ── empty input ───────────────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: empty input", () =>
 {
     it("returns an empty position map for zero nodes", () =>
@@ -31,8 +27,6 @@ describe("layoutWorkflowGraph: empty input", () =>
     });
 });
 
-// ── single node ───────────────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: single node", () =>
 {
     it("places a single node at an assigned position", () =>
@@ -41,8 +35,6 @@ describe("layoutWorkflowGraph: single node", () =>
         expect(layout.positions.has("a")).toBe(true);
     });
 });
-
-// ── linear chain ─────────────────────────────────────────────────────────────
 
 describe("layoutWorkflowGraph: linear chain", () =>
 {
@@ -60,8 +52,6 @@ describe("layoutWorkflowGraph: linear chain", () =>
         expect(xStep).toBeLessThan(xEnd);
     });
 });
-
-// ── determinism ───────────────────────────────────────────────────────────────
 
 describe("layoutWorkflowGraph: determinism", () =>
 {
@@ -99,8 +89,6 @@ describe("layoutWorkflowGraph: determinism", () =>
     });
 });
 
-// ── branches ─────────────────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: branching", () =>
 {
     it("handles condition branches without crashing", () =>
@@ -118,8 +106,6 @@ describe("layoutWorkflowGraph: branching", () =>
     });
 });
 
-// ── backward edge (cycle) ─────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: backward edge", () =>
 {
     it("does not crash when a backward edge exists", () =>
@@ -135,8 +121,6 @@ describe("layoutWorkflowGraph: backward edge", () =>
     });
 });
 
-// ── unreachable nodes ─────────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: unreachable nodes", () =>
 {
     it("still assigns positions to nodes not reachable from sources", () =>
@@ -148,16 +132,10 @@ describe("layoutWorkflowGraph: unreachable nodes", () =>
     });
 });
 
-// ── crossing reduction ───────────────────────────────────────────────────────
-
 describe("layoutWorkflowGraph: crossing reduction", () =>
 {
     it("reorders a rank by barycenter so parallel connectors do not cross", () =>
     {
-        // Rank 0 keeps its id-sorted order: a (top), b (bottom).
-        // With id-sorted rank 1 (x, y) the edges a->y and b->x would cross.
-        // The barycenter sweep should reorder rank 1 to [y, x] so a lines up
-        // with y and b lines up with x, matching their vertical order.
         const nodes = [step("a"), step("b"), step("x"), step("y")];
         const edges = [edge("a", "y"), edge("b", "x")];
         const layout = layoutWorkflowGraph(nodes, edges);

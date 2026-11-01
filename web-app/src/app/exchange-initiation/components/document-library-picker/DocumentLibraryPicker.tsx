@@ -1,17 +1,11 @@
-import React, {useEffect, useState} from 'react';
-import {
-    Badge,
-    Button,
-    Checkbox,
-    Spinner,
-    Tab,
-    TabList,
-    Text,
-} from '@fluentui/react-components';
+import React from 'react';
+import {Button, Spinner, Tab, TabList, Text} from '@fluentui/react-components';
 import {DocumentLibraryEntrySummaryDto} from '../../../models/models.tsx';
-import {listDocumentLibraryEntries} from '../../../../services/documentLibraryService.ts';
 import {BackIcon} from '../../../components/IconBundles.tsx';
 import {useExchangeInitiationStyles} from '../../ExchangeInitiationStyles.tsx';
+import {PickerTab, tabLabel} from './documentLibraryPickerTypes.ts';
+import {useDocumentLibraryPicker} from './useDocumentLibraryPicker.ts';
+import DocumentLibraryPickerEntry from './document-library-picker-entry/DocumentLibraryPickerEntry.tsx';
 
 interface DocumentLibraryPickerProps
 {
@@ -20,56 +14,19 @@ interface DocumentLibraryPickerProps
     enforcedScope?: PickerTab;
 }
 
-type PickerTab = 'PERSONAL' | 'ORG' | 'APP';
-
-const tabLabel: Record<PickerTab, string> = {
-    PERSONAL: 'My Documents',
-    ORG: 'Organization',
-    APP: 'Platform',
-};
-
 const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, onBack, enforcedScope}) =>
 {
     const styles = useExchangeInitiationStyles();
-    const [activeTab, setActiveTab] = useState<PickerTab>(enforcedScope ?? 'PERSONAL');
-    const [entries, setEntries] = useState<DocumentLibraryEntrySummaryDto[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-    useEffect(() =>
-    {
-        setSelectedIds(new Set());
-        setLoading(true);
-        setError(null);
-        listDocumentLibraryEntries({scope: activeTab})
-            .then(all =>
-            {
-                const visible = all.filter(e =>
-                    e.hasFile && e.isActive && (e.scope === 'PERSONAL' || e.isPublished),
-                );
-                setEntries(visible);
-            })
-            .catch(() => setError('Failed to load documents'))
-            .finally(() => setLoading(false));
-    }, [activeTab, enforcedScope]);
-
-    const toggleEntry = (id: string) =>
-    {
-        setSelectedIds(prev =>
-        {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    };
-
-    const handleConfirm = () =>
-    {
-        const selected = entries.filter(e => selectedIds.has(e.id));
-        onSelect(selected);
-    };
+    const {
+        activeTab,
+        setActiveTab,
+        entries,
+        loading,
+        error,
+        selectedIds,
+        toggleEntry,
+        selectedEntries,
+    } = useDocumentLibraryPicker(enforcedScope);
 
     const count = selectedIds.size;
 
@@ -78,7 +35,8 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             id="doc-library-picker"
             className={styles.docPickerContainer}
         >
-            <div className={styles.docPickerHeader}>
+            <div id={"document-library-picker-div-1"}
+                 className={styles.docPickerHeader}>
                 <Button
                     id="doc-picker-back-btn"
                     appearance="subtle"
@@ -93,7 +51,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
                     appearance="primary"
                     shape="circular"
                     disabled={count === 0}
-                    onClick={handleConfirm}
+                    onClick={() => onSelect(selectedEntries())}
                 >
                     {count > 0 ? `Add ${count} document${count === 1 ? '' : 's'}` : 'Add documents'}
                 </Button>
@@ -101,6 +59,7 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
 
             {!enforcedScope && (
                 <TabList
+                    id={"document-library-picker-tab-list-1"}
                     selectedValue={activeTab}
                     onTabSelect={(_, data) => setActiveTab(data.value as PickerTab)}
                 >
@@ -126,7 +85,8 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             )}
 
             {loading && (
-                <div className={styles.docPickerSpinnerWrapper}>
+                <div id={"document-library-picker-div-2"}
+                     className={styles.docPickerSpinnerWrapper}>
                     <Spinner
                         id="doc-picker-spinner"
                         size="medium"
@@ -154,57 +114,15 @@ const DocumentLibraryPicker: React.FC<DocumentLibraryPickerProps> = ({onSelect, 
             )}
 
             {!loading && !error && entries.length > 0 && (
-                <div className={styles.docPickerList}>
+                <div id={"document-library-picker-div-3"}
+                     className={styles.docPickerList}>
                     {entries.map(entry => (
-                        <div
+                        <DocumentLibraryPickerEntry
                             key={entry.id}
-                            id={`doc-picker-item-${entry.id}`}
-                            onClick={() => toggleEntry(entry.id)}
-                            className={`${styles.docPickerEntry} ${selectedIds.has(entry.id) ? styles.docPickerEntrySelected : ''}`}
-                        >
-                            <div className={styles.docPickerEntryHeader}>
-                                <Text
-                                    weight="semibold"
-                                    size={400}
-                                >
-                                    {entry.title}
-                                </Text>
-                                <Checkbox
-                                    id={`doc-picker-check-${entry.id}`}
-                                    checked={selectedIds.has(entry.id)}
-                                    onChange={() => toggleEntry(entry.id)}
-                                    onClick={e => e.stopPropagation()}
-                                />
-                            </div>
-                            {entry.description && (
-                                <Text
-                                    size={200}
-                                    className={styles.docPickerEntryDescription}
-                                >
-                                    {entry.description}
-                                </Text>
-                            )}
-                            <div className={styles.docPickerEntryTagRow}>
-                                {entry.documentType && (
-                                    <Badge
-                                        appearance="tint"
-                                        color="informative"
-                                        size="small"
-                                    >
-                                        {entry.documentType}
-                                    </Badge>
-                                )}
-                                {entry.generalTags.map(tag => (
-                                    <Badge
-                                        key={tag}
-                                        appearance="tint"
-                                        size="small"
-                                    >
-                                        {tag}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
+                            entry={entry}
+                            selected={selectedIds.has(entry.id)}
+                            onToggle={toggleEntry}
+                        />
                     ))}
                 </div>
             )}

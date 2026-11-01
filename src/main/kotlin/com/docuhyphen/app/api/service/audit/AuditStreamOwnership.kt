@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import java.util.*
 
 object AuditStreamOwnership {

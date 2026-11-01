@@ -18,10 +18,6 @@ interface OrganizationPickerDialogProps
     onSelect: (organizationId: string) => void;
 }
 
-/**
- * Presentation-only dialog that asks the caller to pick which organization to act within.
- * Non-dismissible while open: there is no sensible cancel when a choice is required.
- */
 const OrganizationPickerDialog: React.FC<OrganizationPickerDialogProps> = (
     {
         isOpen,
@@ -35,15 +31,17 @@ const OrganizationPickerDialog: React.FC<OrganizationPickerDialogProps> = (
         <Dialog modalType="alert"
                 open={isOpen}>
             <DialogSurface id={"organization-picker-dialog-surface"}>
-                <DialogBody>
-                    <DialogTitle>
+                <DialogBody id={"organization-picker-dialog-dialog-body-1"}>
+                    <DialogTitle id={"organization-picker-dialog-dialog-title-1"}>
                         Select an organization
                     </DialogTitle>
-                    <DialogContent className={styles.content}>
-                        <Text>
+                    <DialogContent id={"organization-picker-dialog-dialog-content-1"}
+                                   className={styles.content}>
+                        <Text id={"organization-picker-dialog-text-1"}>
                             You belong to more than one organization. Choose the one you want to work in.
                         </Text>
-                        <div className={styles.orgList}>
+                        <div id={"organization-picker-dialog-div-1"}
+                             className={styles.orgList}>
                             {organizations.map(org => (
                                 <Button id={`organization-picker-option-${org.organizationId}`}
                                         key={org.organizationId}

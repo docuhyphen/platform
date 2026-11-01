@@ -52,11 +52,12 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                         <TableRow
                             id={`platform-organization-row-${organization.organizationId}`}
                             key={organization.organizationId}>
-                            <TableCell>
-                                <Text weight={"semibold"}>{organization.name}</Text>
+                            <TableCell id={"organizations-table-table-cell-1"}>
+                                <Text id={"organizations-table-text-1"}
+                                      weight={"semibold"}>{organization.name}</Text>
                             </TableCell>
-                            <TableCell>{organization.registrationNumber}</TableCell>
-                            <TableCell>
+                            <TableCell id={"organizations-table-table-cell-2"}>{organization.registrationNumber}</TableCell>
+                            <TableCell id={"organizations-table-table-cell-3"}>
                                 <Badge
                                     id={`platform-organization-active-status-${organization.organizationId}`}
                                     appearance={"tint"}>
@@ -69,11 +70,12 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                                     {organization.verificationComplete ? "Verified" : "Unverified"}
                                 </Badge>
                             </TableCell>
-                            <TableCell>{organization.tierCode}</TableCell>
-                            <TableCell>
+                            <TableCell id={"organizations-table-table-cell-4"}>{organization.tierCode}</TableCell>
+                            <TableCell id={"organizations-table-table-cell-5"}>
                                 {organization.activeUsers} / {organization.maxUsers ?? "Unlimited"}
                             </TableCell>
-                            <TableCell className={styles.actions}>
+                            <TableCell id={"organizations-table-table-cell-6"}
+                                       className={styles.actions}>
                                 <Button
                                     id={`platform-organization-edit-${organization.organizationId}`}
                                     appearance={"subtle"}
@@ -87,7 +89,8 @@ const OrganizationsTable = ({organizations, onEdit}: OrganizationsTableProps) =>
                     ))}
                     {organizations.length === 0 && (
                         <TableRow id={"platform-organizations-empty-row"}>
-                            <TableCell colSpan={7}>
+                            <TableCell id={"organizations-table-table-cell-7"}
+                                       colSpan={7}>
                                 <Text id={"platform-organizations-empty-message"}>
                                     No organizations match the current filters.
                                 </Text>

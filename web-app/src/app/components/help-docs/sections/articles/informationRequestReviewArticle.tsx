@@ -21,35 +21,35 @@ export const informationRequestReviewArticle = (
 
         <h3 id={"information-request-review-queue-heading"}>Your reviews</h3>
         <p id={"information-request-review-queue-help"}>
-            Open an assigned review from <b>Assigned to you</b> or the Exchange&apos;s Information Requests tab
-            with <b>Review</b>, whatever your
-            own plan. Queue entries name the request, Exchange and stage; a failed read offers <b>Try again</b>. The
+            Open an assigned review from <b id={"information-request-review-article-b-1"}>Assigned to you</b> or the Exchange&apos;s Information Requests tab
+            with <b id={"information-request-review-article-b-2"}>Review</b>, whatever your
+            own plan. Queue entries name the request, Exchange and stage; a failed read offers <b id={"information-request-review-article-b-3"}>Try again</b>. The
             review shows each routed item as it was submitted. Items you are not allowed to read,
             including a protected item when you have not verified your account in the last 5 minutes, show only that
             they exist and where they stand; their findings, comments, decision reasons, worksheet notes, and returned
             file names stay hidden. Anyone the review shows an item to can also open that item&apos;s submitted files.
-            A reviewer who needs more than the submission holds selects <b>Request more information</b> on the review
+            A reviewer who needs more than the submission holds selects <b id={"information-request-review-article-b-4"}>Request more information</b> on the review
             to start a supplemental request, as described under Follow-up requests.
-            The review says how many protected items wait for verification: select <b>Verify again</b> and confirm with
+            The review says how many protected items wait for verification: select <b id={"information-request-review-article-b-5"}>Verify again</b> and confirm with
             your account to see them, and saving or recording a decision about a protected item asks you to verify
-            first. <b>Review</b> on an Exchange&apos;s Information Requests tab opens <b>Reviews assigned to
+            first. <b id={"information-request-review-article-b-6"}>Review</b> on an Exchange&apos;s Information Requests tab opens <b id={"information-request-review-article-b-7"}>Reviews assigned to
             you</b> when it cannot open one review directly.
-            There a review whose request accepts no further changes shows <b>Stopped</b>, and one paused while its
-            owner&apos;s account is suspended shows <b>Changes paused</b>.
+            There a review whose request accepts no further changes shows <b id={"information-request-review-article-b-8"}>Stopped</b>, and one paused while its
+            owner&apos;s account is suspended shows <b id={"information-request-review-article-b-9"}>Changes paused</b>.
         </p>
 
         <h3 id={"information-request-review-assignments-heading"}>Reviewers</h3>
         <p id={"information-request-review-assignments-help"}>
             A new review waits for its first reviewer. People who manage the request find each review
-            in <b>Reviews</b> on the request&apos;s page, which says when one has no reviewer yet;<b> Open
+            in <b id={"information-request-review-article-b-10"}>Reviews</b> on the request&apos;s page, which says when one has no reviewer yet;<b id={"information-request-review-article-b-11"}> Open
             review</b> opens it and shows where each item stands, but not what it contains unless they may also review
             that item. The Reviewers panel lists who reviews each stage. Someone who manages the request&apos;s reviews
-            selects <b>Assign reviewer</b> to give a Reviewer party a stage, or <b>Remove</b> to take an assignment
-            back. An optional <b>Due</b> time, which cannot be one that has already passed, is shown with the
+            selects <b id={"information-request-review-article-b-12"}>Assign reviewer</b> to give a Reviewer party a stage, or <b id={"information-request-review-article-b-13"}>Remove</b> to take an assignment
+            back. An optional <b id={"information-request-review-article-b-14"}>Due</b> time, which cannot be one that has already passed, is shown with the
             assignment. Changed assignments state when and why they changed and any recorded explanation. An assigned
-            reviewer can<b> Recuse</b> or <b>Delegate</b> the stage to another Reviewer party,
+            reviewer can<b id={"information-request-review-article-b-15"}> Recuse</b> or <b id={"information-request-review-article-b-16"}>Delegate</b> the stage to another Reviewer party,
             and removing an assignment also needs a reason. Managers can also delegate another reviewer&apos;s
-            assignment. <b>Delegate</b> lists by name each other Reviewer party the
+            assignment. <b id={"information-request-review-article-b-17"}>Delegate</b> lists by name each other Reviewer party the
             stage still admits, and is not offered when there is none. A stage that has already settled takes no new
             reviewer, by assignment or delegation. Each stage states its rules, such as who may not review it and how
             many reviewers decide each item. Each person counts once: nobody is assigned to a stage twice through
@@ -63,15 +63,15 @@ export const informationRequestReviewArticle = (
 
         <h3 id={"information-request-review-items-heading"}>Working on an item</h3>
         <p id={"information-request-review-items-help"}>
-            Each item is named by its prompt. <b>Preview</b> and <b>Download</b> open the exact file version that was
+            Each item is named by its prompt. <b id={"information-request-review-article-b-18"}>Preview</b> and <b id={"information-request-review-article-b-19"}>Download</b> open the exact file version that was
             submitted,
             even after its submission is withdrawn or its entry removed. Preview opens inside the review; close it to
             return. A file still being read when you leave the review, or
-            once the review no longer shows it, is not opened. <b>Comment</b> adds to the item&apos;s conversation; a
+            once the review no longer shows it, is not opened. <b id={"information-request-review-article-b-20"}>Comment</b> adds to the item&apos;s conversation; a
             comment
             marked Reviewers only is never shown to the respondent. While a stage that permits it is open and has not
             decided an
-            item, a manager can <b>Override</b> the item&apos;s decision there with a reason, and a manager can <b>Add
+            item, a manager can <b id={"information-request-review-article-b-21"}>Override</b> the item&apos;s decision there with a reason, and a manager can <b id={"information-request-review-article-b-22"}>Add
             finding</b>{" "}
             on any item a stage reviews. Overriding, commenting, and a manager&apos;s finding on a protected item need
             the same
@@ -83,32 +83,32 @@ export const informationRequestReviewArticle = (
 
         <h3 id={"information-request-review-deciding-heading"}>Deciding</h3>
         <ul id={"information-request-review-deciding-list"}>
-            <li>
-                For each item choose <b>Satisfied</b>, <b>Satisfied with exception</b>,
-                <b> Waived</b>, <b>Changes required</b>, or <b>Rejected</b>, and add a reason.
+            <li id={"information-request-review-article-li-1"}>
+                For each item choose <b id={"information-request-review-article-b-23"}>Satisfied</b>, <b id={"information-request-review-article-b-24"}>Satisfied with exception</b>,
+                <b id={"information-request-review-article-b-25"}> Waived</b>, <b id={"information-request-review-article-b-26"}>Changes required</b>, or <b id={"information-request-review-article-b-27"}>Rejected</b>, and add a reason.
             </li>
-            <li>
-                <b>Save worksheet</b> keeps your choices as a draft. Nothing takes effect until you
-                select <b>Record decisions</b>, and recorded decisions cannot be changed.
+            <li id={"information-request-review-article-li-2"}>
+                <b id={"information-request-review-article-b-28"}>Save worksheet</b> keeps your choices as a draft. Nothing takes effect until you
+                select <b id={"information-request-review-article-b-29"}>Record decisions</b>, and recorded decisions cannot be changed.
             </li>
-            <li>
+            <li id={"information-request-review-article-li-3"}>
                 Satisfied with exception and Waived need a reason. Changes required and Rejected
                 need a finding for the item first. Waived is available only where the Template
                 allows the item to be waived.
             </li>
-            <li>
+            <li id={"information-request-review-article-li-4"}>
                 If your worksheet changed after you opened it, for example in another window, saving is
                 refused and the latest review is shown with your unsaved choices kept; save again. If it
                 changes elsewhere while your save is on its way, the review says so and shows the latest
-                saved choices, and nothing is recorded until you select <b>Record decisions</b> again.
+                saved choices, and nothing is recorded until you select <b id={"information-request-review-article-b-30"}>Record decisions</b> again.
             </li>
-            <li>
+            <li id={"information-request-review-article-li-5"}>
                 Choices you have not saved stay in place when the review reloads, for example after a finding, and when
-                it could not be loaded and you select <b>Try again</b>. If recording is interrupted, select <b>Record
+                it could not be loaded and you select <b id={"information-request-review-article-b-31"}>Try again</b>. If recording is interrupted, select <b id={"information-request-review-article-b-32"}>Record
                 decisions</b> again: it is sent as the same request, so the decisions are recorded once.
             </li>
-            <li>
-                When you review several open stages, choose one in <b>Stage you are deciding</b>; each keeps its own
+            <li id={"information-request-review-article-li-6"}>
+                When you review several open stages, choose one in <b id={"information-request-review-article-b-33"}>Stage you are deciding</b>; each keeps its own
                 unsaved choices, and once you record one the next open stage is shown. A stage you already decided, one
                 not yet open, or one closed to earlier reviewers after you decided an earlier stage is not offered.
             </li>

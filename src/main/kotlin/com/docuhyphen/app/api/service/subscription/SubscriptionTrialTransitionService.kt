@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.SubscriptionLifecycleUpdate
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialState
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialTransition
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

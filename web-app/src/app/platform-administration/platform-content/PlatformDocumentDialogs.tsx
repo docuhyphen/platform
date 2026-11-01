@@ -1,6 +1,6 @@
 import {DocumentLibraryEntrySummaryDto} from "../../models/models.tsx";
-import DocumentLibraryEditorDialog from "../../settings/document-library-tab/DocumentLibraryEditorDialog.tsx";
-import DocumentLibraryUploadDialog from "../../settings/document-library-tab/DocumentLibraryUploadDialog.tsx";
+import DocumentLibraryEditorDialog from "../../settings/document-library-tab/document-library-editor-dialog/DocumentLibraryEditorDialog.tsx";
+import DocumentLibraryUploadDialog from "../../settings/document-library-tab/document-library-upload-dialog/DocumentLibraryUploadDialog.tsx";
 import PlatformDocumentDeleteDialog from "./PlatformDocumentDeleteDialog.tsx";
 
 interface Props

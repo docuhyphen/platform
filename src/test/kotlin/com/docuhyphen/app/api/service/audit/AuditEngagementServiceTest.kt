@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditEngagementRequest
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuditEngagement
 import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
@@ -292,7 +293,7 @@ class AuditEngagementServiceTest
         organizationId: UUID,
         auditorUserId: UUID? = null,
         principalGroupId: UUID? = null,
-    ): AuditEngagementService.AuditEngagementRequest = AuditEngagementService.AuditEngagementRequest(
+    ): AuditEngagementRequest = AuditEngagementRequest(
         organizationId = organizationId,
         auditorUserId = auditorUserId,
         principalGroupId = principalGroupId,

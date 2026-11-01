@@ -1,11 +1,14 @@
 package com.docuhyphen.app.api.resource.organization
 
-import com.docuhyphen.app.api.resource.identity.ExternalIdentityResolutionResource
+import com.docuhyphen.app.api.resource.identity.operations.ExternalIdentityResolutionResourceOperations
 import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.model.dto.OrganizationTrustRelationshipDto
 import com.docuhyphen.app.api.resource.model.OrganizationDirectorySearchRequest
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationDirectorySearchResourceOperations
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationTrustRelationshipResourceOperations
 import com.docuhyphen.app.api.service.organization.OrganizationDirectorySearchService
 import com.docuhyphen.app.api.service.organization.OrganizationTrustCommandService
+import com.docuhyphen.app.api.service.organization.OrganizationTrustIdentifierParser
 import com.docuhyphen.app.api.service.organization.OrganizationTrustQueryService
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
@@ -52,6 +55,7 @@ class OrganizationTrustResourceContractTest
         val resource = OrganizationTrustRelationshipResource(
             mock<OrganizationTrustCommandService>(),
             queryService,
+            OrganizationTrustIdentifierParser(),
         )
 
         val response = resource.list()
@@ -76,9 +80,9 @@ class OrganizationTrustResourceContractTest
     {
         assertEquals(
             "organization-trust-relationships",
-            OrganizationTrustRelationshipResource::class.java.getAnnotation(Path::class.java).value,
+            OrganizationTrustRelationshipResourceOperations::class.java.getAnnotation(Path::class.java).value,
         )
-        val methods = OrganizationTrustRelationshipResource::class.java.declaredMethods
+        val methods = OrganizationTrustRelationshipResourceOperations::class.java.declaredMethods
         assertTrue(methods.any { it.isAnnotationPresent(GET::class.java) && it.name == "list" })
         assertTrue(methods.any { it.isAnnotationPresent(POST::class.java) && it.name == "create" })
         assertTrue(methods.any { it.isAnnotationPresent(PATCH::class.java) && it.name == "updatePolicy" })
@@ -97,10 +101,10 @@ class OrganizationTrustResourceContractTest
     {
         assertEquals(
             "organization-directory-searches",
-            OrganizationDirectorySearchResource::class.java.getAnnotation(Path::class.java).value,
+            OrganizationDirectorySearchResourceOperations::class.java.getAnnotation(Path::class.java).value,
         )
         assertTrue(
-            OrganizationDirectorySearchResource::class.java.declaredMethods
+            OrganizationDirectorySearchResourceOperations::class.java.declaredMethods
                 .single { it.name == "search" }
                 .isAnnotationPresent(POST::class.java),
         )
@@ -111,10 +115,10 @@ class OrganizationTrustResourceContractTest
     {
         assertEquals(
             "organizations/{targetOrganizationId}/external-identity-resolutions",
-            ExternalIdentityResolutionResource::class.java.getAnnotation(Path::class.java).value,
+            ExternalIdentityResolutionResourceOperations::class.java.getAnnotation(Path::class.java).value,
         )
         assertTrue(
-            ExternalIdentityResolutionResource::class.java.declaredMethods
+            ExternalIdentityResolutionResourceOperations::class.java.declaredMethods
                 .single { it.name == "resolve" }
                 .isAnnotationPresent(POST::class.java),
         )

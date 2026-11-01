@@ -8,13 +8,14 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.ExternalIdentityResolutionDtoTransformer
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.ExternalIdentityResolutionDto
-import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.ExternalIdentityResolution
 import com.docuhyphen.app.api.model.entity.OrganizationMembership
 import com.docuhyphen.app.api.model.entity.PrincipalKind
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
+import com.docuhyphen.app.api.model.organization.OrganizationMemberCaller
 import com.docuhyphen.app.api.repository.identity.ExternalIdentityResolutionRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -22,10 +23,9 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import com.docuhyphen.app.api.service.organization.OrganizationTrustConfigService
-import com.docuhyphen.app.api.service.organization.TrustedExchangePolicyValidation
 import com.docuhyphen.app.api.service.organization.TrustedRecipientValidationService
 import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
@@ -135,13 +135,6 @@ class ExternalIdentityResolutionService @Inject constructor(
         }
     }
 
-    /**
-     * Revalidates a stored resolution for use as a trusted-person Exchange recipient without
-     * consuming it. Confirms the resolution belongs to the initiating actor, caller organization,
-     * and its target organization, is unconsumed and unexpired, and that the current relationship,
-     * both party policies, the resolved account, and the exact target membership are still eligible.
-     * The single-use consumption happens later, under a row lock, in the Exchange transaction.
-     */
     fun prepareForInitiation(
         resolutionId: UUID,
         actorAppUserId: UUID,
@@ -218,7 +211,7 @@ class ExternalIdentityResolutionService @Inject constructor(
         return expired.size
     }
 
-    private fun currentCaller(): Caller
+    private fun currentCaller(): OrganizationMemberCaller
     {
         val organizationId = authTokenContext.activeOrganizationId
             ?: throw OrganizationTrustAuthorizationException("An active organization is required")
@@ -228,13 +221,13 @@ class ExternalIdentityResolutionService @Inject constructor(
         {
             throw OrganizationTrustAuthorizationException("Only an organization member can verify a trusted member")
         }
-        return Caller(principal.id, organizationId)
+        return OrganizationMemberCaller(principal.id, organizationId)
     }
 
-    private fun requireAuthorized(caller: Caller)
+    private fun requireAuthorized(caller: OrganizationMemberCaller)
     {
         val decision = authorizationService.authorize(
-            principal = com.docuhyphen.app.api.service.auth.authz.PrincipalRef.user(caller.appUserId),
+            principal = com.docuhyphen.app.api.model.auth.authz.PrincipalRef.user(caller.appUserId),
             action = Action.EXTERNAL_IDENTITY_RESOLVE,
             resource = ResourceRef.organization(caller.organizationId),
             context = authorizationContextFactory.currentContext(),
@@ -323,7 +316,7 @@ class ExternalIdentityResolutionService @Inject constructor(
         return UUID.nameUUIDFromBytes(ordered.joinToString(":").toByteArray(Charsets.UTF_8))
     }
 
-    private fun recordDenied(caller: Caller, targetOrganizationId: UUID)
+    private fun recordDenied(caller: OrganizationMemberCaller, targetOrganizationId: UUID)
     {
         auditRecorder.record(
             AuditEventDraft(
@@ -364,15 +357,6 @@ class ExternalIdentityResolutionService @Inject constructor(
     }
 
     private fun unavailable(): Nothing = throw ExternalIdentityResolutionUnavailableException()
-
-    data class PreparedPersonResolution(
-        val resolution: ExternalIdentityResolution,
-        val appUser: AppUser,
-        val membership: OrganizationMembership,
-        val validation: TrustedExchangePolicyValidation,
-    )
-
-    private data class Caller(val appUserId: UUID, val organizationId: UUID)
 
     companion object
     {

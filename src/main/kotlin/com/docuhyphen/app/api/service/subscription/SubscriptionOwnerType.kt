@@ -1,10 +1,5 @@
 package com.docuhyphen.app.api.service.subscription
 
-/**
- * Identifies which kind of principal owns and pays for a subscription. No-account recipients
- * are deliberately absent: they authenticate against an Exchange access token and never own a
- * subscription or consume a paid seat.
- */
 enum class SubscriptionOwnerType
 {
     USER,

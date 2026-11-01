@@ -3,20 +3,20 @@ export const informationRequestTemplateVersionsArticle = (
         <p id={"information-request-template-versions-intro"}>
             Every published Version of a Template stays fixed, and requests keep the Version they started with. Open a
             Template
-            and select the <b>Versions</b> tab to see each published and retired Version with the date it was published
+            and select the <b id={"information-request-template-versions-article-b-1"}>Versions</b> tab to see each published and retired Version with the date it was published
             or retired,
             and the content hash of the newest published Version, which configuration bundles name it by. The Version
-            the editor shows is marked <b>Shown</b>; select <b>View version</b> beside any other, published or retired,
-            to open it read-only. The badge in the heading then says which Version you are viewing, and <b>Show current
+            the editor shows is marked <b id={"information-request-template-versions-article-b-2"}>Shown</b>; select <b id={"information-request-template-versions-article-b-3"}>View version</b> beside any other, published or retired,
+            to open it read-only. The badge in the heading then says which Version you are viewing, and <b id={"information-request-template-versions-article-b-4"}>Show current
             version</b> returns to the draft or the newest published Version.
         </p>
 
         <h3 id={"information-request-template-versions-acting-heading"}>Acting on a Version</h3>
         <p id={"information-request-template-versions-acting-help"}>
-            When more than one Version is published, choose one in <b>Version to act on</b>. <b>Start a new draft from
+            When more than one Version is published, choose one in <b id={"information-request-template-versions-article-b-5"}>Version to act on</b>. <b id={"information-request-template-versions-article-b-6"}>Start a new draft from
             version</b>{" "}
-            opens a draft from it when no draft is open, <b>Retire version</b> stops new requests from using it, and
-            <b> Copy as a new Template</b> starts another Template from it. People who read a scope without authoring it
+            opens a draft from it when no draft is open, <b id={"information-request-template-versions-article-b-7"}>Retire version</b> stops new requests from using it, and
+            <b id={"information-request-template-versions-article-b-8"}> Copy as a new Template</b> starts another Template from it. People who read a scope without authoring it
             see only
             Templates with a published Version, and can still copy one into a scope they author.
         </p>
@@ -31,13 +31,13 @@ export const informationRequestTemplateVersionsArticle = (
             retired
             Version; with a draft open, no request can start from the Template until that draft is published. A Template
             whose
-            Versions are all retired shows <b>All versions retired</b> and opens its latest retired Version read-only,
+            Versions are all retired shows <b id={"information-request-template-versions-article-b-9"}>All versions retired</b> and opens its latest retired Version read-only,
             and its retired Versions stay listed.
         </p>
 
         <h3 id={"information-request-template-versions-copy-heading"}>Copying a Template</h3>
         <p id={"information-request-template-versions-copy-help"}>
-            <b>Copy as a new Template</b> asks where the copy goes when you can choose, its name, its key, and its
+            <b id={"information-request-template-versions-article-b-10"}>Copy as a new Template</b> asks where the copy goes when you can choose, its name, its key, and its
             description, which starts as the
             source&apos;s. The copy starts as a draft. Typed answers keep the Schema the copied Version names, so a copy
             for another

@@ -1,6 +1,6 @@
 ﻿import {makeStyles, tokens} from "@fluentui/react-components";
 
-export const useNoAuthExchangeDocumentListStyles = makeStyles({
+export const useNoAuthExchangeUserDecisionStyles = makeStyles({
 
     container: {
         display: "flex",
@@ -32,36 +32,6 @@ export const useNoAuthExchangeDocumentListStyles = makeStyles({
         '&:hover': {
             color: tokens.colorStatusDangerForeground1
         }
-    },
-
-    declineDialogContent: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalL,
-        padding: `${tokens.spacingVerticalL} 0`,
-        marginBottom: tokens.spacingVerticalL,
-    },
-
-    acceptDialogContent: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalL,
-        padding: `${tokens.spacingVerticalL} 0`,
-        marginBottom: tokens.spacingVerticalL,
-    },
-
-    otpInputGroup: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-    },
-
-    otpInput: {
-        width: "38px",
-        textAlign: "center",
-        fontSize: "20px",    },
-
-    helperText: {
-        color: tokens.colorNeutralForeground3,
     },
 
     srOnly: {

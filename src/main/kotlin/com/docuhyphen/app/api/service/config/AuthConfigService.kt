@@ -4,13 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 
-/**
- * Auth-specific configuration properties.
- *
- * Extracted from [ConfigurationService] to keep each CDI bean's generated constructor
- * well under the JVM 64 KB method bytecode limit (Quarkus ArC generates one Supplier<T>
- * per @ConfigProperty constructor parameter in the *_Bean wrapper class).
- */
 @ApplicationScoped
 class AuthConfigService @Inject constructor(
 

@@ -19,6 +19,7 @@ import {
     InformationRequestClockType,
     InformationRequestClockUrgency,
     InformationRequestPrivacyRequestKind,
+    InformationRequestWorkingPeriodDto,
 } from "../../app/models/models.tsx";
 
 vi.mock("../apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn()}}));
@@ -26,8 +27,8 @@ vi.mock("../apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn()}}));
 const definition = {
     clockType: InformationRequestClockType.CALENDAR,
     businessTimezone: "UTC",
-    workingPeriods: [],
-    holidays: [],
+    workingPeriods: [] as InformationRequestWorkingPeriodDto[],
+    holidays: [] as string[],
     standardDurationMinutes: 2880,
     urgentDurationMinutes: 480,
     reminderMinutesBeforeDue: [1440],

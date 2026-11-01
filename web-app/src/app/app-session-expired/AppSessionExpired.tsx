@@ -37,18 +37,26 @@ const AppSessionExpired: React.FC = () =>
     };
 
     return (
-        <div className={authorizationStyles.auth}>
-            <section className={authorizationStyles.authSection}>
-                <section className={authorizationStyles.authSection1}>
-                    <div>
+        <div id={"app-session-expired-div-1"}
+             className={authorizationStyles.auth}>
+            <section id={"app-session-expired-section-1"}
+                     className={authorizationStyles.authSection}>
+                <section id={"app-session-expired-section-2"}
+                         className={authorizationStyles.authSection1}>
+                    <div id={"app-session-expired-div-2"}>
                         <AppLogo/>
                     </div>
-                    <div className={authorizationStyles.authorizationFormSection}>
-                        <Subtitle1 align="center">Session Ended</Subtitle1>
-                        <MessageBar intent="warning">
-                            <MessageBarBody>{message}</MessageBarBody>
+                    <div id={"app-session-expired-div-3"}
+                         className={authorizationStyles.authorizationFormSection}>
+                        <Subtitle1 id={"app-session-expired-subtitle1-1"}
+                                   align="center">Session Ended</Subtitle1>
+                        <MessageBar id={"app-session-expired-message-bar-1"}
+                                    intent="warning">
+                            <MessageBarBody id={"app-session-expired-message-bar-body-1"}>{message}</MessageBarBody>
                         </MessageBar>
-                        <Text size={300} className={styles.mutedText}>
+                        <Text id={"app-session-expired-text-1"}
+                              size={300}
+                              className={styles.mutedText}>
                             For your security, sign in again to continue.
                         </Text>
                         <Button id={"app-session-expired-sign-in-btn"}
@@ -59,7 +67,8 @@ const AppSessionExpired: React.FC = () =>
                         </Button>
                     </div>
                 </section>
-                <section className={authorizationStyles.authSection2}>
+                <section id={"app-session-expired-section-3"}
+                         className={authorizationStyles.authSection2}>
                     <SignInCarousel/>
                 </section>
             </section>

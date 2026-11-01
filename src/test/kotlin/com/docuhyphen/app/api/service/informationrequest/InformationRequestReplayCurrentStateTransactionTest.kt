@@ -15,7 +15,7 @@ import com.docuhyphen.app.api.model.informationrequest.response.ResponseNarrativ
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.evidence.InformationRequestEvidenceArtifactRepository
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.conformance.ConformanceRequestSupport
 import com.docuhyphen.app.api.service.informationrequest.conformance.model.ConformanceRequest

@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.export.AuditExportBundleResult
 import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval

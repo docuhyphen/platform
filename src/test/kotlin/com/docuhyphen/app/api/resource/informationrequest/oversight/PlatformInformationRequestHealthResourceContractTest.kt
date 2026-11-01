@@ -6,8 +6,8 @@ import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthIndicatorKey
 import com.docuhyphen.app.api.model.informationrequest.oversight.InformationRequestHealthReport
 import com.docuhyphen.app.api.resource.informationrequest.oversight.operations.PlatformInformationRequestHealthResourceOperations
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestHealthService
 import io.quarkus.security.ForbiddenException

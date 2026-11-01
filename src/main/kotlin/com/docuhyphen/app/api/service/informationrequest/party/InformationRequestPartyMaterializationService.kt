@@ -10,7 +10,7 @@ import com.docuhyphen.app.api.model.informationrequest.creation.BlueprintInforma
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestPartyCopyResult
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

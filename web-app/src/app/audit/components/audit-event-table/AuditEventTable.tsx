@@ -30,7 +30,6 @@ interface AuditEventTableProps
     loading: boolean;
 }
 
-/** Shared, paginated table of ledger-backed audit events used across every audit surface. */
 const AuditEventTable = (
     {
         items,
@@ -90,18 +89,21 @@ const AuditEventTable = (
     if (!loading && items.length === 0)
     {
         return (
-            <Text id={"audit-event-table-empty"} className={styles.emptyText}>
+            <Text id={"audit-event-table-empty"}
+                  className={styles.emptyText}>
                 No audit events found.
             </Text>
         );
     }
 
     return (
-        <div id={"audit-event-table-container"} className={styles.container}>
+        <div id={"audit-event-table-container"}
+             className={styles.container}>
             <div
                 id={"audit-event-table-scrollable-content"}
                 className={styles.tableScroller}>
-                <Table id={"audit-event-table"} className={styles.table}>
+                <Table id={"audit-event-table"}
+                       className={styles.table}>
                     <AuditEventTableHeader className={styles.tableHeader}/>
                     <TableBody id={"audit-event-table-body"}>
                         {visibleItems.map((event) => (
@@ -111,14 +113,14 @@ const AuditEventTable = (
                                 className={styles.row}
                                 onClick={() => onEventClick(event)}
                             >
-                                <TableCell>{formatDateTime(event.occurredAt)}</TableCell>
-                                <TableCell>
+                                <TableCell id={"audit-event-table-table-cell-1"}>{formatDateTime(event.occurredAt)}</TableCell>
+                                <TableCell id={"audit-event-table-table-cell-2"}>
                                     <AuditCategoryBadge category={event.category}/>
                                 </TableCell>
-                                <TableCell>{formatAuditEventType(event.eventTypeKey)}</TableCell>
-                                <TableCell>{formatAuditOutcome(event.outcome)}</TableCell>
-                                <TableCell>{formatAuditActor(event.actorKind, event.actorLabel)}</TableCell>
-                                <TableCell>{formatAuditEntityLabel(event.targetLabel, event.targetType)}</TableCell>
+                                <TableCell id={"audit-event-table-table-cell-3"}>{formatAuditEventType(event.eventTypeKey)}</TableCell>
+                                <TableCell id={"audit-event-table-table-cell-4"}>{formatAuditOutcome(event.outcome)}</TableCell>
+                                <TableCell id={"audit-event-table-table-cell-5"}>{formatAuditActor(event.actorKind, event.actorLabel)}</TableCell>
+                                <TableCell id={"audit-event-table-table-cell-6"}>{formatAuditEntityLabel(event.targetLabel, event.targetType)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

@@ -16,17 +16,6 @@ import java.util.UUID
 private class FeatureEntitlementPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<FeatureEntitlementPostgreSQLContainer>(imageName)
 
-/**
- * A platform-administered decision to add or remove a product feature can only be recorded against
- * an organization, so an individual account is unreachable: whatever a person's plan omits, nobody
- * can grant it to them and nobody can take it away. Storage has to name the owner before a decision
- * about a person can exist at all.
- *
- * These contract tests hold the four facts that make the override owner-scoped and safe: the owner
- * is recorded, each owner type names exactly one owner, one owner's feature codes are their own even
- * when an organization id and a user id happen to be equal, and every decision already recorded
- * against an organization survives untouched.
- */
 class SubscriptionFeatureEntitlementOwnerContractTest
 {
     private val releasedVersion = "82"
@@ -95,7 +84,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
                         connection, UUID.randomUUID(), "USER", updatedBy = fixture.adminId,
                     )
                 }
-                // No third kind of owner exists, so a row claiming one names nobody.
                 refused(connection, "ck_subscription_feature_entitlement_owner") {
                     insertEntitlement(
                         connection, UUID.randomUUID(), "PLATFORM",
@@ -129,7 +117,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
                     appUserId = fixture.otherOwnerId, updatedBy = fixture.adminId,
                 )
 
-                // The same owner deciding the same feature twice has no answer.
                 refused(connection, "ux_subscription_feature_entitlement_owner_code") {
                     insertEntitlement(
                         connection, UUID.randomUUID(), "USER",
@@ -212,7 +199,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
                 assertEquals(true, enabledOf(connection, fixture.organizationEntitlementId))
                 assertEquals(false, enabledOf(connection, fixture.withdrawnEntitlementId))
 
-                // The feature codes that organization already decided are still its own alone.
                 refused(connection, "ux_subscription_feature_entitlement_owner_code") {
                     insertEntitlement(
                         connection, UUID.randomUUID(), "ORGANIZATION",
@@ -220,7 +206,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
                     )
                 }
 
-                // The same feature code is still available to a person, which is the point.
                 insertEntitlement(
                     connection, UUID.randomUUID(), "USER",
                     appUserId = fixture.ownerId, updatedBy = fixture.adminId,
@@ -229,8 +214,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
             }
         }
     }
-
-    // ── Fixture ─────────────────────────────────────────────────────────────────
 
     private class Fixture
     {
@@ -271,10 +254,6 @@ class SubscriptionFeatureEntitlementOwnerContractTest
         return configuration.load()
     }
 
-    /**
-     * A refused statement aborts the transaction it ran in, so each one is run in its own and rolled
-     * back. Everything inserted before it was committed as it went and survives.
-     */
     private fun refused(connection: Connection, expected: String, block: () -> Unit)
     {
         connection.autoCommit = false

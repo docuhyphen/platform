@@ -34,11 +34,12 @@ const IndividualOnboardingSubmitSection = ({
             appearance={"primary"}
             className={buttonWithLoadingClassName}>
             {registeringProfile &&
-                <Spinner size={"tiny"}/>}
+                <Spinner id={"individual-onboarding-submit-section-spinner-1"}
+                         size={"tiny"}/>}
             {!registeringProfile &&
-                <Text>Register profile</Text>}
+                <Text id={"individual-onboarding-submit-section-text-1"}>Register profile</Text>}
             {registeringProfile &&
-                <Text>Registering profile</Text>}
+                <Text id={"individual-onboarding-submit-section-text-2"}>Registering profile</Text>}
         </Button>
     </>
 );

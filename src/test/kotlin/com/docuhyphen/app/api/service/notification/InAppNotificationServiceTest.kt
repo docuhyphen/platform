@@ -3,7 +3,8 @@ package com.docuhyphen.app.api.service.notification
 import com.docuhyphen.app.api.model.InAppNotificationMapper
 import com.docuhyphen.app.api.model.entity.InAppNotification
 import com.docuhyphen.app.api.model.entity.NotificationChannelType
-import com.docuhyphen.app.api.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.notification.NotificationReadCriteria
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
 import com.docuhyphen.app.api.repository.notification.InAppNotificationRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

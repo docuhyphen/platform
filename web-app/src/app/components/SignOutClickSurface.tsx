@@ -34,8 +34,6 @@ const SignOutClickSurface: React.FC<SignOutButtonProps> = (
 
             try
             {
-                // Disconnect before the API call so that any EXCHANGE_REVOKED the server may
-                // send in response does not race with our own navigate('/sign-in') below.
                 realtimeService.disconnect();
                 await signOut(outOfAllDevices ?? false, token);
                 setToken(null);
@@ -53,7 +51,8 @@ const SignOutClickSurface: React.FC<SignOutButtonProps> = (
     };
 
     return (
-        <span onClick={handleSignOut}>
+        <span id={"sign-out-click-surface-span-1"}
+              onClick={handleSignOut}>
             Sign Out
         </span>
     );

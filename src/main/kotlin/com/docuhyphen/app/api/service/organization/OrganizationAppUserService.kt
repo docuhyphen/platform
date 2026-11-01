@@ -8,7 +8,8 @@ import com.docuhyphen.app.api.interceptor.EnforceAdminAction
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.OrganizationRoleName
 import com.docuhyphen.app.api.model.entity.Person
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.organization.OrganizationAppUserCheck
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.AuthenticationService
 import com.docuhyphen.app.api.service.communication.EmailService
@@ -398,6 +399,18 @@ class OrganizationAppUserService @Inject constructor(
             beforeSnapshot = beforeSnapshot,
             afterSnapshot = "deleted",
         )
+    }
+
+    fun passesCheck(organizationId: String?, appUserId: String?, check: String?): Boolean
+    {
+        if (check.isNullOrBlank())
+        {
+            return true
+        }
+        return when (OrganizationAppUserCheck.valueOf(check.uppercase()))
+        {
+            OrganizationAppUserCheck.DELETABLE -> isAppUserIsDeletable(organizationId, appUserId)
+        }
     }
 
     fun isAppUserIsDeletable(organizationId: String?, appUserId: String?): Boolean

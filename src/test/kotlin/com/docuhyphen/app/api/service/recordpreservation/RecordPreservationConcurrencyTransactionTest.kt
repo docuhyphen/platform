@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.RecordPreservationHoldStatus
 import com.docuhyphen.app.api.model.entity.RecordPreservationScope
 import com.docuhyphen.app.api.model.recordpreservation.RecordOwnerRef
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.recordpreservation.model.PlacedHold

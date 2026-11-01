@@ -1,791 +1,98 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {searchExchanges} from "../../../../services/exchangeApi.ts";
-import {Button, CounterBadge, List, mergeClasses, Tab, TabList, Text} from "@fluentui/react-components";
-import {ExchangeBasicDto, ExchangeStatus} from "../../../models/models.tsx";
+import React from 'react';
 import {useExchangeStyles} from "./ExchangeListStyles.tsx";
-import {
-    exchangeDeletionObservable,
-    exchangeInitiationObservable,
-    exchangeUpdatedObservable
-} from "../../../observable/exchangeObservables.ts";
-
-import ExchangeListSkeleton from "./exchange-list-skeleton/ExchangeListSkeleton.tsx";
-import ExchangeListItem from "./exchange-list-item/ExchangeListItem.tsx";
-import ExchangeListSidebarToggle from "./exchange-list-sidebar-toggle/ExchangeListSidebarToggle.tsx";
+import ExchangeListTabs from "./exchange-list-tabs/ExchangeListTabs.tsx";
+import ExchangeListHeader from "./exchange-list-header/ExchangeListHeader.tsx";
+import ExchangeListInboxRoleTabs from "./exchange-list-inbox-role-tabs/ExchangeListInboxRoleTabs.tsx";
 import ExchangeListSearchControls from "./exchange-list-search-controls/ExchangeListSearchControls.tsx";
-import ExchangeListPagination from "./exchange-list-pagination/ExchangeListPagination.tsx";
-import ExchangeListTabs, {ExchangeListTab} from "./exchange-list-tabs/ExchangeListTabs.tsx";
+import ExchangeListBody from "./exchange-list-body/ExchangeListBody.tsx";
+import ExchangeListFooter from "./exchange-list-footer/ExchangeListFooter.tsx";
 import {useIsMobile} from "../../../../utils/useMediaQuery.ts";
-import {realtimeService} from '../../../../services/NotificationService';
-import {useDelayedLoading} from "../../../../hooks/useDelayedLoading.ts";
+import {ExchangeListProps} from "./exchangeListTypes.ts";
+import {useExchangeList} from "./useExchangeList.ts";
+import {useExchangeSidebarCollapse} from "./useExchangeSidebarCollapse.ts";
 
-const SIDEBAR_COLLAPSED_STORAGE_KEY = 'exchanges.sidebar.isCollapsed';
+export type {ExchangeTabCounts, InboxRole} from "./exchangeListTypes.ts";
 
-export interface ExchangeTabCounts
-{
-    inbox: number;
-    active: number;
-    archive: number;
-}
-
-interface ExchangeListProps
-{
-    onSelectionChange: (exchangeId: string | null) => void;
-    onExchangeListChange?: (exchanges: ExchangeBasicDto[]) => void;
-    onTabChange?: (tab: ExchangeListTab) => void;
-    onInboxRoleChange?: (role: InboxRole) => void;
-    onTabCountsChange?: (counts: ExchangeTabCounts) => void;
-    onLoadingChange?: (loading: boolean) => void;
-    controlledSelectedId?: string | null;
-    controlledActiveTab?: ExchangeListTab;
-    controlledInboxRole?: InboxRole;
-}
-
-export type InboxRole = 'incoming' | 'outgoing';
-
-const getTabFilters = (tab: ExchangeListTab, inboxRole: InboxRole): { status: string; initiatedBy: boolean | null } =>
-{
-    switch (tab)
-    {
-        case 'inbox':
-            return {status: 'INITIATED', initiatedBy: inboxRole === 'incoming' ? false : true};
-        case 'active':
-            return {status: 'ACCEPTED_STARTED', initiatedBy: null};
-        case 'archive':
-            return {status: 'ENDED,REJECTED,RESCINDED', initiatedBy: null};
-    }
-};
-
-const isStatusInTab = (status: ExchangeStatus | undefined, tab: ExchangeListTab): boolean =>
-{
-    if (!status) return false;
-
-    switch (tab)
-    {
-        case 'inbox':
-            return status === ExchangeStatus.INITIATED;
-        case 'active':
-            return status === ExchangeStatus.ACCEPTED_STARTED;
-        case 'archive':
-            return (
-                status === ExchangeStatus.ENDED ||
-                status === ExchangeStatus.REJECTED ||
-                status === ExchangeStatus.RESCINDED
-            );
-        default:
-            return false;
-    }
-};
-
-const statusToTab = (status: ExchangeStatus | undefined): ExchangeListTab | null =>
-{
-    if (!status) return null;
-
-    if (status === ExchangeStatus.INITIATED) return 'inbox';
-    if (status === ExchangeStatus.ACCEPTED_STARTED) return 'active';
-    if (
-        status === ExchangeStatus.ENDED ||
-        status === ExchangeStatus.REJECTED ||
-        status === ExchangeStatus.RESCINDED
-    ) return 'archive';
-
-    return null;
-};
-
-const ExchangeList: React.FC<ExchangeListProps> = (
-    {
-        onSelectionChange,
-        onExchangeListChange,
-        onTabChange,
-        onInboxRoleChange,
-        onTabCountsChange,
-        onLoadingChange,
-        controlledSelectedId,
-        controlledActiveTab,
-        controlledInboxRole,
-    }) =>
+const ExchangeList: React.FC<ExchangeListProps> = (props) =>
 {
     const styles = useExchangeStyles();
     const isMobile = useIsMobile();
-    const [exchanges, setExchanges] = useState<ExchangeBasicDto[]>([]);
-    const [loadingExchanges, setLoadingExchanges] = useState(true);
-    const [hasListScrolled, setHasListScrolled] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() =>
-    {
-        if (typeof window === 'undefined') return false;
-        return window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
-    });
-    const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
-    const [selectedItems, setSelectedItems] = useState<string[]>(
-        () => controlledSelectedId ? [controlledSelectedId] : [],
-    );
-
-    const [activeTab, setActiveTab] = useState<ExchangeListTab>(controlledActiveTab ?? 'active');
-    const [inboxRole, setInboxRole] = useState<InboxRole>('incoming');
-    const [incomingCount, setIncomingCount] = useState(0);
-    const [outgoingCount, setOutgoingCount] = useState(0);
-    const [activeCount, setActiveCount] = useState(0);
-    const [archiveCount, setArchiveCount] = useState(0);
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [selectedInitiator, setSelectedInitiator] = useState<boolean | null>(null);
-    const [currentPage, setCurrentPage] = useState(0);
-    const [pageSize] = useState(30);
-    const [totalPages, setTotalPages] = useState(0);
-    const [totalElements, setTotalElements] = useState(0);
-    const [sortBy, setSortBy] = useState('createdDate');
-    const [sortDirection, setSortDirection] = useState('DESC');
-    const [realtimeRefreshVersion, setRealtimeRefreshVersion] = useState(0);
-
-    const isFirstRenderRef = useRef(true);
-    const latestFetchRequestIdRef = useRef(0);
-    const activeTabRef = useRef(activeTab);
-    const selectedItemsRef = useRef(selectedItems);
-    const inboxRoleRef = useRef(inboxRole);
-
-    const isFirstSearchEffectRef = useRef(true);
-    const searchEffectTabRef = useRef(activeTab);
-    const searchEffectRoleRef = useRef(inboxRole);
-    const showLoadingState = useDelayedLoading(loadingExchanges && exchanges.length === 0);
-
-    useEffect(() =>
-    {
-        activeTabRef.current = activeTab;
-    }, [activeTab]);
-
-    useEffect(() =>
-    {
-        selectedItemsRef.current = selectedItems;
-    }, [selectedItems]);
-
-    useEffect(() =>
-    {
-        inboxRoleRef.current = inboxRole;
-    }, [inboxRole]);
-
-    useEffect(() =>
-    {
-        if (typeof window === 'undefined') return;
-        window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isSidebarCollapsed));
-    }, [isSidebarCollapsed]);
-
-    useEffect(() =>
-    {
-        onLoadingChange?.(loadingExchanges);
-    }, [loadingExchanges, onLoadingChange]);
-
-    useEffect(() =>
-    {
-        return realtimeService.on('EXCHANGE_LIST_CHANGED', () =>
-        {
-            setRealtimeRefreshVersion((version) => version + 1);
-        });
-    }, []);
-
-    const fetchInboxRoleCounts = async () =>
-    {
-        try
-        {
-            const [incomingResponse, outgoingResponse] = await Promise.all([
-                searchExchanges(undefined, 'INITIATED', false, 0, 1, 'createdDate', 'DESC'),
-                searchExchanges(undefined, 'INITIATED', true, 0, 1, 'createdDate', 'DESC')
-            ]);
-
-            setIncomingCount(incomingResponse && !('error' in incomingResponse) ? incomingResponse.totalElements : 0);
-            setOutgoingCount(outgoingResponse && !('error' in outgoingResponse) ? outgoingResponse.totalElements : 0);
-        }
-        catch (error)
-        {
-            console.error(error);
-        }
-    };
-
-    const beginListScopeLoading = () =>
-    {
-        latestFetchRequestIdRef.current += 1;
-        setLoadingExchanges(true);
-        setHasListScrolled(false);
-    };
-
-    const fetchExchanges = async () =>
-    {
-        const requestId = ++latestFetchRequestIdRef.current;
-
-        try
-        {
-            setLoadingExchanges(true);
-
-            const tabFilters = getTabFilters(activeTab, inboxRole);
-            const effectiveInitiatedBy = tabFilters.initiatedBy !== null
-                ? tabFilters.initiatedBy
-                : (selectedInitiator ?? undefined);
-
-            const response = await searchExchanges(
-                searchQuery || undefined,
-                tabFilters.status,
-                effectiveInitiatedBy,
-                currentPage,
-                pageSize,
-                sortBy,
-                sortDirection
-            );
-
-            if (requestId !== latestFetchRequestIdRef.current)
-            {
-                return;
-            }
-
-            if (response && !('error' in response))
-            {
-                setExchanges(response.content);
-                setTotalPages(response.totalPages);
-                setTotalElements(response.totalElements);
-
-                if (activeTab === 'inbox')
-                {
-                    if (inboxRole === 'incoming') setIncomingCount(response.totalElements);
-                    else setOutgoingCount(response.totalElements);
-                }
-                else if (activeTab === 'active')
-                {
-                    setActiveCount(response.totalElements);
-                }
-                else
-                {
-                    setArchiveCount(response.totalElements);
-                }
-
-                if (response.content.length > 0 && selectedItemsRef.current.length === 0 && !isMobile)
-                {
-                    setSelectedItems([response.content[0].id]);
-                    onSelectionChange(response.content[0].id);
-                } else if (response.content.length === 0 && selectedItemsRef.current.length > 0)
-                {
-                    setSelectedItems([]);
-                    onSelectionChange(null);
-                }
-            }
-        }
-        catch (error)
-        {
-            console.error(error);
-        }
-        finally
-        {
-            if (requestId === latestFetchRequestIdRef.current)
-            {
-                setLoadingExchanges(false);
-            }
-        }
-    };
-
-    useEffect(() =>
-    {
-        onExchangeListChange?.(exchanges);
-    }, [exchanges]);
-
-    useEffect(() =>
-    {
-        onTabCountsChange?.({inbox: incomingCount, active: activeCount, archive: archiveCount});
-    }, [incomingCount, activeCount, archiveCount, onTabCountsChange]);
-
-    useEffect(() =>
-    {
-        if (loadingExchanges) return;
-
-        let cancelled = false;
-        const fetchCrossTabCounts = async () =>
-        {
-            try
-            {
-                const [activeResponse, archiveResponse] = await Promise.all([
-                    searchExchanges(undefined, 'ACCEPTED_STARTED', undefined, 0, 1, 'createdDate', 'DESC'),
-                    searchExchanges(undefined, 'ENDED,REJECTED,RESCINDED', undefined, 0, 1, 'createdDate', 'DESC')
-                ]);
-
-                if (cancelled) return;
-
-                setActiveCount(activeResponse && !('error' in activeResponse) ? activeResponse.totalElements : 0);
-                setArchiveCount(archiveResponse && !('error' in archiveResponse) ? archiveResponse.totalElements : 0);
-
-                await fetchInboxRoleCounts();
-            }
-            catch (error)
-            {
-                if (!cancelled)
-                {
-                    console.error(error);
-                }
-            }
-        };
-
-        fetchCrossTabCounts();
-
-        return () =>
-        {
-            cancelled = true;
-        };
-    }, [activeTab, loadingExchanges, exchanges.length, inboxRole]);
-
-    useEffect(() =>
-    {
-        if (controlledSelectedId && controlledSelectedId !== selectedItems[0])
-        {
-            setSelectedItems([controlledSelectedId]);
-        }
-    }, [controlledSelectedId]);
-
-    useEffect(() =>
-    {
-        if (!controlledActiveTab || controlledActiveTab === activeTab) return;
-
-        beginListScopeLoading();
-        setActiveTab(controlledActiveTab);
-        setCurrentPage(0);
-        setSearchQuery('');
-        setSelectedInitiator(null);
-        setSortBy('createdDate');
-        setSortDirection('DESC');
-        if (controlledActiveTab === 'inbox')
-        {
-            const nextRole = controlledInboxRole ?? 'incoming';
-            setInboxRole(nextRole);
-            onInboxRoleChange?.(nextRole);
-        }
-        if (controlledSelectedId)
-        {
-            setSelectedItems([controlledSelectedId]);
-            onSelectionChange(controlledSelectedId);
-        }
-        else
-        {
-            setSelectedItems([]);
-            onSelectionChange(null);
-        }
-        onTabChange?.(controlledActiveTab);
-    }, [controlledActiveTab, controlledSelectedId]);
-
-    useEffect(() =>
-    {
-        if (activeTab !== 'inbox') return;
-        if (!controlledInboxRole || controlledInboxRole === inboxRole) return;
-
-        beginListScopeLoading();
-        setInboxRole(controlledInboxRole);
-        setCurrentPage(0);
-    }, [controlledInboxRole, activeTab]);
-
-    useEffect(() =>
-    {
-        fetchExchanges();
-
-        const initiationSubscription = exchangeInitiationObservable.subscribe(exchange =>
-        {
-            if (exchange)
-            {
-                const targetTab = statusToTab(exchange.status) ?? 'inbox';
-                const isCurrentTab = targetTab === activeTabRef.current;
-
-                if (isCurrentTab)
-                {
-                    setExchanges(prevExchanges => [exchange, ...prevExchanges]);
-                    if (targetTab === 'inbox')
-                    {
-                        if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => prev + 1);
-                        else setOutgoingCount(prev => prev + 1);
-                    }
-                }
-                else
-                {
-                    beginListScopeLoading();
-                    setActiveTab(targetTab);
-                    setCurrentPage(0);
-                    setSearchQuery('');
-                    setSelectedInitiator(null);
-                    setSortBy('createdDate');
-                    setSortDirection('DESC');
-                    if (targetTab === 'inbox')
-                    {
-                        setInboxRole('outgoing');
-                        onInboxRoleChange?.('outgoing');
-                    }
-                    onTabChange?.(targetTab);
-                }
-
-                setSelectedItems([]);
-                onSelectionChange(null);
-            }
-        });
-
-        const deletionSubscription = exchangeDeletionObservable.subscribe(exchangeId =>
-        {
-            setExchanges(prevExchanges =>
-            {
-                const filteredExchanges = prevExchanges.filter(exchange => exchange.id !== exchangeId);
-                if (selectedItemsRef.current.includes(exchangeId))
-                {
-                    if (filteredExchanges.length > 0)
-                    {
-                        setSelectedItems([filteredExchanges[0].id]);
-                        onSelectionChange(filteredExchanges[0].id);
-                    }
-                    else
-                    {
-                        setSelectedItems([]);
-                        onSelectionChange(null);
-                    }
-                }
-                return filteredExchanges;
-            });
-            if (activeTabRef.current === 'inbox')
-            {
-                if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => Math.max(0, prev - 1));
-                else setOutgoingCount(prev => Math.max(0, prev - 1));
-            }
-        });
-
-        const updatedSubscription = exchangeUpdatedObservable.subscribe(updatedExchange =>
-        {
-            if (updatedExchange)
-            {
-                setExchanges(prevExchanges => {
-                        const shouldRemainVisible = isStatusInTab(updatedExchange.status, activeTabRef.current);
-                        const currentIndex = prevExchanges.findIndex(exchange => exchange.id === updatedExchange.id);
-
-                        if (currentIndex === -1) {
-                            if (shouldRemainVisible) {
-                                return [updatedExchange, ...prevExchanges];
-                            }
-                            return prevExchanges;
-                        }
-
-                        const previousStatus = prevExchanges[currentIndex].status;
-                        const previousTab = statusToTab(previousStatus);
-                        const nextTab = statusToTab(updatedExchange.status);
-
-                        if (previousTab !== nextTab) {
-                            if (previousTab === 'inbox') {
-                                if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => Math.max(0, prev - 1));
-                                else setOutgoingCount(prev => Math.max(0, prev - 1));
-                            }
-                            if (previousTab === 'active') setActiveCount(prev => Math.max(0, prev - 1));
-                            if (previousTab === 'archive') setArchiveCount(prev => Math.max(0, prev - 1));
-
-                            if (nextTab === 'inbox') {
-                                if (inboxRoleRef.current === 'incoming') setIncomingCount(prev => prev + 1);
-                                else setOutgoingCount(prev => prev + 1);
-                            }
-                            if (nextTab === 'active') setActiveCount(prev => prev + 1);
-                            if (nextTab === 'archive') setArchiveCount(prev => prev + 1);
-                        }
-
-                        if (!shouldRemainVisible) {
-                            return prevExchanges.filter(exchange => exchange.id !== updatedExchange.id);
-                        }
-
-                        return prevExchanges.map(exchange =>
-                            exchange.id === updatedExchange.id ? updatedExchange : exchange
-                        );
-                    }
-                );
-            }
-        });
-
-        return () =>
-        {
-            initiationSubscription.unsubscribe();
-            deletionSubscription.unsubscribe();
-            updatedSubscription.unsubscribe();
-        };
-    }, []);
-
-    useEffect(() =>
-    {
-        if (isFirstRenderRef.current)
-        {
-            isFirstRenderRef.current = false;
-            return;
-        }
-        fetchExchanges();
-    }, [activeTab, inboxRole, currentPage, sortBy, sortDirection, realtimeRefreshVersion]);
-
-    useEffect(() =>
-    {
-        if (isFirstSearchEffectRef.current)
-        {
-            isFirstSearchEffectRef.current = false;
-            searchEffectTabRef.current = activeTab;
-            searchEffectRoleRef.current = inboxRole;
-            return;
-        }
-
-        if (searchEffectTabRef.current !== activeTab || searchEffectRoleRef.current !== inboxRole)
-        {
-            searchEffectTabRef.current = activeTab;
-            searchEffectRoleRef.current = inboxRole;
-            return;
-        }
-
-        const handler = setTimeout(() =>
-        {
-            setCurrentPage(0);
-            fetchExchanges();
-        }, 500);
-
-        return () => clearTimeout(handler);
-    }, [searchQuery, selectedInitiator, activeTab, inboxRole]);
-
-    const handleTabChange = (tab: ExchangeListTab) =>
-    {
-        beginListScopeLoading();
-        setActiveTab(tab);
-        setCurrentPage(0);
-        setSearchQuery('');
-        setSelectedInitiator(null);
-        setSortBy('createdDate');
-        setSortDirection('DESC');
-        if (tab === 'inbox')
-        {
-            setInboxRole('incoming');
-            onInboxRoleChange?.('incoming');
-        }
-        setSelectedItems([]);
-        onSelectionChange(null);
-        onTabChange?.(tab);
-    };
-
-    const handleInboxRoleChange = (role: InboxRole) =>
-    {
-        beginListScopeLoading();
-        setInboxRole(role);
-        onInboxRoleChange?.(role);
-        setCurrentPage(0);
-        setSelectedItems([]);
-        onSelectionChange(null);
-    };
-
-    const handleSelectionChange = (_, data) =>
-    {
-        setSelectedItems(data.selectedItems);
-        onSelectionChange(data.selectedItems[0] ?? null);
-    };
-
-    const handleListScroll: React.UIEventHandler<HTMLElement> = (event) =>
-    {
-        setHasListScrolled(event.currentTarget.scrollTop > 0);
-    };
-
-    const handlePageChange = (page: number) =>
-    {
-        setLoadingExchanges(true);
-        setCurrentPage(page);
-    };
-
-    const toggleSidebar = () =>
-    {
-        if (isSidebarCollapsed)
-        {
-            setIsSidebarCollapsed(false);
-            setIsSidebarHoverExpanded(false);
-            return;
-        }
-
-        setIsSidebarCollapsed(true);
-        setIsSidebarHoverExpanded(false);
-    };
-
-    const handleSidebarMouseEnter = () =>
-    {
-        if (isSidebarCollapsed)
-        {
-            setIsSidebarHoverExpanded(true);
-        }
-    };
-
-    const handleSidebarMouseLeave = () =>
-    {
-        if (isSidebarCollapsed)
-        {
-            setIsSidebarHoverExpanded(false);
-        }
-    };
-
-    const handleSearchQueryChange = (query: string) =>
-    {
-        setLoadingExchanges(true);
-        setSearchQuery(query);
-    };
-
-    const handleInitiatorFilterChange = (initiatedBy: boolean | null) =>
-    {
-        setLoadingExchanges(true);
-        setSelectedInitiator(initiatedBy);
-    };
-
-    const handleSortChange = (field: string, direction: string) =>
-    {
-        setLoadingExchanges(true);
-        setSortBy(field);
-        setSortDirection(direction);
-    };
-
-    const handleClearFilters = () =>
-    {
-        setLoadingExchanges(true);
-        setSearchQuery('');
-        setSelectedInitiator(null);
-        setCurrentPage(0);
-        setSortBy('createdDate');
-        setSortDirection('DESC');
-    };
-
-    const hasActiveFilters = !!searchQuery || selectedInitiator !== null;
-    const isInboxMode = activeTab === 'inbox';
-    const requestsCount = incomingCount + outgoingCount;
-    const isSidebarVisuallyCollapsed = !isMobile && isSidebarCollapsed && !isSidebarHoverExpanded;
+    const list = useExchangeList(props, isMobile);
+    const sidebar = useExchangeSidebarCollapse(isMobile);
+    const {filters, counts} = list;
+    const isInboxMode = list.activeTab === 'inbox';
+    const isSidebarVisuallyCollapsed = sidebar.isSidebarVisuallyCollapsed;
 
     return (
         <section
             id={"exchange-list-exchanges-list-container-collapsed"}
             className={isSidebarVisuallyCollapsed ? styles.exchangesListContainerCollapsed : styles.exchangesListContainer}
-            onMouseEnter={handleSidebarMouseEnter}
-            onMouseLeave={handleSidebarMouseLeave}>
+            onMouseEnter={sidebar.handleSidebarMouseEnter}
+            onMouseLeave={sidebar.handleSidebarMouseLeave}>
 
             <ExchangeListTabs
-                activeTab={activeTab}
-                inboxCount={requestsCount}
-                onTabChange={handleTabChange}
+                activeTab={list.activeTab}
+                inboxCount={counts.requestsCount}
+                onTabChange={list.handleTabChange}
                 collapsed={isSidebarVisuallyCollapsed}
             />
 
             {!isSidebarVisuallyCollapsed && isInboxMode && (
-                <div id={"exchange-list-exchanges-list-header"}
-                     className={mergeClasses(
-                    styles.exchangesListHeader,
-                    hasListScrolled && styles.exchangesListHeaderElevated
-                )}>
-                    <TabList
-                        id="exchange-list-inbox-role-tabs"
-                        selectedValue={inboxRole}
-                        onTabSelect={(_, data) => handleInboxRoleChange(data.value as InboxRole)}
-                        size="small"
-                        className={styles.inboxRoleTabList}>
-                        <Tab id="exchange-list-inbox-role-incoming"
-                             value="incoming">
-                            <span id={"exchange-list-tab-content-flex"}
-                                  className={styles.tabContentFlex}>
-                                Incoming
-                                {incomingCount > 0 &&
-                                    <CounterBadge id={"exchange-list-tab-content-flex-counter-badge"}
-                                                  count={incomingCount}
-                                                  size="small"
-                                                  appearance="filled"
-                                                  color="danger"/>}
-                            </span>
-                        </Tab>
-                        <Tab id="exchange-list-inbox-role-outgoing"
-                             value="outgoing">
-                            <span id={"exchange-list-tab-content-flex-2"}
-                                  className={styles.tabContentFlex}>
-                                Outgoing
-                                {outgoingCount > 0 &&
-                                    <CounterBadge id={"exchange-list-tab-content-flex-counter-badge-2"}
-                                                  count={outgoingCount}
-                                                  size="small"
-                                                  appearance="filled"/>}
-                            </span>
-                        </Tab>
-                    </TabList>
-                </div>
+                <ExchangeListHeader
+                    id={"exchange-list-exchanges-list-header"}
+                    elevated={list.hasListScrolled}>
+                    <ExchangeListInboxRoleTabs
+                        inboxRole={list.inboxRole}
+                        incomingCount={counts.incomingCount}
+                        outgoingCount={counts.outgoingCount}
+                        onInboxRoleChange={list.handleInboxRoleChange}
+                    />
+                </ExchangeListHeader>
             )}
 
             {!isSidebarVisuallyCollapsed && !isInboxMode && (
-                <div id={"exchange-list-exchanges-list-header-2"}
-                     className={mergeClasses(
-                    styles.exchangesListHeader,
-                    hasListScrolled && styles.exchangesListHeaderElevated
-                )}>
+                <ExchangeListHeader
+                    id={"exchange-list-exchanges-list-header-2"}
+                    elevated={list.hasListScrolled}>
                     <ExchangeListSearchControls
-                        searchQuery={searchQuery}
-                        onSearchQueryChange={handleSearchQueryChange}
-                        onInitiatorFilterChange={handleInitiatorFilterChange}
-                        onSortChange={handleSortChange}
-                        selectedInitiator={selectedInitiator}
-                        sortBy={sortBy}
-                        sortDirection={sortDirection}
-                        onClearFilters={handleClearFilters}
-                        hasActiveFilters={hasActiveFilters}
+                        searchQuery={filters.searchQuery}
+                        onSearchQueryChange={filters.handleSearchQueryChange}
+                        onInitiatorFilterChange={filters.handleInitiatorFilterChange}
+                        onSortChange={filters.handleSortChange}
+                        selectedInitiator={filters.selectedInitiator}
+                        sortBy={filters.sortBy}
+                        sortDirection={filters.sortDirection}
+                        onClearFilters={filters.handleClearFilters}
+                        hasActiveFilters={filters.hasActiveFilters}
                     />
-                </div>
+                </ExchangeListHeader>
             )}
 
             {!isSidebarVisuallyCollapsed && (
-                <List
-                    id="exchange-list-items"
-                    className={styles.exchangesListBody}
-                    selectionMode="single"
-                    navigationMode="items"
-                    selectedItems={selectedItems}
-                    onSelectionChange={handleSelectionChange}
-                    onScroll={handleListScroll}>
-
-                    {showLoadingState && exchanges.length === 0 && <ExchangeListSkeleton count={10}/>}
-
-                    {exchanges.map((exchange: ExchangeBasicDto, index: number) => (
-                        <ExchangeListItem
-                            key={exchange.id}
-                            exchange={exchange}
-                            isSelected={selectedItems.includes(exchange.id)}
-                            activeTab={activeTab}
-                            staggerIndex={index}
-                        />
-                    ))}
-
-                    {!loadingExchanges && exchanges.length === 0 && (
-                        <div id={"exchange-list-empty-state"}
-                             className={styles.emptyState}>
-                            <Text id={"exchange-list-filters-text"}
-                                  align={"center"}>
-                                {isInboxMode
-                                    ? (inboxRole === 'incoming'
-                                        ? 'No incoming requests are waiting for your decision.'
-                                        : 'No outgoing requests are awaiting recipient response.')
-                                    : 'No Exchanges match your search. Try adjusting your filters!'}
-                            </Text>
-                        </div>
-                    )}
-                </List>
+                <ExchangeListBody
+                    exchanges={list.exchanges}
+                    selectedItems={list.selectedItems}
+                    activeTab={list.activeTab}
+                    inboxRole={list.inboxRole}
+                    loadingExchanges={list.loadingExchanges}
+                    showLoadingState={list.showLoadingState}
+                    onSelectionChange={list.handleSelectionChange}
+                    onScroll={list.handleListScroll}
+                />
             )}
 
-            <div id={"exchange-list-exchanges-list-footer"}
-                 className={mergeClasses(
-                styles.exchangesListFooter,
-                hasListScrolled && styles.exchangesListFooterElevated
-            )}>
-                {!isMobile && (
-                    <ExchangeListSidebarToggle
-                        isSidebarCollapsed={isSidebarCollapsed}
-                        toggleSidebar={toggleSidebar}/>
-                )}
-                {!isSidebarVisuallyCollapsed && (
-                    <>
-                        <ExchangeListPagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}/>
-
-                        {hasActiveFilters && !isInboxMode && (
-                            <Button
-                                id="exchange-list-clear-filters"
-                                size="small"
-                                appearance="subtle"
-                                shape={"circular"}
-                                onClick={handleClearFilters}>
-                                Clear filters
-                            </Button>
-                        )}
-                    </>
-                )}
-            </div>
+            <ExchangeListFooter
+                elevated={list.hasListScrolled}
+                isMobile={isMobile}
+                isSidebarCollapsed={sidebar.isSidebarCollapsed}
+                isSidebarVisuallyCollapsed={isSidebarVisuallyCollapsed}
+                toggleSidebar={sidebar.toggleSidebar}
+                currentPage={filters.currentPage}
+                totalPages={filters.totalPages}
+                onPageChange={filters.handlePageChange}
+                showClearFilters={filters.hasActiveFilters && !isInboxMode}
+                onClearFilters={filters.handleClearFilters}
+            />
         </section>
     );
 };

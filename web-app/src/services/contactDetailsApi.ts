@@ -1,4 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {ResponseError} from "../app/models/models.tsx";
 
 const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
@@ -10,7 +11,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

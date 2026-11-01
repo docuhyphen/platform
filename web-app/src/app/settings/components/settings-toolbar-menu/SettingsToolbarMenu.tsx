@@ -1,4 +1,4 @@
-import {ReactNode} from "react";
+import {ReactElement} from "react";
 import {
     Button,
     Menu,
@@ -19,7 +19,7 @@ export interface SettingsToolbarMenuOption<T extends string>
 interface SettingsToolbarMenuProps<T extends string>
 {
     id: string;
-    icon: ReactNode;
+    icon: ReactElement;
     tooltip: string;
     value: T;
     defaultValue: T;
@@ -50,8 +50,8 @@ const SettingsToolbarMenu = <T extends string>({
                 />
             </Tooltip>
         </MenuTrigger>
-        <MenuPopover>
-            <MenuList>
+        <MenuPopover id={"settings-toolbar-menu-menu-popover-1"}>
+            <MenuList id={"settings-toolbar-menu-menu-list-1"}>
                 {options.map(option => (
                     <MenuItem
                         id={`${id}-${option.value.toLocaleLowerCase()}`}

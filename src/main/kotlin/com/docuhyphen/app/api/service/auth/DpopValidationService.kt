@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.DpopVerifyResult
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
@@ -15,20 +16,6 @@ import java.security.spec.ECPoint
 import java.security.spec.ECPublicKeySpec
 import java.util.*
 
-data class DpopVerifyResult(val valid: Boolean, val jwkThumbprint: String? = null, val reason: String? = null)
-
-/**
- * DPoP (RFC 9449) sender-constraint proof verification.
- *
- * On each protected request the client presents a `DPoP` header,  a JWS signed with the
- * private key whose public key thumbprint is bound to the access token via the `cnf.jkt`
- * claim. This service verifies the proof and returns the JWK thumbprint for the caller
- * to compare against the access token's `cnf.jkt`.
- *
- * Behind [ConfigurationService.isDpopEnabled]. When disabled, callers SHOULD treat absent
- * DPoP as acceptable (graceful rollout). When enabled, the filter rejects requests whose
- * DPoP proof is missing or invalid.
- */
 @ApplicationScoped
 class DpopValidationService @Inject constructor(
     private val configurationService: ConfigurationService,
@@ -55,22 +42,18 @@ class DpopValidationService @Inject constructor(
         val header = parseFlatJsonObject(headerJson)
         val payload = parseFlatJsonObject(payloadJson)
 
-        // 1. Header type
         if (header["typ"] != "dpop+jwt") return DpopVerifyResult(false, reason = "typ")
         val alg = header["alg"] ?: return DpopVerifyResult(false, reason = "alg")
         if (alg !in setOf("ES256")) return DpopVerifyResult(false, reason = "alg_not_supported")
 
-        // 2. Extract JWK
         val jwkJson = header["jwk"] ?: return DpopVerifyResult(false, reason = "jwk")
         val jwk = parseFlatJsonObject(jwkJson)
         if (jwk["kty"] != "EC" || jwk["crv"] != "P-256") return DpopVerifyResult(false, reason = "jwk_alg")
         val x = jwk["x"] ?: return DpopVerifyResult(false, reason = "jwk_x")
         val y = jwk["y"] ?: return DpopVerifyResult(false, reason = "jwk_y")
 
-        // 3. Signature check
         if (!verifyEs256Signature(parts, x, y)) return DpopVerifyResult(false, reason = "signature")
 
-        // 4. Payload claims
         val htm = payload["htm"] ?: return DpopVerifyResult(false, reason = "htm")
         if (!htm.equals(httpMethod, ignoreCase = true)) return DpopVerifyResult(false, reason = "htm_mismatch")
         val htu = payload["htu"] ?: return DpopVerifyResult(false, reason = "htu")
@@ -84,7 +67,6 @@ class DpopValidationService @Inject constructor(
         if (isReplayed(jti)) return DpopVerifyResult(false, reason = "replay")
         recordJti(jti)
 
-        // 5. JWK thumbprint per RFC 7638 (canonical: crv, kty, x, y)
         val thumbprint = computeJwkThumbprint(jwk["kty"]!!, jwk["crv"]!!, x, y)
         return DpopVerifyResult(true, jwkThumbprint = thumbprint)
     }
@@ -118,7 +100,6 @@ class DpopValidationService @Inject constructor(
         }
     }
 
-    /** Convert JWS concat-format (R||S) signature to DER for Java's ECDSA verifier. */
     private fun jwsConcatToDer(concat: ByteArray): ByteArray
     {
         require(concat.size % 2 == 0)
@@ -174,17 +155,14 @@ class DpopValidationService @Inject constructor(
 
     private fun computeJwkThumbprint(kty: String, crv: String, x: String, y: String): String
     {
-        // RFC 7638: canonical JSON with keys in alphabetical order, no whitespace.
         val canonical = """{"crv":"$crv","kty":"$kty","x":"$x","y":"$y"}"""
         val digest = MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8))
         return Base64.getUrlEncoder().withoutPadding().encodeToString(digest)
     }
 
-    /** Tiny JSON object parser sufficient for flat header/payload + nested JWK string. */
     private fun parseFlatJsonObject(json: String): Map<String, String>
     {
         val result = mutableMapOf<String, String>()
-        // Pull nested objects (jwk) out by tracking braces; everything else is "k":"v" pairs.
         val trimmed = json.trim().trim('{', '}')
         var depth = 0
         var start = 0

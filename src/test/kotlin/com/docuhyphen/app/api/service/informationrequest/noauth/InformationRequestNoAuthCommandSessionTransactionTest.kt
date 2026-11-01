@@ -19,7 +19,7 @@ import com.docuhyphen.app.api.model.informationrequest.review.ReopenInformationR
 import com.docuhyphen.app.api.model.informationrequest.submission.RecordInformationRequestSubmissionAttestationCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformationRequestPackageCommand
 import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
 import com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource

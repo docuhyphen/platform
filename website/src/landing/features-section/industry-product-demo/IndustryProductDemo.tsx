@@ -1,7 +1,7 @@
 import type {IndustryExperience} from "../featureContent.ts";
-import {IndustryDemoHeader} from "./IndustryDemoHeader.tsx";
-import {IndustryDocumentView} from "./IndustryDocumentView.tsx";
-import {IndustryExchangeList} from "./IndustryExchangeList.tsx";
+import {IndustryDemoHeader} from "./industry-demo-header/IndustryDemoHeader.tsx";
+import {IndustryDocumentView} from "./industry-document-view/IndustryDocumentView.tsx";
+import {IndustryExchangeList} from "./industry-exchange-list/IndustryExchangeList.tsx";
 import {
     INDUSTRY_DEMO_CANVAS_WIDTH_REM,
     INDUSTRY_DEMO_DEFAULT_SCALE,
@@ -56,21 +56,15 @@ export function IndustryProductDemo({industry}: IndustryProductDemoProps)
     };
 
     return (
-        <div
-            ref={shellRef}
-            id="industry-product-demo"
-            className={styles.shell}
-            style={demoVars}
-        >
-            <div
-                id="industry-demo-scaled-viewport"
-                className={styles.scaledViewport}
-            >
+        <div ref={shellRef}
+             id={"industry-product-demo"}
+             className={styles.shell}
+             style={demoVars}>
+            <div id={"industry-demo-scaled-viewport"}
+                 className={styles.scaledViewport}>
                 <IndustryDemoHeader persona={industry.persona}/>
-                <div
-                    id="industry-demo-app-body"
-                    className={styles.body}
-                >
+                <div id={"industry-demo-app-body"}
+                     className={styles.body}>
                     <IndustryExchangeList exchanges={industry.exchanges}/>
                     <IndustryDocumentView industry={industry}/>
                 </div>

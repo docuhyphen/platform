@@ -3,7 +3,9 @@ package com.docuhyphen.app.api.service.exchange
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
 import com.docuhyphen.app.api.model.document.DocumentVersionContentVerification
 import com.docuhyphen.app.api.model.document.DocumentVersionLocatorKind

@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.resource.organization.operations.PlatformOrganizationSubscriptionPolicyCollectionResourceOperations
+import com.docuhyphen.app.api.resource.organization.operations.PlatformOrganizationSubscriptionPolicyResourceOperations
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.PUT
 import jakarta.ws.rs.Path
@@ -15,11 +17,11 @@ class PlatformOrganizationSubscriptionPolicyResourceContractTest
     {
         assertEquals(
             "/platform/organizations/subscription-policies",
-            PlatformOrganizationSubscriptionPolicyCollectionResource::class.java
+            PlatformOrganizationSubscriptionPolicyCollectionResourceOperations::class.java
                 .getAnnotation(Path::class.java).value,
         )
         assertTrue(
-            PlatformOrganizationSubscriptionPolicyCollectionResource::class.java.declaredMethods
+            PlatformOrganizationSubscriptionPolicyCollectionResourceOperations::class.java.declaredMethods
                 .single { it.name == "list" }
                 .isAnnotationPresent(GET::class.java),
         )
@@ -28,22 +30,22 @@ class PlatformOrganizationSubscriptionPolicyResourceContractTest
     @Test
     fun `subscription policy item resource has no list action path`()
     {
-        val resourceClass = PlatformOrganizationSubscriptionPolicyResource::class.java
+        val operations = PlatformOrganizationSubscriptionPolicyResourceOperations::class.java
 
         assertEquals(
             "/platform/organizations/{organizationId}/subscription-policy",
-            resourceClass.getAnnotation(Path::class.java).value,
+            operations.getAnnotation(Path::class.java).value,
         )
-        assertFalse(resourceClass.declaredMethods.any { it.name == "listPolicies" })
+        assertFalse(operations.declaredMethods.any { it.name == "listPolicies" })
         assertFalse(
-            resourceClass.declaredMethods
+            operations.declaredMethods
                 .mapNotNull { it.getAnnotation(Path::class.java)?.value }
                 .any { it == "/list" },
         )
-        assertTrue(resourceClass.declaredMethods.single { it.name == "getEffectivePolicy" }
+        assertTrue(operations.declaredMethods.single { it.name == "getEffectivePolicy" }
             .isAnnotationPresent(GET::class.java))
-        assertTrue(resourceClass.declaredMethods.single { it.name == "upsertPolicy" }
+        assertTrue(operations.declaredMethods.single { it.name == "upsertPolicy" }
             .isAnnotationPresent(PUT::class.java))
-        assertFalse(resourceClass.declaredMethods.any { it.name == "deletePolicy" })
+        assertFalse(operations.declaredMethods.any { it.name == "deletePolicy" })
     }
 }

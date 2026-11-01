@@ -11,15 +11,15 @@ const StepUpCompletion: React.FC = () =>
     useEffect(() =>
     {
         const target = "/exchanges";
-        // Short handoff page after OAuth callback; users can retry the original action.
         const timer = window.setTimeout(() => navigate(target), 1200);
         return () => window.clearTimeout(timer);
     }, [navigate]);
 
     return (
-        <div className={styles.stepUpContainer}>
-            <Spinner/>
-            <Text>Step-up verification completed. Returning to your session...</Text>
+        <div id={"step-up-completion-div-1"}
+             className={styles.stepUpContainer}>
+            <Spinner id={"step-up-completion-spinner-1"}/>
+            <Text id={"step-up-completion-text-1"}>Step-up verification completed. Returning to your session...</Text>
         </div>
     );
 };

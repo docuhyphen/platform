@@ -27,7 +27,8 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
             className={styles.container}
             id={`${idPrefix}-comment-${comment.id}`}
         >
-            <Popover withArrow openOnHover>
+            <Popover withArrow
+                     openOnHover>
                 <PopoverTrigger disableButtonEnhancement>
                     <Avatar
                         id={`${idPrefix}-comment-${comment.id}-author-avatar`}
@@ -36,7 +37,7 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
                     />
                 </PopoverTrigger>
 
-                <PopoverSurface>
+                <PopoverSurface id={"exchange-document-comment-popover-surface-1"}>
                     <div id={`${idPrefix}-comment-${comment.id}-author-details`}>
                         <Text
                             id={`${idPrefix}-comment-${comment.id}-author-name`}
@@ -47,7 +48,8 @@ const ExchangeDocumentComment: React.FC<ExchangeDocumentCommentProps> = (
                     </div>
                 </PopoverSurface>
             </Popover>
-            <div className={styles.commentTextContainer}>
+            <div id={"exchange-document-comment-div-1"}
+                 className={styles.commentTextContainer}>
                 <div
                     id={`${idPrefix}-comment-${comment.id}-metadata`}
                     className={styles.commentMetadata}

@@ -42,7 +42,8 @@ export function AboutPrinciples()
                         id="about-principle-operator-led-icon"
                         className={styles.iconWrap}
                     >
-                        <PeopleTeam24Regular aria-hidden="true"/>
+                        <PeopleTeam24Regular id={"about-principles-people-team24-regular-1"}
+                                             aria-hidden="true"/>
                     </span>
                     <Title3
                         id="about-principle-operator-led-title"
@@ -65,7 +66,8 @@ export function AboutPrinciples()
                         id="about-principle-audit-first-icon"
                         className={styles.iconWrap}
                     >
-                        <History24Regular aria-hidden="true"/>
+                        <History24Regular id={"about-principles-history24-regular-1"}
+                                          aria-hidden="true"/>
                     </span>
                     <Title3
                         id="about-principle-audit-first-title"
@@ -88,7 +90,8 @@ export function AboutPrinciples()
                         id="about-principle-independent-icon"
                         className={styles.iconWrap}
                     >
-                        <ShieldLock24Regular aria-hidden="true"/>
+                        <ShieldLock24Regular id={"about-principles-shield-lock24-regular-1"}
+                                             aria-hidden="true"/>
                     </span>
                     <Title3
                         id="about-principle-independent-title"

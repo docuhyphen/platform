@@ -1,10 +1,3 @@
-/**
- * Maps the stable error codes the OAuth callback redirects with onto user-facing copy.
- *
- * The backend deliberately sends only a code. Rendering server-supplied text would both leak
- * account detail (such as which provider another account is linked to) and put an attacker
- * controlled string on the page.
- */
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     OAUTH_INVALID_REQUEST: 'That sign-in link was incomplete. Please try again.',
     OAUTH_INVALID_STATE: 'Your sign-in session expired or could not be verified. Please try again.',
@@ -19,7 +12,6 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 
 const GENERIC_OAUTH_ERROR = 'Sign-in failed. Please try again.';
 
-/** Resolves an error code from the URL into copy, falling back to a neutral message. */
 export const resolveOAuthErrorMessage = (errorCode: string | null | undefined): string | null =>
 {
     if (!errorCode)

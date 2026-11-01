@@ -2,16 +2,6 @@ package com.docuhyphen.app.api.service.audit.archive
 
 import java.security.MessageDigest
 
-/**
- * Minimal binary Merkle tree over already-hex-encoded SHA-256 leaves (here, `audit_ledger_event`
- * event hashes in stream-sequence order). Used by [AuditArchiver] to compute one
- * [AuditArchiveSegment.merkleRoot] per closed segment and by [AuditArchiveVerifier] to
- * independently recompute it from re-downloaded segment content.
- *
- * Odd leaf counts duplicate the last leaf at each level (the common Bitcoin-style convention),
- * so the same leaf set always produces the same root regardless of implementation, as long as
- * both sides use this convention.
- */
 object MerkleTree
 {
     fun computeRoot(leafHexHashes: List<String>): String

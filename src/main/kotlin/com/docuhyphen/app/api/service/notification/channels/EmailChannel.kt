@@ -5,20 +5,13 @@ import com.docuhyphen.app.api.repository.user.AppUserRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.MarkdownRenderer
 import com.docuhyphen.app.api.service.communication.templates.EmailTemplateRenderer
-import com.docuhyphen.app.api.service.notification.ChannelSendResult
-import com.docuhyphen.app.api.service.notification.DeliveryTask
+import com.docuhyphen.app.api.model.notification.ChannelSendResult
+import com.docuhyphen.app.api.model.notification.DeliveryTask
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.slf4j.LoggerFactory
 
-/**
- * Email delivery. Resolves the recipient's [com.docuhyphen.app.api.model.entity.AppUser.email]
- * and delegates to the existing [EmailService.sendEmail] (which already wraps AWS SES).
- *
- * Iteration 3 sends plain text; the [com.docuhyphen.app.api.service.communication.EmailTemplateRenderer]
- * pipeline is the planned integration once event-specific templates are added.
- */
 @ApplicationScoped
 class EmailChannel : NotificationChannel
 {

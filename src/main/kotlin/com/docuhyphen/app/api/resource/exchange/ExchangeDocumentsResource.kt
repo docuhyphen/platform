@@ -2,108 +2,76 @@ package com.docuhyphen.app.api.resource.exchange
 
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
-import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer.Companion.toDto
-import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
-import com.docuhyphen.app.api.model.dto.DocumentDetailedDto
+import com.docuhyphen.app.api.model.BasicEntityToDtoTransformer
 import com.docuhyphen.app.api.model.entity.DocumentEncryptionMode
-import com.docuhyphen.app.api.model.entity.DocumentType
+import com.docuhyphen.app.api.resource.exchange.handler.ExchangeDocumentRequestHandler
+import com.docuhyphen.app.api.resource.exchange.operations.ExchangeDocumentsResourceOperations
 import com.docuhyphen.app.api.resource.model.AddExchangeDocumentRequest
 import com.docuhyphen.app.api.resource.model.DownloadDocumentsZipRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateShareSessionDocumentRequest
 import com.docuhyphen.app.api.service.exchange.DocumentPreviewConversionException
 import com.docuhyphen.app.api.service.exchange.DocumentThumbnailUnavailableException
+import com.docuhyphen.app.api.service.exchange.ExchangeDocumentDetailsViewService
 import com.docuhyphen.app.api.service.exchange.ExchangeDocumentService
-import com.docuhyphen.app.api.service.storage.FileStorageService
 import io.quarkus.security.ForbiddenException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import org.jboss.resteasy.reactive.RestForm
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 import java.io.File
 
-@Path("exchanges/{exchangeId}/documents")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class ExchangeDocumentsResource @Inject constructor(
     private val exchangeDocumentService: ExchangeDocumentService,
-    private val fileStorageService: FileStorageService,
-)
+    exchangeDocumentDetailsViewService: ExchangeDocumentDetailsViewService,
+) : ExchangeDocumentsResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(ExchangeDocumentsResource::class.java)
     }
 
-    @POST
-    fun addSessionDocument(
+    private val handler = ExchangeDocumentRequestHandler(exchangeDocumentService, exchangeDocumentDetailsViewService)
+
+    override fun addSessionDocument(
         request: AddExchangeDocumentRequest,
-        @PathParam("exchangeId") exchangeId: String
+        exchangeId: String
     ): Response
     {
         return try
         {
-            val document = with(request) {
-                exchangeDocumentService.addDocument(
-                    exchangeId,
-                    title,
-                    documentType,
-                    restrictedType
-                )
-            }
-
-            Response.ok(toDto(document)).build()
+            val document = exchangeDocumentService.addDocument(
+                exchangeId,
+                request.title,
+                request.documentType,
+                request.restrictedType,
+            )
+            Response.ok(BasicEntityToDtoTransformer.toDto(document)).build()
         }
         catch (exception: Exception)
         {
             when (exception)
             {
                 is ExchangeNotFoundException ->
-                {
-                    logger.error("Error adding exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error adding exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error adding exchange document", exception)
-
-                    val responseError = ResponseError("An error occurred while adding exchange document")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error adding Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while adding Exchange document"))
                         .build()
                 }
             }
         }
     }
 
-    @DELETE
-    @Path("/{documentId}")
-    fun deleteSessionDocument(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+    override fun deleteSessionDocument(
+        exchangeId: String,
+        documentId: String
     ): Response
     {
         return try
@@ -117,67 +85,31 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error deleting exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error deleting exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error deleting exchange document", exception)
-
-                    val responseError = ResponseError("An error occurred while deleting exchange document")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error deleting Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while deleting Exchange document"))
                         .build()
                 }
             }
         }
     }
 
-    @PUT
-    @Path("/{documentId}")
-    fun updateSessionDocument(
+    override fun updateSessionDocument(
         request: UpdateShareSessionDocumentRequest,
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+        exchangeId: String,
+        documentId: String
     ): Response
     {
-
         return try
         {
-            val document = with(request) {
-                exchangeDocumentService.updateDocument(
-                    exchangeId,
-                    documentId,
-                    title,
-                    type,
-                    restrictedType
-                )
-            }
-
-            val dto = DetailedEntityToDtoTransformer.toDto(document)
-            Response.ok(enrichDocumentWithFileSize(dto)).build()
+            handler.update(exchangeId, documentId, request)
         }
         catch (exception: Exception)
         {
@@ -185,68 +117,33 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error updating exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error updating exchange document", exception)
-
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(Response.Status.BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error updating exchange document", exception)
-
-                    val responseError = ResponseError("An error occurred while update exchange document")
-                    Response
-                        .status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error updating Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while update Exchange document"))
                         .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("/{documentId}/file")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    fun uploadSessionDocument(
-        @RestForm("file") file: File?,
-        @RestForm("extension") extension: String?,
-        @RestForm("encryptionMode") encryptionMode: DocumentEncryptionMode?,
-        @PathParam("exchangeId") exchangeId: String?,
-        @PathParam("documentId") documentId: String?
+    override fun uploadSessionDocument(
+        file: File?,
+        extension: String?,
+        encryptionMode: DocumentEncryptionMode?,
+        exchangeId: String?,
+        documentId: String?
     ): Response
     {
-
         return try
         {
-            val document = exchangeDocumentService.uploadDocument(
-                file,
-                extension,
-                exchangeId,
-                documentId,
-                encryptionMode
-            )
-
-            val dto = DetailedEntityToDtoTransformer.toDto(document)
-            Response.ok(enrichDocumentWithFileSize(dto)).build()
+            handler.upload(file, extension, exchangeId, documentId, encryptionMode)
         }
         catch (exception: Exception)
         {
@@ -254,44 +151,31 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException ->
                 {
-                    logger.warn("Document preview access denied: {}", exception.message)
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    logger.warn("Document upload access denied: {}", exception.message)
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error uploading exchange document", exception)
-                    val responseError = ResponseError("An error occurred while uploading exchange document")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error uploading Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while uploading Exchange document"))
+                        .build()
                 }
             }
         }
     }
 
-    @POST
-    @Path("/zip-file")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun downloadDocumentsAsZip(
+    override fun downloadDocumentsAsZip(
         request: DownloadDocumentsZipRequest,
-        @PathParam("exchangeId") exchangeId: String
+        exchangeId: String
     ): Response
     {
         return try
@@ -308,53 +192,30 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error(
-                        "Error downloading documents as zip",
-                        exception
-                    )
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error(
-                        "Error downloading documents as zip",
-                        exception
-                    )
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error(
-                        "Error downloading documents as zip",
-                        exception
-                    )
-                    val responseError = ResponseError("An error occurred while downloading documents as zip")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error downloading Exchange documents as zip", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while downloading documents as zip"))
+                        .build()
                 }
             }
         }
     }
 
-    @GET
-    @Path("{documentId}/file")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun downloadDocument(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+    override fun downloadDocument(
+        exchangeId: String,
+        documentId: String
     ): Response
     {
         return try
         {
-            val file = exchangeDocumentService.downloadDocument(exchangeId, documentId)
-            Response.ok(file.inputStream())
-                .header("Content-Disposition", "attachment; filename=\"${file.name}\"")
-                .header("Content-Length", file.length())
-                .build()
+            handler.download(exchangeId, documentId)
         }
         catch (exception: Exception)
         {
@@ -362,49 +223,36 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error downloading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException ->
                 {
                     logger.warn("Download format blocked: {}", exception.message)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error downloading exchange document", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    logger.error("Error downloading exchange document", exception)
-                    val responseError = ResponseError("An error occurred while downloading exchange document")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error downloading Exchange document", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while downloading Exchange document"))
+                        .build()
                 }
             }
         }
     }
 
-    @Path("{documentId}/preview")
-    @GET
-//    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    @Produces("application/pdf")
-    fun getDocumentPreviewAsPdf(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String
+    override fun getDocumentPreviewAsPdf(
+        exchangeId: String,
+        documentId: String
     ): Response
     {
         return try
         {
             val document = exchangeDocumentService.getDocumentFilePreviewAsPdf(exchangeId, documentId)
-//            Response.ok(document)
             Response.ok(document.inputStream())
                 .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "attachment; filename=\"${document.name}\"")
@@ -417,65 +265,40 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Error generating document preview", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    logger.error("Error generating document preview", exception)
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.BAD_REQUEST).entity(responseError).build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 is DocumentPreviewConversionException ->
                 {
                     logger.warn("Preview conversion unavailable: {}", exception.message)
-                    val responseError = ResponseError(exception.message ?: "Preview conversion failed")
-                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
+                    Response.status(SERVICE_UNAVAILABLE)
                         .header("X-Preview-Reason", "CONVERSION_FAILED")
-                        .entity(responseError)
+                        .entity(ResponseError(exception.message ?: "Preview conversion failed"))
                         .build()
                 }
 
                 else ->
                 {
-                    logger.error("Error generating document preview", exception)
-                    val responseError = ResponseError("An error occurred while generating document preview")
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    logger.error("Error generating Exchange document preview", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while generating document preview"))
+                        .build()
                 }
             }
         }
     }
 
-    @Path("{documentId}/thumbnail")
-    @GET
-    @Produces("image/png")
-    fun getDocumentThumbnail(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
-        @HeaderParam("If-None-Match") ifNoneMatch: String?,
+    override fun getDocumentThumbnail(
+        exchangeId: String,
+        documentId: String,
+        ifNoneMatch: String?,
     ): Response
     {
         return try
         {
-            val thumbnail = exchangeDocumentService.getDocumentThumbnail(exchangeId, documentId)
-            val etag = "\"${thumbnail.etag}\""
-            if (ifNoneMatch == etag)
-            {
-                return Response.notModified()
-                    .header("ETag", etag)
-                    .header("Cache-Control", "private, max-age=300, must-revalidate")
-                    .build()
-            }
-            Response.ok(thumbnail.content)
-                .header("Content-Type", "image/png")
-                .header("Content-Length", thumbnail.content.size)
-                .header("ETag", etag)
-                .header("Cache-Control", "private, max-age=300, must-revalidate")
-                .build()
+            handler.thumbnail(exchangeId, documentId, ifNoneMatch)
         }
         catch (exception: Exception)
         {
@@ -483,53 +306,28 @@ class ExchangeDocumentsResource @Inject constructor(
             {
                 is ExchangeNotFoundException,
                 is ExchangeDocumentNotFoundException ->
-                {
-                    logger.error("Document thumbnail was not found", exception)
-                    Response.status(Response.Status.NOT_FOUND)
-                        .entity(ResponseError(exception.message))
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is ForbiddenException ->
                 {
                     logger.warn("Document thumbnail access denied: {}", exception.message)
-                    Response.status(Response.Status.FORBIDDEN)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
                 }
 
                 is DocumentThumbnailUnavailableException ->
                 {
                     logger.warn("Document thumbnail is unavailable: {}", exception.message)
-                    Response.status(Response.Status.SERVICE_UNAVAILABLE)
-                        .entity(ResponseError(exception.message))
-                        .build()
+                    Response.status(SERVICE_UNAVAILABLE).entity(ResponseError(exception.message)).build()
                 }
 
                 else ->
                 {
-                    logger.error("Error loading document thumbnail", exception)
-                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    logger.error("Error loading Exchange document thumbnail", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
                         .entity(ResponseError("An error occurred while loading the document thumbnail"))
                         .build()
                 }
             }
         }
-    }
-
-    private fun enrichDocumentWithFileSize(document: DocumentDetailedDto?): DocumentDetailedDto?
-    {
-        if (document == null || document.uploadDate == null) return document
-
-        val documentId = document.id ?: return document
-        val documentType = document.type
-            ?.takeIf { it.isNotBlank() && !it.equals("null", ignoreCase = true) }
-            ?.let { runCatching { DocumentType.valueOf(it) }.getOrNull() }
-            ?: return document
-
-        val storageKey = "$documentId${DocumentType.toFileExtension(documentType)}"
-        val fileSize = runCatching { fileStorageService.getDocumentSizeBytes(storageKey) }.getOrNull()
-
-        return document.copy(fileSize = fileSize)
     }
 }

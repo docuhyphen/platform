@@ -12,18 +12,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Which configuration scope governs an Exchange's Fields.
- *
- * An Exchange held by an organization is governed by that organization. An Exchange one person holds
- * alone is governed by that person, who is as much an owner of their own configuration as an
- * organization is of its own. Reporting no scope for such an Exchange would leave its holder unable
- * to name their own Schema and able to reach only what the platform publishes, so the two ownerships
- * are answered the same way rather than one of them being answered with an absence.
- *
- * An absence is reserved for the cases that really are one: an Exchange that is not there, and an
- * Exchange that records no holder at all.
- */
 class ExchangeFieldOwnerScopeTest
 {
     private val exchangeId: UUID = UUID.randomUUID()

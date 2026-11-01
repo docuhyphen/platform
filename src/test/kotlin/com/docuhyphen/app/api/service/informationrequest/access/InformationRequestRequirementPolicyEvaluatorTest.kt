@@ -1,6 +1,13 @@
 package com.docuhyphen.app.api.service.informationrequest.access
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyFacts
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyOutcome
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyRequest
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.InformationRequestResponseMode
 import com.docuhyphen.app.api.model.entity.InformationRequestShareRoleKey
 import com.docuhyphen.app.api.model.entity.ResourceType

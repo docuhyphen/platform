@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAccessSession
 import com.docuhyphen.app.api.model.informationrequest.noauth.RequestAccessSessionBinding
 import com.docuhyphen.app.api.repository.informationrequest.noauth.RequestAccessSessionRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import jakarta.enterprise.context.ApplicationScoped

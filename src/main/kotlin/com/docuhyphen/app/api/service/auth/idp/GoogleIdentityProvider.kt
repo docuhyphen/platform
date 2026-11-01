@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.auth.idp
 
+import com.docuhyphen.app.api.model.auth.idp.OAuthTokenResponse
+import com.docuhyphen.app.api.model.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.model.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.service.auth.idp.OAuthClaimField.*
 import com.docuhyphen.app.api.service.auth.idp.OAuthTokenField.ACCESS_TOKEN
@@ -49,9 +52,6 @@ class GoogleIdentityProvider @Inject constructor(
             ?.let { "&code_challenge=${URLEncoder.encode(it, StandardCharsets.UTF_8)}&code_challenge_method=S256" }
             .orEmpty()
 
-        // select_account lets the user pick an identity without re-granting scopes on every
-        // sign-in. Callers that genuinely need consent (first-time authorization, scope change)
-        // pass their own prompt value.
         val effectivePrompt = prompt?.takeIf { it.isNotBlank() } ?: "select_account"
 
         return "https://accounts.google.com/o/oauth2/v2/auth" +
@@ -65,14 +65,6 @@ class GoogleIdentityProvider @Inject constructor(
                 pkcePart
     }
 
-    /**
-     * Exchanges the authorization code for tokens.
-     *
-     * The ID token is deliberately not inspected here. Validation needs the request nonce and
-     * the organization's runtime credentials, neither of which belongs to a transport-level
-     * exchange, so the caller validates the returned token through [validateIdToken] and uses
-     * only that result to make an identity decision.
-     */
     override fun exchangeCodeForTokens(
         code: String,
         redirectUri: String,
@@ -188,11 +180,6 @@ class GoogleIdentityProvider @Inject constructor(
         return setOf(clientId).filter { it.isNotBlank() }.toSet()
     }
 
-    /**
-     * Optional Google Workspace tenancy pin. When the organization config supplies a workspace
-     * domain, the token's `hd` claim must match it. Personal Google accounts never carry `hd`,
-     * so they fail closed against a workspace-scoped configuration.
-     */
     private fun requireHostedDomain(claims: Map<String, Any?>, runtimeCredentials: RuntimeIdpCredentials?)
     {
         val expectedHostedDomain = runtimeCredentials?.workspaceDomain?.takeIf { it.isNotBlank() } ?: return

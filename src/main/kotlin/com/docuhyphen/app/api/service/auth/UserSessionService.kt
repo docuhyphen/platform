@@ -3,8 +3,8 @@
 import com.docuhyphen.app.api.model.auth.SessionDeadlines
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.UserSession
-import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.realtime.UserSessionInfo
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.realtime.UserSessionInfo
 import com.docuhyphen.app.api.repository.auth.UserSessionRepository
 import com.docuhyphen.app.api.util.UserAgentParser
 import jakarta.enterprise.context.RequestScoped
@@ -42,7 +42,6 @@ class UserSessionService @Inject constructor(
                 this.deviceName = UserAgentParser.parse(userAgent)
             }
         )
-        // Best-effort: tell the user's existing sockets a new session just appeared.
         realtimeEventService.notifySessionCreated(
             appUserId = appUser.id,
             session = UserSessionInfo(
@@ -135,12 +134,6 @@ class UserSessionService @Inject constructor(
         )
     }
 
-    /**
-     * @param notifyRevoked When true (default) the revoked device receives EXCHANGE_REVOKED and
-     * its socket is closed; appropriate for server-initiated revocations (idle timeout, admin
-     * kick, password change). Pass false for voluntary sign-out: the socket is closed silently so
-     * the client's own navigation to /sign-in is not overridden by auth-session-expired.
-     */
     fun revokeSession(sessionId: UUID, reasonCode: RevocationReasonCode, notifyRevoked: Boolean = true)
     {
         val appUserId = userSessionRepository.findBySessionId(sessionId)?.appUser?.id
@@ -164,7 +157,6 @@ class UserSessionService @Inject constructor(
         }
     }
 
-    /** Revoke all sessions that have passed their absolute expiry and notify peer devices. */
     fun cleanupExpiredSessions(): Int
     {
         val now = Timestamp.from(Instant.now())
@@ -178,7 +170,6 @@ class UserSessionService @Inject constructor(
         return expired.size
     }
 
-    /** Revoke abandoned active sessions whose last activity exceeded the configured idle policy. */
     fun cleanupIdleTimedOutSessions(): Int
     {
         val nowInstant = Instant.now()
@@ -203,13 +194,6 @@ class UserSessionService @Inject constructor(
         return revokedCount
     }
 
-    /**
-     * @param sendNotifications When true (default, used by SCIM/deprovision callers) this method
-     * also sends EXCHANGE_REVOKED to every affected socket. Pass false when the caller (SignOutService)
-     * sends notifications itself BEFORE calling this method; that ordering ensures the WS messages
-     * are dispatched while all sockets are still open, avoiding the race where a concurrent 401 from
-     * the revocation cache causes Device B to tear down its socket before the notification arrives.
-     */
     fun revokeAllUserSessions(userId: UUID, reasonCode: RevocationReasonCode, sendNotifications: Boolean = true)
     {
         val activeSessions = userSessionRepository.findActiveSessionsForUser(userId, Timestamp.from(Instant.now()))

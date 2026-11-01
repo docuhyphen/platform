@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.auth.idp
 
+import com.docuhyphen.app.api.model.auth.idp.OAuthTokenResponse
+import com.docuhyphen.app.api.model.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.model.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import jakarta.enterprise.context.ApplicationScoped
 

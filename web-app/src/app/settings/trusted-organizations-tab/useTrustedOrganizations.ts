@@ -30,9 +30,6 @@ export const useTrustedOrganizations = () =>
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Stale-response protection: relationship and policy responses are only applied when they are
-    // the newest request for the still-current active organization. This prevents a response that
-    // started under a previous active organization or an older selection from repopulating state.
     const activeOrganizationRef = useRef(activeOrganizationId);
     activeOrganizationRef.current = activeOrganizationId;
     const relationshipRequestRef = useRef(0);

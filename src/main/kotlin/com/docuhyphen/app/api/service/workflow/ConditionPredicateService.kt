@@ -1,41 +1,11 @@
 package com.docuhyphen.app.api.service.workflow
 
+import com.docuhyphen.app.api.model.workflow.ParsedPredicate
+import com.docuhyphen.app.api.model.workflow.PredicateErrorCode
+import com.docuhyphen.app.api.model.workflow.PredicateResult
+import com.docuhyphen.app.api.model.workflow.WorkflowSubjectField
 import jakarta.enterprise.context.ApplicationScoped
-import kotlinx.serialization.Serializable
 import java.math.BigDecimal
-
-@Serializable
-data class WorkflowSubjectField(
-    val name: String,
-    val type: String,
-    val description: String? = null,
-    val lookupType: String? = null,
-)
-
-enum class PredicateErrorCode
-{
-    BLANK_EXPRESSION,
-    INVALID_SYNTAX,
-    INVALID_ESCAPE,
-    UNKNOWN_FIELD,
-    INCOMPATIBLE_OPERATOR,
-    INVALID_OPERAND,
-    MISSING_SUBJECT_VALUE,
-    INVALID_SUBJECT_VALUE,
-}
-
-sealed interface PredicateResult
-{
-    data class Valid(val matches: Boolean) : PredicateResult
-    data class Invalid(val code: PredicateErrorCode) : PredicateResult
-}
-
-data class ParsedPredicate(
-    val fieldName: String,
-    val operator: String,
-    val operand: String,
-    val quoted: Boolean,
-)
 
 @ApplicationScoped
 class ConditionPredicateService

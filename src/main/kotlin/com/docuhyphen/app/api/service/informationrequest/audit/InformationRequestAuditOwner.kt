@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.informationrequest.audit
 
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestOwnerType
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 
 internal fun informationRequestAuditOwner(request: InformationRequest): AuditOwnerScope = when (request.ownerType)
 {

@@ -8,11 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * One dual-control approval of an [AuditExport]. Append-style: rows are only ever inserted, never
- * updated, so the identity and count of distinct approvers is directly queryable. [exportId] is a
- * denormalized reference (no FK), same rule as every other audit table.
- */
 @Entity
 @Table(name = "audit_export_approval")
 class AuditExportApproval

@@ -1,5 +1,9 @@
 package com.docuhyphen.app.api.service.exchange
 
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditDraftValidationResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.Exchange
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.service.audit.*

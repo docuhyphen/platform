@@ -1,12 +1,9 @@
-﻿// script.js - Create 100 exchanges for pagination testing
-
-// Configuration
+﻿
 const BASE_URL = 'http://localhost:8080';
 const AUTH_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJlMTU4MTQ1ZC1lMzI2LTQ5NmYtYjNlZS1mMGQ1NWE0YzZhMzkiLCJlbWFpbCI6InRlc3QxQGRvYy1oeXBoZW4uY29tIiwiaWF0IjoxNzQzMTkxOTE5LCJleHAiOjE3NDMxOTU1MTl9.7FLl9AKhB-A_1bGeb1_QnuwKICbj6MaZfDyz4NsbFRo';
 const TOTAL_SESSIONS = 100;
 
-// Function to create a single exchange
-async function createExchange(index)
+async function createExchange(index: number)
 {
     const exchangeData = {
         name: `Pagination Test ${index}`,
@@ -55,13 +52,11 @@ async function createExchange(index)
     }
 }
 
-// Function to add a delay between requests to prevent overwhelming the server
-function delay(ms)
+function delay(ms: number)
 {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Main function to create all exchanges
 export const createAllExchanges = async () =>
 {
     console.log(`Starting creation of ${TOTAL_SESSIONS} exchanges...`);
@@ -83,7 +78,6 @@ export const createAllExchanges = async () =>
             failCount++;
         }
 
-        // Add a small delay between requests to avoid overwhelming the server
         await delay(300);
     }
 

@@ -14,7 +14,7 @@
     </tr>
 </table>
 
-<p style="margin:0 0 14px 0;">You will no longer receive new exchanges routed to this group. Your access to the rest of the organization is unchanged.</p>
+<p style="margin:0 0 14px 0;">You will no longer receive new Exchanges routed to this group. Your access to the rest of the organization is unchanged.</p>
 
 <#include "notification-opt-out.ftl">
 <#include "email-footer.ftl">

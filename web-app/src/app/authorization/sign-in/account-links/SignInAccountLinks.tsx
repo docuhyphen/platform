@@ -21,7 +21,8 @@ const SignInAccountLinks = ({disabled}: SignInAccountLinksProps) =>
                 id={"sign-in-recover-account-link"}
                 onClick={() => navigate("/account-recovery")}
                 disabled={disabled}>
-                <Text weight="semibold">Recover account</Text>
+                <Text id={"sign-in-account-links-text-1"}
+                      weight="semibold">Recover account</Text>
             </Link>
         </Caption1>
         <Divider id={"sign-in-account-links-divider"}> OR </Divider>
@@ -31,7 +32,8 @@ const SignInAccountLinks = ({disabled}: SignInAccountLinksProps) =>
                 id={"sign-in-sign-up-link"}
                 onClick={() => navigate("/sign-up")}
                 disabled={disabled}>
-                <Text weight="semibold">Sign up</Text>
+                <Text id={"sign-in-account-links-text-2"}
+                      weight="semibold">Sign up</Text>
             </Link>
         </Caption1>
     </div>;

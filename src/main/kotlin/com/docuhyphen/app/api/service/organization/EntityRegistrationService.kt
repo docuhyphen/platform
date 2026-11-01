@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.messaging.OrganizationVerificationProducer
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
-import com.docuhyphen.app.api.repository.user.PersonRepositoryRepository
+import com.docuhyphen.app.api.repository.user.PersonRepository
 import com.docuhyphen.app.api.service.communication.EmailService
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.notification.AppAdminNotificationService
@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory
 
 @RequestScoped
 class EntityRegistrationService @Inject constructor(
-    private val personRepository: PersonRepositoryRepository,
+    private val personRepository: PersonRepository,
     private val organizationRepository: OrganizationRepository,
     private val appUserService: AppUserService,
     private var emailService: EmailService,
@@ -154,14 +154,10 @@ class EntityRegistrationService @Inject constructor(
                 this.email = email
                 this.phoneNumber = phoneNumber
             }
-            // Org→user binding is recorded via organization_membership below, not the retired
-            // Organization.appUsers join. managedAppUser is already persisted (merged above).
         }
 
         organizationRepository.save(organization)
 
-        // The registering user is the organization's first admin (replaces the legacy
-        // AppUser.role = ORG_ADMIN assignment).
         organizationMembershipService.assignOrgRole(
             appUserId = managedAppUser.id,
             organizationId = organization.id,

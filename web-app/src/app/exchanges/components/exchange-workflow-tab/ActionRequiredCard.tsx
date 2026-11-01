@@ -32,7 +32,6 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
         }
         catch
         {
-            // errors are non-fatal here; the parent refetch will show current state
         }
         finally
         {
@@ -53,7 +52,6 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
         }
         catch
         {
-            // errors are non-fatal here
         }
         finally
         {
@@ -62,22 +60,28 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
     };
 
     return (
-        <div className={styles.actionCard}>
-            <Text weight="semibold" size={300}>Action Required</Text>
+        <div id={"action-required-card-div-1"}
+             className={styles.actionCard}>
+            <Text id={"action-required-card-text-1"}
+                  weight="semibold"
+                  size={300}>Action Required</Text>
             {activeStep && (
-                <Text size={200}>
+                <Text id={"action-required-card-text-2"}
+                      size={200}>
                     {STEP_TYPE_LABELS[activeStep.stepType] ?? activeStep.stepType}
                 </Text>
             )}
 
             {!showRejectForm && (
-                <div className={styles.actionButtons}>
+                <div id={"action-required-card-div-2"}
+                     className={styles.actionButtons}>
                     <Button
                         id={"action-required-approve-btn"}
                         appearance="primary"
                         shape={"circular"}
                         disabled={submitting}
-                        icon={submitting ? <Spinner size="tiny" /> : undefined}
+                        icon={submitting ? <Spinner id={"action-required-card-spinner-1"}
+                                                    size="tiny" /> : undefined}
                         onClick={handleApprove}
                     >
                         Approve
@@ -95,7 +99,8 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
             )}
 
             {showRejectForm && (
-                <div className={styles.rejectForm}>
+                <div id={"action-required-card-div-3"}
+                     className={styles.rejectForm}>
                     <Textarea
                         id={"textarea-action-required-reject-reason"}
                         placeholder="Reason for rejection (optional)"
@@ -104,13 +109,15 @@ const ActionRequiredCard = ({ instance, pendingStep, onDecisionMade }: Props) =>
                         disabled={submitting}
                         resize="vertical"
                     />
-                    <div className={styles.rejectActions}>
+                    <div id={"action-required-card-div-4"}
+                         className={styles.rejectActions}>
                         <Button
                             id={"action-required-confirm-reject-btn"}
                             appearance="primary"
                             shape={"circular"}
                             disabled={submitting}
-                            icon={submitting ? <Spinner size="tiny" /> : undefined}
+                            icon={submitting ? <Spinner id={"action-required-card-spinner-2"}
+                                                        size="tiny" /> : undefined}
                             onClick={handleReject}
                         >
                             Confirm Reject

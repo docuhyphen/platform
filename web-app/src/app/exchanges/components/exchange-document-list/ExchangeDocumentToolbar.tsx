@@ -89,7 +89,7 @@ const ExchangeDocumentToolbar: React.FC<ExchangeDocumentToolbarProps> = (props) 
                             Sort: {sortLabels[props.sortOption]}
                         </MenuButton>
                     </MenuTrigger>
-                    <MenuPopover>
+                    <MenuPopover id={"exchange-document-toolbar-menu-popover-1"}>
                         <MenuList id="exchange-documents-sort-menu">
                             <MenuItemRadio id="exchange-documents-sort-default"
                                            name="sort"

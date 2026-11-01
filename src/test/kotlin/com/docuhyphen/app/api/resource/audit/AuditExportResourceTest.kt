@@ -4,12 +4,14 @@ import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditExportCreateRequestDto
 import com.docuhyphen.app.api.model.entity.AuditExport
 import com.docuhyphen.app.api.model.entity.AuditExportApproval
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
+import com.docuhyphen.app.api.service.audit.export.AuditExportAccessService
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -25,8 +27,7 @@ class AuditExportResourceTest
     {
         val exportService = mock<AuditExportService>()
         val resource = AuditExportResource(
-            authorizationService = allowingAuthorizationService(),
-            authorizationContextFactory = authorizedContextFactory(PrincipalRef.user(UUID.randomUUID())),
+            auditExportAccessService = exportAccessService(exportService, PrincipalRef.user(UUID.randomUUID())),
             auditExportService = exportService,
             auditIntegrityService = mock<AuditIntegrityService>(),
         )
@@ -60,8 +61,7 @@ class AuditExportResourceTest
         whenever(exportService.getPlatformExport(exportId)).thenReturn(export)
         whenever(exportService.listApprovals(exportId)).thenReturn(listOf(approval))
         val resource = AuditExportResource(
-            authorizationService = allowingAuthorizationService(),
-            authorizationContextFactory = authorizedContextFactory(principal),
+            auditExportAccessService = exportAccessService(exportService, principal),
             auditExportService = exportService,
             auditIntegrityService = mock<AuditIntegrityService>(),
         )
@@ -88,8 +88,7 @@ class AuditExportResourceTest
             )
         )
         val resource = AuditExportResource(
-            authorizationService = allowingAuthorizationService(),
-            authorizationContextFactory = authorizedContextFactory(principal),
+            auditExportAccessService = exportAccessService(exportService, principal),
             auditExportService = exportService,
             auditIntegrityService = mock<AuditIntegrityService>(),
         )
@@ -159,11 +158,16 @@ class AuditExportResourceTest
     {
         val principal = PrincipalRef.user(UUID.randomUUID())
         return AuditOrganizationExportsResource(
-            authorizationService = allowingAuthorizationService(),
-            authorizationContextFactory = authorizedContextFactory(principal),
+            auditExportAccessService = exportAccessService(exportService, principal),
             auditExportService = exportService,
         )
     }
+
+    private fun exportAccessService(exportService: AuditExportService, principal: PrincipalRef): AuditExportAccessService =
+        AuditExportAccessService(
+            AuditAccessAuthorizer(allowingAuthorizationService(), authorizedContextFactory(principal)),
+            exportService,
+        )
 
     private fun authorizedContextFactory(principal: PrincipalRef): AuthorizationContextFactory =
         mock<AuthorizationContextFactory>().also { factory ->

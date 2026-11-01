@@ -9,16 +9,15 @@ const ThemedApp = () =>
 {
     const {theme} = useTheme();
     return (
-        <FluentProvider theme={theme} id="fluent-provider">
+        <FluentProvider theme={theme}
+                        id="fluent-provider">
             <App/>
         </FluentProvider>
     );
 };
 
 createRoot(document.getElementById('docu-hyphen-app')!).render(
-    // <StrictMode>
     <ThemeProvider>
         <ThemedApp/>
     </ThemeProvider>
-    // </StrictMode>,
 )

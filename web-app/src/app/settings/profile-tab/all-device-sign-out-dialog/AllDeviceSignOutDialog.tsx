@@ -35,23 +35,25 @@ const AllDeviceSignOutDialog: React.FC<AllDeviceSignOutDialogProps> = (
     return <>
         <Dialog modalType="alert"
                    open={isOpen}>
-        <DialogSurface>
-            <DialogBody>
-                <DialogTitle>Sign out of all devices</DialogTitle>
-                <DialogContent className={styles.dialogContentContainer}>
-                    <Text>
+        <DialogSurface id={"all-device-sign-out-dialog-dialog-surface-1"}>
+            <DialogBody id={"all-device-sign-out-dialog-dialog-body-1"}>
+                <DialogTitle id={"all-device-sign-out-dialog-dialog-title-1"}>Sign out of all devices</DialogTitle>
+                <DialogContent id={"all-device-sign-out-dialog-dialog-content-1"}
+                               className={styles.dialogContentContainer}>
+                    <Text id={"all-device-sign-out-dialog-text-1"}>
                         Are you sure you want to sign out of all devices? This will sign you out from all devices
                         including this one.
                     </Text>
                 </DialogContent>
             </DialogBody>
-            <DialogActions>
+            <DialogActions id={"all-device-sign-out-dialog-dialog-actions-1"}>
                 <Button id={"button-sign-out-all-devices"}
                         shape={"circular"}
                         appearance={"primary"}
                         disabled={signingOut}
                         className={globalStyles.buttonWithLoading}>
-                    {signingOut && <Spinner size={"tiny"}/>}
+                    {signingOut && <Spinner id={"all-device-sign-out-dialog-spinner-1"}
+                                            size={"tiny"}/>}
                     <SignOutClickSurface
                         outOfAllDevices={true}
                         onSignOut={() => setSigningOut(true)}/>

@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionUsage
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
@@ -7,12 +10,6 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-/**
- * Measures how much of each capped allowance a paying subject is consuming.
- *
- * Counting is deliberately lazy: an allowance the resolved plan does not cap is never counted,
- * so uncapped subjects pay no query cost for numbers nobody is limited by.
- */
 @ApplicationScoped
 class SubscriptionUsageService @Inject constructor(
     private val exchangeUsageCounter: ExchangeUsageCounter,
@@ -81,7 +78,6 @@ class SubscriptionUsageService @Inject constructor(
         return organizationSeatCounter.countActiveSeats(organizationId)
     }
 
-    /** Allowances that reset monthly do so on the first instant of the UTC calendar month. */
     fun calendarMonthStart(at: Instant): Instant
     {
         return at.atZone(ZoneOffset.UTC)
@@ -102,6 +98,4 @@ class SubscriptionUsageService @Inject constructor(
         return zoned.toLocalDate().lengthOfMonth().toLong()
     }
 }
-
-
 

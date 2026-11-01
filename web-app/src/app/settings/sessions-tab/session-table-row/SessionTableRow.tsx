@@ -1,15 +1,10 @@
 import React from "react";
-import {
-    Badge,
-    Button,
-    Spinner,
-    TableCell,
-    TableRow,
-    Text,
-} from "@fluentui/react-components";
-import {DeleteRegular} from "@fluentui/react-icons";
+import {TableCell, TableRow, Text} from "@fluentui/react-components";
 import {UserSessionDto} from "../../../models/models.tsx";
-import {useSessionsTabStyles} from "../SessionsTabStyles.tsx";
+import {formatSessionDate, getDeviceName} from "./sessionDisplay.ts";
+import SessionStatusBadge from "./SessionStatusBadge.tsx";
+import SessionActionButton from "./SessionActionButton.tsx";
+import {useSessionTableRowStyles} from "./SessionTableRowStyles.tsx";
 
 interface SessionTableRowProps
 {
@@ -19,47 +14,6 @@ interface SessionTableRowProps
     onRevoke: () => void;
     onDelete: () => void;
 }
-
-const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
-
-const getDeviceName = (session: UserSessionDto) =>
-    session.deviceName ?? session.userAgent?.split(' ')[0] ?? "Unknown device";
-
-const getStatusBadge = (session: UserSessionDto) =>
-{
-    if (session.isCurrent && session.isActive)
-    {
-        return <Badge appearance="filled" color="brand">This device</Badge>;
-    }
-
-    if (session.isActive)
-    {
-        return <Badge appearance="outline" color="success">Active</Badge>;
-    }
-
-    if (session.revocationReasonCode === "EXCHANGE_EXPIRED")
-    {
-        return <Badge appearance="outline" color="warning">Expired</Badge>;
-    }
-
-    return <Badge appearance="tint" color="danger">Revoked</Badge>;
-};
-
-const getActionLabel = (session: UserSessionDto, isBusy: boolean) =>
-{
-    if (isBusy)
-    {
-        return <Spinner size="tiny"/>;
-    }
-
-    if (session.isActive)
-    {
-        return session.isCurrent ? "Sign out" : "Revoke";
-    }
-
-    return "Delete";
-};
 
 const SessionTableRow: React.FC<SessionTableRowProps> = (
     {
@@ -71,17 +25,20 @@ const SessionTableRow: React.FC<SessionTableRowProps> = (
     }
 ) =>
 {
-    const styles = useSessionsTabStyles();
+    const styles = useSessionTableRowStyles();
     const isBusy = isRevoking || isDeleting;
     const lastChangedAt = session.revokedAt ?? session.expiresAt;
 
     return (
-        <TableRow className={session.isCurrent ? styles.currentRow : undefined}>
-            <TableCell className={styles.deviceColumn}>
+        <TableRow id={"session-table-row-table-row-1"}
+                  className={session.isCurrent ? styles.currentRow : undefined}>
+            <TableCell id={"session-table-row-table-cell-1"}
+                       className={styles.deviceColumn}>
                 <div
                     id={`device-session-${session.sessionId}-device`}
                     className={styles.currentDeviceCell}>
                     <Text
+                        id={"session-table-row-text-1"}
                         size={300}
                         weight={"semibold"}
                         className={styles.deviceName}>
@@ -92,57 +49,57 @@ const SessionTableRow: React.FC<SessionTableRowProps> = (
                             id={`device-session-${session.sessionId}-ended-at`}
                             size={200}
                             className={styles.metaCell}>
-                            Ended {formatDate(lastChangedAt)}
+                            Ended {formatSessionDate(lastChangedAt)}
                         </Text>
                     )}
                 </div>
             </TableCell>
-            <TableCell className={styles.ipColumn}>
+            <TableCell id={"session-table-row-table-cell-2"}
+                       className={styles.ipColumn}>
                 <Text
+                    id={"session-table-row-text-2"}
                     size={200}
                     className={styles.metaCell}>
                     {session.ipAddress || "-"}
                 </Text>
             </TableCell>
-            <TableCell className={styles.dateColumn}>
+            <TableCell id={"session-table-row-table-cell-3"}
+                       className={styles.dateColumn}>
                 <Text
+                    id={"session-table-row-text-3"}
                     size={200}
                     className={styles.metaCell}>
-                    {formatDate(session.lastSeenAt)}
+                    {formatSessionDate(session.lastSeenAt)}
                 </Text>
             </TableCell>
-            <TableCell className={styles.dateColumn}>
+            <TableCell id={"session-table-row-table-cell-4"}
+                       className={styles.dateColumn}>
                 <Text
+                    id={"session-table-row-text-4"}
                     size={200}
                     className={styles.metaCell}>
-                    {formatDate(session.createdDate)}
+                    {formatSessionDate(session.createdDate)}
                 </Text>
             </TableCell>
-            <TableCell className={styles.dateColumn}>
+            <TableCell id={"session-table-row-table-cell-5"}
+                       className={styles.dateColumn}>
                 <Text
+                    id={"session-table-row-text-5"}
                     size={200}
                     className={styles.metaCell}>
-                    {session.expiresAt ? formatDate(session.expiresAt) : "-"}
+                    {session.expiresAt ? formatSessionDate(session.expiresAt) : "-"}
                 </Text>
             </TableCell>
-            <TableCell className={styles.statusCell}>
-                {getStatusBadge(session)}
+            <TableCell id={"session-table-row-table-cell-6"}
+                       className={styles.statusCell}>
+                <SessionStatusBadge session={session}/>
             </TableCell>
-            <TableCell className={styles.actionsCell}>
-                <div id={`device-session-${session.sessionId}-action`}>
-                    <Button
-                        id={session.isActive
-                            ? `button-revoke-session-${session.sessionId}`
-                            : `button-delete-session-record-${session.sessionId}`}
-                        icon={<DeleteRegular/>}
-                        shape={"circular"}
-                        appearance="secondary"
-                        size="small"
-                        disabled={isBusy}
-                        onClick={session.isActive ? onRevoke : onDelete}>
-                        {getActionLabel(session, isBusy)}
-                    </Button>
-                </div>
+            <TableCell id={"session-table-row-table-cell-7"}
+                       className={styles.actionsCell}>
+                <SessionActionButton session={session}
+                                     isBusy={isBusy}
+                                     onRevoke={onRevoke}
+                                     onDelete={onDelete}/>
             </TableCell>
         </TableRow>
     );

@@ -3,51 +3,64 @@ package com.docuhyphen.app.api.resource.subscription
 import com.docuhyphen.app.api.model.SubscriptionTrialRequestDtoMapper
 import com.docuhyphen.app.api.model.dto.SubscriptionTrialRequestDecisionRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.subscription.operations.PlatformSubscriptionTrialRequestResourceOperations
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialRequestService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/platform/subscription-trial-requests")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformSubscriptionTrialRequestResource @Inject constructor(
     private val service: PlatformSubscriptionTrialRequestService,
     private val mapper: SubscriptionTrialRequestDtoMapper,
-)
+) : PlatformSubscriptionTrialRequestResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformSubscriptionTrialRequestResource::class.java)
+        private const val DEFAULT_LIMIT = 25
     }
 
-    @GET
-    fun list(
-        @QueryParam("status") status: String?,
-        @QueryParam("limit") limit: Int?,
-        @QueryParam("offset") offset: Int?,
+    override fun list(
+        status: String?,
+        limit: Int?,
+        offset: Int?,
     ): Response
     {
         return try
         {
-            Response.ok(mapper.toDto(service.list(status, limit ?: 25, offset ?: 0))).build()
+            Response.ok(mapper.toDto(service.list(status, limit ?: DEFAULT_LIMIT, offset ?: 0))).build()
         }
         catch (exception: Exception)
         {
-            handleException("Error listing platform subscription trial requests", exception)
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing platform subscription trial requests", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{requestId}/status")
-    fun decide(
-        @PathParam("requestId") requestId: String,
-        @HeaderParam("X-Request-Id") approvalRequestId: String?,
+    override fun decide(
+        requestId: String,
+        approvalRequestId: String?,
         request: SubscriptionTrialRequestDecisionRequest,
     ): Response
     {
@@ -62,26 +75,25 @@ class PlatformSubscriptionTrialRequestResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            handleException("Error deciding platform subscription trial request", exception)
-        }
-    }
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        logger.error(message, exception)
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError(exception.message)).build()
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-            is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-            is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
-
-            else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error deciding platform subscription trial request", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 }

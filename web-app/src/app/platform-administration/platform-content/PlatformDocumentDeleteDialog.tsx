@@ -26,13 +26,13 @@ const PlatformDocumentDeleteDialog = ({entry, deleting, onConfirm, onDismiss}: P
             if (!data.open) onDismiss();
         }}>
         <DialogSurface id={"platform-document-delete-dialog"}>
-            <DialogBody>
-                <DialogTitle>Delete platform document?</DialogTitle>
-                <DialogContent>
+            <DialogBody id={"platform-document-delete-dialog-dialog-body-1"}>
+                <DialogTitle id={"platform-document-delete-dialog-dialog-title-1"}>Delete platform document?</DialogTitle>
+                <DialogContent id={"platform-document-delete-dialog-dialog-content-1"}>
                     {entry.title} will be permanently removed. Blueprints that reference it will
                     lose the file association.
                 </DialogContent>
-                <DialogActions>
+                <DialogActions id={"platform-document-delete-dialog-dialog-actions-1"}>
                     <Button
                         id={"platform-document-delete-confirm"}
                         appearance={"primary"}

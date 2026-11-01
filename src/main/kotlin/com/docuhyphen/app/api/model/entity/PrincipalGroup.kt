@@ -10,22 +10,13 @@ import java.util.*
 
 enum class PrincipalGroupScope
 {
-    /** Owned by an organization. Replaces [OrganizationGroup]. */
     ORG,
 
-    /** Owned by a single [AppUser]; used for ad-hoc sharing outside any org. */
     PERSONAL,
 
-    /** Jointly owned by two or more organizations (see [PrincipalGroupCoOwnerOrg]). */
     SHARED_PROJECT,
 }
 
-/**
- * Unified group entity. Replaces [OrganizationGroup] (which is kept alongside until V9
- * for backwards compatibility). For ORG-scoped groups the row IDs are reused from the
- * legacy `organization_group` rows so existing FKs (e.g. `exchange.group_id`)
- * keep resolving during the dual-write window.
- */
 @Entity
 @Serializable
 @Table(name = "principal_group")
@@ -57,10 +48,6 @@ class PrincipalGroup
     @Serializable(with = UUIDSerializer::class)
     var parentGroupId: UUID? = null
 
-    /**
-     * For [PrincipalGroupScope.ORG] only: when true, the group is visible to trusted
-     * organizations as a sharing target.
-     */
     @Column(name = "externally_published", nullable = false)
     var externallyPublished: Boolean = false
 

@@ -42,20 +42,12 @@ class AwsS3FileStorageService @Inject constructor(
 
     private val s3Client: S3Client = createS3Client()
 
-    /* ============================
-       S3 Client Initialization
-       ============================ */
-
     private fun createS3Client(): S3Client
     {
         return S3Client.builder()
             .region(Region.of(awsRegion))
             .build()
     }
-
-    /* ============================
-       Encryption helpers
-       ============================ */
 
     private fun generateKey(): Key
     {
@@ -84,10 +76,6 @@ class AwsS3FileStorageService @Inject constructor(
         return decryptedFile
     }
 
-    /* ============================
-       Upload
-       ============================ */
-
     override fun uploadDocument(file: File, key: String): String
     {
         val encryptionKey = if (ENABLE_ENCRYPTION) generateKey() else null
@@ -115,13 +103,8 @@ class AwsS3FileStorageService @Inject constructor(
         } ?: ""
     }
 
-    /* ============================
-       Download
-       ============================ */
-
     override fun downloadDocument(key: String): File
     {
-        // Preserve the real file extension so callers can use file.name reliably
         val extension = "." + key.substringAfterLast('.', "tmp")
         val tempFile = Files.createTempFile("docuhyphen-${UUID.randomUUID()}", extension).toFile()
 
@@ -130,7 +113,6 @@ class AwsS3FileStorageService @Inject constructor(
             .key(key)
             .build()
 
-        // Use OutputStream transformer
         tempFile.outputStream().use { outputStream ->
             s3Client.getObject(getObjectRequest, ResponseTransformer.toOutputStream(outputStream))
         }
@@ -140,15 +122,10 @@ class AwsS3FileStorageService @Inject constructor(
             return tempFile
         }
 
-        // Future decryption path
         val decodedKey = Base64.getDecoder().decode("REPLACE_WITH_REAL_KEY")
         val secretKey = SecretKeySpec(decodedKey, ALGORITHM)
         return decryptFile(tempFile, secretKey)
     }
-
-    /* ============================
-       Download ZIP
-       ============================ */
 
     override fun downloadDocumentsAsZip(keys: List<String>): File
     {

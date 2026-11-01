@@ -8,8 +8,6 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-// ── Sequence DTOs ─────────────────────────────────────────────────────────────
-
 @Serializable
 data class SequenceDefinitionDto(
     @Serializable(with = UUIDSerializer::class)
@@ -76,8 +74,6 @@ data class UpdateSequenceRequest(
     val isActive: Boolean? = null,
 )
 
-// ── Variable DTOs ─────────────────────────────────────────────────────────────
-
 @Serializable
 data class VariableDefinitionDto(
     @Serializable(with = UUIDSerializer::class)
@@ -117,8 +113,6 @@ data class UpdateVariableRequest(
     val defaultValue: String? = null,
     val isActive: Boolean? = null,
 )
-
-// ── Available Variables DTO ───────────────────────────────────────────────────
 
 @Serializable
 data class SystemVariableDto(

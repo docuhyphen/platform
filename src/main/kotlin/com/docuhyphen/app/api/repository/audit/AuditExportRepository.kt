@@ -37,11 +37,6 @@ class AuditExportRepository : BaseRepository<AuditExport>(AuditExport::class.jav
             .setParameter("ownerUserId", ownerUserId)
             .resultList
 
-    /**
-     * `BUILDING` exports eligible to be claimed for an archive build, oldest first: those with no
-     * build-claim lease yet, or whose lease has expired (a node died mid-build). Does not itself
-     * lock or claim anything - the caller must lock and re-check each candidate before acting on it.
-     */
     fun findDueForBuilding(now: Timestamp, limit: Int = 50): List<AuditExport>
     {
         return entityManager.createQuery(

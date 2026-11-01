@@ -5,10 +5,10 @@ import {
     Tag,
     TagGroup,
 } from '@fluentui/react-components';
-import ViewModeToggle from '../../../../components/ViewModeToggle';
+import ViewModeToggle from '../../../../components/view-mode-toggle/ViewModeToggle';
 import {ViewMode} from '../../../../models/models';
-import WorkflowSortMenu, {WorkflowSortOrder} from './WorkflowSortMenu';
-import WorkflowTagFilter from './WorkflowTagFilter';
+import WorkflowSortMenu, {WorkflowSortOrder} from './workflow-sort-menu/WorkflowSortMenu';
+import WorkflowTagFilter from './workflow-tag-filter/WorkflowTagFilter';
 import {useWorkflowListControlsStyles} from './WorkflowListControlsStyles';
 
 export type {WorkflowSortOrder};
@@ -44,7 +44,8 @@ const WorkflowListControls = (props: Props) =>
                     id="workflow-list-controls-left"
                     className={styles.leftControls}
                 >
-                    <Field className={styles.searchField}>
+                    <Field id={"workflow-list-controls-field-1"}
+                           className={styles.searchField}>
                         <SearchBox
                             id="workflow-list-search"
                             placeholder="Search workflows"
@@ -74,9 +75,11 @@ const WorkflowListControls = (props: Props) =>
                     id="workflow-list-active-tags"
                     className={styles.activeTagsRow}
                 >
-                    <TagGroup onDismiss={(_, {value}) => props.onTagToggle(value)}>
+                    <TagGroup id={"workflow-list-controls-tag-group-1"}
+                              onDismiss={(_, {value}) => props.onTagToggle(value)}>
                         {[...props.selectedTags].map(tag => (
                             <Tag
+                                id={`workflow-list-controls-tag-1-${tag}`}
                                 key={tag}
                                 value={tag}
                                 size="small"

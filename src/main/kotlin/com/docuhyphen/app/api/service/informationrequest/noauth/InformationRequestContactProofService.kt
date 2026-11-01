@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.model.informationrequest.noauth.IssuedRequestAcces
 import com.docuhyphen.app.api.model.informationrequest.noauth.LockedInformationRequestBootstrapLink
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.exchange.ExchangeLookupService
 import com.docuhyphen.app.api.service.exchange.ExternalParticipantService

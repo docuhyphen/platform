@@ -1,7 +1,3 @@
-/**
- * App Admin role management API: calls /admin/roles/app-admins and
- * /admin/roles/app-admin-candidates (global user search for the picker).
- */
 import apiClient from './apiClient';
 import {AppAdminDto, AppUserSearchResult, GrantAppAdminRequest} from './types/dtos';
 
@@ -41,11 +37,6 @@ export const grantAppAdmin = (request: GrantAppAdminRequest): Promise<AppAdminDt
 export const revokeAppAdmin = (assignmentId: string): Promise<void> =>
     executeRequest(() => apiClient.delete(`/admin/roles/app-admins/${assignmentId}`));
 
-/**
- * App-admin is a global role, so the picker must reach users outside the
- * caller's org. Backend (AppRoleResource) guards this with the same isAppAdmin check as
- * the rest of /admin/roles, so non-admins get a 403.
- */
 export const searchAppAdminCandidates = (q: string, limit = 20): Promise<AppUserSearchResult[]> =>
     executeRequest(() =>
         apiClient.get(`/admin/roles/app-admin-candidates`, {params: {q, limit}}),

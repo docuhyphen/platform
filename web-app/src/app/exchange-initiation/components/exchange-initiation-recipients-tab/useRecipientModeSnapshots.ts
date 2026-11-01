@@ -30,10 +30,6 @@ export interface UseRecipientModeSnapshotsParams
     setNewRecipient: (recipient: ExchangeNewMainRecipient | undefined) => void;
 }
 
-/**
- * Preserves the recipient selection made in each recipient mode so that switching
- * between modes and back restores the earlier selection instead of discarding it.
- */
 export function useRecipientModeSnapshots(params: UseRecipientModeSnapshotsParams)
 {
     const snapshots = useRef<Record<ExchangeInitiationRecipientMode, RecipientModeSnapshot>>({
@@ -55,7 +51,6 @@ export function useRecipientModeSnapshots(params: UseRecipientModeSnapshotsParam
     useEffect(() =>
     {
         snapshots.current[params.recipientMode] = captureCurrent();
-        // captureCurrent reads the same values listed below, so the snapshot stays current.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         params.recipientMode,

@@ -26,7 +26,7 @@ class AvailableVariablesService @Inject constructor(
             SystemVariableDto("CURRENT_DATE", "Today's date (yyyy-MM-dd)", "2026-06-21"),
             SystemVariableDto("CURRENT_YEAR", "Current year", "2026"),
             SystemVariableDto("CURRENT_MONTH", "Current month name", "June"),
-            SystemVariableDto("CURRENT_MONTH_NUMBER", "Current month number (01–12)", "06"),
+            SystemVariableDto("CURRENT_MONTH_NUMBER", "Current month number (01-12)", "06"),
         )
     }
 

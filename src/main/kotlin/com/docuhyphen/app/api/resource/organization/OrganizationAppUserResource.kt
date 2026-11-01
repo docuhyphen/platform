@@ -7,192 +7,132 @@ import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.resource.model.AddOrganizationAppUserRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.UpdateOrganizationAppUserRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationAppUserResourceOperations
 import com.docuhyphen.app.api.service.organization.OrganizationAppUserService
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
 import jakarta.inject.Inject
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 import java.util.*
 
-
-enum class APP_USER_CHECK
-{
-    DELETABLE
-}
-
-@Path("organizations")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationAppUserResource @Inject constructor(
     private val organizationAppUserService: OrganizationAppUserService,
     private val organizationMembershipService: OrganizationMembershipService,
-)
+) : OrganizationAppUserResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationAppUserResource::class.java)
     }
 
-    @Path("/{organizationId}/app-users")
-    @POST
-    @Transactional
-    fun addAppUser(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
-        addOrganizationAppUserRequest: AddOrganizationAppUserRequest
+    override fun addAppUser(
+        organizationId: String,
+        requestId: String?,
+        addOrganizationAppUserRequest: AddOrganizationAppUserRequest,
     ): Response
     {
         return try
         {
             val appUser = with(addOrganizationAppUserRequest) {
-                val adminApprovalContext = AdminApprovalContext(
-                    requestId = requestId,
-                )
-
                 organizationAppUserService.addAppUser(
                     organizationId,
                     roles,
                     email,
                     person?.firstName,
                     person?.lastName,
-                    adminApprovalContext,
+                    AdminApprovalContext(requestId = requestId),
                 )
             }
 
-            return Response
+            Response
                 .status(CREATED)
                 .entity(DetailedEntityToDtoTransformer.toPublicDto(appUser))
                 .build()
         }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.error("Subscription denied while adding an organization app user", exception)
-            throw exception
-        }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error adding organization app user", exception)
-
             when (exception)
             {
-                is OrganizationNotFoundException ->
+                is SubscriptionDenialException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
+                    logger.error("Subscription denied while adding an organization app user", exception)
+                    throw exception
                 }
+
+                is WebApplicationException -> throw exception
+
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while adding an organization app user")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error adding organization app user", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while adding an organization app user"))
                         .build()
                 }
             }
         }
     }
 
-    @GET
-    @Path("/{organizationId}/app-users")
-    fun getAppUsers(@PathParam("organizationId") organizationId: String?): Response
+    override fun getAppUsers(organizationId: String?): Response
     {
         return try
         {
             val members = organizationAppUserService.getAppUsers(organizationId)
-            // organizationId is a valid org UUID here (getAppUsers validates/resolves it first).
             val roles = organizationMembershipService.rolesOf(UUID.fromString(organizationId))
             val appUsers = members
                 .map { DetailedEntityToDtoTransformer.toPublicDto(it, roles[it.id].orEmpty()) }
                 .toTypedArray()
 
-            Response
-                .ok(appUsers)
-                .build()
-        }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.error("Subscription denied while updating an organization app user", exception)
-            throw exception
+            Response.ok(appUsers).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error getting organization app users", exception)
-
             when (exception)
             {
-                is OrganizationNotFoundException ->
+                is SubscriptionDenialException ->
                 {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
+                    logger.error("Subscription denied while getting organization app users", exception)
+                    throw exception
                 }
+
+                is WebApplicationException -> throw exception
+
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while getting organization app users")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error getting organization app users", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while getting organization app users"))
                         .build()
                 }
             }
         }
     }
 
-    @PUT
-    @Path("/{organizationId}/app-users/{appUserId}")
-    @Transactional
-    fun updateAppUser(
-        @PathParam("organizationId") organizationId: String?,
-        @PathParam("appUserId") appUserId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
-        updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest
+    override fun updateAppUser(
+        organizationId: String?,
+        appUserId: String?,
+        requestId: String?,
+        updateOrganizationAppUserRequest: UpdateOrganizationAppUserRequest,
     ): Response
     {
         return try
         {
             with(updateOrganizationAppUserRequest)
             {
-                val adminApprovalContext = AdminApprovalContext(
-                    requestId = requestId,
-                )
                 organizationAppUserService.updateAppUser(
                     organizationId,
                     appUserId,
@@ -202,162 +142,119 @@ class OrganizationAppUserResource @Inject constructor(
                     email,
                     this.person?.firstName,
                     this.person?.lastName,
-                    adminApprovalContext,
+                    AdminApprovalContext(requestId = requestId),
                 )
             }
 
             Response.status(NO_CONTENT).build()
         }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.warn("Subscription denied while changing an organization app user", exception)
-            throw exception
-        }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error updating organization app user", exception)
-
             when (exception)
             {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Subscription denied while changing an organization app user", exception)
+                    throw exception
+                }
+
+                is WebApplicationException -> throw exception
+
                 is OrganizationNotFoundException,
                 is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while updating an organization app user")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error updating organization app user", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while updating an organization app user"))
                         .build()
                 }
             }
         }
     }
 
-    @Path("/{organizationId}/app-users/{appUserId}")
-    @DELETE
-    fun deleteAppUser(
-        @PathParam("organizationId") organizationId: String?,
-        @PathParam("appUserId") appUserId: String?,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun deleteAppUser(
+        organizationId: String?,
+        appUserId: String?,
+        requestId: String?,
     ): Response
     {
         return try
         {
-            val adminApprovalContext = AdminApprovalContext(
-                requestId = requestId,
+            organizationAppUserService.deleteAppUser(
+                organizationId,
+                appUserId,
+                AdminApprovalContext(requestId = requestId),
             )
-            organizationAppUserService.deleteAppUser(organizationId, appUserId, adminApprovalContext)
 
-            Response
-                .status(NO_CONTENT)
-                .build()
-        }
-        catch (exception: SubscriptionDenialException)
-        {
-            logger.warn("Subscription denied while removing an organization app user", exception)
-            throw exception
+            Response.status(NO_CONTENT).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error deactivating organization app user", exception)
-
             when (exception)
             {
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Subscription denied while removing an organization app user", exception)
+                    throw exception
+                }
+
+                is WebApplicationException -> throw exception
+
                 is OrganizationNotFoundException,
                 is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(NOT_FOUND)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-
-                    Response
-                        .status(BAD_REQUEST)
-                        .entity(responseError)
-                        .build()
-                }
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
-                    val responseError = ResponseError("An error occurred while deactivating an organization app user")
-
-                    Response
-                        .status(INTERNAL_SERVER_ERROR)
-                        .entity(responseError)
+                    logger.error("Error deactivating organization app user", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while deactivating an organization app user"))
                         .build()
                 }
             }
         }
     }
 
-    @Path("/{organizationId}/app-users/{appUserId}")
-    @GET
-    fun doCheck(
-        @QueryParam("check") check: String?,
-        @PathParam("organizationId") organizationId: String?,
-        @PathParam("appUserId") appUserId: String?
+    override fun doCheck(
+        check: String?,
+        organizationId: String?,
+        appUserId: String?,
     ): Response
     {
-
         return try
         {
-            var response = Response.ok().build()
-
-            if (check.isNullOrBlank())
+            if (organizationAppUserService.passesCheck(organizationId, appUserId, check))
             {
-                //toDo: return organiation app user
+                Response.ok().build()
             }
             else
             {
-                when (APP_USER_CHECK.valueOf(check.uppercase()))
-                {
-                    APP_USER_CHECK.DELETABLE ->
-                    {
-                        if (!organizationAppUserService.isAppUserIsDeletable(organizationId, appUserId))
-                        {
-                            response = Response.status(CONFLICT).build()
-                        }
-                    }
-                }
+                Response.status(CONFLICT).build()
             }
-
-            response
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error checking organization app user", exception)
-            val responseError = ResponseError("An error occurred while checking organization app user.")
-            Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Error checking organization app user", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while checking organization app user."))
+                        .build()
+                }
+            }
         }
     }
 }

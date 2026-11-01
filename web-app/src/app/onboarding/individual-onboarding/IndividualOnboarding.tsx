@@ -86,7 +86,8 @@ const IndividualOnboarding: React.FC = () =>
                                 <Text
                                     id={"individual-onboarding-welcome-copy"}
                                     size={400}>
-                                    to <Text italic={true}>DocuHyphen</Text>! We're thrilled to have you on board. Let's
+                                    to <Text id={"individual-onboarding-text-1"}
+                                             italic={true}>DocuHyphen</Text>! We're thrilled to have you on board. Let's
                                     get you set up.
                                 </Text>
                         </div>

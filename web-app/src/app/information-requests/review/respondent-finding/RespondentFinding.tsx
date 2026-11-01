@@ -68,12 +68,14 @@ const RespondentFinding = ({idPrefix, finding, label, comments, canReply, busy, 
                                 appearance={"primary"}
                                 shape={"circular"}
                                 disabled={busy || !body.trim()}
-                                onClick={() => void onReply(finding, body.trim()).then(sent =>
-                                {
-                                    if (!sent) return;
-                                    setReplying(false);
-                                    setBody("");
-                                })}>
+                                onClick={() => {
+                                    void onReply(finding, body.trim()).then(sent =>
+                                    {
+                                        if (!sent) return;
+                                        setReplying(false);
+                                        setBody("");
+                                    });
+                                }}>
                             Send reply
                         </Button>
                         <Button id={`${id}-reply-cancel`}

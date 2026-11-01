@@ -1,23 +1,18 @@
 ﻿import {ExchangeDetailedDto} from "../../../models/models.tsx";
-import React, {useEffect, useState} from "react";
-import useToken from "../../../../context/useToken.tsx";
-import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import React from "react";
 import {
-    Button,
     Dialog,
     DialogActions,
     DialogBody,
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger,
     MessageBar,
     MessageBarBody,
-    Spinner,
     Text
 } from "@fluentui/react-components";
-import {deleteExchange} from "../../../../services/exchangeApi.ts";
-import {publishExchangeDelete} from "../../../observable/exchangeObservables.ts";
+import {useExchangeDeletion} from "./useExchangeDeletion.ts";
+import ExchangeDeleteActions from "./exchange-delete-actions/ExchangeDeleteActions.tsx";
 
 interface ExchangeDeleteDialogProps
 {
@@ -35,133 +30,45 @@ const ExchangeDeleteDialog: React.FC<ExchangeDeleteDialogProps> = (
         onExchangeDeleted
     }) =>
 {
+    const deletion = useExchangeDeletion(isOpen, exchange, onExchangeDeleted, onDismiss);
 
-    const token = useToken();
-    const [deletingExchange, setDeletingExchange] = React.useState(false);
-    const globalStyles = useGlobalStyles()
-    const [deleteStarted, setDeleteStarted] = React.useState(false);
-    const [countdown, setCountdown] = React.useState(10);
-    const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
-
-    useEffect(() =>
-    {
-        if (isOpen) setDialogErrorMessage(null);
-    }, [isOpen]);
-
-    const onDelete = () =>
-    {
-        setDeleteStarted(true);
-        setCountdown(10);
-
-        timerRef.current = setInterval(() =>
-        {
-            setCountdown(prevCountdown =>
-            {
-                if (prevCountdown <= 1)
-                {
-                    clearInterval(timerRef.current!);
-                    completeDeletion();
-                    return 0;
-                }
-                return prevCountdown - 1;
-            });
-        }, 1000);
-    }
-
-    const onCancel = () =>
-    {
-        if (timerRef.current)
-        {
-            clearInterval(timerRef.current);
-        }
-        setDeleteStarted(false);
-        setCountdown(5);
-    }
-
-    const completeDeletion = async () =>
-    {
-
-        setDeletingExchange(true)
-
-        try
-        {
-            await deleteExchange(exchange.id);
-            onExchangeDeleted(exchange.id);
-            publishExchangeDelete(exchange.id);
-            onDismiss();
-        }
-        catch (error)
-        {
-            setDialogErrorMessage("Error deleting exchange");
-            console.error("Error deleting document:", error);
-        }
-        finally
-        {
-            setDeletingExchange(false);
-            setDeleteStarted(false);
-        }
-    }
-
-    return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Deleting {exchange && exchange.name}</DialogTitle>
-                    <DialogContent>
-                        {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+    return (
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"exchange-delete-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-delete-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-delete-dialog-dialog-title-1"}>Deleting {exchange && exchange.name}</DialogTitle>
+                    <DialogContent id={"exchange-delete-dialog-dialog-content-1"}>
+                        {deletion.dialogErrorMessage && (
+                            <MessageBar id={"exchange-delete-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-delete-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-delete-dialog-text-1"}
+                                          size={200}>{deletion.dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        {deleteStarted ? (
-                            <div>
-                                Deleting in {countdown} seconds...
+                        {deletion.deleteStarted ? (
+                            <div id={"exchange-delete-dialog-div-1"}>
+                                Deleting in {deletion.countdown} seconds...
                             </div>
                         ) : (
-                            <div>
+                            <div id={"exchange-delete-dialog-div-2"}>
                                 Are you sure you want to delete this Exchange?
                             </div>
                         )}
                     </DialogContent>
-                    <DialogActions>
-                        {deleteStarted ? (
-                            <Button id="exchange-delete-countdown-cancel-btn"
-                                    appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape={"circular"}
-                                    onClick={onCancel}>
-                                Cancel
-                            </Button>
-                        ) : (
-                            <>
-                                <Button id="exchange-delete-confirm-btn"
-                                        appearance="primary"
-                                        className={globalStyles.buttonWithLoading}
-                                        shape={"circular"}
-                                        onClick={onDelete}>
-                                    {deletingExchange && <Spinner size={"tiny"}/>}
-                                    Yes, Delete
-                                </Button>
-                                <DialogTrigger disableButtonEnhancement>
-                                    <Button id="exchange-delete-cancel-btn"
-                                            appearance="secondary"
-                                            shape={"circular"}
-                                            disabled={deletingExchange}
-                                            onClick={onDismiss}>
-                                        No, Cancel
-                                    </Button>
-                                </DialogTrigger>
-                            </>
-                        )}
+                    <DialogActions id={"exchange-delete-dialog-dialog-actions-1"}>
+                        <ExchangeDeleteActions deleteStarted={deletion.deleteStarted}
+                                               deletingExchange={deletion.deletingExchange}
+                                               onDelete={deletion.onDelete}
+                                               onCancel={deletion.onCancel}
+                                               onDismiss={onDismiss}/>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>
         </Dialog>
-        }
-    </>
-}
+    );
+};
 
 export default ExchangeDeleteDialog;

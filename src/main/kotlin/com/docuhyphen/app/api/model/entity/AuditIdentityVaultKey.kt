@@ -8,13 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * A per-subject data key, wrapped (AES-GCM) with the application-wide master key from
- * [com.docuhyphen.app.api.service.audit.identity.AuditIdentityVaultMasterKeyProvider]. Nulling
- * [wrappedKey]/[iv] and stamping [shreddedAt] is the crypto-shredding action itself: anything ever
- * encrypted with this subject's data key becomes permanently unrecoverable, with no audit row
- * having to be deleted.
- */
 @Entity
 @Table(name = "audit_identity_vault_key")
 class AuditIdentityVaultKey

@@ -8,7 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/** Whether a workflow definition is system-wide, owned by a single org, or private to a user. */
 enum class WorkflowScope
 {
     APP,
@@ -16,15 +15,6 @@ enum class WorkflowScope
     PERSONAL,
 }
 
-/**
- * A reusable workflow template. Triggered by an event name (e.g. `session.approval_requested`)
- * and described by a JSON `stepsJson` document conforming to
- * [com.docuhyphen.app.api.service.workflow.WorkflowSpec].
- *
- * The combination `(name, version)` is unique, bumping `version` is how a definition
- * evolves without rewriting in-flight instances (which always capture
- * `definition_version` for replay-safety).
- */
 @Entity
 @Serializable
 @Table(name = "workflow_definition")
@@ -63,26 +53,18 @@ class WorkflowDefinition
     @Column(name = "is_deleted", nullable = false)
     var isDeleted: Boolean = false
 
-    /** JSON array of free-form industry tag strings, e.g. `["legal","hr"]`. */
     @Column(name = "general_tags", nullable = false, columnDefinition = "text")
     var generalTags: String = "[]"
 
     @Column(name = "summary", nullable = true, length = 512)
     var summary: String? = null
 
-    /**
-     * True once an org admin explicitly publishes the definition.
-     * Non-admin org members can only see definitions where isPublished = true.
-     * Has no effect on APP-scoped templates (managed by app admins directly).
-     */
     @Column(name = "is_published", nullable = false)
     var isPublished: Boolean = false
 
-    /** True for platform-bundled templates seeded via Flyway; false for org-created definitions. */
     @Column(name = "is_template", nullable = false)
     var isTemplate: Boolean = false
 
-    /** Set when this definition was cloned from a platform template. */
     @Column(name = "source_template_id", nullable = true)
     @Serializable(with = UUIDSerializer::class)
     var sourceTemplateId: UUID? = null

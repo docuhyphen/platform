@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.exchange
 
 import com.docuhyphen.app.api.model.entity.ExchangeEndingIntent
 import com.docuhyphen.app.api.repository.exchange.ExchangeEndingIntentRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

@@ -18,6 +18,7 @@ import {useNavigate} from "react-router-dom";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
 import {useAuth} from "../../../context/AuthContext.tsx";
 import {fetchAppUserPersonOrganization} from "../../../services/appUserApi.ts";
+import {responseStatusOf} from "../../../services/requestFailure.ts";
 
 
 const OrganizationOnboarding: React.FC = () =>
@@ -39,7 +40,7 @@ const OrganizationOnboarding: React.FC = () =>
             }
             catch (error: unknown)
             {
-                if (error.response?.status === 404)
+                if (responseStatusOf(error) === 404)
                 {
                     console.log("Organization not found for user");
                 }
@@ -53,13 +54,17 @@ const OrganizationOnboarding: React.FC = () =>
     }, [appUser]);
 
     return (
-        <div className={styles.container}>
-            <div className={styles.onboardingSection}>
-                <div className={styles.onboardingSection1}>
+        <div id={"organization-onboarding-div-1"}
+             className={styles.container}>
+            <div id={"organization-onboarding-div-2"}
+                 className={styles.onboardingSection}>
+                <div id={"organization-onboarding-div-3"}
+                     className={styles.onboardingSection1}>
                     <AppLogo/>
-                    <div className={styles.orgOnboardingContainer}>
+                    <div id={"organization-onboarding-div-4"}
+                         className={styles.orgOnboardingContainer}>
                         <OrganizationOnboardingForm onOrganizationRegistered={
-                            (organization) =>
+                            () =>
                             {
                                 navigate('/exchanges');
                             }
@@ -72,16 +77,21 @@ const OrganizationOnboarding: React.FC = () =>
                         Skip for later
                     </Button>
                 </div>
-                <div className={styles.onboardingSection2}>
-                    <div className={styles.onboardingSection2_1}>
-                        <div>
-                            <Text size={500}>Welcome </Text>
-                            <Text size={400}>
-                                to <Text italic={true}>DocHyphen</Text>! We're thrilled to have you on board. Let's
+                <div id={"organization-onboarding-div-5"}
+                     className={styles.onboardingSection2}>
+                    <div id={"organization-onboarding-div-6"}
+                         className={styles.onboardingSection2_1}>
+                        <div id={"organization-onboarding-div-7"}>
+                            <Text id={"organization-onboarding-text-1"}
+                                  size={500}>Welcome </Text>
+                            <Text id={"organization-onboarding-text-2"}
+                                  size={400}>
+                                to <Text id={"organization-onboarding-text-3"}
+                                         italic={true}>DocHyphen</Text>! We're thrilled to have you on board. Let's
                                 get you set up.
                             </Text>
                         </div>
-                        <p>
+                        <p id={"organization-onboarding-p-1"}>
                             Here’s your progress before you can start exchanging documents.
                         </p>
                         <OnboardingBreadcrumbs
@@ -96,18 +106,18 @@ const OrganizationOnboarding: React.FC = () =>
             </div>
             <Dialog modalType="alert"
                     open={isSkipOrgOnboardingDialogOpen}>
-                <DialogSurface>
-                    <DialogBody>
-                        <DialogTitle>Skip Organization Registration</DialogTitle>
-                        <DialogContent>
-                            <p>
+                <DialogSurface id={"organization-onboarding-dialog-surface-1"}>
+                    <DialogBody id={"organization-onboarding-dialog-body-1"}>
+                        <DialogTitle id={"organization-onboarding-dialog-title-1"}>Skip Organization Registration</DialogTitle>
+                        <DialogContent id={"organization-onboarding-dialog-content-1"}>
+                            <p id={"organization-onboarding-p-2"}>
                                 Are you sure you want to skip registering your organization?
                             </p>
-                            <Text>
+                            <Text id={"organization-onboarding-text-4"}>
                                 Skipping registration will limit some features, but you can always complete it later.
                             </Text>
                         </DialogContent>
-                        <DialogActions>
+                        <DialogActions id={"organization-onboarding-dialog-actions-1"}>
                             <Button id={"org-onboarding-skip-confirm-btn"}
                                     appearance="primary"
                                     className={globalStyles.buttonWithLoading}

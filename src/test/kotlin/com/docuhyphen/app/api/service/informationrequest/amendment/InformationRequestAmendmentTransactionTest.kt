@@ -27,9 +27,9 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.amendment.InformationRequestNoticeIntentRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.response.InformationRequestResponseRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
@@ -46,7 +46,7 @@ import com.docuhyphen.app.api.service.informationrequest.notice.InformationReque
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestHiddenResponsePolicyEnforcer
 import com.docuhyphen.app.api.service.informationrequest.review.insertReviewStage
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.narayana.jta.QuarkusTransaction

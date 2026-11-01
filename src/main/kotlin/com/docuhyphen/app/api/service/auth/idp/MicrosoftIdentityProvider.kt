@@ -1,5 +1,9 @@
 package com.docuhyphen.app.api.service.auth.idp
 
+import com.docuhyphen.app.api.model.auth.idp.OAuthTokenResponse
+import com.docuhyphen.app.api.model.auth.idp.OAuthUserInfo
+import com.docuhyphen.app.api.model.auth.idp.ResolvedEmail
+import com.docuhyphen.app.api.model.auth.idp.RuntimeIdpCredentials
 import com.docuhyphen.app.api.model.entity.IdentityProviderType
 import com.docuhyphen.app.api.model.entity.IdentityProviderType.MICROSOFT
 import com.docuhyphen.app.api.service.auth.idp.OAuthClaimField.*
@@ -25,11 +29,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         private val logger = LoggerFactory.getLogger(MicrosoftIdentityProvider::class.java)
         private const val PROVIDER_LABEL = "Microsoft"
 
-        /**
-         * Tenant values that mean "any directory". A token carrying one of these was not
-         * issued by a directory we have any relationship with, so nothing in it can be
-         * treated as an assertion about who the user is outside that stranger's tenant.
-         */
         private val MULTI_TENANT_PLACEHOLDERS = setOf("common", "organizations", "consumers")
     }
 
@@ -72,14 +71,6 @@ class MicrosoftIdentityProvider @Inject constructor(
                 pkcePart
     }
 
-    /**
-     * Exchanges the authorization code for tokens.
-     *
-     * The ID token is deliberately not inspected here. Validation needs the request nonce and
-     * the organization's runtime credentials, neither of which belongs to a transport-level
-     * exchange, so the caller validates the returned token through [validateIdToken] and uses
-     * only that result to make an identity decision.
-     */
     override fun exchangeCodeForTokens(
         code: String,
         redirectUri: String,
@@ -148,8 +139,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         val tokenObjectId = claims[OID.claimName] as? String
             ?: throw OidcValidationException("Missing oid in Microsoft ID token")
 
-        // The tenant must be pinned before the JWKS URL is derived, otherwise an attacker's
-        // tid would select the key set that signs their own token.
         val effectiveTenantId = requirePinnedTenant(tokenTenantId, runtimeCredentials)
 
         oidcJwksService.verifySignature(
@@ -184,8 +173,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         val resolvedEmail = resolveEmail(claims)
 
         return OAuthUserInfo(
-            // tid:oid is the only stable, tenant-scoped identifier Microsoft guarantees.
-            // `sub` is pairwise per application and is kept only to migrate historic links.
             subjectId = "$tokenTenantId:$tokenObjectId",
             email = resolvedEmail.address,
             emailVerified = resolvedEmail.verified,
@@ -195,13 +182,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         )
     }
 
-    /**
-     * Confirms that the signing directory is one this deployment actually trusts.
-     *
-     * Multi-tenant placeholders are only permitted when a deployment has explicitly opted in.
-     * Without this, anyone can register a free Microsoft directory, set a user's mail attribute
-     * to an address they do not own, and present the resulting token as that person.
-     */
     private fun requirePinnedTenant(tokenTenantId: String, runtimeCredentials: RuntimeIdpCredentials?): String
     {
         val configuredTenantId = resolveTenantId(runtimeCredentials).trim()
@@ -226,13 +206,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         return tokenTenantId
     }
 
-    /**
-     * Resolves the mailbox address to attribute this sign-in to.
-     *
-     * Microsoft only asserts that the address belongs to the signing tenant when `xms_edov`
-     * (email domain owner verified) is true. `preferred_username` is a mutable display value,
-     * never a verified mailbox, so it is rejected unless a deployment explicitly opts in.
-     */
     private fun resolveEmail(claims: Map<String, Any?>): ResolvedEmail
     {
         val emailClaim = (claims[EMAIL.claimName] as? String)?.takeIf { it.isNotBlank() }
@@ -254,7 +227,6 @@ class MicrosoftIdentityProvider @Inject constructor(
         return ResolvedEmail(address = address, verified = domainOwnerVerified)
     }
 
-    /** `xms_edov` is emitted as a boolean by some tenants and as a "1"/"0" string by others. */
     private fun readEmailDomainOwnerVerified(claims: Map<String, Any?>): Boolean
     {
         return when (val raw = claims["xms_edov"])
@@ -284,6 +256,4 @@ class MicrosoftIdentityProvider @Inject constructor(
 
         return setOf(resolveClientId(runtimeCredentials)).filter { it.isNotBlank() }.toSet()
     }
-
-    private data class ResolvedEmail(val address: String, val verified: Boolean)
 }

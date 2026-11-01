@@ -1,10 +1,16 @@
 package com.docuhyphen.app.api.resource.audit
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
 import com.docuhyphen.app.api.service.audit.AuditAnalyticsReconciliationService
 import com.docuhyphen.app.api.service.audit.AuditEngagementService
+import com.docuhyphen.app.api.service.audit.AuditLegalHoldAccessService
 import com.docuhyphen.app.api.service.audit.AuditLegalHoldService
 import com.docuhyphen.app.api.service.audit.AuditRetentionPolicyService
+import com.docuhyphen.app.api.service.audit.export.AuditExportAccessService
 import com.docuhyphen.app.api.service.audit.export.AuditExportService
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
 import com.docuhyphen.app.api.service.auth.authz.*
@@ -46,7 +52,7 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `export resource denies a foreign organization path before listing exports`()
     {
         val service = mock<AuditExportService>()
-        val resource = AuditOrganizationExportsResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationExportsResource(AuditExportAccessService(authorizer(), service), service)
 
         val response = resource.listOrganizationExports(foreignOrganizationId.toString())
 
@@ -63,7 +69,7 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `retention resource denies a foreign organization path before listing policies`()
     {
         val service = mock<AuditRetentionPolicyService>()
-        val resource = AuditOrganizationRetentionPolicyResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationRetentionPolicyResource(authorizer(), service)
 
         val response = resource.listOrganizationRetentionPolicies(foreignOrganizationId.toString())
 
@@ -75,7 +81,7 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `analytics resource denies a foreign organization path before reconciliation`()
     {
         val service = mock<AuditAnalyticsReconciliationService>()
-        val resource = AuditOrganizationAnalyticsResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationAnalyticsResource(authorizer(), service)
 
         val response = resource.getOrganizationAnalyticsReconciliation(foreignOrganizationId.toString())
 
@@ -87,7 +93,7 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `integrity resource denies a foreign organization path before checking evidence`()
     {
         val service = mock<AuditIntegrityService>()
-        val resource = AuditOrganizationIntegrityResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationIntegrityResource(authorizer(), service)
 
         val response = resource.getOrganizationIntegrity(foreignOrganizationId.toString())
 
@@ -99,7 +105,7 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `engagement resource denies a foreign organization path before listing engagements`()
     {
         val service = mock<AuditEngagementService>()
-        val resource = AuditOrganizationEngagementResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationEngagementResource(authorizer(), service)
 
         val response = resource.listOrganizationEngagements(foreignOrganizationId.toString())
 
@@ -111,13 +117,15 @@ class AuditOrganizationGovernanceTenantIsolationTest
     fun `legal hold resource denies a foreign organization path before listing holds`()
     {
         val service = mock<AuditLegalHoldService>()
-        val resource = AuditOrganizationLegalHoldResource(authorizationService, contextFactory, service)
+        val resource = AuditOrganizationLegalHoldResource(AuditLegalHoldAccessService(authorizer(), service), service)
 
         val response = resource.listOrganizationLegalHolds(foreignOrganizationId.toString())
 
         assertDenied(response, Action.ORG_READ_AUDIT)
         verify(service).recordDeniedAttempt(principal.id, foreignOrganizationId, Decision.REASON_NO_GRANT)
     }
+
+    private fun authorizer(): AuditAccessAuthorizer = AuditAccessAuthorizer(authorizationService, contextFactory)
 
     private fun assertDenied(response: Response, action: Action)
     {

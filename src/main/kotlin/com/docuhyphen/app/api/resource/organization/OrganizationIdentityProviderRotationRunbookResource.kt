@@ -1,160 +1,118 @@
 package com.docuhyphen.app.api.resource.organization
 
-import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.organization.OrganizationIdpSecretRotationRunbookDtoMapper
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationIdentityProviderRotationRunbookResourceOperations
 import com.docuhyphen.app.api.service.identity.OrganizationIdpSecretRotationRunbookService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("organizations/{organizationId}/identity-providers/secrets/rotation")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationIdentityProviderRotationRunbookResource @Inject constructor(
     private val rotationRunbookService: OrganizationIdpSecretRotationRunbookService,
-)
+) : OrganizationIdentityProviderRotationRunbookResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationIdentityProviderRotationRunbookResource::class.java)
     }
 
-    @GET
-    @Path("/status")
-    fun getRotationStatus(
-        @PathParam("organizationId") organizationId: String,
-    ): Response
+    override fun getRotationStatus(organizationId: String): Response
     {
         return try
         {
             val status = rotationRunbookService.getRotationStatus(organizationId)
-            Response.ok(
-                OrganizationIdpSecretRotationStatusResponse(
-                    intervalDays = status.intervalDays,
-                    evaluated = status.evaluated,
-                    dueCount = status.dueCount,
-                    overlapActiveCount = status.overlapActiveCount,
-                    disabledCount = status.disabledCount,
-                    retirePhaseCount = status.retirePhaseCount,
-                    items = status.items.map { item ->
-                        OrganizationIdpSecretRotationStatusItemResponse(
-                            configId = item.configId.toString(),
-                            provider = item.provider,
-                            secretRef = item.secretRef,
-                            disabled = item.disabled,
-                            rotationPhase = item.rotationPhase,
-                            currentVersionId = item.currentVersionId,
-                            previousVersionId = item.previousVersionId,
-                            pendingVersionId = item.pendingVersionId,
-                            overlapUntilEpochMillis = item.overlapUntilEpochMillis,
-                            overlapActive = item.overlapActive,
-                            due = item.due,
-                            overdueByDays = item.overdueByDays,
-                        )
-                    },
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretRotationRunbookDtoMapper.toStatusResponse(status)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error fetching emergency organization IdP secret rotation status", exception)
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is WebApplicationException -> throw exception
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching emergency organization IdP secret rotation status", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }
 
-    @GET
-    @Path("/preview")
-    fun previewEmergencyRotation(
-        @PathParam("organizationId") organizationId: String,
-    ): Response
+    override fun previewEmergencyRotation(organizationId: String): Response
     {
         return try
         {
             val preview = rotationRunbookService.previewEmergencyRotationCandidates(organizationId)
-            Response.ok(
-                OrganizationIdpSecretRotationPreviewResponse(
-                    intervalDays = preview.intervalDays,
-                    evaluated = preview.evaluated,
-                    dueCount = preview.dueCount,
-                    candidates = preview.candidates.map { candidate ->
-                        OrganizationIdpSecretRotationPreviewCandidate(
-                            configId = candidate.configId.toString(),
-                            provider = candidate.provider,
-                            secretRef = candidate.secretRef,
-                            updatedDate = candidate.updatedDate.toString(),
-                            due = candidate.due,
-                            overdueByDays = candidate.overdueByDays,
-                        )
-                    },
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretRotationRunbookDtoMapper.toPreviewResponse(preview)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error previewing emergency organization IdP secret rotation", exception)
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is WebApplicationException -> throw exception
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error previewing emergency organization IdP secret rotation", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }
 
-    @POST
-    @Path("/run")
-    fun runEmergencyRotation(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun runEmergencyRotation(
+        organizationId: String,
+        requestId: String?,
     ): Response
     {
         return try
         {
             val result = rotationRunbookService.runEmergencyRotation(
                 organizationId = organizationId,
-                adminApprovalContext = AdminApprovalContext(
-                    requestId = requestId,
-                ),
+                adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-
-            Response.ok(
-                OrganizationIdpSecretRotationRunResponse(
-                    evaluated = result.evaluated,
-                    rotated = result.rotated,
-                    failed = result.failed,
-                    skipped = result.skipped,
-                )
-            ).build()
+            Response.ok(OrganizationIdpSecretRotationRunbookDtoMapper.toRunResponse(result)).build()
         }
         catch (exception: Exception)
         {
-            if (exception is jakarta.ws.rs.WebApplicationException) throw exception
-            logger.error("Error running emergency organization IdP secret rotation", exception)
             when (exception)
             {
-                is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-                is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message))
-                    .build()
+                is WebApplicationException -> throw exception
 
-                else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred"))
-                    .build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error running emergency organization IdP secret rotation", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }

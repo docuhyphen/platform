@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.notification
 
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionResult
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.concurrent.atomic.AtomicBoolean

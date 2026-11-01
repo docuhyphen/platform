@@ -9,14 +9,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-/**
- * Single shared HTTP client for all outbound identity provider traffic.
- *
- * Every call carries a connect timeout and a request timeout. Without them a slow or hung
- * provider endpoint holds a worker thread for as long as the socket stays open, which turns a
- * third-party outage into an availability incident here. A single client instance is also
- * required so connections are pooled instead of allocated per sign-in.
- */
 @ApplicationScoped
 class OidcHttpClient @Inject constructor(
     private val configurationService: ConfigurationService,

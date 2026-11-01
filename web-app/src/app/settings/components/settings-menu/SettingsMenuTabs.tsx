@@ -1,4 +1,4 @@
-import type {ReactNode} from "react";
+import type {ReactElement} from "react";
 import {Divider, Tab, TabList, TabValue} from "@fluentui/react-components";
 import {
     AuditIcon,
@@ -24,7 +24,7 @@ import type {SettingsMenuProps} from "./SettingsMenu.tsx";
 interface MenuItemDefinition
 {
     id: string;
-    icon: ReactNode;
+    icon: ReactElement;
     value: TabValue;
     label: string;
     disabled?: boolean;

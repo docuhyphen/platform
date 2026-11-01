@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.occurrence
 
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyOutcome
+import com.docuhyphen.app.api.model.auth.authz.ResourcePolicyRequest
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.InformationRequest
 import com.docuhyphen.app.api.model.entity.InformationRequestGroupOccurrence
 import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirementBinding

@@ -7,17 +7,12 @@ import kotlinx.serialization.Serializable
 import java.sql.Timestamp
 import java.util.*
 
-/** A member of a [com.docuhyphen.app.api.model.entity.PrincipalGroup], role-based (new model). */
 @Serializable
 data class PrincipalGroupMemberDto(
     val user: AppUserPublicDto?,
     val groupRole: PrincipalGroupRoleName,
 )
 
-/**
- * Group response in the new unified model. Replaces OrganizationGroupDetailedDto, members
- * carry a [groupRole] (OWNER/MANAGER/MEMBER/OBSERVER) instead of a per-member permission bag.
- */
 @Serializable
 data class PrincipalGroupDto(
     @Serializable(with = UUIDSerializer::class)
@@ -35,7 +30,6 @@ data class PrincipalGroupDto(
     val members: List<PrincipalGroupMemberDto>,
 )
 
-/** Destination metadata for an externally published organization group. */
 @Serializable
 data class PublishedExchangeGroupDto(
     @Serializable(with = UUIDSerializer::class)

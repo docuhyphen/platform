@@ -36,8 +36,10 @@ const UserSubscriptionFields = ({values, disabled, onChange}: UserSubscriptionFi
                         value={values.planCode}
                         disabled={disabled}
                         onChange={(_, data) => onChange("planCode", data.value as UserSubscriptionFieldValues["planCode"])}>
-                        <option value={"FREE"}>Free</option>
-                        <option value={"PERSONAL"}>Personal</option>
+                        <option id={"user-subscription-fields-option-1"}
+                                value={"FREE"}>Free</option>
+                        <option id={"user-subscription-fields-option-2"}
+                                value={"PERSONAL"}>Personal</option>
                     </Select>
                 </Field>
                 <Field
@@ -49,7 +51,9 @@ const UserSubscriptionFields = ({values, disabled, onChange}: UserSubscriptionFi
                         disabled={disabled}
                         onChange={(_, data) => onChange("status", data.value as UserSubscriptionFieldValues["status"])}>
                         {(["TRIALING", "ACTIVE", "PAST_DUE", "SUSPENDED", "CANCELED"] as const)
-                            .map((status) => <option key={status} value={status}>{status}</option>)}
+                            .map((status) => <option id={`user-subscription-fields-option-3-${status}`}
+                                                     key={status}
+                                                     value={status}>{status}</option>)}
                     </Select>
                 </Field>
                 <Field
@@ -60,9 +64,12 @@ const UserSubscriptionFields = ({values, disabled, onChange}: UserSubscriptionFi
                         value={values.billingFrequency}
                         disabled={disabled}
                         onChange={(_, data) => onChange("billingFrequency", data.value)}>
-                        <option value={""}>Not set</option>
-                        <option value={"MONTHLY"}>Monthly</option>
-                        <option value={"ANNUAL"}>Annual</option>
+                        <option id={"user-subscription-fields-option-4"}
+                                value={""}>Not set</option>
+                        <option id={"user-subscription-fields-option-5"}
+                                value={"MONTHLY"}>Monthly</option>
+                        <option id={"user-subscription-fields-option-6"}
+                                value={"ANNUAL"}>Annual</option>
                     </Select>
                 </Field>
                 <Field

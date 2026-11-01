@@ -26,28 +26,37 @@ const FieldCard = ({
     return (
         <div id={id}
              className={styles.fieldCardItem}>
-            <div className={styles.fieldCard}>
-                <div className={styles.fieldCardHeader}>
-                    <div className={styles.fieldCardTitleBlock}>
-                        <div className={styles.fieldLabelRow}>
-                            <Text className={styles.fieldLabel}>
+            <div id={"field-card-div-1"}
+                 className={styles.fieldCard}>
+                <div id={"field-card-div-2"}
+                     className={styles.fieldCardHeader}>
+                    <div id={"field-card-div-3"}
+                         className={styles.fieldCardTitleBlock}>
+                        <div id={"field-card-div-4"}
+                             className={styles.fieldLabelRow}>
+                            <Text id={"field-card-text-1"}
+                                  className={styles.fieldLabel}>
                                 {title}
                             </Text>
                             {description && (
-                                <InfoLabel info={description}/>
+                                <InfoLabel id={"field-card-info-label-1"}
+                                           info={description}/>
                             )}
                         </div>
                     </div>
-                    <div className={styles.fieldCardMeta}>
+                    <div id={"field-card-div-5"}
+                         className={styles.fieldCardMeta}>
                         {required && (
-                            <Badge appearance="tint"
+                            <Badge id={"field-card-badge-1"}
+                                   appearance="tint"
                                    color="danger"
                                    size="small">
                                 Required
                             </Badge>
                         )}
                         {readOnly && (
-                            <Badge appearance="tint"
+                            <Badge id={"field-card-badge-2"}
+                                   appearance="tint"
                                    color="warning"
                                    size="small">
                                 Read only
@@ -55,7 +64,8 @@ const FieldCard = ({
                         )}
                     </div>
                 </div>
-                <div className={styles.fieldValueArea}>
+                <div id={"field-card-div-6"}
+                     className={styles.fieldValueArea}>
                     {children}
                 </div>
             </div>

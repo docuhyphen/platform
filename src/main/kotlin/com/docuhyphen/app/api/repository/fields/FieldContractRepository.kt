@@ -5,12 +5,10 @@ import com.docuhyphen.app.api.repository.BaseRepository
 import jakarta.enterprise.context.ApplicationScoped
 import java.util.*
 
-/** Persistence for immutable [FieldContract] versions of a [FieldDefinition]. */
 @ApplicationScoped
 class FieldContractRepository :
     BaseRepository<FieldContract>(FieldContract::class.java)
 {
-    /** All contract versions for a definition, newest first. */
     fun findByDefinition(fieldDefinitionId: UUID): List<FieldContract> =
         entityManager.createQuery(
             """SELECT c FROM FieldContract c
@@ -21,7 +19,6 @@ class FieldContractRepository :
             .setParameter("did", fieldDefinitionId)
             .resultList
 
-    /** The highest existing contract version number for a definition, or 0 if none. */
     fun findMaxVersion(fieldDefinitionId: UUID): Int =
         entityManager.createQuery(
             """SELECT COALESCE(MAX(c.contractVersion), 0) FROM FieldContract c

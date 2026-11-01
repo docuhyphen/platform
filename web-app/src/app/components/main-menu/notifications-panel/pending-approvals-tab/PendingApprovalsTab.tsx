@@ -49,7 +49,7 @@ const PendingApprovalsTab: React.FC<PendingApprovalsTabProps> = ({state}) =>
                     intent="error"
                     onClick={state.dismissError}
                 >
-                    <MessageBarBody>{state.decisionError}</MessageBarBody>
+                    <MessageBarBody id={"pending-approvals-tab-message-bar-body-1"}>{state.decisionError}</MessageBarBody>
                 </MessageBar>
             )}
             <Accordion
@@ -60,16 +60,19 @@ const PendingApprovalsTab: React.FC<PendingApprovalsTabProps> = ({state}) =>
             >
                 {state.items.map((step) => (
                     <AccordionItem
+                        id={`pending-approvals-tab-accordion-item-1-${step.stepInstanceId}`}
                         key={step.stepInstanceId}
                         value={step.stepInstanceId}
                     >
-                        <AccordionHeader>
+                        <AccordionHeader id={"pending-approvals-tab-accordion-header-1"}>
                             <div
                                 id={`pending-approval-header-${step.stepInstanceId}`}
                                 className={styles.header}
                             >
-                                <Text weight="semibold">{step.name || 'Exchange'}</Text>
+                                <Text id={"pending-approvals-tab-text-1"}
+                                      weight="semibold">{step.name || 'Exchange'}</Text>
                                 <Badge
+                                    id={"pending-approvals-tab-badge-1"}
                                     appearance="outline"
                                     color="warning"
                                 >
@@ -77,18 +80,20 @@ const PendingApprovalsTab: React.FC<PendingApprovalsTabProps> = ({state}) =>
                                 </Badge>
                             </div>
                         </AccordionHeader>
-                        <AccordionPanel>
+                        <AccordionPanel id={"pending-approvals-tab-accordion-panel-1"}>
                             <div
                                 id={`pending-approval-panel-${step.stepInstanceId}`}
                                 className={styles.panel}
                             >
                                 {step.requestedByName && (
-                                    <Text size={200}>
+                                    <Text id={"pending-approvals-tab-text-2"}
+                                          size={200}>
                                         Requested by {step.requestedByName}
                                         {step.requestedByEmail ? ` (${step.requestedByEmail})` : ''}
                                     </Text>
                                 )}
-                                {step.groupName && <Text size={200}>Group: {step.groupName}</Text>}
+                                {step.groupName && <Text id={"pending-approvals-tab-text-3"}
+                                                         size={200}>Group: {step.groupName}</Text>}
                                 <Textarea
                                     id={`pending-approval-comment-${step.stepInstanceId}`}
                                     className={styles.comment}
@@ -108,9 +113,10 @@ const PendingApprovalsTab: React.FC<PendingApprovalsTabProps> = ({state}) =>
                                         shape="circular"
                                         icon={<CheckmarkCircleRegular/>}
                                         disabled={state.deciding === step.stepInstanceId}
-                                        onClick={() => void state.decide(step, 'APPROVE')}
+                                        onClick={() => { void state.decide(step, 'APPROVE'); }}
                                     >
-                                        {state.deciding === step.stepInstanceId ? <Spinner size="tiny"/> : 'Approve'}
+                                        {state.deciding === step.stepInstanceId ? <Spinner id={"pending-approvals-tab-spinner-1"}
+                                                                                           size="tiny"/> : 'Approve'}
                                     </Button>
                                     <Button
                                         id={`pending-approval-reject-${step.stepInstanceId}`}
@@ -119,7 +125,7 @@ const PendingApprovalsTab: React.FC<PendingApprovalsTabProps> = ({state}) =>
                                         shape="circular"
                                         icon={<DismissCircleRegular/>}
                                         disabled={state.deciding === step.stepInstanceId}
-                                        onClick={() => void state.decide(step, 'REJECT')}
+                                        onClick={() => { void state.decide(step, 'REJECT'); }}
                                     >
                                         Reject
                                     </Button>

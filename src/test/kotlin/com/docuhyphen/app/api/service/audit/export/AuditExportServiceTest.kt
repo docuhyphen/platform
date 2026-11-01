@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.service.audit.export
 
 import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditEngagementAccess
 import com.docuhyphen.app.api.model.audit.export.AuditExportRequest
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.audit.AuditExportApprovalRepository
@@ -10,9 +11,9 @@ import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.archive.AuditArchiveStorage
 import com.docuhyphen.app.api.service.audit.archive.MerkleTree
 import com.docuhyphen.app.api.service.audit.catalog.AuditCategory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.Capability
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.config.AuditExportConfigService
 import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -24,15 +25,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 
-/**
- * Verifies [AuditExportService]:
- *  - a request goes to `APPROVAL_PENDING` when dual control is required, or straight to
- *    `BUILDING` when it is not.
- *  - the requester can never approve their own export (dual control cannot be bypassed by a
- *    single actor).
- *  - an export only reaches `BUILDING` once the configured number of distinct approvals lands.
- *  - a `READY` export cannot be downloaded past its expiry or its download limit.
- */
 class AuditExportServiceTest
 {
     private fun configService(dualControlRequired: Boolean = true, requiredApprovals: Int = 1): AuditExportConfigService
@@ -92,19 +84,15 @@ class AuditExportServiceTest
         capabilities = capabilities.toSet(),
     )
 
-    /** An organization owner/admin: holds direct governance capability, so no engagement is required. */
     private fun governanceActor(mfaSatisfied: Boolean = true, principalId: UUID = UUID.randomUUID()): AuditAccessActor =
         actor(Capability.ORG_POLICY_MANAGE, Capability.ORG_AUDIT_EXPORT, mfaSatisfied = mfaSatisfied, principalId = principalId)
 
-    /** A platform administrator: platform-scope exports (organizationId == null) always bypass the engagement gate. */
     private fun platformAdminActor(mfaSatisfied: Boolean = true, principalId: UUID = UUID.randomUUID()): AuditAccessActor =
         actor(Capability.APP_ADMIN, Capability.APP_AUDIT_EXPORT, mfaSatisfied = mfaSatisfied, principalId = principalId)
 
-    /** A plain platform auditor: no APP_ADMIN, no ORG_AUDIT_VIEW_SENSITIVE equivalent at platform scope. */
     private fun platformAuditorActor(mfaSatisfied: Boolean = true, principalId: UUID = UUID.randomUUID()): AuditAccessActor =
         actor(Capability.APP_AUDIT_EXPORT, mfaSatisfied = mfaSatisfied, principalId = principalId)
 
-    /** Stubs only the sensitivity-required call shape the service is expected to make; any other invocation shape falls through to Mockito's default null return. */
     private fun permissiveEngagementService(exportPermitted: Boolean = true): AuditEngagementService
     {
         val engagementService = mock<AuditEngagementService>()
@@ -120,7 +108,7 @@ class AuditExportServiceTest
                 requestedRange = anyOrNull(),
             ),
         ).thenReturn(
-            AuditEngagementService.EngagementAccess(
+            AuditEngagementAccess(
                 engagementId = UUID.randomUUID(),
                 sensitivityLevel = AuditEngagementSensitivity.SENSITIVE,
                 exportPermitted = exportPermitted,
@@ -239,19 +227,6 @@ class AuditExportServiceTest
         assertEquals(AuditExportStatus.BUILDING, afterSecond.status)
     }
 
-    /**
-     * Proves the fix for the approval-count lost-update race: two concurrent `approveExport` calls
-     * that both observe the export row before either commits would, under the old
-     * `export.approvalCount += 1` logic, both compute `1` and the transition to `BUILDING` would
-     * never happen even though two distinct approvers had in fact approved. `findByIdForUpdate`
-     * (a real Postgres `SELECT ... FOR UPDATE`) serializes the two transactions so the second one
-     * re-reads under the lock; recomputing `approvalCount` from the append-only approval table
-     * (rather than trusting whatever was in memory when the row was locked) then reflects the true
-     * total regardless of what the in-memory counter held before the lock was acquired. This is a
-     * pure-logic unit test - the mocked repository stands in for the row lock whose real
-     * serialization is enforced by Postgres - so it proves the recompute-after-lock behavior, not
-     * the database's lock semantics.
-     */
     @Test
     fun `approveExport recomputes approvalCount from the append-only approval table instead of an in-memory increment`()
     {
@@ -269,9 +244,6 @@ class AuditExportServiceTest
         whenever(exportRepo.findByIdForUpdate(export.id)).thenReturn(export)
         whenever(approvalRepo.hasApprovalFrom(any(), any())).thenReturn(false)
         whenever(approvalRepo.insert(any())).thenAnswer { it.getArgument(0) }
-        // A second, concurrent approver's row already landed in the append-only table by the time
-        // this transaction acquires the lock, even though the in-memory export still holds the
-        // stale approvalCount = 0 it had before the lock.
         whenever(approvalRepo.countByExport(export.id)).thenReturn(2L)
 
         val result = svc.approveExport(export.id, UUID.randomUUID())
@@ -343,17 +315,6 @@ class AuditExportServiceTest
         assertThrows(AuditExportAccessException::class.java) { svc.recordDownload(export.id, requester) }
     }
 
-    /**
-     * Proves `recordDownload` locks the export row (a real Postgres `SELECT ... FOR UPDATE` in
-     * production, via `findByIdForUpdate`) before checking and incrementing `downloadCount`, rather
-     * than reading with a plain `findById`. Locking serializes concurrent downloads of the same
-     * export so a second transaction re-reads the already-incremented count instead of racing
-     * against a stale in-memory value, which is what makes the download-limit check-then-increment
-     * atomic across concurrent requests. As with the approval-count test above, this is a
-     * pure-logic unit test proving the lock is taken and the limit is re-checked under it, not
-     * Postgres's own lock serialization (no real concurrent-transaction harness exists in this
-     * repository yet).
-     */
     @Test
     fun `recordDownload locks the export row with findByIdForUpdate rather than a plain read`()
     {
@@ -398,15 +359,6 @@ class AuditExportServiceTest
         assertTrue(true)
     }
 
-    /**
-     * Verifies the multi-worker build-claim lease: `claimForBuilding` locks the export row, then
-     * re-checks under the lock whether it is still `BUILDING` and whether any existing lease has
-     * expired, before writing a new lease. This is what lets more than one application node run
-     * the build scheduler at once without two nodes performing the same export's archive I/O. As
-     * with the approval/download-lock tests above, this proves the lock-then-recheck decision
-     * logic with a mocked repository standing in for the row lock; no real multi-transaction
-     * Postgres harness exists in this repository yet.
-     */
     @Test
     fun `claimForBuilding claims a BUILDING export with no existing lease`()
     {
@@ -650,7 +602,7 @@ class AuditExportServiceTest
                 requestedRange = anyOrNull(),
             ),
         ).thenReturn(
-            AuditEngagementService.EngagementAccess(
+            AuditEngagementAccess(
                 engagementId = UUID.randomUUID(),
                 sensitivityLevel = AuditEngagementSensitivity.STANDARD,
                 exportPermitted = true,
@@ -753,12 +705,6 @@ class AuditExportServiceTest
         }
     }
 
-    /**
-     * [AuditExportService.downloadBundle] recomputes the fetched object's digest and compares it
-     * against [AuditExport.bundleDigest] recorded when the bundle was built, so a bundle object
-     * modified in storage after being marked `READY` is refused at the very last step before
-     * evidence leaves the system, not merely trusted because the lifecycle row still says `READY`.
-     */
     @Test
     fun `downloadBundle returns the bytes when the fetched object matches its recorded digest`()
     {
@@ -819,9 +765,6 @@ class AuditExportServiceTest
         assertThrows(AuditExportIntegrityFailedException::class.java) {
             svc.downloadBundle(export.id, requester)
         }
-        // Once for the AUDIT_EXPORT_DOWNLOADED attempt recordDownload already committed, once more
-        // for the AUDIT_EXPORT_DOWNLOAD_INTEGRITY_FAILED event recorded when the digest mismatch
-        // was discovered immediately afterward.
         verify(auditRecorder, org.mockito.kotlin.times(2)).record(any())
     }
 }

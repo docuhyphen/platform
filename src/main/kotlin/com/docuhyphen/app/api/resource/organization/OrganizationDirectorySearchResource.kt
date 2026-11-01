@@ -1,31 +1,55 @@
 package com.docuhyphen.app.api.resource.organization
 
+import com.docuhyphen.app.api.exception.OrganizationTrustException
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.OrganizationDirectoryEntryDto
 import com.docuhyphen.app.api.resource.model.OrganizationDirectorySearchRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationDirectorySearchResourceOperations
 import com.docuhyphen.app.api.service.organization.OrganizationDirectorySearchService
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
 import jakarta.ws.rs.core.GenericEntity
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
 
-@Path("organization-directory-searches")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationDirectorySearchResource @Inject constructor(
     private val searchService: OrganizationDirectorySearchService,
-)
+) : OrganizationDirectorySearchResourceOperations
 {
-    @POST
-    fun search(
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(OrganizationDirectorySearchResource::class.java)
+    }
+
+    override fun search(
         request: OrganizationDirectorySearchRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        val organizations = searchService.search(request.query, requestId)
-        return Response.ok(
-            object : GenericEntity<List<OrganizationDirectoryEntryDto>>(organizations)
-            {},
-        ).build()
+        return try
+        {
+            val organizations = searchService.search(request.query, requestId)
+            Response.ok(
+                object : GenericEntity<List<OrganizationDirectoryEntryDto>>(organizations)
+                {},
+            ).build()
+        }
+        catch (exception: Exception)
+        {
+            when (exception)
+            {
+                is OrganizationTrustException -> throw exception
+
+                is SubscriptionDenialException -> throw exception
+
+                else ->
+                {
+                    logger.error("Error searching the organization directory", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
+        }
     }
 }

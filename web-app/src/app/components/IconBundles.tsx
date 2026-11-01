@@ -300,7 +300,6 @@ export const ViewCardsIcon = bundleIcon(GridFilled, GridRegular)
 export const ViewTableIcon = bundleIcon(TableFilled, TableRegular)
 export const TrustedOrganizationsIcon = bundleIcon(BuildingSwapFilled, BuildingSwapRegular)
 
-// Workflow graph step-kind node icons.
 export const WorkflowApprovalNodeIcon = CheckmarkNoteFilled
 export const WorkflowNotificationNodeIcon = AlertFilled
 export const WorkflowConditionNodeIcon = BranchFilled
@@ -314,7 +313,6 @@ export const DiagramIcon = bundleIcon(DataTreemapFilled, DataTreemapRegular)
 export const SplitViewIcon = bundleIcon(LayoutColumnTwoFilled, LayoutColumnTwoRegular)
 export const VerticalLayoutIcon = bundleIcon(ArrowRotateClockwiseFilled, ArrowRotateClockwiseRegular)
 
-// Audit event detail card icons.
 export const PersonIcon = bundleIcon(PersonFilled, PersonRegular)
 export const ClockIcon = bundleIcon(ClockFilled, ClockRegular)
 export const TagIcon = bundleIcon(TagFilled, TagRegular)

@@ -1,11 +1,3 @@
-// Lightweight broker between the axios response interceptor and the React-rendered
-// StepUpModal. The interceptor cannot render UI, so when it detects a
-// STEP_UP_REQUIRED response it asks this broker for a password via a Promise.
-// The modal subscribes to the broker, prompts the user, and resolves/rejects.
-//
-// This decouples auth UX from any specific page or feature: every protected admin
-// call (Add User, Delete Group, IdP secret rotation, etc.) goes through apiClient
-// and will trigger the same step-up flow automatically.
 
 import {
     completeStepUpWithOtp,
@@ -135,7 +127,6 @@ export const requestStepUp = (opts: {
                     authorizeUrl,
                     continueExternal: async (): Promise<void> =>
                     {
-                        // Full-page redirect is intentional: OAuth provider auth must happen top-level.
                         window.location.assign(authorizeUrl);
                     },
                     cancel: () =>

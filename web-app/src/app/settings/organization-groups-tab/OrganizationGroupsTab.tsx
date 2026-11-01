@@ -79,7 +79,8 @@ const OrganizationGroupsTab = ({appUserPersonOrganization}: OrganizationGroupsTa
             id="organization-groups"
             className={styles.container}
         >
-            {error && <div className={styles.error}>{error}</div>}
+            {error && <div id={"organization-groups-tab-div-1"}
+                           className={styles.error}>{error}</div>}
             <OrganizationGroupsToolbar
                 searchQuery={groupList.searchQuery}
                 statusFilter={groupList.statusFilter}
@@ -94,7 +95,10 @@ const OrganizationGroupsTab = ({appUserPersonOrganization}: OrganizationGroupsTa
                 className={styles.tableScroll}
             >
                 {loading
-                    ? <div className={styles.loading}><Spinner label="Loading..." size="small"/></div>
+                    ? <div id={"organization-groups-tab-div-2"}
+                           className={styles.loading}><Spinner id={"organization-groups-tab-spinner-1"}
+                                                               label="Loading..."
+                                                               size="small"/></div>
                     : <OrganizationGroupsTable
                         groups={groupList.visibleGroups}
                         onEdit={openEdit}

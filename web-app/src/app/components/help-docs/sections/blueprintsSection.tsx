@@ -10,7 +10,7 @@ export const blueprintsSection: HelpDocSectionInput = {
     title: "Blueprints",
     articles: [
         {id: "blueprint-overview",    title: "Blueprints overview",                   content: blueprintOverviewArticle},
-        {id: "using-blueprints",      title: "Starting an exchange from a blueprint", content: usingBlueprintsArticle},
+        {id: "using-blueprints",      title: "Starting an Exchange from a blueprint", content: usingBlueprintsArticle},
         {id: "managing-blueprints",   title: "Creating and managing blueprints",      content: managingBlueprintsArticle},
         {id: "org-blueprints",        title: "Organization blueprints",               content: orgBlueprintsArticle},
         {id: "blueprint-platform",    title: "Platform blueprints",                   content: blueprintPlatformArticle},

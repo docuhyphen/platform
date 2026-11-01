@@ -2,6 +2,9 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.SubscriptionLifecycleUpdate
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialPolicyMutation
+import com.docuhyphen.app.api.model.subscription.SubscriptionTrialState
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.sql.Timestamp

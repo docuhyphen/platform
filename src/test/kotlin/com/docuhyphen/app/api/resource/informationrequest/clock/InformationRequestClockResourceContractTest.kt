@@ -14,8 +14,8 @@ import com.docuhyphen.app.api.resource.informationrequest.clock.operations.Infor
 import com.docuhyphen.app.api.resource.model.ChangeInformationRequestClockRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.StartInformationRequestClockRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.command.RevisionETag
@@ -25,7 +25,7 @@ import com.docuhyphen.app.api.service.informationrequest.clock.InformationReques
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockService
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import io.quarkus.security.ForbiddenException

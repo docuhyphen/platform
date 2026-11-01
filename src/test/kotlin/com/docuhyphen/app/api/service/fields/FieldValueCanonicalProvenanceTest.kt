@@ -1,21 +1,11 @@
 package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.entity.PrincipalKind
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-/**
- * Authorship of an answer and of a Schema Assignment is the canonical principal. Every principal the
- * platform can authenticate reaches the same Fields engine, so a participant, a link-verified
- * recipient, a registered application, and a service principal must all be recordable as the author
- * of an answer without being misfiled as a registered user.
- *
- * The participant and public-link cases use explicit synthetic principals at the service boundary.
- * No endpoint issues either principal for a Fields call yet, so these are pre-exposure contract
- * tests of the engine rather than proof of a reachable route.
- */
 class FieldValueCanonicalProvenanceTest
 {
     private val sessionRef = UUID.randomUUID().toString()

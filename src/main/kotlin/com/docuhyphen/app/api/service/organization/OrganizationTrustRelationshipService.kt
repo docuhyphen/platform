@@ -4,10 +4,13 @@ import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.organization.CanonicalOrganizations
+import com.docuhyphen.app.api.model.organization.OrganizationMemberCaller
+import com.docuhyphen.app.api.model.organization.OrganizationTrustRequestOutcome
 import com.docuhyphen.app.api.repository.organization.OrganizationTrustRelationshipRepository
 import com.docuhyphen.app.api.repository.organization.OrganizationTrustSuspensionRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -15,7 +18,7 @@ import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.exchange.TrustedGroupAccessReconciliationService
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
@@ -44,20 +47,12 @@ class OrganizationTrustRelationshipService @Inject constructor(
     private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
-    data class RequestOutcome(
-        val relationship: OrganizationTrustRelationship,
-        val eventType: AuditEventType,
-    )
-
-    private data class Caller(val appUserId: UUID, val organizationId: UUID)
-    private data class CanonicalOrganizations(val organizationAId: UUID, val organizationBId: UUID)
-
     @Transactional(dontRollbackOn = [OrganizationTrustConflictException::class])
     fun requestRelationship(
         targetOrganizationId: UUID,
         requestMessage: String?,
         now: Instant = Instant.now(),
-    ): RequestOutcome
+    ): OrganizationTrustRequestOutcome
     {
         val caller = requireCaller(Action.ORG_TRUST_REQUEST)
         subscriptionGuard.requireMutation(caller.organizationId, PlanFeature.IDENTITY_AND_INTEGRATIONS)
@@ -132,7 +127,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
             reason = null,
             operationId = saved.id.toString(),
         )
-        return RequestOutcome(saved, eventType)
+        return OrganizationTrustRequestOutcome(saved, eventType)
     }
 
     @Transactional(dontRollbackOn = [OrganizationTrustConflictException::class])
@@ -329,10 +324,6 @@ class OrganizationTrustRelationshipService @Inject constructor(
         {
             throw OrganizationTrustConflictException("Only an active trust relationship can be resumed")
         }
-        // Serialize concurrent resume transactions for this relationship so that clearing the
-        // last active suspension always observes the other party's committed state. Without this,
-        // two parties clearing their suspensions concurrently could each still see the other's
-        // suspension and skip the final group access reconciliation.
         relationshipRepository.lockOrganizations(relationship.organizationAId, relationship.organizationBId)
         val suspension = suspensionRepository.findById(suspensionId)
             ?: throw OrganizationTrustNotFoundException("Trust suspension not found")
@@ -438,7 +429,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
         throw exception
     }
 
-    private fun requireCaller(action: Action): Caller
+    private fun requireCaller(action: Action): OrganizationMemberCaller
     {
         val activeOrganizationId = authTokenContext.activeOrganizationId
             ?: throw OrganizationTrustAuthorizationException("An active organization is required")
@@ -458,7 +449,7 @@ class OrganizationTrustRelationshipService @Inject constructor(
         {
             throw OrganizationTrustAuthorizationException()
         }
-        return Caller(principal.id, activeOrganizationId)
+        return OrganizationMemberCaller(principal.id, activeOrganizationId)
     }
 
     private fun requireEligibleOrganization(organizationId: UUID)

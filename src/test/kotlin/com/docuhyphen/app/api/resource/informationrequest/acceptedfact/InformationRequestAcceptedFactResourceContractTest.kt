@@ -14,8 +14,8 @@ import com.docuhyphen.app.api.resource.model.PromoteInformationRequestAcceptedFa
 import com.docuhyphen.app.api.resource.model.RecordInformationRequestBusinessDecisionRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.RevokeInformationRequestAcceptedFactRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestAcceptedFactQueryService
 import com.docuhyphen.app.api.service.informationrequest.acceptedfact.InformationRequestAcceptedFactService

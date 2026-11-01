@@ -7,11 +7,11 @@ import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditAc
 import com.docuhyphen.app.api.model.informationrequest.evidence.InformationRequestEvidenceMalwareOutcome
 import com.docuhyphen.app.api.model.informationrequest.evidence.malwareOutcome
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.audit.InformationRequestAuditActorLabelResolver
 import com.docuhyphen.app.api.service.informationrequest.audit.informationRequestAuditOwner
 import jakarta.enterprise.context.ApplicationScoped

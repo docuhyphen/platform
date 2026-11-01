@@ -67,19 +67,26 @@ const ExchangeDocumentCard: React.FC<ExchangeDocumentCardProps> = (props) => {
                 <ExchangeDocumentThumbnail document={props.document}
                                            exchangeId={props.exchange.id}/>
             )}
-            <TruncatedDocumentTitle documentId={props.document.id} title={props.document.title}/>
-            <div id={`exchange-document-card-footer-${props.document.id}`} className={styles.cardFooter}>
-                <div id={`exchange-document-status-${props.document.id}`} className={styles.statusGroup}>
+            <TruncatedDocumentTitle documentId={props.document.id}
+                                    title={props.document.title}/>
+            <div id={`exchange-document-card-footer-${props.document.id}`}
+                 className={styles.cardFooter}>
+                <div id={`exchange-document-status-${props.document.id}`}
+                     className={styles.statusGroup}>
                     {uploaded ? <CheckmarkCircleFilled className={styles.uploadedIcon}/> : <CircleRegular/>}
-                    <Text size={200} weight="medium">{uploaded ? "Uploaded" : "Not Uploaded"}</Text>
+                    <Text id={"exchange-document-card-text-1"}
+                          size={200}
+                          weight="medium">{uploaded ? "Uploaded" : "Not Uploaded"}</Text>
                     {props.document.uploadDate && (
                         <Tooltip content={formatDateTimeWithOrdinal(props.document.uploadDate)}
                                  relationship="description">
-                            <Caption1 className={styles.uploadDate}>· {relativeUploadDate(props.document.uploadDate)}</Caption1>
+                            <Caption1 id={"exchange-document-card-caption1-1"}
+                                      className={styles.uploadDate}>· {relativeUploadDate(props.document.uploadDate)}</Caption1>
                         </Tooltip>
                     )}
                 </div>
-                <div id={`exchange-document-actions-${props.document.id}`} className={styles.cardActions}>
+                <div id={`exchange-document-actions-${props.document.id}`}
+                     className={styles.cardActions}>
                     {!props.showThumbnail && (
                         <Button id={`exchange-document-upload-${props.document.id}`}
                                 appearance="subtle"

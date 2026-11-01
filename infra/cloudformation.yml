@@ -92,7 +92,7 @@ Conditions:
 
 Resources:
 
-  # ─── VPC ────────────────────────────────────────────────────────────────────
+ # VPC
 
   VPC:
     Type: AWS::EC2::VPC
@@ -182,7 +182,7 @@ Resources:
       SubnetId: !Ref PublicSubnetB
       RouteTableId: !Ref PublicRouteTable
 
-  # ─── SECURITY GROUPS ────────────────────────────────────────────────────────
+ # SECURITY GROUPS
 
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -221,7 +221,7 @@ Resources:
           ToPort: 5432
           SourceSecurityGroupId: !Ref ECSSecurityGroup
 
-  # ─── SECRETS MANAGER ────────────────────────────────────────────────────────
+ # SECRETS MANAGER
 
   JWTSecret:
     Type: AWS::SecretsManager::Secret
@@ -272,7 +272,7 @@ Resources:
         PasswordLength: 64
         ExcludePunctuation: true
 
-  # ─── RDS POSTGRESQL ─────────────────────────────────────────────────────────
+ # RDS POSTGRESQL
 
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -309,7 +309,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AppName}-postgres
 
-  # ─── ECR ────────────────────────────────────────────────────────────────────
+ # ECR
 
   ECRRepository:
     Type: AWS::ECR::Repository
@@ -334,7 +334,7 @@ Resources:
             }]
           }
 
-  # ─── ECS ────────────────────────────────────────────────────────────────────
+ # ECS
 
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -513,7 +513,7 @@ Resources:
       ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
       TaskRoleArn: !GetAtt ECSTaskRole.Arn
       ContainerDefinitions:
-        # ── Spring Boot app ──
+ # Spring Boot app
         - Name: app
           Image: !Ref ECRImageURI
           Essential: true
@@ -671,7 +671,7 @@ Resources:
             Retries: 3
             StartPeriod: 60
 
-        # ── Redis sidecar (replace with ElastiCache when first customer signs up) ──
+ # Redis sidecar (replace with ElastiCache when first customer signs up)
         - Name: redis
           Image: redis:7-alpine
           Essential: true
@@ -704,7 +704,7 @@ Resources:
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: redis
 
-  # ─── ALB ────────────────────────────────────────────────────────────────────
+ # ALB
 
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -764,7 +764,7 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref ALBTargetGroup
 
-  # ─── ECS SERVICE ────────────────────────────────────────────────────────────
+ # ECS SERVICE
 
   ECSService:
     Type: AWS::ECS::Service
@@ -914,11 +914,11 @@ Resources:
           MaximumEventAgeInSeconds: 3600
           MaximumRetryAttempts: 3
 
-  # ─── S3 WEBSITE ─────────────────────────────────────────────────────────────
+ # S3 WEBSITE
 
-  # ─── CLOUDFRONT ─────────────────────────────────────────────────────────────
+ # CLOUDFRONT
 
-  # ─── DOCUMENT STORAGE BUCKET ────────────────────────────────────────────────
+ # DOCUMENT STORAGE BUCKET
 
   DocumentsBucket:
     Type: AWS::S3::Bucket
@@ -966,7 +966,7 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
 
-  # ─── PROFILE PICTURE BUCKET ─────────────────────────────────────────────────
+ # PROFILE PICTURE BUCKET
   # Stores user profile pictures (avatars). Kept separate from document and
   # thumbnail storage so avatar objects are managed and secured independently.
   ProfilePicturesBucket:
@@ -991,7 +991,7 @@ Resources:
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
 
-  # ─── AUDIT ARCHIVE BUCKET ──────────────────────────────────────────────────
+ # AUDIT ARCHIVE BUCKET
   # WORM store for signed audit ledger segments. Versioning + Object Lock in
   # Governance mode make objects immutable for AuditArchiveRetentionDays even
   # to the app's own IAM role, which is granted PutObject/GetObject only (see
@@ -1166,7 +1166,7 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
-# ─── OUTPUTS ──────────────────────────────────────────────────────────────────
+# OUTPUTS
 
 Outputs:
   ALBDNSName:

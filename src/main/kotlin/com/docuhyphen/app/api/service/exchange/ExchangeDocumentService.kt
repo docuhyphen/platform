@@ -3,12 +3,16 @@
 import com.docuhyphen.app.api.exception.ExchangeDocumentNotFoundException
 import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ShareConstraints
 import com.docuhyphen.app.api.model.dto.DocumentThumbnailResult
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.realtime.RealtimeEventService
-import com.docuhyphen.app.api.realtime.RealtimeMessage
-import com.docuhyphen.app.api.realtime.RealtimeMessageType
+import com.docuhyphen.app.api.service.realtime.RealtimeEventService
+import com.docuhyphen.app.api.model.realtime.RealtimeMessage
+import com.docuhyphen.app.api.model.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -168,7 +172,6 @@ class ExchangeDocumentService @Inject constructor(
         }
 
         document.title = title!!
-        // Keep existing file type when metadata-only updates omit `type`.
         document.type = type ?: document.type
         document.restrictedType = restrictedType
         sessionRepo.update(exchange)
@@ -239,7 +242,6 @@ class ExchangeDocumentService @Inject constructor(
         updateDocument(exchangeId, document)
         documentThumbnailService.scheduleGeneration(document)
 
-        // Record the uploaded file as a version so it appears in the document's version history.
         documentVersionService.recordUploadedFileAsVersion(
             document,
             file,
@@ -290,7 +292,7 @@ class ExchangeDocumentService @Inject constructor(
 
         if (exchange.status != ExchangeStatus.ACCEPTED_STARTED && exchange.status != ExchangeStatus.INITIATED)
         {
-            logger.error("Attempted to update a exchange with an invalid status")
+            logger.error("Attempted to update an Exchange with an invalid status")
             throw IllegalArgumentException("Exchange not found")
         }
 
@@ -300,7 +302,7 @@ class ExchangeDocumentService @Inject constructor(
             exchange.status == ExchangeStatus.RESCINDED
         )
         {
-            logger.error("Attempted to update a exchange that has ended or rejected: ${exchange.status}")
+            logger.error("Attempted to update an Exchange that has ended or rejected: ${exchange.status}")
             throw IllegalArgumentException("Exchange not found")
         }
 
@@ -321,7 +323,6 @@ class ExchangeDocumentService @Inject constructor(
         val creator = shareService.primaryRecipientPrincipal(exchange.id)
             ?: throw IllegalArgumentException("Permission to upload document not granted")
 
-
         document.hash = documentContentHashService.sha256(file!!)
         document.type = DocumentType.fromFileExtension(extension!!)
         document.uploadDate = Timestamp.from(Instant.now())
@@ -331,9 +332,7 @@ class ExchangeDocumentService @Inject constructor(
         fileStorageService.uploadDocument(file, "${document.id}$extension")
         documentThumbnailService.scheduleGeneration(document)
         resolveRecipientEmail(exchange.id)?.let { auditService.logAction(document, DocumentAuditAction.UPLOAD, it) }
-//        sendUploadNotification(exchange, appUser, document.title)
 
-        // Record the uploaded file as a version so it appears in the document's version history.
         documentVersionService.recordUploadedFileAsVersion(
             document,
             file,
@@ -403,7 +402,7 @@ class ExchangeDocumentService @Inject constructor(
 
         if (exchange.status != ExchangeStatus.ACCEPTED_STARTED && exchange.status != ExchangeStatus.INITIATED)
         {
-            logger.error("Attempted to update a exchange with an invalid status")
+            logger.error("Attempted to update an Exchange with an invalid status")
             throw IllegalArgumentException("Exchange not found")
         }
 
@@ -413,7 +412,7 @@ class ExchangeDocumentService @Inject constructor(
             exchange.status == ExchangeStatus.RESCINDED
         )
         {
-            logger.error("Attempted to update a exchange that has ended or rejected: ${exchange.status}")
+            logger.error("Attempted to update an Exchange that has ended or rejected: ${exchange.status}")
             throw IllegalArgumentException("Exchange not found")
         }
 
@@ -426,7 +425,7 @@ class ExchangeDocumentService @Inject constructor(
                         constraints?.canDownload == true)
         if (!downloadAllowed)
         {
-            logger.warn("No-auth download blocked for exchange {} because download is disabled", exchange.id)
+            logger.warn("No-auth download blocked for Exchange {} because download is disabled", exchange.id)
             throw ForbiddenException("Permission to download document not granted")
         }
 
@@ -460,7 +459,6 @@ class ExchangeDocumentService @Inject constructor(
 
         if (allowedFormats == null)
         {
-            // No format restriction, fast path using original files
             val fileKeys = documents.map { "${it.id}${DocumentType.toFileExtension(it.type!!)}" }
             return fileStorageService.downloadDocumentsAsZip(fileKeys)
         }
@@ -468,10 +466,6 @@ class ExchangeDocumentService @Inject constructor(
         return buildZipRespectingFormats(exchangeId, documents, allowedFormats)
     }
 
-    /**
-     * Builds a ZIP file that includes originals for allowed formats and
-     * PDF-converted versions for restricted formats.
-     */
     private fun buildZipRespectingFormats(
         exchangeId: String,
         documents: List<Document>,
@@ -489,7 +483,6 @@ class ExchangeDocumentService @Inject constructor(
                     val docType = document.type?.name
                     if (docType != null && docType in allowedFormats)
                     {
-                        // Original format is allowed, include as-is
                         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
                         val file = fileStorageService.downloadDocument(fileKey)
                         tempFiles.add(file)
@@ -501,7 +494,6 @@ class ExchangeDocumentService @Inject constructor(
                     }
                     else
                     {
-                        // Format not allowed, convert to PDF via LibreOffice
                         val pdfFile = getDocumentFilePreviewAsPdf(exchangeId, document.id.toString())
                         tempFiles.add(pdfFile)
                         val entryName = "${document.title ?: document.id}.pdf"
@@ -540,14 +532,11 @@ class ExchangeDocumentService @Inject constructor(
 
     private fun validateFileAndExtension(file: File?, extension: String?, restrictedType: DocumentType?)
     {
-        // Validate null checks
         file ?: throw IllegalArgumentException("File cannot be null")
         extension ?: throw IllegalArgumentException("Extension cannot be null")
 
-        // Clean up the extension format (remove leading dots if present)
         val cleanExtension = if (extension.startsWith(".")) extension else ".$extension"
 
-        // Check if extension is supported using the DocumentType enum
         val documentType = DocumentType.fromFileExtension(cleanExtension)
             ?: throw IllegalArgumentException("Unsupported file extension: $cleanExtension")
 
@@ -556,28 +545,23 @@ class ExchangeDocumentService @Inject constructor(
             throw IllegalArgumentException("File type must be ${DocumentType.toFileExtension(restrictedType)}")
         }
 
-        // Check file size (50MB limit)
-        val maxSizeBytes = 52_428_800L // 50MB
+        val maxSizeBytes = 52_428_800L
         if (file.length() > maxSizeBytes)
         {
             throw IllegalArgumentException("File is too large. Maximum size allowed is 50MB")
         }
 
-        // Check if file is not empty
         if (file.length() == 0L)
         {
             throw IllegalArgumentException("File cannot be empty")
         }
 
-        // Minimum size check - prevent fake/corrupted files
         val minSizeBytes = 100L
         if (file.length() < minSizeBytes)
         {
             throw IllegalArgumentException("File is too small. Minimum size required is 100 bytes")
         }
 
-        // Validate file content type matches extension using Apache Tika
-//        validateFileContentType(file, documentType)
     }
 
     private fun validateFileContentType(file: File, expectedType: DocumentType)
@@ -633,7 +617,6 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
-    /** Email of the session's primary recipient, resolved from its recipient Share. */
     private fun resolveRecipientEmail(exchangeId: UUID): String? =
         shareService.primaryRecipientUserId(exchangeId)?.let { appUserService.getById(it)?.email }
 
@@ -672,12 +655,6 @@ class ExchangeDocumentService @Inject constructor(
         return "application:${token.application?.id ?: "unknown"}"
     }
 
-    /**
-     * Authenticated download gate. DOCUMENT_DOWNLOAD is conditional: VIEWER/PARTICIPANT
-     * recipients only hold it when their share's `can_download` constraint opts in, and an
-     * explicit `can_download=false` strips it from richer roles (see [ShareConstraints]).
-     * The no-auth download path is governed separately by recipient constraints.
-     */
     private fun validateDownloadPermission(exchange: Exchange)
     {
         val appUser = authTokenContext.authToken.appUser
@@ -714,14 +691,10 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
-    /**
-     * Blocks the original-file download when the document's type is not in the
-     * share's `allowed_download_formats` list. Null list means no restriction.
-     */
     private fun validateDownloadFormat(document: Document, constraintsJson: String?)
     {
         val allowed = ShareConstraints.parse(constraintsJson)?.allowedDownloadFormats
-            ?: return                          // null = no restriction, always pass
+            ?: return
         val docType = document.type?.name ?: return
         if (docType !in allowed)
         {
@@ -817,9 +790,6 @@ class ExchangeDocumentService @Inject constructor(
         val fileKey = "${document.id}${DocumentType.toFileExtension(document.type!!)}"
         val originalFile = fileStorageService.downloadDocument(fileKey)
 
-        // A preview is both a content "view" (reuses the pre-existing DOCUMENT_VIEW event type)
-        // and specifically the preview/PDF-conversion feature (the new DOCUMENT_PREVIEW type,
-        // which callers can use to distinguish inline preview from a generic view elsewhere).
         val actorId = authTokenContext.authToken.appUser?.id
         recordDocumentAccessEvent(
             eventType = AuditEventType.DOCUMENT_VIEW,
@@ -847,13 +817,6 @@ class ExchangeDocumentService @Inject constructor(
         return documentThumbnailService.getOrGenerate(document)
     }
 
-    /**
-     * Serves a document thumbnail for the no-auth (public link / recipient OTP) exchange
-     * view. Access is governed by the no-auth access token rather than an authenticated
-     * principal, mirroring [downloadNoAuthSessionDocument] but without the download
-     * constraint check since a thumbnail is only a low-resolution preview image, not the
-     * original file.
-     */
     fun getNoAuthDocumentThumbnail(
         exchangeId: String?,
         documentId: String?,
@@ -882,7 +845,7 @@ class ExchangeDocumentService @Inject constructor(
             exchange.status == ExchangeStatus.RESCINDED
         )
         {
-            logger.error("Attempted to access thumbnail for a exchange that has ended or rejected: ${exchange.status}")
+            logger.error("Attempted to access thumbnail for an Exchange that has ended or rejected: ${exchange.status}")
             throw ExchangeNotFoundException("Exchange not found")
         }
 
@@ -912,11 +875,6 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
-    /**
-     * Writes document download events to [AuditRecorder] for view, preview, current-version
-     * download, and no-auth download paths. Failures are caught and logged so audit plumbing does
-     * not break an actual file download or preview response.
-     */
     private fun recordDocumentAccessEvent(
         eventType: AuditEventType,
         document: Document,
@@ -965,7 +923,6 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
-    /** ZIP export is one event per request (not per document), listing the exported document ids. */
     private fun recordZipExportEvent(exchange: Exchange, documents: List<Document>)
     {
         val actorId = authTokenContext.authToken.appUser?.id
@@ -1006,11 +963,6 @@ class ExchangeDocumentService @Inject constructor(
         }
     }
 
-    /**
-     * Records denied DOCUMENT_DOWNLOAD authorization
-     * decision is a genuinely sensitive event worth its own ledger row, distinct from the
-     * DOCUMENT_DOWNLOAD success event recorded on the happy path above.
-     */
     private fun recordAuthorizationDenied(exchange: Exchange, actorId: UUID?, action: String)
     {
         try

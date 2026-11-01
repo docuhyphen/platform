@@ -5,13 +5,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-/**
- * Periodically revokes sessions that have passed their absolute expiry without an explicit
- * sign-out. This covers the "browser closed" case: no further requests arrive, so the
- * EndpointAuthorizationFilter never fires to enforce the expiry. Without this job, expired
- * sessions would silently disappear from listActiveSessions (filtered by expiresAt) but peer
- * devices would never receive SESSION_REMOVED and their sessions-tab lists would go stale.
- */
 @ApplicationScoped
 class SessionExpiryScheduler
 {

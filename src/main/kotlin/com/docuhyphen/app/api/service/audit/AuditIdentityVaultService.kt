@@ -1,5 +1,7 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.AuditIdentityVaultKey
 import com.docuhyphen.app.api.repository.audit.AuditIdentityVaultKeyRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -18,19 +20,6 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-/**
- * Crypto-shredding primitive for identity data.
- *
- * Every subject (e.g. a deleted user/org identity) gets a random 256-bit data key, wrapped
- * (AES-GCM) with the single application-wide master key from
- * [AuditIdentityVaultMasterKeyProvider]. [shred] permanently destroys the wrapped key, which is
- * the crypto-shredding action itself: no audit row is ever deleted, but any field that was ever
- * encrypted with a shredded subject's data key becomes permanently unrecoverable.
- *
- * No call site in this codebase encrypts an audit field with [unwrapDataKey] yet - wiring
- * per-field pseudonymization into ledger capture is a larger change than this phase's scope (see
- * retention and legal-hold decisions. This service only provides the primitive: issue, retrieve, shred.
- */
 @ApplicationScoped
 class AuditIdentityVaultService @Inject constructor(
     private val auditIdentityVaultKeyRepository: AuditIdentityVaultKeyRepository,

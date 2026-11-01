@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.informationrequest.privacy
 
 import com.docuhyphen.app.api.model.entity.*
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import kotlinx.serialization.json.JsonElement
 import java.util.*
 

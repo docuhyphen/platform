@@ -341,7 +341,7 @@ const renderRootRequirement = () => render(
                                                                "Provide the root summary",
                                                                "field-definition-1",
                                                            ),
-                                                           occurrenceAnchorKey: undefined,
+                                                           occurrenceAnchorKey: undefined as string | undefined,
                                                        },
                                                    ]}
                                                    bindings={[editableBinding]}
@@ -511,13 +511,13 @@ describe("InformationRequestStructuredResponseWorkspace", () =>
     it("shows beside an answer the document that supports it, and beside the document the answer it supports", () => {
         const answer = {
             ...requirement("requirement-answer", "reported-summary", "Provide the reported summary", "field-definition-1"),
-            occurrenceAnchorKey: undefined,
+            occurrenceAnchorKey: undefined as string | undefined,
         };
         const supportingDocument = {
             ...requirement("requirement-document", "supporting-record", "Attach the supporting record", "field-definition-unused"),
             requirementType: InformationRequestRequirementType.DOCUMENT,
-            collectedFieldDefinitionId: undefined,
-            occurrenceAnchorKey: undefined,
+            collectedFieldDefinitionId: undefined as string | undefined,
+            occurrenceAnchorKey: undefined as string | undefined,
         };
         render(
             <InformationRequestStructuredResponseWorkspace request={{...request, conditionEvaluations: []}}

@@ -6,10 +6,6 @@ import {
 } from '../../../models/models';
 import {isFieldValueEmpty, toCanonicalValue,} from '../../../exchanges/components/exchange-fields-tab/fieldValueUtils';
 
-/**
- * Schemas selectable at Exchange creation: those with a published version, not retired, and
- * targeting the EXCHANGE resource type.
- */
 export const filterEligibleExchangeSchemas = (
     schemas: SchemaDefinitionDto[],
 ): SchemaDefinitionDto[] =>
@@ -17,13 +13,6 @@ export const filterEligibleExchangeSchemas = (
         && schema.status !== FieldLifecycleStatus.RETIRED
         && schema.targetResourceType === 'EXCHANGE');
 
-/**
- * Builds the canonical creation-time field values for the initiation request. Returns undefined
- * when no schema is chosen. Read-only bindings are excluded (the backend rejects values for them),
- * and so is a binding the initiator left blank: the schema may configure a default for it, and
- * sending an empty value would clear that default before the Exchange even starts. An explicit
- * negative answer such as a No on a Yes or No field is not blank and is sent.
- */
 export const buildCreationFieldValues = (
     schemaDefinitionId: string | undefined,
     bindings: SchemaFieldBindingDto[],
@@ -40,11 +29,6 @@ export const buildCreationFieldValues = (
         }));
 };
 
-/**
- * Captures the current schema field values as blueprint defaults, keyed by the stable
- * fieldDefinitionId so they survive schema re-publishing. Empty values are omitted. Returns an empty
- * array when no schema is chosen.
- */
 export const buildBlueprintFieldDefaults = (
     schemaDefinitionId: string | undefined,
     bindings: SchemaFieldBindingDto[],

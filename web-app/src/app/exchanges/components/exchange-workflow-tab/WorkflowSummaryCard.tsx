@@ -32,8 +32,6 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
         s => s.stepIndex === instance.currentStepIndex && s.status === "PENDING",
     );
 
-    // A step counts as resolved once it has moved past its pending state: APPROVAL steps
-    // land on APPROVED, other step types on COMPLETED, and skipped steps on SKIPPED.
     const stepsCompleted = instance.steps.filter(
         s => s.status === "APPROVED" || s.status === "COMPLETED" || s.status === "SKIPPED",
     ).length;
@@ -57,10 +55,15 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
         : "";
 
     return (
-        <Card className={styles.summaryCard}>
-            <div className={styles.summaryNameRow}>
-                <Text weight="semibold" size={400}>{instance.definitionName ?? "Workflow"}</Text>
+        <Card id={"workflow-summary-card-card-1"}
+              className={styles.summaryCard}>
+            <div id={"workflow-summary-card-div-1"}
+                 className={styles.summaryNameRow}>
+                <Text id={"workflow-summary-card-text-1"}
+                      weight="semibold"
+                      size={400}>{instance.definitionName ?? "Workflow"}</Text>
                 <Badge
+                    id={"workflow-summary-card-badge-1"}
                     color={INSTANCE_STATUS_COLORS[instance.status] ?? "subtle"}
                     appearance="outline"
                     size="small"
@@ -70,39 +73,53 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
             </div>
 
             {activeStep && (
-                <div className={styles.summaryMetaRow}>
-                    <Text size={200} className={styles.metaText}>
+                <div id={"workflow-summary-card-div-2"}
+                     className={styles.summaryMetaRow}>
+                    <Text id={"workflow-summary-card-text-2"}
+                          size={200}
+                          className={styles.metaText}>
                         Current step:
                     </Text>
-                    <Text size={200}>
+                    <Text id={"workflow-summary-card-text-3"}
+                          size={200}>
                         {STEP_TYPE_LABELS[activeStep.stepType] ?? activeStep.stepType}
                     </Text>
                 </div>
             )}
 
             {waitingOn && (
-                <div className={styles.summaryMetaRow}>
-                    <Text size={200} className={styles.metaText}>Waiting on:</Text>
-                    <Text size={200}>{waitingOn}</Text>
+                <div id={"workflow-summary-card-div-3"}
+                     className={styles.summaryMetaRow}>
+                    <Text id={"workflow-summary-card-text-4"}
+                          size={200}
+                          className={styles.metaText}>Waiting on:</Text>
+                    <Text id={"workflow-summary-card-text-5"}
+                          size={200}>{waitingOn}</Text>
                 </div>
             )}
 
             {totalSteps > 0 && (
-                <div className={styles.progressRow}>
+                <div id={"workflow-summary-card-div-4"}
+                     className={styles.progressRow}>
                     <ProgressBar
+                        id={"workflow-summary-card-progress-bar-1"}
                         className={styles.progressBar}
                         value={totalSteps > 0 ? stepsCompleted / totalSteps : 0}
                         color={instance.status === "REJECTED" ? "error" : undefined}
                     />
-                    <Text size={200} className={styles.metaText}>
+                    <Text id={"workflow-summary-card-text-6"}
+                          size={200}
+                          className={styles.metaText}>
                         {stepsCompleted} of {totalSteps} {totalSteps === 1 ? "Step" : "Steps"} Complete
                     </Text>
                 </div>
             )}
 
             {isOverdue && (
-                <div className={styles.slaRow}>
+                <div id={"workflow-summary-card-div-5"}
+                     className={styles.slaRow}>
                     <Badge
+                        id={"workflow-summary-card-badge-2"}
                         color="warning"
                         appearance="outline"
                         size="small"
@@ -113,8 +130,10 @@ const WorkflowSummaryCard = ({ instance }: Props) =>
             )}
 
             {!isOverdue && activeStep?.escalatedAt && (
-                <div className={styles.slaRow}>
+                <div id={"workflow-summary-card-div-6"}
+                     className={styles.slaRow}>
                     <Badge
+                        id={"workflow-summary-card-badge-3"}
                         color="warning"
                         appearance="outline"
                         size="small"

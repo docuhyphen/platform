@@ -1,7 +1,9 @@
 package com.docuhyphen.app.api.service.blueprint
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.dto.BlueprintInformationRequestTemplateVersionDto
 import com.docuhyphen.app.api.model.dto.CloneBlueprintRequest
 import com.docuhyphen.app.api.model.dto.CreateBlueprintRequest
@@ -13,13 +15,14 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateStatus
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateHolder
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionDescription
 import com.docuhyphen.app.api.model.informationrequest.template.InformationRequestTemplateVersionReference
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDefinitionRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintDocumentDefaultRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintFieldDefaultRepository
 import com.docuhyphen.app.api.repository.blueprint.BlueprintParticipantDefaultRepository
 import com.docuhyphen.app.api.repository.documentlibrary.DocumentLibraryRepository
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.blueprint.model.BlueprintTemplateReferenceFixture

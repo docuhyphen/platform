@@ -7,10 +7,10 @@ export const informationRequestDueDatesArticle = (
 
         <h3 id={"information-request-due-dates-start-heading"}>Starting and changing a clock</h3>
         <p id={"information-request-due-dates-start-help"}>
-            Without a received time supplied through the API, a new clock counts from when you select <b>Start clock</b>.
+            Without a received time supplied through the API, a new clock counts from when you select <b id={"information-request-due-dates-article-b-1"}>Start clock</b>.
             A draft clock waits for issue and Exchange acceptance, keeping its whole budget even if manually paused.
-            Its history calls this <b>Counting reset</b>. A manual pause stays paused after that reset.
-            Pause, resume and extension use a short lowercase reason code, such as <code>respondent.requested</code>.
+            Its history calls this <b id={"information-request-due-dates-article-b-2"}>Counting reset</b>. A manual pause stays paused after that reset.
+            Pause, resume and extension use a short lowercase reason code, such as <code id={"information-request-due-dates-article-code-1"}>respondent.requested</code>.
             Overdue since states the due time that passed, even when the scheduler detects it later. Pausing and
             resuming
             a clock with no time left keeps that passed due time.
@@ -38,7 +38,7 @@ export const informationRequestDueDatesArticle = (
 
         <h3 id={"information-request-due-dates-reminders-heading"}>Who is reminded</h3>
         <p id={"information-request-due-dates-reminders-help"}>
-            Reminders and overdue notices, whether a clock sends them or you select <b>Send reminders</b>, go only to
+            Reminders and overdue notices, whether a clock sends them or you select <b id={"information-request-due-dates-article-b-3"}>Send reminders</b>, go only to
             the
             responding parties who still have items to provide: an item not yet submitted, or one returned for
             correction. A

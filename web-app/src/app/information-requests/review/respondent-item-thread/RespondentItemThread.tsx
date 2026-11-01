@@ -72,7 +72,7 @@ const RespondentItemThread = ({idPrefix, item, label, comments, canComment, busy
                                 appearance={"primary"}
                                 shape={"circular"}
                                 disabled={busy || !body.trim()}
-                                onClick={() => void send()}>
+                                onClick={() => { void send(); }}>
                             Send comment
                         </Button>
                         <Button id={`${id}-comment-cancel`}

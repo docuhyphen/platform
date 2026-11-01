@@ -14,39 +14,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Validates [com.docuhyphen.app.api.model.entity.ShareLink] tokens for no-auth (unauthenticated)
- * Exchange access paths.
- *
- * The raw token is never stored; only its SHA-256 hex hash. This service hashes the
- * token presented by the caller and looks up the [com.docuhyphen.app.api.model.entity.ShareLink]
- * by that hash, then enforces all link and share constraints before returning the covering
- * [Share].
- *
- * This mirrors the same constraint checks performed by
- * [com.docuhyphen.app.api.service.auth.authz.DefaultAuthorizationService] for authenticated
- * requests that present a share link token, ensuring equivalent enforcement on no-auth paths.
- */
 @ApplicationScoped
 class ShareLinkValidationService @Inject constructor(
     private val shareLinkRepository: ShareLinkRepository,
     private val shareRepository: ShareRepository,
 )
 {
-    /**
-     * Validates a raw share-link token against the given Exchange and returns the covering
-     * [Share] if all checks pass.
-     *
-     * Throws [ForbiddenException] when:
-     *  - The token hash does not match any [com.docuhyphen.app.api.model.entity.ShareLink].
-     *  - The link is revoked, expired, or exhausted.
-     *  - The link's associated [Share] is not ACTIVE, is expired, or does not cover [exchangeId].
-     *
-     * The [clientIp] and [mfaSatisfied] parameters are present for future IP-allowlist and
-     * MFA constraint enforcement on public-link paths. MFA on a no-auth path is not currently
-     * satisfiable; callers that set requireMfa on a ShareLink should not expose it on no-auth
-     * endpoints.
-     */
     fun validateForNoAuth(
         rawToken: String,
         exchangeId: UUID,
@@ -94,7 +67,7 @@ class ShareLinkValidationService @Inject constructor(
 
         if (share.resourceType != ResourceType.EXCHANGE || share.resourceId != exchangeId)
         {
-            throw ForbiddenException("Share link is not valid for this exchange")
+            throw ForbiddenException("Share link is not valid for this Exchange")
         }
 
         return share

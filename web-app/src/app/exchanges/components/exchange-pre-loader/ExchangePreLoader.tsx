@@ -7,8 +7,10 @@ const ExchangePreLoader: React.FC = () =>
     const styles = usePreLandingStyles();
 
     return (
-        <div className={styles.preLoadingContainer}>
-            <Spinner labelPosition="after"
+        <div id={"exchange-pre-loader-div-1"}
+             className={styles.preLoadingContainer}>
+            <Spinner id={"exchange-pre-loader-spinner-1"}
+                     labelPosition="after"
                      size="small"
                      label="Loading Exchanges"/>
         </div>

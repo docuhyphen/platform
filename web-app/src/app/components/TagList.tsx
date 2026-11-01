@@ -20,23 +20,30 @@ const TagList: React.FC<Props> = ({tags, max = 3}) => {
     const visible = tags.slice(0, max);
     const hidden = tags.slice(max);
     return (
-        <TagGroup>
+        <TagGroup id={"tag-list-tag-group-1"}>
             {visible.map(tag => (
-                <InteractionTag key={tag} size="small" shape="circular">
-                    <InteractionTagPrimary hasSecondaryAction={false}>{tag}</InteractionTagPrimary>
+                <InteractionTag id={`tag-list-interaction-tag-1-${tag}`}
+                                key={tag}
+                                size="small"
+                                shape="circular">
+                    <InteractionTagPrimary id={"tag-list-interaction-tag-primary-1"}
+                                           hasSecondaryAction={false}>{tag}</InteractionTagPrimary>
                 </InteractionTag>
             ))}
             {hidden.length > 0 && (
                 <Menu>
                     <MenuTrigger disableButtonEnhancement>
-                        <InteractionTag size="small" shape="circular">
-                            <InteractionTagPrimary>+{hidden.length}</InteractionTagPrimary>
+                        <InteractionTag id={"tag-list-interaction-tag-2"}
+                                        size="small"
+                                        shape="circular">
+                            <InteractionTagPrimary id={"tag-list-interaction-tag-primary-2"}>+{hidden.length}</InteractionTagPrimary>
                         </InteractionTag>
                     </MenuTrigger>
-                    <MenuPopover>
-                        <MenuList>
+                    <MenuPopover id={"tag-list-menu-popover-1"}>
+                        <MenuList id={"tag-list-menu-list-1"}>
                             {hidden.map(tag => (
-                                <MenuItem key={tag}>{tag}</MenuItem>
+                                <MenuItem id={`tag-list-menu-item-1-${tag}`}
+                                          key={tag}>{tag}</MenuItem>
                             ))}
                         </MenuList>
                     </MenuPopover>

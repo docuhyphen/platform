@@ -36,7 +36,8 @@ const AuditEventsFilters = (props: AuditEventsFiltersProps) =>
             className={styles.selectedCategories}
         >
             {props.categories.length === 0
-                ? <Text size={200}>All categories</Text>
+                ? <Text id={"audit-events-filters-text-1"}
+                        size={200}>All categories</Text>
                 : props.categories.map((category) => (
                     <Tag
                         key={category}
@@ -54,7 +55,8 @@ const AuditEventsFilters = (props: AuditEventsFiltersProps) =>
             id={"audit-events-filter-panel"}
             className={styles.filterPanel}
         >
-            <div className={styles.filterField}>
+            <div id={"audit-events-filters-div-1"}
+                 className={styles.filterField}>
                 <Label
                     id={"audit-events-categories-label"}
                     htmlFor={"audit-events-categories"}
@@ -78,7 +80,8 @@ const AuditEventsFilters = (props: AuditEventsFiltersProps) =>
                     ))}
                 </Dropdown>
             </div>
-            <div className={styles.filterField}>
+            <div id={"audit-events-filters-div-2"}
+                 className={styles.filterField}>
                 <Label
                     id={"audit-events-occurred-after-label"}
                     htmlFor={"audit-events-occurred-after"}
@@ -90,7 +93,8 @@ const AuditEventsFilters = (props: AuditEventsFiltersProps) =>
                     onChange={(_event, data) => props.onOccurredAfterChange(data.value)}
                 />
             </div>
-            <div className={styles.filterField}>
+            <div id={"audit-events-filters-div-3"}
+                 className={styles.filterField}>
                 <Label
                     id={"audit-events-occurred-before-label"}
                     htmlFor={"audit-events-occurred-before"}

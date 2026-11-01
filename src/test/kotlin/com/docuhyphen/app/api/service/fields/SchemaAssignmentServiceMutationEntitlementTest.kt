@@ -5,11 +5,6 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 
-/**
- * Proves that a resource whose subscription mutation entitlement is already frozen elsewhere (an
- * Information Request execution grant, for example) is never re-checked against the owner's live
- * subscription when a Field value is written.
- */
 class SchemaAssignmentServiceMutationEntitlementTest
 {
     @Test

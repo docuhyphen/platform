@@ -1,5 +1,5 @@
 import {Button, Text, Title3} from "@fluentui/react-components";
-import {SpeakToSalesDialog} from "../SpeakToSalesDialog.tsx";
+import {SpeakToSalesDialog} from "../speak-to-sales-dialog/SpeakToSalesDialog.tsx";
 import {SALES_EMAIL_URL} from "../shared.ts";
 import {useGuidedDemoPanelStyles} from "./GuidedDemoPanelStyles.tsx";
 
@@ -17,8 +17,9 @@ export function GuidedDemoPanel({idPrefix}: GuidedDemoPanelProps)
             id={`${idPrefix}-guided-demo-panel`}
             className={styles.panel}
         >
-            <Title3 as="h2">Want a guided demo?</Title3>
-            <Text>
+            <Title3 id={"guided-demo-panel-title3-1"}
+                    as="h2">Want a guided demo?</Title3>
+            <Text id={"guided-demo-panel-text-1"}>
                 Fill out a short form and our sales team will reach out within one
                 business day to schedule a personalized walkthrough.
             </Text>

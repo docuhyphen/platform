@@ -1,16 +1,4 @@
-/**
- * Friendly display labels for every `AuditEventType.key` in the backend catalog
- * (com.docuhyphen.app.api.service.audit.catalog.AuditEventType), so the Audit workspace never
- * shows a raw dotted key like "audit.search.performed" to an end user.
- *
- * Keep this in sync with the backend catalog when a key is added, renamed, or removed - there is
- * no runtime coupling (the backend never reads this file), only a documentation-level obligation.
- * [getAuditEventTypeLabel] falls back to a humanized version of the raw key for anything not
- * listed here, so an unmapped or newly-added key never regresses to something worse than the
- * previous "just show the raw key" behavior.
- */
 const auditEventTypeLabels: Record<string, string> = {
-    // Authentication / session lifecycle.
     "auth.session.request_auth": "Authentication check",
     "auth.sign_in.initiate": "Sign-in started",
     "auth.sign_in.lookup": "Sign-in method lookup",
@@ -31,15 +19,12 @@ const auditEventTypeLabels: Record<string, string> = {
     "auth.directory.lookup": "Directory search",
     "auth.recipient.resolve": "Recipient identified",
 
-    // Administration.
     "admin.approval.initiate": "Admin approval requested",
     "admin.approval.approve": "Admin approval granted",
     "application.webhook.delivery_failed": "Webhook delivery failed",
 
-    // Security.
     "security.incident.raised": "Security incident raised",
 
-    // Organization.
     "organization.update": "Organization settings updated",
     "organization.app_user.add": "Person added to organization",
     "organization.app_user.update": "Organization member updated",
@@ -75,7 +60,6 @@ const auditEventTypeLabels: Record<string, string> = {
     "organization.membership.role_remove": "Member role removed",
     "organization.membership.remove": "Member removed from organization",
 
-    // Identity provider.
     "organization.idp_config.create": "Identity provider added",
     "organization.idp_config.update": "Identity provider updated",
     "organization.idp_config.delete": "Identity provider removed",
@@ -89,19 +73,16 @@ const auditEventTypeLabels: Record<string, string> = {
     "organization.idp_secret.rotation_job": "Identity provider secret rotation ran",
     "organization.idp_secret.rotation_runbook": "Identity provider emergency secret rotation ran",
 
-    // Platform.
     "platform.org_subscription_policy.delete": "Organization subscription policy removed",
     "platform.org_subscription_policy.list": "Organization subscription policies viewed",
     "platform.org_subscription_policy.upsert": "Organization subscription policy updated",
     "platform.org_subscription_policy.view": "Organization subscription policy viewed",
 
-    // SCIM provisioning.
     "scim.user.create": "User provisioned via SCIM",
     "scim.user.deprovision": "User deprovisioned via SCIM",
     "scim.user.patch": "User updated via SCIM",
     "scim.user.replace": "User replaced via SCIM",
 
-    // Document.
     "document.upload": "Document uploaded",
     "document.download": "Document downloaded",
     "document.view": "Document viewed",
@@ -116,7 +97,6 @@ const auditEventTypeLabels: Record<string, string> = {
     "document.library_download": "Document library file downloaded",
     "document.no_auth_download": "Document downloaded without sign-in",
 
-    // Exchange lifecycle.
     "exchange.lifecycle.rescinded": "Exchange rescinded",
     "exchange.lifecycle.revoke": "Exchange access revoked",
     "exchange.lifecycle.accepted": "Exchange accepted",
@@ -124,32 +104,27 @@ const auditEventTypeLabels: Record<string, string> = {
     "exchange.lifecycle.ended": "Exchange completed",
     "exchange.lifecycle.deleted": "Exchange deleted",
 
-    // Authorization / sharing.
     "authorization.share.grant": "Access granted",
     "authorization.share.activate": "Access activated",
     "authorization.share.role_change": "Access role changed",
     "authorization.share.revoke": "Access revoked",
     "authorization.decision.denied": "Access denied",
 
-    // Workflow definitions.
     "workflow.definition.create": "Workflow created",
     "workflow.definition.update": "Workflow updated",
     "workflow.definition.delete": "Workflow deleted",
     "workflow.definition.publish": "Workflow published",
 
-    // Field / schema definitions.
     "field_schema.field_definition.create": "Field created",
     "field_schema.field_definition.retire": "Field retired",
     "field_schema.schema_definition.create": "Schema created",
     "field_schema.schema_definition.publish": "Schema published",
     "field_schema.schema_definition.retire": "Schema retired",
 
-    // WORM archive.
     "archive.segment.closed": "Audit archive segment closed",
     "archive.integrity.verified": "Audit archive integrity verified",
     "archive.integrity.failed": "Audit archive integrity check failed",
 
-    // Audit governance: engagements, search, exports, integrity, retention/legal hold.
     "audit.engagement.requested": "Audit engagement requested",
     "audit.engagement.approved": "Audit engagement approved",
     "audit.engagement.revoked": "Audit engagement revoked",
@@ -173,7 +148,6 @@ const auditEventTypeLabels: Record<string, string> = {
     "audit.analytics.reconciled": "Audit analytics reconciled",
 };
 
-/** Turns an unmapped dotted/underscored key into "Title Case Words" as a last-resort fallback. */
 const humanizeEventTypeKey = (key: string): string =>
     key
         .split(/[._]/)

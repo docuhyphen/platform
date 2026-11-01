@@ -2,9 +2,9 @@ package com.docuhyphen.app.api.service.informationrequest.access
 
 import com.docuhyphen.app.api.model.entity.RequestAccessSession
 import com.docuhyphen.app.api.model.entity.ShareLink
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import io.quarkus.security.ForbiddenException
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

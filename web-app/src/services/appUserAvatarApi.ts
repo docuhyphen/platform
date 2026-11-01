@@ -1,9 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
 
-/**
- * Uploads (or replaces) the current user's profile picture. The file extension is sent
- * alongside the binary so the backend can validate the image type and pick a storage key.
- */
 export const uploadAppUserAvatar = async (file: File, token: string | null): Promise<void> =>
 {
     try
@@ -26,9 +22,6 @@ export const uploadAppUserAvatar = async (file: File, token: string | null): Pro
     }
 };
 
-/**
- * Removes the current user's profile picture.
- */
 export const deleteAppUserAvatar = async (token: string | null): Promise<void> =>
 {
     try
@@ -46,11 +39,6 @@ export const deleteAppUserAvatar = async (token: string | null): Promise<void> =
     }
 };
 
-/**
- * Fetches the current user's profile picture as an authenticated blob and returns a
- * browser object URL that can be used as an image source. Returns null when the user
- * has no stored profile picture.
- */
 export const fetchAppUserAvatarObjectUrl = async (token: string | null): Promise<string | null> =>
 {
     try

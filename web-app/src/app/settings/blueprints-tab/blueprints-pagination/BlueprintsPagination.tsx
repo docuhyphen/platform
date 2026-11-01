@@ -35,7 +35,8 @@ const BlueprintsPagination = ({
                 id={"blueprints-pagination-actions"}
                 className={styles.actions}
             >
-                <Tooltip content={"First page"} relationship={"description"}>
+                <Tooltip content={"First page"}
+                         relationship={"description"}>
                     <Button
                         id={"blueprints-pagination-first"}
                         icon={<FirstPageIcon/>}
@@ -45,7 +46,8 @@ const BlueprintsPagination = ({
                         onClick={() => onPageChange(0)}
                     />
                 </Tooltip>
-                <Tooltip content={"Previous page"} relationship={"description"}>
+                <Tooltip content={"Previous page"}
+                         relationship={"description"}>
                     <Button
                         id={"blueprints-pagination-previous"}
                         icon={<PreviousPageIcon/>}
@@ -61,7 +63,8 @@ const BlueprintsPagination = ({
                 >
                     {currentPage + 1} / {totalPages}
                 </Text>
-                <Tooltip content={"Next page"} relationship={"description"}>
+                <Tooltip content={"Next page"}
+                         relationship={"description"}>
                     <Button
                         id={"blueprints-pagination-next"}
                         icon={<NextPageIcon/>}
@@ -71,7 +74,8 @@ const BlueprintsPagination = ({
                         onClick={() => onPageChange(currentPage + 1)}
                     />
                 </Tooltip>
-                <Tooltip content={"Last page"} relationship={"description"}>
+                <Tooltip content={"Last page"}
+                         relationship={"description"}>
                     <Button
                         id={"blueprints-pagination-last"}
                         icon={<LastPageIcon/>}

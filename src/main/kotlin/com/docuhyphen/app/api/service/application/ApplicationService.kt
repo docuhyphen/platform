@@ -26,11 +26,6 @@ class ApplicationService @Inject constructor(
         private val logger = LoggerFactory.getLogger(ApplicationService::class.java)
     }
 
-    /**
-     * Authenticates a registered application by API key and secret, then issues a JWT.
-     * Returns the access token string on success, or null if credentials are invalid or
-     * the application is inactive.
-     */
     @Transactional
     fun authenticateAndIssueToken(apiKey: String, apiSecret: String): String?
     {

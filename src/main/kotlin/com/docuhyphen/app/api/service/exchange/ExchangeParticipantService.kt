@@ -11,12 +11,6 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Participant management over the unified [com.docuhyphen.app.api.model.entity.Share] model:
- * a participant is a `PARTICIPANT`-role USER share on the session. (The richer manage-access
- * API on ExchangeResource covers arbitrary roles; this keeps the legacy participant
- * add/remove endpoints working.)
- */
 @ApplicationScoped
 class ExchangeParticipantService @Inject constructor(
     private val exchangeAccessManagementService: ExchangeAccessManagementService,
@@ -38,7 +32,7 @@ class ExchangeParticipantService @Inject constructor(
             principalId = participantId,
             roleName = ExchangeShareRoleName.PARTICIPANT,
         )
-        logger.info("Participant $participantId added to exchange $exchangeId")
+        logger.info("Participant $participantId added to Exchange $exchangeId")
     }
 
     @Transactional
@@ -57,6 +51,6 @@ class ExchangeParticipantService @Inject constructor(
             }
             .forEach { exchangeAccessManagementService.revokeAccess(sessionUuid, it.id) }
 
-        logger.info("Participant $participantId removed from exchange $exchangeId")
+        logger.info("Participant $participantId removed from Exchange $exchangeId")
     }
 }

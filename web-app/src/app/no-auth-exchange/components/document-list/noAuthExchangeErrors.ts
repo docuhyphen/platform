@@ -1,7 +1,3 @@
-/**
- * Shape returned by the API's error responses. `reasonCode` lets the UI branch on a stable
- * identifier instead of matching on message text, which silently breaks when copy changes.
- */
 export interface NoAuthExchangeApiError
 {
     errorMessage?: string;
@@ -9,7 +5,6 @@ export interface NoAuthExchangeApiError
     reasonCode?: string;
 }
 
-/** Reason code the API sends when the recipient has no live verified access window. */
 export const NO_AUTH_ACCESS_EXPIRED_REASON = "NO_AUTH_ACCESS_EXPIRED";
 
 const asApiError = (error: unknown): NoAuthExchangeApiError | null =>
@@ -38,14 +33,12 @@ export const isAccessVerificationError = (error: unknown): boolean =>
     {
         return true;
     }
-    // Older responses predate the reason code and only carry the message.
     return /access verification has expired/i.test(getErrorMessage(error, ""));
 };
 
 export const requiresSignIn = (message: string): boolean =>
     /requires sign\s?in/i.test(message) || /requires recipient sign-?in/i.test(message);
 
-/** Turns a raw API message into guidance the recipient can act on. */
 export const toActionableUploadError = (message: string): string =>
 {
     if (/Permission to upload document not granted/i.test(message))

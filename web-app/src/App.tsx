@@ -12,7 +12,7 @@ import SignIn from "./app/authorization/sign-in/SignIn.tsx";
 import AccountRecovery from "./app/authorization/account-recovery/AccountRecovery.tsx";
 import SignUp from "./app/authorization/sign-up/SignUp.tsx";
 import SignUpEmailConfirm from "./app/authorization/sign-up/SignUpEmailConfirm.tsx";
-import ProtectedRoute from "./app/components/ProtectedRoutes.tsx";
+import ProtectedRoute from "./app/components/protected-routes/ProtectedRoutes.tsx";
 import AppSessionExpired from "./app/app-session-expired/AppSessionExpired.tsx";
 import {NotificationProvider} from "./context/NotificationContext.tsx";
 import Home from "./app/home/Home.tsx";

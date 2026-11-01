@@ -8,18 +8,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * Scope-level routing rule: "when event X fires inside scope Y, NOTIFY / SUPPRESS
- * the assignees described by [assigneesJson]".
- *
- * - `assigneesJson` uses the same assignee DSL as
- *   [com.docuhyphen.app.api.service.workflow.AssigneeSpec], extended with an
- *   `EVENT_PAYLOAD` kind so rules can target principals carried inside the event itself.
- * - `predicateJson` is a small filter expression evaluated by `NotificationRuleEngine`
- *   (e.g. `{ "field": "subject.orgId", "equals": "<uuid>" }`). Null means the rule
- *   applies to every matching event.
- * - `priority` lets ORG rules override APP defaults when both match.
- */
 @Entity
 @Serializable
 @Table(name = "notification_rule")

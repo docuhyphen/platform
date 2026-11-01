@@ -30,7 +30,7 @@ const PlatformCommunicationDeleteDialog = ({
             if (!data.open) onDismiss();
         }}>
         <DialogSurface id={"platform-communication-delete-dialog"}>
-            <DialogBody>
+            <DialogBody id={"platform-communication-delete-dialog-dialog-body-1"}>
                 <DialogTitle id={"platform-communication-delete-title"}>
                     Delete platform communication
                 </DialogTitle>

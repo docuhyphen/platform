@@ -33,7 +33,6 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: tokens.spacingVerticalM,
-        // padding: `0 ${tokens.spacingHorizontalL}`,
     },
     instanceSectionSplit: {
         display: "flex",
@@ -166,49 +165,8 @@ export const useExchangeWorkflowTabStyles = makeStyles({
         minWidth: 0,
         overflowWrap: "anywhere",
     },
-    stepDetail: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingVerticalXS,
-        paddingLeft: tokens.spacingHorizontalXXL,
-        paddingBottom: tokens.spacingVerticalS,
-    },
-    decisionRow: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalXXS,
-        padding: tokens.spacingHorizontalS,
-        borderLeft: `${tokens.strokeWidthThickest} solid ${tokens.colorNeutralStroke2}`,
-        marginBottom: tokens.spacingVerticalXS,
-    },
     metaText: {
         color: tokens.colorNeutralForeground3,
-    },
-    stepIconSuccess: {
-        color: tokens.colorStatusSuccessForeground1,
-        flexShrink: 0,
-    },
-    stepIconDanger: {
-        color: tokens.colorStatusDangerForeground1,
-        flexShrink: 0,
-    },
-    stepIconWarning: {
-        color: tokens.colorStatusWarningForeground1,
-        flexShrink: 0,
-    },
-    stepIconNeutral: {
-        color: tokens.colorNeutralForeground3,
-        flexShrink: 0,
-    },
-    stepIconBrand: {
-        color: tokens.colorBrandBackground,
-        flexShrink: 0,
-    },
-    decisionApproveText: {
-        color: tokens.colorStatusSuccessForeground1,
-    },
-    decisionRejectText: {
-        color: tokens.colorStatusDangerForeground1,
     },
     emptyCard: {
         padding: tokens.spacingHorizontalM,

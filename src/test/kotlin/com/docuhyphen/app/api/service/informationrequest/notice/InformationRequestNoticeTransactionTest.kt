@@ -23,8 +23,8 @@ import com.docuhyphen.app.api.repository.informationrequest.party.InformationReq
 import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.OverlappingCommandRace
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
@@ -40,8 +40,8 @@ import com.docuhyphen.app.api.service.informationrequest.notice.model.NoticeFixt
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsPostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestPartyRevocationService
 import com.docuhyphen.app.api.service.informationrequest.submission.InformationRequestRespondentWorkDoubles
-import com.docuhyphen.app.api.service.notification.DomainEvent
-import com.docuhyphen.app.api.service.notification.DomainEventJson
+import com.docuhyphen.app.api.model.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEventJson
 import com.docuhyphen.app.api.service.notification.EventRouter
 import io.quarkus.arc.Arc
 import io.quarkus.narayana.jta.QuarkusTransaction

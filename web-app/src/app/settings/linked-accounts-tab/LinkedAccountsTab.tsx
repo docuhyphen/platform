@@ -108,7 +108,7 @@ const LinkedAccountsTab: React.FC = () =>
                 <MessageBar
                     id={"linked-accounts-error"}
                     intent="error">
-                    <MessageBarBody>{error}</MessageBarBody>
+                    <MessageBarBody id={"linked-accounts-tab-message-bar-body-1"}>{error}</MessageBarBody>
                 </MessageBar>
             )}
 

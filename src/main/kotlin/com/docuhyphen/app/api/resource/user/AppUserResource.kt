@@ -3,96 +3,52 @@ package com.docuhyphen.app.api.resource.user
 import com.docuhyphen.app.api.exception.AppUserNotFoundException
 import com.docuhyphen.app.api.exception.DataIntegrityException
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.DetailedEntityToDtoTransformer
 import com.docuhyphen.app.api.model.dto.AppUserSettingsDto
 import com.docuhyphen.app.api.model.dto.PersonBasicDto
-import com.docuhyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
-import com.docuhyphen.app.api.resource.model.ConfirmOldEmailForUpdateRequest
-import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.user.operations.AppUserResourceOperations
 import com.docuhyphen.app.api.service.auth.SessionService
-import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
-import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
-import com.docuhyphen.app.api.service.user.AppUserAvatarService
 import com.docuhyphen.app.api.service.user.AppUserService
+import com.docuhyphen.app.api.service.user.SignedInAppUserService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.transaction.Transactional
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import jakarta.ws.rs.core.Response.Status.BAD_REQUEST
-import jakarta.ws.rs.core.Response.Status.INTERNAL_SERVER_ERROR
-import org.jboss.resteasy.reactive.RestForm
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.io.File
 import java.util.*
 
-@Path("/app-user")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AppUserResource @Inject constructor(
-    private val authTokenContext: AuthTokenContext,
+    private val signedInAppUserService: SignedInAppUserService,
     private val organizationGroupService: OrganizationGroupService,
-    private val membershipService: OrganizationMembershipService,
-    private val userRoleService: UserRoleService,
     private val appUserService: AppUserService,
     private val sessionService: SessionService,
-    private val appUserAvatarService: AppUserAvatarService,
-)
+) : AppUserResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(AppUserResource::class.java)
     }
 
-    @GET
-    fun getSignInAppUser(): Response
+    override fun getSignInAppUser(): Response
     {
         return try
         {
-            authTokenContext.authToken.appUser?.let {
-                membershipService.primaryOrganizationId(it.id)?.let { orgId ->
-
-                    val organizationRoles = membershipService.rolesOf(it.id, orgId)
-                    Response.ok(
-                        DetailedEntityToDtoTransformer.toDto(
-                            it,
-                            userRoleService.appRoles(it.id),
-                            organizationRoles,
-                        )
-                    ).build()
-
-                } ?: Response.ok(
-                    DetailedEntityToDtoTransformer.toDto(
-                        it,
-                        userRoleService.appRoles(it.id),
-                        emptySet(),
-                    )
-                ).build()
-
-            } ?: Response.status(BAD_REQUEST).entity(ResponseError("No user found")).build()
+            signedInAppUserService.currentUserDetails()
+                ?.let { Response.ok(it).build() }
+                ?: Response.status(BAD_REQUEST).entity(ResponseError("No user found")).build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error initiating sign up", exception)
-            val responseError = ResponseError("A server error occurred while signing up.")
-            Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+            logger.error("Error fetching signed-in app user", exception)
+            Response.status(INTERNAL_SERVER_ERROR)
+                .entity(ResponseError("A server error occurred while signing up."))
+                .build()
         }
     }
 
-    /**
-     * Returns the current-session contract: user identity, the explicitly selected organization,
-     * all applicable scoped roles, and the union of effective capabilities for this context.
-     *
-     * The frontend derives menu visibility, action controls, and settings tab gates from the
-     * returned capabilities rather than from raw role strings.
-     */
-    @GET
-    @Path("/session")
-    fun getCurrentSession(): Response
+    override fun getCurrentSession(): Response
     {
         return try
         {
@@ -103,35 +59,30 @@ class AppUserResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.UNAUTHORIZED).entity(responseError).build()
-                }
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
                     logger.error("Error fetching current session", exception)
-                    val responseError = ResponseError("A server error occurred while fetching the session.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("A server error occurred while fetching the session."))
+                        .build()
                 }
             }
         }
     }
 
-    @GET
-    @Path("{appUserId}/person/{personId}/organization")
-    fun getAppUserPersonOrganization(
-        @PathParam("appUserId") appUserId: String,
-        @PathParam("personId") personId: String
+    override fun getAppUserPersonOrganization(
+        appUserId: String,
+        personId: String,
     ): Response
     {
         return try
         {
-            val organization =
-                organizationGroupService.getOrganizationByAppUserIdAndPersonId(
-                    UUID.fromString(appUserId),
-                    UUID.fromString(personId)
-                )
+            val organization = organizationGroupService.getOrganizationByAppUserIdAndPersonId(
+                UUID.fromString(appUserId),
+                UUID.fromString(personId),
+            )
 
             Response.ok(DetailedEntityToDtoTransformer.toDto(organization)).build()
         }
@@ -140,27 +91,20 @@ class AppUserResource @Inject constructor(
             when (exception)
             {
                 is OrganizationNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
                     logger.error("Error fetching organization", exception)
-                    val responseError = ResponseError("A server error occurred while fetching the organization.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("A server error occurred while fetching the organization."))
+                        .build()
                 }
             }
         }
     }
 
-    /**
-     * Get the settings of the currently logged in appUser
-     */
-    @PUT
-    @Path("/settings")
-    fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
+    override fun updateCurrentUserSettings(settingsDto: AppUserSettingsDto): Response
     {
         return try
         {
@@ -169,18 +113,37 @@ class AppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            handleSettingsUpdateException(exception)
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN)
+                        .entity(ResponseError(exception.message ?: "Not authorized to update settings"))
+                        .build()
+
+                is AppUserNotFoundException ->
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message ?: "User not found"))
+                        .build()
+
+                is DataIntegrityException ->
+                    Response.status(BAD_REQUEST)
+                        .entity(ResponseError(exception.message ?: "Invalid data format"))
+                        .build()
+
+                else ->
+                {
+                    logger.error("Error updating current user settings", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Server error while updating settings"))
+                        .build()
+                }
+            }
         }
     }
 
-    /**
-     * Update user settings for a specific user
-     */
-    @PUT
-    @Path("/{userId}/settings")
-    fun updateUserSettings(
-        @PathParam("userId") userId: String,
-        settingsDto: AppUserSettingsDto
+    override fun updateUserSettings(
+        userId: String,
+        settingsDto: AppUserSettingsDto,
     ): Response
     {
         return try
@@ -190,22 +153,39 @@ class AppUserResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            handleSettingsUpdateException(exception)
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN)
+                        .entity(ResponseError(exception.message ?: "Not authorized to update settings"))
+                        .build()
+
+                is AppUserNotFoundException ->
+                    Response.status(NOT_FOUND)
+                        .entity(ResponseError(exception.message ?: "User not found"))
+                        .build()
+
+                is DataIntegrityException ->
+                    Response.status(BAD_REQUEST)
+                        .entity(ResponseError(exception.message ?: "Invalid data format"))
+                        .build()
+
+                else ->
+                {
+                    logger.error("Error updating user settings by id", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Server error while updating settings"))
+                        .build()
+                }
+            }
         }
     }
 
-    /**
-     * Update current logged in user person
-     */
-    @PUT
-    @Path("/person")
-    @Transactional
-    fun updatePerson(personDto: PersonBasicDto): Response
+    override fun updatePerson(personDto: PersonBasicDto): Response
     {
         return try
         {
-            appUserService.updatePerson(authTokenContext.authToken.appUser!!, personDto)
-
+            appUserService.updateCurrentPerson(personDto)
             Response.ok().build()
         }
         catch (exception: Exception)
@@ -213,330 +193,18 @@ class AppUserResource @Inject constructor(
             when (exception)
             {
                 is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
                 is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
                 else ->
                 {
                     logger.error("Error updating user person", exception)
-                    val responseError = ResponseError("A server error occurred while updating user person.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("A server error occurred while updating user person."))
+                        .build()
                 }
-            }
-        }
-    }
-
-    /**
-     * Initiate email update of the currently logged in appUser
-     * */
-    @PUT
-    @Path("email/update-initiation")
-    @Transactional
-    fun initiateEmailUpdate(addOrUpdateEmailRequest: InitiateAddOrUpdateEmailRequest): Response
-    {
-        return try
-        {
-            appUserService.initiateEmailUpdate(addOrUpdateEmailRequest.email)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error updating user email", exception)
-                    val responseError = ResponseError("A server error occurred while updating user email.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Confirm the OLD email of the currently logged in appUser before sending a code to the NEW email.
-     * */
-    @POST
-    @Path("email/update-confirm-old")
-    @Transactional
-    fun confirmOldEmailForUpdate(request: ConfirmOldEmailForUpdateRequest): Response
-    {
-        return try
-        {
-            appUserService.confirmOldEmailForUpdate(request.verificationCode)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error confirming old email for update", exception)
-                    val responseError = ResponseError("A server error occurred while confirming the current email.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Complete email update of the currently logged in appUser
-     * */
-    @POST
-    @Path("email/update-completion")
-    @Transactional
-    fun completeEmailUpdate(request: CompleteAddOrUpdateEmailRequest): Response
-    {
-
-        return try
-        {
-            appUserService.completeEmailUpdate(request.email, request.verificationCode)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                is AppUserNotFoundException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error completing email update", exception)
-                    val responseError = ResponseError("A server error occurred while completing email update.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Upload or replace the currently logged in user's profile picture (avatar).
-     */
-    @POST
-    @Path("/avatar")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Transactional
-    fun uploadAvatar(
-        @RestForm("file") file: File?,
-        @RestForm("extension") extension: String?,
-    ): Response
-    {
-        return try
-        {
-            if (file == null)
-            {
-                return Response.status(BAD_REQUEST).entity(ResponseError("Image file is required")).build()
-            }
-
-            appUserAvatarService.uploadAvatar(file, extension)
-            Response.ok().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                is IllegalArgumentException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(BAD_REQUEST).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error uploading user avatar", exception)
-                    val responseError = ResponseError("A server error occurred while uploading the profile picture.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Stream the currently logged in user's profile picture (avatar) binary.
-     */
-    @GET
-    @Path("/avatar")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun getAvatar(): Response
-    {
-        return try
-        {
-            val avatar = appUserAvatarService.getAvatar()
-                ?: return Response.status(Response.Status.NOT_FOUND).build()
-
-            Response.ok(avatar.bytes)
-                .header("Content-Type", avatar.contentType)
-                .header("Content-Length", avatar.bytes.size)
-                .build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error fetching user avatar", exception)
-                    val responseError = ResponseError("A server error occurred while fetching the profile picture.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Stream any user's profile picture (avatar) binary by id. Used to render avatars for
-     * other people (org members, group members, comment authors) across the app.
-     */
-    @GET
-    @Path("/{id}/avatar")
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
-    fun getUserAvatar(@PathParam("id") id: UUID): Response
-    {
-        return try
-        {
-            val avatar = appUserAvatarService.getAvatar(id)
-                ?: return Response.status(Response.Status.NOT_FOUND).build()
-
-            Response.ok(avatar.bytes)
-                .header("Content-Type", avatar.contentType)
-                .header("Content-Length", avatar.bytes.size)
-                .build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error fetching avatar for user {}", id, exception)
-                    val responseError = ResponseError("A server error occurred while fetching the profile picture.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    /**
-     * Remove the currently logged in user's profile picture (avatar).
-     */
-    @DELETE
-    @Path("/avatar")
-    @Transactional
-    fun deleteAvatar(): Response
-    {
-        return try
-        {
-            appUserAvatarService.deleteAvatar()
-            Response.noContent().build()
-        }
-        catch (exception: Exception)
-        {
-            when (exception)
-            {
-                is UnauthorizedException ->
-                {
-                    val responseError = ResponseError(exception.message)
-                    Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-                }
-
-                else ->
-                {
-                    logger.error("Error deleting user avatar", exception)
-                    val responseError = ResponseError("A server error occurred while removing the profile picture.")
-                    Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
-                }
-            }
-        }
-    }
-
-    private fun handleSettingsUpdateException(exception: Exception): Response
-    {
-        logger.error("Error updating user settings", exception)
-        return when (exception)
-        {
-            is UnauthorizedException ->
-            {
-                val responseError = ResponseError(exception.message ?: "Not authorized to update settings")
-                Response.status(Response.Status.FORBIDDEN).entity(responseError).build()
-            }
-
-            is AppUserNotFoundException ->
-            {
-                val responseError = ResponseError(exception.message ?: "User not found")
-                Response.status(Response.Status.NOT_FOUND).entity(responseError).build()
-            }
-
-            is DataIntegrityException ->
-            {
-                val responseError = ResponseError(exception.message ?: "Invalid data format")
-                Response.status(BAD_REQUEST).entity(responseError).build()
-            }
-
-            else ->
-            {
-                val responseError = ResponseError("Server error while updating settings")
-                Response.status(INTERNAL_SERVER_ERROR).entity(responseError).build()
             }
         }
     }

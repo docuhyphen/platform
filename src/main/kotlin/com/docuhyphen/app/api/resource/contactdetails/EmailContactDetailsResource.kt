@@ -1,114 +1,146 @@
 package com.docuhyphen.app.api.resource.contactdetails
 
-import com.docuhyphen.app.api.resource.BaseResource
-
+import com.docuhyphen.app.api.resource.contactdetails.operations.EmailContactDetailsResourceOperations
 import com.docuhyphen.app.api.resource.model.CompleteAddOrUpdateEmailRequest
 import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdateEmailRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.contactdetails.EmailContactDetailsService
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import org.slf4j.Logger
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/contact-details")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class EmailContactDetailsResource @Inject constructor(
-    private val emailContactDetailsService: EmailContactDetailsService
-) : BaseResource()
+    private val emailContactDetailsService: EmailContactDetailsService,
+) : EmailContactDetailsResourceOperations
 {
-    override val logger: Logger
-        get() = LoggerFactory.getLogger(EmailContactDetailsResource::class.java)
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(EmailContactDetailsResource::class.java)
+    }
 
-    @POST
-    @Path("/{contactDetailsId}/email/addition-initiation")
-    fun initiateEmailAddition(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateAddOrUpdateEmailRequest
+    override fun initiateEmailAddition(
+        contactDetailsId: String,
+        request: InitiateAddOrUpdateEmailRequest,
     ): Response
     {
         return try
         {
-            emailContactDetailsService.initiateEmailAddition(
-                contactDetailsId,
-                request.email
-            )
+            emailContactDetailsService.initiateEmailAddition(contactDetailsId, request.email)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error initiating email addition", exception)
-            handleException(exception, "An error occurred while initiating email addition")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error initiating email addition", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while initiating email addition"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/email/addition-completion")
-    fun completeEmailAddition(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteAddOrUpdateEmailRequest
+    override fun completeEmailAddition(
+        contactDetailsId: String,
+        request: CompleteAddOrUpdateEmailRequest,
     ): Response
     {
         return try
         {
-            emailContactDetailsService.completeEmailAddition(
-                contactDetailsId,
-                request.email,
-                request.verificationCode
-            )
+            emailContactDetailsService.completeEmailAddition(contactDetailsId, request.email, request.verificationCode)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error completing email addition", exception)
-            handleException(exception, "An error occurred while completing email addition")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error completing email addition", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while completing email addition"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/email/initiate-update")
-    fun initiateEmailUpdate(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateAddOrUpdateEmailRequest
+    override fun initiateEmailUpdate(
+        contactDetailsId: String,
+        request: InitiateAddOrUpdateEmailRequest,
     ): Response
     {
         return try
         {
-            emailContactDetailsService.initiateEmailUpdate(
-                contactDetailsId,
-                request.email
-            )
+            emailContactDetailsService.initiateEmailUpdate(contactDetailsId, request.email)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error initiating email update", exception)
-            handleException(exception, "An error occurred while initiating email update")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error initiating email update", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while initiating email update"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/email/complete-update")
-    fun completeEmailUpdate(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteAddOrUpdateEmailRequest
+    override fun completeEmailUpdate(
+        contactDetailsId: String,
+        request: CompleteAddOrUpdateEmailRequest,
     ): Response
     {
         return try
         {
-            emailContactDetailsService.completeEmailUpdate(
-                contactDetailsId,
-                request.email,
-                request.verificationCode
-            )
+            emailContactDetailsService.completeEmailUpdate(contactDetailsId, request.email, request.verificationCode)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error completing email update", exception)
-            handleException(exception, "An error occurred while completing email update")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error completing email update", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while completing email update"))
+                        .build()
+                }
+            }
         }
     }
 }

@@ -1,102 +1,78 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.model.audit.AuditAccessActor
-import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
-import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditProjectionDtoMapper
-import com.docuhyphen.app.api.model.entity.ResourceType
+import com.docuhyphen.app.api.resource.audit.operations.AuditApplicationEventsResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditProjectionAccessDeniedException
+import com.docuhyphen.app.api.service.audit.AuditProjectionAccessService
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
-import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
-import java.time.Instant
+import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/admin/applications/{applicationId}/audit-events")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditApplicationEventsResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditProjectionAccessService: AuditProjectionAccessService,
     private val auditSearchProjectionService: AuditSearchProjectionService,
-)
+) : AuditApplicationEventsResourceOperations
 {
-    @GET
-    fun listApplicationEvents(
-        @PathParam("applicationId") applicationId: String,
-        @QueryParam("cursorOccurredAt") cursorOccurredAt: String?,
-        @QueryParam("cursorEventId") cursorEventId: String?,
-        @QueryParam("limit") @DefaultValue("50") limit: Int,
-    ): Response = withAuthorizedPlatformAudit { actor ->
-        val page = auditSearchProjectionService.listApplicationEvents(
-            actor = actor,
-            applicationId = parseUuid(applicationId),
-            cursor = parseCursor(cursorOccurredAt, cursorEventId),
-            limit = limit.coerceIn(1, 200),
-        )
-        Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
-    }
-
-    private fun withAuthorizedPlatformAudit(
-        block: (AuditAccessActor) -> Response,
-    ): Response
+    companion object
     {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val decision = authorizationService.authorize(principal, Action.APP_READ_AUDIT, platformRef(), context)
-        val capabilities = authorizationService.capabilities(principal, platformRef(), context)
-        val actor = AuditAccessActor(principal, context, capabilities)
-        if (decision is Decision.Deny)
-        {
-            auditSearchProjectionService.recordDeniedAttempt(actor, null, "PLATFORM", "platform", decision.reasonCode)
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(actor) }
+        private val logger = LoggerFactory.getLogger(AuditApplicationEventsResource::class.java)
     }
 
-    private fun runGuarded(block: () -> Response): Response
+    override fun listApplicationEvents(
+        applicationId: String,
+        cursorOccurredAt: String?,
+        cursorEventId: String?,
+        limit: Int,
+    ): Response
     {
         return try
         {
-            block()
+            val actor = auditProjectionAccessService.platformRead()
+            val page = auditSearchProjectionService.listApplicationEvents(
+                actor = actor,
+                applicationId = UUID.fromString(applicationId),
+                cursor = parseAuditCursor(cursorOccurredAt, cursorEventId),
+                limit = clampAuditPageLimit(limit),
+            )
+            Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditProjectionNotFoundException)
-        {
-            Response.status(Response.Status.NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditProjectionAccessDeniedException)
-        {
-            Response.status(Response.Status.FORBIDDEN).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException -> throw exception
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditProjectionNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is AuditProjectionAccessDeniedException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing application audit events", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
-
-    private fun parseCursor(cursorOccurredAt: String?, cursorEventId: String?): AuditProjectionCursor?
-    {
-        if (cursorOccurredAt.isNullOrBlank() || cursorEventId.isNullOrBlank())
-        {
-            return null
-        }
-        return AuditProjectionCursor(
-            occurredAt = Instant.parse(cursorOccurredAt),
-            eventId = parseUuid(cursorEventId),
-        )
-    }
-
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
-
-    private fun platformRef(): ResourceRef = ResourceRef(ResourceType.APPLICATION, UUID(0, 0))
 }

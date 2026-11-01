@@ -15,6 +15,7 @@ import {
     InformationRequestReviewDto,
     InformationRequestReviewItemStanding,
     InformationRequestReviewKind,
+    InformationRequestReviewDelegationCandidateDto,
     InformationRequestReviewOutcome,
     InformationRequestReviewStageOrdering,
     InformationRequestReviewStageState,
@@ -69,7 +70,7 @@ const assignment = (id: string, stageKey: string, decidedAt?: number) => ({
     assignedAt: Date.parse("2026-09-26T08:05:00Z"),
     decidedAt,
     callerIsReviewer: true,
-    delegationCandidates: [],
+    delegationCandidates: [] as InformationRequestReviewDelegationCandidateDto[],
 });
 
 const sheet = (assignmentId: string, revision: number, entries: InformationRequestReviewDto["worksheets"][number]["entries"] = []) =>

@@ -12,13 +12,13 @@ export const useNotificationsPanelStyles = makeStyles({
     },
     alertDot: {
         position: 'absolute',
-        top: '6px',
-        right: '6px',
+        top: tokens.spacingVerticalSNudge,
+        right: tokens.spacingHorizontalSNudge,
         width: '8px',
         height: '8px',
-        borderRadius: '999px',
+        borderRadius: tokens.borderRadiusCircular,
         backgroundColor: tokens.colorPaletteRedBackground3,
-        boxShadow: `0 0 0 2px ${tokens.colorNeutralBackground1}`,
+        boxShadow: `0 0 0 ${tokens.strokeWidthThick} ${tokens.colorNeutralBackground1}`,
     },
     popoverContent: {
         display: 'flex',

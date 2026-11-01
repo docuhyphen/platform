@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.variable
 
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
-import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextProvider
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
 import jakarta.enterprise.context.ApplicationScoped

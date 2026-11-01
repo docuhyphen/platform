@@ -43,10 +43,10 @@ describe("requirementConditionChoices", () => {
         const unpublished = {
             ...requestSchema,
             id: "schema-b",
-            latestPublishedVersion: null,
+            latestPublishedVersion: null as SchemaVersionDto | null,
             draftVersion: {...published, id: "schema-version-b"}
         };
-        const undrafted = {...requestSchema, draftVersion: null};
+        const undrafted = {...requestSchema, draftVersion: null as SchemaVersionDto | null};
 
         const choices = requirementChoicesOf(template.latestPublishedVersion, [unpublished, undrafted] as unknown as SchemaDefinitionDto[]);
 

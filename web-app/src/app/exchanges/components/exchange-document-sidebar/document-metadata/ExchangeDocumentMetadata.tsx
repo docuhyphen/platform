@@ -99,11 +99,13 @@ const ExchangeDocumentMetadata = ({document}: ExchangeDocumentMetadataProps) =>
                                     <TableCell
                                         id={`exchange-document-sidebar-metadata-label-cell-${index}`}
                                         className={styles.labelCell}
-                                    ><Caption1 className={styles.label}>{row.label}</Caption1></TableCell>
+                                    ><Caption1 id={"exchange-document-metadata-caption1-1"}
+                                               className={styles.label}>{row.label}</Caption1></TableCell>
                                     <TableCell
                                         id={`exchange-document-sidebar-metadata-value-cell-${index}`}
                                         className={styles.valueCell}
-                                    ><Caption1 className={styles.value}>{row.value}</Caption1></TableCell>
+                                    ><Caption1 id={"exchange-document-metadata-caption1-2"}
+                                               className={styles.value}>{row.value}</Caption1></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

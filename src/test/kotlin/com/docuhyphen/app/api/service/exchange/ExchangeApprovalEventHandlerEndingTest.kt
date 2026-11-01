@@ -5,12 +5,12 @@ import com.docuhyphen.app.api.model.exchange.ExchangeLifecycleActor
 import com.docuhyphen.app.api.model.informationrequest.InformationRequestAuditActor
 import com.docuhyphen.app.api.model.workflow.WorkflowDecisionRecord
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionException
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestExchangeCompletionService
 import com.docuhyphen.app.api.service.informationrequest.parent.InformationRequestParentLifecycleService
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.workflow.Decision
 import com.docuhyphen.app.api.service.workflow.WorkflowEngineService
 import org.junit.jupiter.api.Assertions.assertEquals

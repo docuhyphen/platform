@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AnalyticsProjectionResult
 import com.docuhyphen.app.api.model.entity.AuditAnalyticsFact
 import com.docuhyphen.app.api.model.entity.AuditLedgerEvent
 import com.docuhyphen.app.api.repository.audit.AuditAnalyticsFactRepository
@@ -13,16 +14,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
 
-data class AnalyticsProjectionResult(val projected: Int, val alreadyProjected: Int, val failed: Int)
-
-/**
- * Idempotent dimensional projector from the immutable ledger to `audit_analytics_fact`.
- * It is keyed by `ledger_event_id` (unique constraint), so draining the same ledger event twice
- * - whether by retry or a concurrent tick - never produces a second fact row. Copies only
- * denormalized dimensions, never [AuditLedgerEvent.payloadJson], so a prohibited payload field can
- * never reach the projection even if one somehow slipped past
- * [AuditEventDraftValidator] upstream.
- */
 @ApplicationScoped
 class AuditAnalyticsProjector @Inject constructor(
     private val auditLedgerEventRepository: AuditLedgerEventRepository,
@@ -69,7 +60,6 @@ class AuditAnalyticsProjector @Inject constructor(
         return AnalyticsProjectionResult(projected, alreadyProjected, failed)
     }
 
-    /** Deletes and reprojects every fact for [organizationId] (or every platform fact when [platformOnly]). */
     @Transactional
     fun rebuild(organizationId: UUID?, platformOnly: Boolean): AnalyticsProjectionResult
     {

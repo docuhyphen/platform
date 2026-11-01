@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.informationrequest.party
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.command.CommandReceiptRequest
 import com.docuhyphen.app.api.model.entity.*
@@ -11,7 +14,7 @@ import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRe
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.SubjectIdentityRefRepository
-import com.docuhyphen.app.api.service.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.command.CommandReceiptScope
@@ -31,7 +34,7 @@ import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRe
 import com.docuhyphen.app.api.service.informationrequest.noauth.InformationRequestBootstrapShareLinkService
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestFieldAudienceGuard
 import com.docuhyphen.app.api.service.informationrequest.response.InformationRequestResponseStart
-import com.docuhyphen.app.api.service.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.service.notification.DomainEventPublisher
 import com.docuhyphen.app.api.service.user.AppUserService
 import org.mockito.kotlin.*

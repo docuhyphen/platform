@@ -3,43 +3,41 @@ package com.docuhyphen.app.api.resource.organization
 import com.docuhyphen.app.api.model.PlatformOrganizationDtoMapper
 import com.docuhyphen.app.api.resource.model.PlatformOrganizationSubscriptionPolicyListResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.resource.organization.operations.PlatformOrganizationSubscriptionPolicyCollectionResourceOperations
 import com.docuhyphen.app.api.service.subscription.PlatformOrganizationSubscriptionPolicyService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/platform/organizations/subscription-policies")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformOrganizationSubscriptionPolicyCollectionResource @Inject constructor(
     private val platformOrganizationSubscriptionPolicyService: PlatformOrganizationSubscriptionPolicyService,
     private val platformOrganizationDtoMapper: PlatformOrganizationDtoMapper,
-)
+) : PlatformOrganizationSubscriptionPolicyCollectionResourceOperations
 {
     companion object
     {
         private val logger =
             LoggerFactory.getLogger(PlatformOrganizationSubscriptionPolicyCollectionResource::class.java)
+        private const val ALL_ORGANIZATIONS = "all"
+        private const val DEFAULT_LIMIT = 50
     }
 
-    @GET
-    fun list(
-        @QueryParam("limit") limit: Int?,
-        @QueryParam("offset") offset: Int?,
-        @QueryParam("tierCode") tierCode: String?,
-        @QueryParam("persistedOnly") persistedOnly: Boolean?,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun list(
+        limit: Int?,
+        offset: Int?,
+        tierCode: String?,
+        persistedOnly: Boolean?,
+        requestId: String?,
     ): Response
     {
         return try
         {
             val result = platformOrganizationSubscriptionPolicyService.listPolicies(
-                organizationId = "all",
-                limit = limit ?: 50,
+                organizationId = ALL_ORGANIZATIONS,
+                limit = limit ?: DEFAULT_LIMIT,
                 offset = offset ?: 0,
                 tierCode = tierCode,
                 persistedOnly = persistedOnly,
@@ -56,20 +54,24 @@ class PlatformOrganizationSubscriptionPolicyCollectionResource @Inject construct
         }
         catch (exception: Exception)
         {
-            logger.error("Error listing platform organization subscription policy resources", exception)
             when (exception)
             {
-                is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(ResponseError(exception.message)).build()
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-                is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
-                    .entity(ResponseError(exception.message)).build()
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-                is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                    .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-                else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error listing platform organization subscription policy resources", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
             }
         }
     }

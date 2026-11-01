@@ -55,7 +55,6 @@ class PhoneContactDetailsService @Inject constructor(
 
         val verificationCode = otpService.generatePhoneVerificationCode()
 
-        // Track pending phone separately so a cancelled initiation does not block a retry.
         contactDetails.pendingPhoneNumber = phoneNumber
         contactDetails.phoneVerificationCode = verificationCode
         contactDetails.isPhoneVerified = false

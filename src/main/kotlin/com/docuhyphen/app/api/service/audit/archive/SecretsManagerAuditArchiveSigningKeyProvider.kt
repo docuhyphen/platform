@@ -1,11 +1,11 @@
 package com.docuhyphen.app.api.service.audit.archive
 
+import com.docuhyphen.app.api.model.audit.archive.AuditArchiveSigningSecret
 import com.docuhyphen.app.api.qualifier.Aws
 import com.docuhyphen.app.api.service.config.AuditArchiveConfigService
 import com.docuhyphen.app.api.service.config.AwsSecretsManagerService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.security.KeyFactory
 import java.security.KeyPair
@@ -15,12 +15,6 @@ import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 
-/**
- * Secrets-Manager-backed [AuditArchiveSigningKeyProvider]: the private key
- * material lives as a JSON secret (`{"keyId","privateKeyPem","publicKeyPem"}`) in the existing
- * AWS Secrets Manager rather than KMS or an HSM. The public key is
- * the public key exposed for independent signature verification ([activePublicKeyPem]).
- */
 @ApplicationScoped
 @Aws
 class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
@@ -34,18 +28,10 @@ class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
         private const val SIGNATURE_ALGORITHM = "SHA256withRSA"
     }
 
-    @Serializable
-    private data class SigningSecret(
-        val keyId: String,
-        val privateKeyPem: String,
-        val publicKeyPem: String,
-        val historicalPublicKeys: Map<String, String> = emptyMap(),
-    )
-
     private val lock = ReentrantLock()
 
     @Volatile
-    private var cached: Pair<SigningSecret, KeyPair>? = null
+    private var cached: Pair<AuditArchiveSigningSecret, KeyPair>? = null
 
     override fun keyId(): String = loadOrFetch().first.keyId
 
@@ -77,7 +63,7 @@ class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
 
     override fun activePublicKeyPem(): String = loadOrFetch().first.publicKeyPem
 
-    private fun loadOrFetch(): Pair<SigningSecret, KeyPair>
+    private fun loadOrFetch(): Pair<AuditArchiveSigningSecret, KeyPair>
     {
         cached?.let { return it }
 
@@ -90,7 +76,7 @@ class SecretsManagerAuditArchiveSigningKeyProvider @Inject constructor(
                 configService.getSigningSecretId(),
                 configService.getSigningRegion(),
             )
-            val secret = Json.decodeFromString(SigningSecret.serializer(), secretString)
+            val secret = Json.decodeFromString(AuditArchiveSigningSecret.serializer(), secretString)
             val privateKey = KeyFactory.getInstance(ALGORITHM)
                 .generatePrivate(PKCS8EncodedKeySpec(decodePem(secret.privateKeyPem)))
             val publicKey = KeyFactory.getInstance(ALGORITHM)

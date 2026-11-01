@@ -4,23 +4,25 @@ import com.docuhyphen.app.api.exception.ExchangeNotFoundException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.exchange.ExchangeEmailDelivery
+import com.docuhyphen.app.api.model.exchange.ResolvedExchangeRecipientSelection
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.exchange.ExternalParticipantRepository
 import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.resource.model.*
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.audit.AuditOwnerScopeResolver
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.EmailTemplateService
 import com.docuhyphen.app.api.service.communication.OtpService
-import com.docuhyphen.app.api.service.communication.templates.RenderedEmailTemplate
+import com.docuhyphen.app.api.model.communication.RenderedEmailTemplate
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService
-import com.docuhyphen.app.api.service.identity.ExternalIdentityResolutionService.PreparedPersonResolution
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
 import com.docuhyphen.app.api.service.organization.OrganizationExchangePolicyService
 import com.docuhyphen.app.api.service.organization.OrganizationGroupService
 import com.docuhyphen.app.api.service.user.AppUserService
@@ -288,7 +290,7 @@ class ExchangeAccessManagementServiceTest
         val groupId = UUID.randomUUID()
         val targetOrganizationId = UUID.randomUUID()
         whenever(group.id).thenReturn(groupId)
-        val validation = mock<com.docuhyphen.app.api.service.organization.TrustedGroupValidation>()
+        val validation = mock<com.docuhyphen.app.api.model.organization.TrustedGroupValidation>()
         val resolved = ResolvedExchangeRecipientSelection(
             recipientType = ExchangeRecipientType.GROUP,
             selectionType = ExchangeRecipientSelectionType.TRUSTED_GROUP,
@@ -591,7 +593,7 @@ class ExchangeAccessManagementServiceTest
             service.getSessionAccessView(exchangeId)
         }
 
-        val draftCaptor = argumentCaptor<com.docuhyphen.app.api.service.audit.AuditEventDraft>()
+        val draftCaptor = argumentCaptor<com.docuhyphen.app.api.model.audit.AuditEventDraft>()
         verify(auditRecorder).record(draftCaptor.capture())
         assertEquals(AuditOwnerScope.Personal(ownerUserId), draftCaptor.firstValue.owner)
     }

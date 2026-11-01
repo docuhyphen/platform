@@ -1,105 +1,91 @@
 package com.docuhyphen.app.api.resource.application
 
-import com.docuhyphen.app.api.interceptor.AuthTokenContext
-import com.docuhyphen.app.api.resource.model.AdminApprovalApproveResponse
+import com.docuhyphen.app.api.resource.application.operations.AdminApprovalResourceOperations
 import com.docuhyphen.app.api.resource.model.AdminApprovalInitiateRequest
-import com.docuhyphen.app.api.resource.model.AdminApprovalInitiateResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalWorkflowService
+import com.docuhyphen.app.api.service.application.AdminApprovalService
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import org.slf4j.LoggerFactory
 import java.util.*
 
-@Path("/auth/admin-approvals")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AdminApprovalResource @Inject constructor(
-    private val authTokenContext: AuthTokenContext,
-    private val adminApprovalWorkflowService: AdminApprovalWorkflowService,
-    private val userRoleService: com.docuhyphen.app.api.service.auth.UserRoleService,
-)
+    private val adminApprovalService: AdminApprovalService,
+) : AdminApprovalResourceOperations
 {
-    @POST
-    @Path("/initiate")
-    fun initiate(
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(AdminApprovalResource::class.java)
+    }
+
+    override fun initiate(
         payload: AdminApprovalInitiateRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
         return try
         {
-            val actor = authTokenContext.authToken.appUser
-                ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-            if (!userRoleService.isOrgAdmin(actor.id))
-            {
-                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges"))
-                    .build()
-            }
-
-            if (payload.action.isBlank())
-            {
-                return Response.status(Response.Status.BAD_REQUEST).entity(ResponseError("Action is required")).build()
-            }
-
-            val approval = adminApprovalWorkflowService.initiate(
-                action = payload.action.trim(),
-                requesterId = actor.id,
-                reason = payload.reason,
-                expiresMinutes = payload.expiresMinutes,
-                requestId = requestId,
-            )
-
-            Response.ok(
-                AdminApprovalInitiateResponse(
-                    approvalId = approval.id.toString(),
-                    status = approval.status.name,
-                )
-            ).build()
+            Response.ok(adminApprovalService.initiate(payload, requestId)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error initiating admin approval", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while initiating the admin approval"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{approvalId}/approve")
-    fun approve(
-        @PathParam("approvalId") approvalId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun approve(
+        approvalId: String,
+        requestId: String?,
     ): Response
     {
         return try
         {
-            val actor = authTokenContext.authToken.appUser
-                ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-            if (!userRoleService.isOrgAdmin(actor.id))
-            {
-                return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges"))
-                    .build()
-            }
-
-            val approved = adminApprovalWorkflowService.approve(
-                approvalId = UUID.fromString(approvalId),
-                approverId = actor.id,
-                requestId = requestId,
-            )
-
-            Response.ok(
-                AdminApprovalApproveResponse(
-                    approvalId = approved.id.toString(),
-                    status = approved.status.name,
-                )
-            ).build()
+            Response.ok(adminApprovalService.approve(UUID.fromString(approvalId), requestId)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error approving admin approval", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while approving the admin approval"))
+                        .build()
+                }
+            }
         }
     }
 }
-

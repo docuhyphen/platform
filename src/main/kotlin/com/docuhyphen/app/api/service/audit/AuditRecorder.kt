@@ -1,6 +1,10 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.audit.AuditCaptureResult
+import com.docuhyphen.app.api.model.audit.AuditDraftValidationResult
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.AuditOutboxEntry
 import com.docuhyphen.app.api.repository.audit.AuditOutboxRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
@@ -13,20 +17,6 @@ import org.slf4j.LoggerFactory
 import java.sql.Timestamp
 import java.time.Instant
 
-/**
- * Single trust-boundary entry point for durable audit capture.
- *
- * `@RequestScoped` (not `@ApplicationScoped`) because it derives actor/session/trace/correlation
- * context from the per-request [AuthTokenContext], matching the existing `@RequestScoped`
- * `AuthAuditService`.
- *
- * [record] validates the draft against the catalog/prohibited-field list, then writes exactly one
- * `audit_outbox` row **in the caller's own active transaction** (no `REQUIRES_NEW`): the audit
- * intent commits or rolls back atomically with the business mutation it documents. Only capture
- * failures (the outbox write itself throwing) are subject to the [AuditFailurePolicy] switch;
- * a draft that fails validation is always a call-site bug and always throws
- * [AuditDraftInvalidException] regardless of policy.
- */
 @RequestScoped
 class AuditRecorder @Inject constructor(
     private val auditOutboxRepository: AuditOutboxRepository,
@@ -98,14 +88,6 @@ class AuditRecorder @Inject constructor(
         }
     }
 
-    /**
-     * Best-effort "Name <email>" (or plain email when no [com.docuhyphen.app.api.model.entity.Person]
-     * name is on file) for the currently authenticated [com.docuhyphen.app.api.model.entity.AppUser],
-     * resolved once here so every call site gets a human-readable actor label without having to
-     * look the user up itself. `runCatching` guards the lazy `person` association: [authTokenContext]
-     * may hold an `AppUser` loaded in an earlier request-scoped bean whose persistence context has
-     * since closed, and a failed lazy load must never break audit capture.
-     */
     private fun resolveAuthenticatedActorLabel(): String? = runCatching {
         val appUser = authTokenContext.authToken.appUser ?: return@runCatching null
         val person = appUser.person

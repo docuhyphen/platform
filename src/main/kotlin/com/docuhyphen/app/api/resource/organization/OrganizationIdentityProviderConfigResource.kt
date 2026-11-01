@@ -1,51 +1,68 @@
 package com.docuhyphen.app.api.resource.organization
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
+import com.docuhyphen.app.api.model.organization.OrganizationIdentityProviderConfigDtoMapper
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
-import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigResponse
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.OrganizationIdentityProviderConfigResourceOperations
 import com.docuhyphen.app.api.service.identity.OrganizationIdentityProviderConfigService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("organizations/{organizationId}/identity-providers")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class OrganizationIdentityProviderConfigResource @Inject constructor(
     private val organizationIdentityProviderConfigService: OrganizationIdentityProviderConfigService,
-)
+) : OrganizationIdentityProviderConfigResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(OrganizationIdentityProviderConfigResource::class.java)
     }
 
-    @GET
-    fun list(@PathParam("organizationId") organizationId: String): Response
+    override fun list(organizationId: String): Response
     {
         return try
         {
             val response = organizationIdentityProviderConfigService.list(organizationId)
-                .map { it.toResponse() }
+                .map(OrganizationIdentityProviderConfigDtoMapper::toResponse)
             Response.ok(response).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error listing org IdP configs", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider listing refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing org IdP configs", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    fun create(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun create(
+        organizationId: String,
+        requestId: String?,
         payload: OrganizationIdpConfigRequest,
     ): Response
     {
@@ -56,21 +73,41 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
                 request = payload,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-            Response.ok(created.toResponse()).build()
+            Response.ok(OrganizationIdentityProviderConfigDtoMapper.toResponse(created)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error creating org IdP config", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider creation refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error creating org IdP config", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PUT
-    @Path("/{configId}")
-    fun update(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun update(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
         payload: OrganizationIdpConfigRequest,
     ): Response
     {
@@ -82,21 +119,41 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
                 request = payload,
                 adminApprovalContext = AdminApprovalContext(requestId = requestId),
             )
-            Response.ok(updated.toResponse()).build()
+            Response.ok(OrganizationIdentityProviderConfigDtoMapper.toResponse(updated)).build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error updating org IdP config", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider update refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error updating org IdP config", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    @Path("/{configId}")
-    fun delete(
-        @PathParam("organizationId") organizationId: String,
-        @PathParam("configId") configId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun delete(
+        organizationId: String,
+        configId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -108,66 +165,33 @@ class OrganizationIdentityProviderConfigResource @Inject constructor(
             )
             Response.ok().build()
         }
-        catch (e: Exception)
+        catch (exception: Exception)
         {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            handleException("Error deleting org IdP config", e)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization identity-provider deletion refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error deleting org IdP config", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
-    }
-
-
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        if (exception is SubscriptionDenialException)
-        {
-            logger.warn(
-                "Organization identity-provider configuration refused by subscription policy: {}",
-                message,
-                exception
-            )
-            throw exception
-        }
-        logger.error(message, exception)
-
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
-            is IllegalArgumentException -> Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
-            else -> Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("An unexpected error occurred")).build()
-        }
-    }
-
-    private fun com.docuhyphen.app.api.model.entity.OrganizationIdentityProviderConfig.toResponse(): OrganizationIdpConfigResponse
-    {
-        return OrganizationIdpConfigResponse(
-            id = id.toString(),
-            organizationId = organization?.id?.toString().orEmpty(),
-            provider = provider,
-            clientId = clientId,
-            clientSecretRef = clientSecretRef,
-            tenantId = tenantId,
-            scopes = splitCsv(scopes),
-            isActive = isActive,
-            accessTokenExpiryMinutes = accessTokenExpiryMinutes,
-            refreshTokenExpiryMinutes = refreshTokenExpiryMinutes,
-            maxSessionDurationHours = maxSessionDurationHours,
-            idleTimeoutMinutes = idleTimeoutMinutes,
-            oidcIssuer = oidcIssuer,
-            allowedAudiences = splitCsv(allowedAudiences),
-            allowedAlgs = splitCsv(allowedAlgs),
-            requiredClaims = splitCsv(requiredClaims),
-            createdDate = createdDate.toString(),
-            updatedDate = updatedDate.toString(),
-        )
-    }
-
-    private fun splitCsv(value: String?): List<String>
-    {
-        return value
-            ?.split(',')
-            ?.map { it.trim() }
-            ?.filter { it.isNotBlank() }
-            ?: emptyList()
     }
 }
 

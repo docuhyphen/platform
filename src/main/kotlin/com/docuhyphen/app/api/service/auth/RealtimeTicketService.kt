@@ -1,7 +1,9 @@
 package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.auth.RealtimeTicketIdentity
 import com.docuhyphen.app.api.model.dto.RealtimeTicketDto
+import io.quarkus.security.UnauthorizedException
 import io.vertx.mutiny.redis.client.Command
 import io.vertx.mutiny.redis.client.Redis
 import io.vertx.mutiny.redis.client.Request
@@ -14,6 +16,7 @@ import java.util.*
 @ApplicationScoped
 class RealtimeTicketService @Inject constructor(
     private val redis: Redis,
+    private val authTokenContext: AuthTokenContext,
 )
 {
     companion object
@@ -22,6 +25,13 @@ class RealtimeTicketService @Inject constructor(
         private const val TICKET_BYTES = 32
         const val TICKET_TTL_SECONDS = 30L
         private val secureRandom = SecureRandom()
+    }
+
+    fun issueForCurrentSession(): RealtimeTicketDto
+    {
+        val sessionId = authTokenContext.userSessionId ?: throw UnauthorizedException("Session is unavailable")
+        val appUserId = authTokenContext.authToken.appUser?.id ?: throw UnauthorizedException("User is unavailable")
+        return issue(sessionId, appUserId)
     }
 
     fun issue(sessionId: UUID, appUserId: UUID): RealtimeTicketDto

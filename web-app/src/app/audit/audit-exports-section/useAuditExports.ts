@@ -23,10 +23,6 @@ const saveBlob = (blob: Blob, filename: string) =>
     window.URL.revokeObjectURL(url);
 };
 
-/**
- * Loading/mutation state machine for the export list section of the Audit workspace, kept
- * separate from `AuditExportsSection` so that component stays focused on rendering.
- */
 export const useAuditExports = (scope: AuditScope) =>
 {
     const [exports, setExports] = useState<AuditExportDto[]>([]);
@@ -37,8 +33,6 @@ export const useAuditExports = (scope: AuditScope) =>
     const scopeKey = scope.kind === "organization" ? `organization:${scope.organizationId}` : "platform";
     const activeScopeKeyRef = useRef(scopeKey);
     activeScopeKeyRef.current = scopeKey;
-    // Bumped on every load() call so a response from a superseded scope switch can detect it is
-    // stale and discard itself instead of overwriting state a newer request already populated.
     const requestGenerationRef = useRef(0);
 
     const load = useCallback(async () =>

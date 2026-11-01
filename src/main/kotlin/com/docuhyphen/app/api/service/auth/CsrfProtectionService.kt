@@ -41,7 +41,6 @@ class CsrfProtectionService @Inject constructor(
             return false
         }
 
-        // Constant-time so the double-submit value cannot be recovered byte by byte.
         if (!MessageDigest.isEqual(csrfCookie.toByteArray(Charsets.UTF_8), csrfHeader.toByteArray(Charsets.UTF_8)))
         {
             return false
@@ -59,7 +58,6 @@ class CsrfProtectionService @Inject constructor(
             return originHeader.trimEnd('/') == expectedBase
         }
 
-        // Fall back to Referer when Origin is missing (some browsers/clients omit Origin on same-origin requests)
         if (!refererHeader.isNullOrBlank())
         {
             return refererHeader.startsWith("$expectedBase/") || refererHeader.trimEnd('/') == expectedBase

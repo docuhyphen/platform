@@ -2,7 +2,7 @@ package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.service.subscription.BillingFrequency
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
 import com.docuhyphen.app.api.service.subscription.PlanCatalog
 import com.docuhyphen.app.api.service.subscription.PlanCode
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService

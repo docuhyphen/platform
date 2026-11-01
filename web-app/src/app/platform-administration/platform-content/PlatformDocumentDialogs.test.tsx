@@ -5,16 +5,16 @@ import PlatformDocumentDialogs from "./PlatformDocumentDialogs.tsx";
 
 const editorProps = vi.fn();
 
-vi.mock("../../settings/document-library-tab/DocumentLibraryEditorDialog.tsx", () => ({
-    default: (props: Record<string, unknown>) =>
+vi.mock("../../settings/document-library-tab/document-library-editor-dialog/DocumentLibraryEditorDialog.tsx", () => ({
+    default: (props: Record<string, unknown>): null =>
     {
         editorProps(props);
         return null;
     },
 }));
 
-vi.mock("../../settings/document-library-tab/DocumentLibraryUploadDialog.tsx", () => ({
-    default: () => null,
+vi.mock("../../settings/document-library-tab/document-library-upload-dialog/DocumentLibraryUploadDialog.tsx", () => ({
+    default: (): null => null,
 }));
 
 afterEach(() =>

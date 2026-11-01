@@ -1,121 +1,82 @@
 package com.docuhyphen.app.api.resource.audit
 
-import com.docuhyphen.app.api.model.audit.AuditAccessActor
-import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
-import com.docuhyphen.app.api.model.auth.authz.Decision
-import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.model.dto.AuditProjectionDtoMapper
+import com.docuhyphen.app.api.resource.audit.operations.AuditExchangeDocumentEventsResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.audit.AuditProjectionAccessDeniedException
+import com.docuhyphen.app.api.service.audit.AuditProjectionAccessService
 import com.docuhyphen.app.api.service.audit.AuditProjectionNotFoundException
 import com.docuhyphen.app.api.service.audit.AuditSearchProjectionService
-import com.docuhyphen.app.api.service.auth.authz.*
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
-import java.time.Instant
+import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/exchanges/{exchangeId}/documents/{documentId}/audit-events")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditExchangeDocumentEventsResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
-    private val resourceAuthorizationContextRegistry: ResourceAuthorizationContextRegistry,
+    private val auditProjectionAccessService: AuditProjectionAccessService,
     private val auditSearchProjectionService: AuditSearchProjectionService,
-)
+) : AuditExchangeDocumentEventsResourceOperations
 {
-    @GET
-    fun listExchangeDocumentEvents(
-        @PathParam("exchangeId") exchangeId: String,
-        @PathParam("documentId") documentId: String,
-        @QueryParam("cursorOccurredAt") cursorOccurredAt: String?,
-        @QueryParam("cursorEventId") cursorEventId: String?,
-        @QueryParam("limit") @DefaultValue("50") limit: Int,
-    ): Response
+    companion object
     {
-        val exchangeRef = ResourceRef.exchange(parseUuid(exchangeId))
-        val owner = resourceAuthorizationContextRegistry.resolve(exchangeRef)?.ownerContext
-            ?: return Response.status(Response.Status.NOT_FOUND).entity(ResponseError("Exchange not found")).build()
-        if (owner !is OwnerContext.Organization)
-        {
-            return Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError("Exchange audit is not available for this scope")).build()
-        }
-        return withAuthorizedOrgAudit(owner.organizationId.toString()) { actor, orgId ->
-            val page = auditSearchProjectionService.listExchangeDocumentEvents(
-                actor = actor,
-                organizationId = orgId,
-                exchangeId = exchangeRef.id,
-                documentId = parseUuid(documentId),
-                cursor = parseCursor(cursorOccurredAt, cursorEventId),
-                limit = limit.coerceIn(1, 200),
-            )
-            Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
-        }
+        private val logger = LoggerFactory.getLogger(AuditExchangeDocumentEventsResource::class.java)
     }
 
-    private fun withAuthorizedOrgAudit(
-        organizationId: String,
-        block: (AuditAccessActor, UUID) -> Response,
+    override fun listExchangeDocumentEvents(
+        exchangeId: String,
+        documentId: String,
+        cursorOccurredAt: String?,
+        cursorEventId: String?,
+        limit: Int,
     ): Response
-    {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val orgId = parseUuid(organizationId)
-        val resource = ResourceRef.organization(orgId)
-        val decision = authorizationService.authorize(principal, Action.ORG_READ_AUDIT, resource, context)
-        val capabilities = authorizationService.capabilities(principal, resource, context)
-        val actor = AuditAccessActor(principal, context, capabilities)
-        if (decision is Decision.Deny)
-        {
-            auditSearchProjectionService.recordDeniedAttempt(
-                actor,
-                orgId,
-                "ORGANIZATION",
-                orgId.toString(),
-                decision.reasonCode
-            )
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(actor, orgId) }
-    }
-
-    private fun runGuarded(block: () -> Response): Response
     {
         return try
         {
-            block()
+            val exchangeUuid = UUID.fromString(exchangeId)
+            val access = auditProjectionAccessService.exchangeRead(exchangeUuid)
+            val page = auditSearchProjectionService.listExchangeDocumentEvents(
+                actor = access.actor,
+                organizationId = access.organizationId,
+                exchangeId = exchangeUuid,
+                documentId = UUID.fromString(documentId),
+                cursor = parseAuditCursor(cursorOccurredAt, cursorEventId),
+                limit = clampAuditPageLimit(limit),
+            )
+            Response.ok(AuditProjectionDtoMapper.toPageDto(page)).build()
         }
-        catch (e: IllegalArgumentException)
+        catch (exception: Exception)
         {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditProjectionNotFoundException)
-        {
-            Response.status(Response.Status.NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditProjectionAccessDeniedException)
-        {
-            Response.status(Response.Status.FORBIDDEN).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException -> throw exception
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditProjectionNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is AuditProjectionAccessDeniedException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing Exchange document audit events", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
-
-    private fun parseCursor(cursorOccurredAt: String?, cursorEventId: String?): AuditProjectionCursor?
-    {
-        if (cursorOccurredAt.isNullOrBlank() || cursorEventId.isNullOrBlank())
-        {
-            return null
-        }
-        return AuditProjectionCursor(
-            occurredAt = Instant.parse(cursorOccurredAt),
-            eventId = parseUuid(cursorEventId),
-        )
-    }
-
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
 }

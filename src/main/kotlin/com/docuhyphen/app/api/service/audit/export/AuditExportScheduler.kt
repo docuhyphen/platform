@@ -12,20 +12,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 
-/**
- * Periodically builds queued `BUILDING` [com.docuhyphen.app.api.model.entity.AuditExport] rows
- * ([AuditExportBuilder]) and expires `READY` exports past their download window. Building happens off the approval request/response so
- * an approver's HTTP call never blocks on ledger verification + archive I/O.
- *
- * More than one application node may run this scheduler at once. Each node claims a candidate
- * export's build-claim lease ([AuditExportService.claimForBuilding]) under [workerId] - a value
- * unique to this scheduler instance - before building it, so two nodes never perform the same
- * export's archive I/O concurrently.
- *
- * [ActivateRequestContext] opens a request context for the duration of each tick, exactly like
- * [com.docuhyphen.app.api.service.audit.archive.AuditArchiveScheduler.verifyTick], because
- * [com.docuhyphen.app.api.service.audit.AuditRecorder] is `@RequestScoped`.
- */
 @ApplicationScoped
 class AuditExportScheduler @Inject constructor(
     private val auditExportRepository: AuditExportRepository,

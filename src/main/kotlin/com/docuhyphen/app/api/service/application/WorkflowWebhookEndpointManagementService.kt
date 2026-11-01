@@ -1,5 +1,10 @@
 package com.docuhyphen.app.api.service.application
 
+import com.docuhyphen.app.api.model.application.RegisterWebhookRequest
+import com.docuhyphen.app.api.model.application.WebhookSigningSecret
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.ResourceType
 import com.docuhyphen.app.api.model.entity.WorkflowWebhookEndpoint
 import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
@@ -15,15 +20,6 @@ import java.security.SecureRandom
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-data class RegisterWebhookRequest(
-    val workflowDefinitionId: UUID,
-    val targetUrl: String,
-    val permittedEventTypes: List<String>,
-    val registeredApplicationId: UUID?,
-)
-
-data class WebhookSigningSecret(val rawSecret: String, val version: Int)
 
 @ApplicationScoped
 class WorkflowWebhookEndpointManagementService @Inject constructor(
@@ -136,8 +132,6 @@ class WorkflowWebhookEndpointManagementService @Inject constructor(
         )
         return WebhookSigningSecret(rawSecret, endpoint.signingSecretVersion)
     }
-
-    // -------------------------------------------------------------------------
 
     private fun requireWebhookAdmin(orgId: UUID, principal: PrincipalRef, context: AuthorizationContext)
     {

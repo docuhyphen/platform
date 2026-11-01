@@ -2,7 +2,7 @@
 import {describe, expect, it, vi, afterEach} from "vitest";
 import {render, cleanup} from "@testing-library/react";
 import ExchangeDocumentSidebar from "../ExchangeDocumentSidebar.tsx";
-import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus, PlanFeature} from "../../../../models/models.tsx";
+import {DocumentDetailedDto, ExchangeDetailedDto, ExchangeStatus, PlanCode, PlanFeature} from "../../../../models/models.tsx";
 
 const mockHasCapability = vi.fn();
 const mockPlanFeatures = vi.hoisted(() => ({
@@ -23,7 +23,7 @@ vi.mock("../../../../../hooks/subscription/usePlanFeature.ts", () => ({
         isEnforced: true,
         isDiscoverable: mockPlanFeatures.available.has(feature),
         isAvailable: mockPlanFeatures.available.has(feature),
-        upgradePlanCode: null,
+        upgradePlanCode: null as PlanCode | null,
     }),
 }));
 

@@ -37,7 +37,8 @@ const NotificationList: React.FC = () =>
     return (
         <Popover withArrow>
             <PopoverTrigger disableButtonEnhancement>
-                <div className={styles.notificationButtonContainer}>
+                <div id={"notification-list-div-1"}
+                     className={styles.notificationButtonContainer}>
                     <Button
                         id={"notification-list-bell-btn"}
                         icon={<NotificationsIcon/>}
@@ -46,6 +47,7 @@ const NotificationList: React.FC = () =>
                     </Button>
                     {unreadCount > 0 && (
                         <CounterBadge
+                            id={"notification-list-counter-badge-1"}
                             className={styles.badge}
                             appearance="filled"
                             color="danger"
@@ -53,28 +55,31 @@ const NotificationList: React.FC = () =>
                     )}
                 </div>
             </PopoverTrigger>
-            <PopoverSurface>
-                <List className={styles.list}>
+            <PopoverSurface id={"notification-list-popover-surface-1"}>
+                <List id={"notification-list-list-1"}
+                      className={styles.list}>
                     {notifications.length > 0 ? (<>
                             {notifications.map((notification: NotificationDto) => (
-                                <ListItem>
+                                <ListItem id={"notification-list-list-item-1"}>
                                     <NotificationListItem
                                         key={notification.id}
                                         notification={notification}
                                         onClick={() => handleNotificationClick(notification)}
                                     />
-                                    <Divider/>
+                                    <Divider id={"notification-list-divider-1"}/>
                                 </ListItem>
                             ))}
                         </>
                     ) : (
-                        <Text align={"center"}>
+                        <Text id={"notification-list-text-1"}
+                              align={"center"}>
                             No notifications
                         </Text>
                     )}
                 </List>
                 {notifications.length > 0 &&
-                    <div className={styles.markAllAsRead}>
+                    <div id={"notification-list-div-2"}
+                         className={styles.markAllAsRead}>
                         <Button
                             id={"notification-list-mark-all-read-btn"}
                             size="small"

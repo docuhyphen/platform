@@ -11,7 +11,6 @@ import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.UUID
 
-/** Verifies that legal hold always overrides retention-driven disposal eligibility. */
 class AuditDisposalEligibilityServiceTest
 {
     @Test

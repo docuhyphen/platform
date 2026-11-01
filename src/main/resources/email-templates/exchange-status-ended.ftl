@@ -2,9 +2,9 @@
 <#include "email-header.ftl">
 
 <#if audience == "INITIATOR">
-<p style="margin:0 0 14px 0;"><strong>Your exchange has been ended and moved to archive.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>Your Exchange has been ended and moved to archive.</strong></p>
 <#else>
-<p style="margin:0 0 14px 0;"><strong>This exchange has been ended and moved to archive.</strong></p>
+<p style="margin:0 0 14px 0;"><strong>This Exchange has been ended and moved to archive.</strong></p>
 </#if>
 
 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:1px solid #dddddd; background-color:#f0f2f5;">

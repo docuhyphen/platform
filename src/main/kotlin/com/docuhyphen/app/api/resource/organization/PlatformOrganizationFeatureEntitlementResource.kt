@@ -3,31 +3,28 @@ package com.docuhyphen.app.api.resource.organization
 import com.docuhyphen.app.api.exception.OrganizationNotFoundException
 import com.docuhyphen.app.api.model.dto.PlatformOrganizationFeatureEntitlementsUpdateRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.organization.operations.PlatformOrganizationFeatureEntitlementResourceOperations
 import com.docuhyphen.app.api.service.platform.PlatformOrganizationService
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/platform/organizations/{organizationId}/feature-entitlements")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformOrganizationFeatureEntitlementResource @Inject constructor(
     private val platformOrganizationService: PlatformOrganizationService,
-)
+) : PlatformOrganizationFeatureEntitlementResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformOrganizationFeatureEntitlementResource::class.java)
     }
 
-    @GET
-    fun get(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun get(
+        organizationId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -38,15 +35,33 @@ class PlatformOrganizationFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error fetching platform organization feature entitlements", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching platform organization feature entitlements", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PUT
-    fun replace(
-        @PathParam("organizationId") organizationId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun replace(
+        organizationId: String,
+        requestId: String?,
         payload: PlatformOrganizationFeatureEntitlementsUpdateRequest,
     ): Response
     {
@@ -62,27 +77,27 @@ class PlatformOrganizationFeatureEntitlementResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error replacing platform organization feature entitlements", exception)
-        }
-    }
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
 
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        logger.error(message, exception)
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                is UnauthorizedException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-            is OrganizationNotFoundException -> Response.status(Response.Status.NOT_FOUND)
-                .entity(ResponseError(exception.message)).build()
+                is OrganizationNotFoundException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
 
-            is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-            else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error replacing platform organization feature entitlements", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 }

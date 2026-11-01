@@ -7,8 +7,8 @@ import com.docuhyphen.app.api.migration.queryInt
 import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.fields.PublishedSchemaAssignmentCommand
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import io.quarkus.arc.Arc
 import io.quarkus.narayana.jta.QuarkusTransaction

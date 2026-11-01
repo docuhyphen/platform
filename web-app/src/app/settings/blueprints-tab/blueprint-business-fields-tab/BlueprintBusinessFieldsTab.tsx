@@ -24,12 +24,6 @@ interface Props
     enforcedScope?: BlueprintScope;
 }
 
-/**
- * Blueprint editor tab that classifies a blueprint with a published Exchange schema and captures
- * default field values. Defaults are stored by the stable fieldDefinitionId so they survive schema
- * re-publishing; they are seeded back into the editor by resolving each binding's fieldContractId.
- * Reuses the initiation Fields tab so value controls stay identical.
- */
 const BlueprintBusinessFieldsTab = (
     {
         initialSchemaDefinitionId,
@@ -89,7 +83,8 @@ const BlueprintBusinessFieldsTab = (
     return (
         <div id="blueprint-business-fields-tab"
              className={styles.container}>
-            <Text className={styles.hint}>
+            <Text id={"blueprint-business-fields-tab-text-1"}
+                  className={styles.hint}>
                 Pick a published Exchange schema and set default values. When someone starts an
                 Exchange from this blueprint, the schema and defaults are pre-filled.
             </Text>

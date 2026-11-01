@@ -2,23 +2,13 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.model.entity.WorkflowStepInstance
+import com.docuhyphen.app.api.model.workflow.ActionResult
 import com.docuhyphen.app.api.service.application.WebhookDeliveryService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * ACTION step handler that delivers an outbound webhook payload.
- *
- * The step spec must have:
- * - `actionHandlerKey = "WEBHOOK_DELIVER"`
- * - `webhookEndpointId`: UUID of the [com.docuhyphen.app.api.model.entity.WorkflowWebhookEndpoint] to call
- * - `webhookEventType`: event type string included in the payload (e.g. "exchange.activated")
- *
- * A non-2xx response or network error causes the step to fail (ActionResult.success = false),
- * which rejects the workflow instance.
- */
 @ApplicationScoped
 class WebhookWorkflowActionHandler @Inject constructor(
     private val webhookDeliveryService: WebhookDeliveryService,

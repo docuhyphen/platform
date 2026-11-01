@@ -1,6 +1,11 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.model.CommunicationDtoMapper
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.communication.RenderedCommunication
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.Communication
 import com.docuhyphen.app.api.model.entity.CommunicationScope
@@ -12,7 +17,7 @@ import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.subscription.OrganizationFeatureSubscriptionGuard
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
-import com.docuhyphen.app.api.service.variable.VariableResolutionContext
+import com.docuhyphen.app.api.model.variable.VariableResolutionContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -40,8 +45,6 @@ class CommunicationService @Inject constructor(
     private val logger = LoggerFactory.getLogger(CommunicationService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    // ── Read ──────────────────────────────────────────────────────────────────
-
     fun listTemplates(scope: String?, tag: String?, isTemplate: Boolean?): List<CommunicationDto>
     {
         val principal = currentPrincipal()
@@ -54,7 +57,7 @@ class CommunicationService @Inject constructor(
             .filter { scope == null || it.scope.name == scope.uppercase() }
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { isTemplate == null || it.isTemplate == isTemplate }
-            .map { it.toDto() }
+            .map(CommunicationDtoMapper::toDto)
             .toList()
     }
 
@@ -65,10 +68,8 @@ class CommunicationService @Inject constructor(
         val communication = repository.findById(id)
             ?: throw IllegalArgumentException("Communication not found: $id")
         checkReadAccess(communication, principal, context)
-        return communication.toDto()
+        return CommunicationDtoMapper.toDto(communication)
     }
-
-    // ── Write ─────────────────────────────────────────────────────────────────
 
     @Transactional
     fun createTemplate(request: CreateCommunicationRequest): CommunicationDto
@@ -97,7 +98,7 @@ class CommunicationService @Inject constructor(
             isTemplate = if (isAppAdmin && resolvedScope == CommunicationScope.PLATFORM) request.isTemplate else false
             createdByAppUserId = principal.id
         }
-        return repository.save(communication).toDto()
+        return CommunicationDtoMapper.toDto(repository.save(communication))
     }
 
     @Transactional
@@ -118,7 +119,7 @@ class CommunicationService @Inject constructor(
         request.generalTags?.let { communication.generalTags = encodeTags(it) }
         communication.updatedAt = Timestamp.from(Instant.now())
 
-        return repository.update(communication).toDto()
+        return CommunicationDtoMapper.toDto(repository.update(communication))
     }
 
     @Transactional
@@ -136,7 +137,7 @@ class CommunicationService @Inject constructor(
         }
         communication.isPublished = request.isPublished
         communication.updatedAt = Timestamp.from(Instant.now())
-        return repository.update(communication).toDto()
+        return CommunicationDtoMapper.toDto(repository.update(communication))
     }
 
     @Transactional
@@ -150,7 +151,7 @@ class CommunicationService @Inject constructor(
         requireOrganizationWorkflowAllowance(communication.scope, communication.organizationId)
         communication.isActive = request.isActive
         communication.updatedAt = Timestamp.from(Instant.now())
-        return repository.update(communication).toDto()
+        return CommunicationDtoMapper.toDto(repository.update(communication))
     }
 
     @Transactional
@@ -192,10 +193,8 @@ class CommunicationService @Inject constructor(
             sourceTemplateId = source.id
             createdByAppUserId = principal.id
         }
-        return repository.save(clone).toDto()
+        return CommunicationDtoMapper.toDto(repository.save(clone))
     }
-
-    // ── Preview ───────────────────────────────────────────────────────────────
 
     fun preview(id: UUID, sampleVariables: Map<String, String>): RenderedCommunication
     {
@@ -233,8 +232,6 @@ class CommunicationService @Inject constructor(
 
         return RenderedCommunication(subject = resolvedSubject, body = resolvedBody)
     }
-
-    // ── Access control ────────────────────────────────────────────────────────
 
     private fun checkReadAccess(communication: Communication, principal: PrincipalRef, context: AuthorizationContext)
     {
@@ -281,8 +278,6 @@ class CommunicationService @Inject constructor(
                     throw ForbiddenException("App admin role required to modify PLATFORM-scoped communications")
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()
@@ -331,23 +326,4 @@ class CommunicationService @Inject constructor(
 
     private fun encodeTags(tags: List<String>): String =
         json.encodeToString(ListSerializer(String.serializer()), tags)
-
-    private fun Communication.toDto() = CommunicationDto(
-        id = id,
-        name = name,
-        summary = summary,
-        description = description,
-        scope = scope.name,
-        organizationId = organizationId,
-        createdByAppUserId = createdByAppUserId,
-        subject = subject,
-        body = body,
-        generalTags = decodeTags(generalTags),
-        isActive = isActive,
-        isPublished = isPublished,
-        isTemplate = isTemplate,
-        sourceTemplateId = sourceTemplateId,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
 }

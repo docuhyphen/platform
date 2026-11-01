@@ -20,7 +20,7 @@ export const informationRequestAccessArticle = (
             you read, or a file you download or preview, reaches you only if the session is still current once it
             has been read. Answers not yet saved are
             kept in the tab while you verify again, and so is a file that was being sent when the
-            session ended: after you verify, select <b>Retry</b> next to it to send it once. Opening
+            session ended: after you verify, select <b id={"information-request-access-article-b-1"}>Retry</b> next to it to send it once. Opening
             another request&apos;s link in the same tab shows only that request, once its own link is
             verified. After you open a newer link for the same request, or verify again once a session ended, the
             session you verified last is kept: a verification or session end that arrives late from the earlier link
@@ -39,8 +39,8 @@ export const informationRequestAccessArticle = (
         </p>
         <p id={"information-request-access-respondent-change-help"}>
             When the workspace finds that another party or account is now responding in the tab, everything it showed
-            for the earlier one closes, including <b>From your previous submission</b>, earlier accepted answers,
-            <b> What changed in this request</b>, <b>Review results</b>, <b>Review and submit</b>, an open dialog,
+            for the earlier one closes, including <b id={"information-request-access-article-b-2"}>From your previous submission</b>, earlier accepted answers,
+            <b id={"information-request-access-article-b-3"}> What changed in this request</b>, <b id={"information-request-access-article-b-4"}>Review results</b>, <b id={"information-request-access-article-b-5"}>Review and submit</b>, an open dialog,
             and a file kept to send again. It then shows only what the current respondent may see, and nothing still
             arriving for the earlier one is shown or opened. A file kept to send again stays with the party who chose
             it, like unsaved answers.
@@ -68,8 +68,8 @@ export const informationRequestAccessArticle = (
             nothing of it is saved, even if the question was still on screen, and a page read as that time passes
             shows it hidden. If that happens while you are answering, the page reloads to hide the question, saves
             your other answers, and keeps your answer to it in the tab until you verify again. The workspace says
-            how many are hidden; select <b>Send verification code</b>, then enter
-            the new code sent to your contact address and select <b>Verify</b>. Signed-in parties select <b>Verify
+            how many are hidden; select <b id={"information-request-access-article-b-6"}>Send verification code</b>, then enter
+            the new code sent to your contact address and select <b id={"information-request-access-article-b-7"}>Verify</b>. Signed-in parties select <b id={"information-request-access-article-b-8"}>Verify
             again</b> and confirm with their account; that verification lasts 5 minutes. Repeated invalid codes pause
             verifying again for a few minutes, and a session can have at most five unused codes. Verifying again
             does not use the link&apos;s verifications.
@@ -78,13 +78,13 @@ export const informationRequestAccessArticle = (
         <h3 id={"information-request-access-accounts-heading"}>Signed-in parties and groups</h3>
         <p id={"information-request-access-accounts-help"}>
             After verifying an access link, a participant who has an account with the same email address can move the
-            request to that account. While signed in, select <b>Link to my account</b>. If you are not signed
-            in, <b>Sign in</b> opens in a new tab; once you have signed in there, select <b>I have signed in</b> on
+            request to that account. While signed in, select <b id={"information-request-access-article-b-9"}>Link to my account</b>. If you are not signed
+            in, <b id={"information-request-access-article-b-10"}>Sign in</b> opens in a new tab; once you have signed in there, select <b id={"information-request-access-article-b-11"}>I have signed in</b> on
             the request. The request then opens in your signed-in workspace. Every part of the request you hold through
             that contact address moves to the account, and the access links and sessions of each part stop working. If
-            linking is interrupted, select <b>Link to my account</b> again: an account link already made is
+            linking is interrupted, select <b id={"information-request-access-article-b-12"}>Link to my account</b> again: an account link already made is
             returned and the request opens as before, while the ended session cannot start anything else. If the page
-            asks you to verify again after an interrupted link, <b>Link to my account</b> stays there: select it to
+            asks you to verify again after an interrupted link, <b id={"information-request-access-article-b-13"}>Link to my account</b> stays there: select it to
             finish the link. If the link was not made, it then disappears and you verify again. If you leave the
             request before linking finishes, you stay on the page you went to; if the link was made, you then open the
             request from your account. Once linked, you sign
@@ -123,7 +123,7 @@ export const informationRequestAccessArticle = (
         <p id={"information-request-access-refused-help"}>
             When a request can no longer be opened, for example because your access was removed or the Exchange now
             requires recipients to sign in, its workspace closes and says why, and nothing more can be changed there.
-            Answers you have not saved stay in the browser tab; select <b>Try again</b> once you can open the request
+            Answers you have not saved stay in the browser tab; select <b id={"information-request-access-article-b-14"}>Try again</b> once you can open the request
             again, and they are shown as before.
         </p>
 

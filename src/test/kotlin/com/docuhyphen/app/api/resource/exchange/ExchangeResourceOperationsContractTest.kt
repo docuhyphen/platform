@@ -6,11 +6,18 @@ import org.junit.jupiter.api.Test
 
 class ExchangeResourceOperationsContractTest {
     @Test
-    fun `the Exchange, acceptance and document version resources route through operations interfaces and carry no JAX-RS annotation themselves`() {
+    fun `the Exchange resources route through operations interfaces and carry no JAX-RS annotation themselves`() {
         listOf(
             ExchangeResource::class.java,
             ExchangeAcceptanceResource::class.java,
             ExchangeDocumentVersionResource::class.java,
+            ExchangeDocumentsResource::class.java,
+            ExchangeDocumentCommentResource::class.java,
+            ExchangeParticipantResource::class.java,
+            ExchangeRecipientInvitationResource::class.java,
+            ExchangeFieldsResource::class.java,
+            NoAuthExchangeResource::class.java,
+            PublishedExchangeGroupResource::class.java,
         ).forEach { resource ->
             assertTrue(
                 resource.annotations.none(::isJaxRs),

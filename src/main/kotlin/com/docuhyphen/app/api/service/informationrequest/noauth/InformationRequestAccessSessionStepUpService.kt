@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequ
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAbuseControl
 import com.docuhyphen.app.api.model.informationrequest.noauth.InformationRequestAccessSessionStepUp
 import com.docuhyphen.app.api.model.informationrequest.noauth.LockedRequestAccessSession
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.communication.OtpService
 import com.docuhyphen.app.api.service.exchange.ExternalParticipantService
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog

@@ -12,8 +12,8 @@ import {
 import {openRespondentShell, respondentShells, seedVerifiedAccessLink} from "./testing/respondentShells.tsx";
 
 vi.mock("../../../services/apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn(), patch: vi.fn()}}));
-vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: () => null}));
-vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: () => null}));
+vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: (): null => null}));
+vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: (): null => null}));
 
 const SUBMIT = "information-request-submission-submit";
 const REVIEW = "information-request-submission-review";

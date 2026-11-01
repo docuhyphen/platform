@@ -1,10 +1,10 @@
 import {Button, MessageBar, MessageBarBody, Spinner, Tab, TabList, Text} from "@fluentui/react-components";
 import {useState} from "react";
 import {FieldScopeKind} from "../../models/models.tsx";
-import FieldDefinitionDialog from "../../settings/fields-tab/FieldDefinitionDialog.tsx";
-import FieldDefinitionsPanel from "../../settings/fields-tab/FieldDefinitionsPanel.tsx";
-import SchemaCard from "../../settings/fields-tab/SchemaCard.tsx";
-import SchemaEditorDialog from "../../settings/fields-tab/SchemaEditorDialog.tsx";
+import FieldDefinitionDialog from "../../settings/fields-tab/field-definition-dialog/FieldDefinitionDialog.tsx";
+import FieldDefinitionsPanel from "../../settings/fields-tab/field-definitions-panel/FieldDefinitionsPanel.tsx";
+import SchemaCard from "../../settings/fields-tab/schema-card/SchemaCard.tsx";
+import SchemaEditorDialog from "../../settings/fields-tab/schema-editor-dialog/SchemaEditorDialog.tsx";
 import {AddIcon} from "../../components/IconBundles.tsx";
 import {useFieldsTabStyles} from "../../settings/fields-tab/FieldsTabStyles.tsx";
 import {usePlatformContentStyles} from "./PlatformContentStyles.tsx";

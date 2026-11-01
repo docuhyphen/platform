@@ -5,10 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-/**
- * A stored document version is located through the one typed locator it states, and a stored value
- * that is not a valid object key is refused rather than used as one.
- */
 class DocumentVersionStorageLocatorMapperTest
 {
     @Test

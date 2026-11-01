@@ -13,7 +13,7 @@ import {
     withdrawInformationRequestPackage,
 } from "../informationRequestSubmissionService.ts";
 import {storeInformationRequestSessionToken} from "../informationRequestRuntimeService.ts";
-import {InformationRequestAttestationDecision} from "../../app/models/models.tsx";
+import {InformationRequestAttestationDecision, InformationRequestItemProblemDto} from "../../app/models/models.tsx";
 
 vi.mock("../apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn()}}));
 
@@ -81,7 +81,7 @@ describe("Information Request submission transport", () =>
             {headers: {"If-Match": "\"submission:stage-one:abc\"", "Idempotency-Key": "submit-key"}},
         );
 
-        const problems = {reasonCode: "INFORMATION_REQUEST_SUBMISSION_INCOMPLETE", problems: [], undisclosedProblemCount: 1};
+        const problems = {reasonCode: "INFORMATION_REQUEST_SUBMISSION_INCOMPLETE", problems: [] as InformationRequestItemProblemDto[], undisclosedProblemCount: 1};
         vi.mocked(apiClient.post).mockRejectedValueOnce(refusal(422, problems));
         await expect(submitInformationRequestPackage("request-a", {}, {expectedETag: "\"x\"", idempotencyKey: "k"}))
             .rejects.toEqual(problems);

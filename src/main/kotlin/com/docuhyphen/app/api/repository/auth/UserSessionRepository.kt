@@ -101,7 +101,6 @@ class UserSessionRepository : BaseRepository<UserSession>(UserSession::class.jav
             .resultList
     }
 
-    /** Sessions that passed their absolute expiry and have not yet been explicitly revoked. */
     fun findExpiredActiveSessions(now: Timestamp): List<UserSession>
     {
         return entityManager.createQuery(
@@ -147,5 +146,4 @@ class UserSessionRepository : BaseRepository<UserSession>(UserSession::class.jav
         return updated
     }
 }
-
 

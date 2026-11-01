@@ -2,12 +2,13 @@
 import {cleanup, render, screen} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
 import OrganizationTab from "./OrganizationTab.tsx";
+import {OrganizationDetailedDto, PersonDetailedDto} from "../../models/models.tsx";
 
 vi.mock("../../../context/AuthContext", () => ({
     useAuth: () => ({
-        appUser: {id: "user-1", person: null, organizationRoles: []},
-        token: null,
-        appUserPersonOrganization: null,
+        appUser: {id: "user-1", person: null as PersonDetailedDto | null, organizationRoles: [] as string[]},
+        token: null as string | null,
+        appUserPersonOrganization: null as OrganizationDetailedDto | null,
     }),
 }));
 

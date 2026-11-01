@@ -4,6 +4,7 @@ import {createElement, type ReactNode, StrictMode} from "react";
 import {MemoryRouter, Route, Routes, useNavigate} from "react-router-dom";
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import apiClient from "../../../services/apiClient.ts";
+import {InformationRequestTemplateSectionDto} from "../../models/models.tsx";
 import {RECIPIENT_SIGN_IN_REQUIRED_GUIDANCE} from "./respondentAccessRefusal.ts";
 import {useInformationRequestRespondentWorkspace} from "./useInformationRequestRespondentWorkspace.ts";
 
@@ -24,7 +25,7 @@ const linkWrapper = ({children}: { children: ReactNode }) => createElement(Memor
     initialEntries: ["/respond?s=request-a"], children,
 });
 
-const workspaceOf = (requestId: string) => ({request: {id: requestId}, templateVersion: {sections: []}});
+const workspaceOf = (requestId: string) => ({request: {id: requestId}, templateVersion: {sections: [] as InformationRequestTemplateSectionDto[]}});
 
 const refusal = (reasonCode: string, errorMessage: string, status = 403) => ({
     isAxiosError: true, response: {status, data: {reasonCode, errorMessage}},

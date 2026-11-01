@@ -9,44 +9,18 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * Action-to-capability matrix and role-to-capability correctness.
- *
- * Rules verified:
- *  - Every Action maps to exactly one Capability (compile-time enforced by the enum constructor).
- *  - A Capability not listed in any role's set grants nothing by default.
- *  - EXCHANGE_RESCIND belongs to the OWNER Share role only.
- *  - EXCHANGE_INITIATE belongs to APP_USER and ORG_MEMBER but NOT to the APPLICATION machine role.
- *  - The APPLICATION role still maps to emptySet() (grants come from grantedCapabilitiesJson only).
- *  - ORG_MEMBER cannot write or administer org-owned resources.
- *  - GROUP_EDIT belongs to group OWNER and MANAGER but not MEMBER or OBSERVER.
- *  - APP_ADMIN has APP_REG_ADMIN; APP_AUDITOR does not.
- *  - Multi-role: ORG_BILLING_ADMIN + ORG_MEMBER compose correctly.
- *  - EXCHANGE_OWNER Share role does not cross into GROUP capabilities.
- *  - VARIABLE_DISCOVER does not imply VARIABLE_READ.
- *  - Use does not imply Edit for any resource family.
- *  - Adding a synthetic Capability that is not listed in any role grants it to no role.
- */
 class ActionCapabilityModelTest
 {
-    // --- default-deny extension point ---
 
     @Test
     fun `new capability that is not mapped to any role grants nothing`()
     {
-        // Every Capability must be explicitly listed in a role's set in RoleCapabilities.
-        // Enumerate all capabilities assigned across all roles and confirm the remainder
-        // grants to no principal when the capability is absent.
         val allAssigned = collectAllAssignedCapabilities()
 
-        // WEBHOOK_DELIVER is an internal system action not granted to any human or machine
-        // role, which proves the default-deny extension point.
         assertFalse(allAssigned.contains(Capability.WEBHOOK_DELIVER)) {
             "WEBHOOK_DELIVER must not be granted to any role; it is a reserved system-only action"
         }
     }
-
-    // --- EXCHANGE_RESCIND ---
 
     @Test
     fun `exchange OWNER Share role has EXCHANGE_RESCIND`()
@@ -72,8 +46,6 @@ class ActionCapabilityModelTest
     {
         assertFalse(RoleCapabilities.forExchangeShareRole(ExchangeShareRoleName.PARTICIPANT).contains(Capability.EXCHANGE_RESCIND))
     }
-
-    // --- EXCHANGE_INITIATE ---
 
     @Test
     fun `APP_USER has EXCHANGE_INITIATE`()
@@ -158,8 +130,6 @@ class ActionCapabilityModelTest
         assertTrue(Action.EXCHANGE_ACCEPT.required == Capability.EXCHANGE_ACCEPT)
     }
 
-    // --- ORG_MEMBER write restriction ---
-
     @Test
     fun `ORG_MEMBER cannot write Document Library entries`()
     {
@@ -202,8 +172,6 @@ class ActionCapabilityModelTest
         assertTrue(caps.contains(Capability.COMMUNICATION_USE))
     }
 
-    // --- GROUP_EDIT scope ---
-
     @Test
     fun `group OWNER has GROUP_EDIT`()
     {
@@ -227,8 +195,6 @@ class ActionCapabilityModelTest
     {
         assertFalse(RoleCapabilities.forPrincipalGroupRole(PrincipalGroupRoleName.OBSERVER).contains(Capability.GROUP_EDIT))
     }
-
-    // --- APP_ADMIN and APP_AUDITOR registration access ---
 
     @Test
     fun `APP_ADMIN has APP_REG_ADMIN and APP_REG_READ`()
@@ -255,8 +221,6 @@ class ActionCapabilityModelTest
         assertFalse(caps.contains(Capability.APP_REG_READ))
         assertFalse(caps.contains(Capability.APP_REG_ADMIN))
     }
-
-    // --- multi-role composition (Ethan scenario) ---
 
     @Test
     fun `ORG_BILLING_ADMIN and ORG_MEMBER compose to include both billing and member capabilities`()
@@ -299,8 +263,6 @@ class ActionCapabilityModelTest
         assertFalse(caps.contains(Capability.WEBHOOK_AUDIT_READ))
     }
 
-    // --- scope isolation ---
-
     @Test
     fun `exchange OWNER Share role does not carry group capabilities`()
     {
@@ -319,12 +281,9 @@ class ActionCapabilityModelTest
         assertFalse(caps.contains(Capability.EXCHANGE_RESCIND))
     }
 
-    // --- discover vs view vs value ---
-
     @Test
     fun `VARIABLE_DISCOVER does not imply VARIABLE_READ`()
     {
-        // ORG_MEMBER has VARIABLE_DISCOVER but not VARIABLE_READ (value access is restricted)
         val memberCaps = RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_MEMBER)
         assertTrue(memberCaps.contains(Capability.VARIABLE_DISCOVER))
         assertFalse(memberCaps.contains(Capability.VARIABLE_READ))
@@ -338,16 +297,12 @@ class ActionCapabilityModelTest
         assertFalse(memberCaps.contains(Capability.BLUEPRINT_WRITE))
     }
 
-    // --- ORG_OWNER vs ORG_ADMIN billing distinction ---
-
     @Test
     fun `ORG_OWNER has ORG_BILLING_MANAGE but ORG_ADMIN does not`()
     {
         assertTrue(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_OWNER).contains(Capability.ORG_BILLING_MANAGE))
         assertFalse(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_ADMIN).contains(Capability.ORG_BILLING_MANAGE))
     }
-
-    // --- ORG_ADMIN gets webhook admin ---
 
     @Test
     fun `ORG_ADMIN has WEBHOOK_ADMIN`()
@@ -360,10 +315,6 @@ class ActionCapabilityModelTest
     {
         assertFalse(RoleCapabilities.forOrganizationRole(OrganizationRoleName.ORG_MEMBER).contains(Capability.WEBHOOK_ADMIN))
     }
-
-    // -------------------------------------------------------------------------
-    // helper
-    // -------------------------------------------------------------------------
 
     private fun collectAllAssignedCapabilities(): Set<Capability>
     {

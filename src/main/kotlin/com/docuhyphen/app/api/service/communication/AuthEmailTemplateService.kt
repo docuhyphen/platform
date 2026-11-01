@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.model.communication.RenderedEmailTemplate
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject

@@ -2,35 +2,14 @@ package com.docuhyphen.app.api.service.organization
 
 import com.docuhyphen.app.api.exception.OrganizationTrustNotFoundException
 import com.docuhyphen.app.api.model.entity.*
+import com.docuhyphen.app.api.model.organization.TrustedExchangePolicyValidation
+import com.docuhyphen.app.api.model.organization.TrustedGroupValidation
+import com.docuhyphen.app.api.model.organization.TrustedPersonAcceptanceValidation
 import com.docuhyphen.app.api.service.user.AppUserService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.time.Instant
 import java.util.*
-
-data class TrustedExchangePolicyValidation(
-    val relationship: OrganizationTrustRelationship,
-    val callerOrganization: Organization,
-    val targetOrganization: Organization,
-    val senderPolicy: OrganizationTrustPartyPolicy,
-    val targetPolicy: OrganizationTrustPartyPolicy,
-    val verificationExpiresAt: Instant,
-)
-
-data class TrustedGroupValidation(
-    val relationship: OrganizationTrustRelationship,
-    val callerOrganization: Organization,
-    val targetOrganization: Organization,
-    val senderPolicy: OrganizationTrustPartyPolicy,
-    val targetPolicy: OrganizationTrustPartyPolicy,
-    val verificationExpiresAt: Instant,
-    val group: PrincipalGroup,
-)
-
-data class TrustedPersonAcceptanceValidation(
-    val relationship: OrganizationTrustRelationship,
-    val membership: OrganizationMembership,
-)
 
 @ApplicationScoped
 class TrustedRecipientValidationService @Inject constructor(
@@ -119,11 +98,6 @@ class TrustedRecipientValidationService @Inject constructor(
     fun isGroupAttestationCurrentlyEligible(attestation: ExchangeRecipientAttestation): Boolean =
         runCatching { validateGroupAttestation(attestation) }.isSuccess
 
-    /**
-     * Revalidates a trusted-person attestation at acceptance time. The current relationship, both
-     * party Exchange-direction policies, the target organization, the attested account, and the
-     * exact target membership must all still be eligible; otherwise it fails closed.
-     */
     fun validatePersonAttestation(
         attestation: ExchangeRecipientAttestation,
         now: Instant = Instant.now(),

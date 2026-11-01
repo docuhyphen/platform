@@ -4,8 +4,8 @@ import com.docuhyphen.app.api.model.dto.InformationRequestDocumentPlaceholderDto
 import com.docuhyphen.app.api.model.entity.InformationRequestDocumentPlaceholder
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.creation.InformationRequestDocumentPlaceholderQueryService
 import io.quarkus.security.ForbiddenException

@@ -1,5 +1,8 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AnalyticsReconciliationReport
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.repository.audit.AuditAnalyticsFactRepository
 import com.docuhyphen.app.api.repository.audit.AuditLedgerEventRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
@@ -10,21 +13,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-data class AnalyticsReconciliationReport(
-    val organizationId: UUID?,
-    val platformOnly: Boolean,
-    val ledgerEventCount: Long,
-    val analyticsFactCount: Long,
-    val matches: Boolean,
-    val missingLedgerEventIds: List<UUID>,
-)
-
-/**
- * Read-only reconciliation of `audit_analytics_fact` against the authoritative
- * `audit_ledger_event` count to reconcile analytical measures against
- * authoritative event counts" gate). Never mutates anything; a caller who wants to fix a mismatch
- * calls [AuditAnalyticsProjector.rebuild] separately.
- */
 @ApplicationScoped
 class AuditAnalyticsReconciliationService @Inject constructor(
     private val auditLedgerEventRepository: AuditLedgerEventRepository,

@@ -37,7 +37,7 @@ export const useNoAuthExchangeDocumentThumbnailStyles = makeStyles({
         height: "100%",
     },
     thumbnailPlaceholderIcon: {
-        fontSize: "48px",
+        fontSize: tokens.fontSizeHero900,
         color: tokens.colorNeutralForeground4,
     },
     thumbnailImage: {

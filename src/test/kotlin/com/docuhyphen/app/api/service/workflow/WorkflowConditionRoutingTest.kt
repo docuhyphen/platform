@@ -56,7 +56,6 @@ class WorkflowConditionRoutingTest
             id = UUID.randomUUID()
             this.definitionId = definitionId
             status = WorkflowInstanceStatus.RUNNING
-            // Condition steps resolve their subject-field registry from the frozen trigger.
             triggerEventSnapshot = TRIGGER
             subjectDataJson = """{"amount":"$actual"}"""
         }

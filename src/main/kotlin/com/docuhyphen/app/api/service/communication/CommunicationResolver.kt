@@ -1,20 +1,15 @@
 package com.docuhyphen.app.api.service.communication
 
 import com.docuhyphen.app.api.model.communication.CommunicationSource
+import com.docuhyphen.app.api.model.communication.RenderedCommunication
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
-import com.docuhyphen.app.api.service.variable.VariableResolutionContext
+import com.docuhyphen.app.api.model.variable.VariableResolutionContext
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Resolves a [Communication] at workflow execution time: looks up the communication by ID,
- * merges workflow subject data into the variable resolution context, and returns an
- * interpolated [RenderedCommunication]. Returns null when the communication is missing or
- * inactive so callers can fall back to the default notification behaviour.
- */
 @ApplicationScoped
 class CommunicationResolver @Inject constructor(
     private val repository: CommunicationRepository,

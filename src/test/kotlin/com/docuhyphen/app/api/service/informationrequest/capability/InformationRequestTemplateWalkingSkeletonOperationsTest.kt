@@ -34,8 +34,8 @@ import com.docuhyphen.app.api.repository.informationrequest.review.InformationRe
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.AuditTargetHistoryService
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.identity.PrincipalDisplayService
 import com.docuhyphen.app.api.service.informationrequest.*
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
@@ -393,7 +393,7 @@ class InformationRequestTemplateWalkingSkeletonOperationsTest
                 ReleaseRecordPreservationHoldCommand(
                     hold.hold.id,
                     recordOwner,
-                    "matter closed",
+                    "case closed",
                     principal
                 )
             )

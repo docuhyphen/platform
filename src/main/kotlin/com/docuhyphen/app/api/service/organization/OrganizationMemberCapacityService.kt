@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.model.dto.OrgMemberCapacityDto
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
@@ -18,6 +18,13 @@ class OrganizationMemberCapacityService @Inject constructor(
     private val userRoleService: UserRoleService,
 )
 {
+    fun getForOrganizationId(organizationId: String): OrgMemberCapacityDto
+    {
+        val organizationUuid = runCatching { UUID.fromString(organizationId) }
+            .getOrElse { throw IllegalArgumentException("Invalid organization ID.") }
+        return getForOrganization(organizationUuid)
+    }
+
     fun getForOrganization(organizationId: UUID): OrgMemberCapacityDto
     {
         val appUser = authTokenContext.authToken.appUser

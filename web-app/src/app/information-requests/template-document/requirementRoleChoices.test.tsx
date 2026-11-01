@@ -1,13 +1,18 @@
 /** @vitest-environment jsdom */
 import {cleanup, render, screen, within} from "@testing-library/react";
 import {afterEach, describe, expect, it, vi} from "vitest";
-import {InformationRequestContributorRole, InformationRequestRequirementType} from "../../models/models.tsx";
+import {
+    InformationRequestContributorRole,
+    InformationRequestRequirementType,
+    InformationRequestTemplateConditionRuleRequest,
+    InformationRequestTemplateGroupRequest,
+} from "../../models/models.tsx";
 import {newRequirement} from "./templateDraftDocument.ts";
 import RequirementAnsweringFields from "./requirement-answering-fields/RequirementAnsweringFields.tsx";
 import RequirementConfirmationFields from "./requirement-confirmation-fields/RequirementConfirmationFields.tsx";
 
 vi.mock("./TemplateDocumentContext.ts", () => ({
-    useTemplateDocument: () => ({document: {groups: [], conditionRules: []}}),
+    useTemplateDocument: () => ({document: {groups: [] as InformationRequestTemplateGroupRequest[], conditionRules: [] as InformationRequestTemplateConditionRuleRequest[]}}),
 }));
 
 describe("Requirement role choices", () => {

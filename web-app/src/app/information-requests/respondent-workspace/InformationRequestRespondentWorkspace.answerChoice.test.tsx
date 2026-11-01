@@ -29,9 +29,9 @@ import {
 } from "./testing/respondentShells.tsx";
 
 vi.mock("../../../services/apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn(), patch: vi.fn()}}));
-vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: () => null}));
-vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({default: () => null}));
-vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: () => null}));
+vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: (): null => null}));
+vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({default: (): null => null}));
+vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: (): null => null}));
 
 interface SentCommand {
     body: { patches: InformationRequestResponsePatchRequest[] };

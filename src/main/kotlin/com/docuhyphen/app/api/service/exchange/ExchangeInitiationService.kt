@@ -3,14 +3,19 @@
 import com.docuhyphen.app.api.exception.InvalidEmailException
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.EMAIL
 import com.docuhyphen.app.api.model.entity.ExchangeRecipientType.GROUP
+import com.docuhyphen.app.api.model.exchange.ExchangeEmailDelivery
+import com.docuhyphen.app.api.model.exchange.ExchangeInAppDelivery
 import com.docuhyphen.app.api.model.exchange.ExchangeResolvedParticipant
 import com.docuhyphen.app.api.model.fields.FieldValueWriteCommand
 import com.docuhyphen.app.api.model.fields.FieldsResourceRef
 import com.docuhyphen.app.api.model.fields.SchemaAssignmentCommand
 import com.docuhyphen.app.api.model.fields.SchemaAssignmentOperation
+import com.docuhyphen.app.api.model.identity.PreparedPersonResolution
 import com.docuhyphen.app.api.model.workflow.TriggerRequest
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.user.AppUserRepository
@@ -30,7 +35,7 @@ import com.docuhyphen.app.api.service.organization.OrganizationService
 import com.docuhyphen.app.api.service.storage.FileStorageService
 import com.docuhyphen.app.api.service.user.AppUserService
 import com.docuhyphen.app.api.service.variable.TemplateVariableInterpolator
-import com.docuhyphen.app.api.service.variable.VariableResolutionContext
+import com.docuhyphen.app.api.model.variable.VariableResolutionContext
 import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
@@ -527,7 +532,7 @@ class ExchangeInitiationService @Inject constructor(
     }
 
     private fun consumeTrustedPersonResolution(
-        prepared: ExternalIdentityResolutionService.PreparedPersonResolution,
+        prepared: PreparedPersonResolution,
         actorAppUserId: UUID,
         callerOrganizationId: UUID?,
         exchangeId: UUID,

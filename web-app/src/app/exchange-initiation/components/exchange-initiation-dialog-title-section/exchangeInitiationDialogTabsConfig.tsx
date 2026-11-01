@@ -20,7 +20,7 @@ export type ExchangeInitiationTabConfig = {
     id: string;
     value: TabValue;
     label: string;
-    icon: React.ReactNode;
+    icon: React.ReactElement;
 };
 
 export const buildExchangeInitiationTabs = (showFieldsTab?: boolean): ExchangeInitiationTabConfig[] => [

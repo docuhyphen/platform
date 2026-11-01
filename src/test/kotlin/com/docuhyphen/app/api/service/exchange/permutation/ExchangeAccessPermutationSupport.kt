@@ -1,8 +1,12 @@
 package com.docuhyphen.app.api.service.exchange.permutation
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.auth.authz.OwnerContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceAuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.ResourceContextResolution
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.repository.application.AppRoleAssignmentRepository
 import com.docuhyphen.app.api.repository.exchange.ShareLinkRepository
@@ -157,9 +161,6 @@ internal class ExchangeAuthorizationProbe
             }
 
         val registry = mock<ResourceAuthorizationContextRegistry>()
-        // An Exchange under test always exists, so its facts always resolve. A probe that says
-        // nothing about resource state gets an organization-owned, non-archived Exchange whose
-        // owner the caller is not a member of, so shares alone decide the outcome.
         whenever(registry.resolution(any<ResourceRef>())).thenReturn(
             ResourceContextResolution.Resolved(
                 resourceContext

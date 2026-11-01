@@ -18,7 +18,8 @@ const EmailConfirmErrorBar = ({message, onDismiss}: EmailConfirmErrorBarProps) =
         id={"email-confirm-error-message"}
         intent={"error"}>
         <MessageBarBody id={"email-confirm-error-message-body"}>
-            <Text size={200}>{message}</Text>
+            <Text id={"email-confirm-error-bar-text-1"}
+                  size={200}>{message}</Text>
         </MessageBarBody>
         <MessageBarActions
             id={"email-confirm-error-message-actions"}

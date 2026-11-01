@@ -35,15 +35,16 @@ const EmptyAccessManagementDialog = (
         modalType={"alert"}
         open={isOpen}
     >
-        <DialogSurface>
-            <DialogBody>
-                <DialogTitle>Manage access</DialogTitle>
-                <DialogContent>
-                    <MessageBar intent={"warning"}>
-                        <MessageBarBody>No Exchange is selected yet.</MessageBarBody>
+        <DialogSurface id={"exchange-access-management-dialog-dialog-surface-1"}>
+            <DialogBody id={"exchange-access-management-dialog-dialog-body-1"}>
+                <DialogTitle id={"exchange-access-management-dialog-dialog-title-1"}>Manage access</DialogTitle>
+                <DialogContent id={"exchange-access-management-dialog-dialog-content-1"}>
+                    <MessageBar id={"exchange-access-management-dialog-message-bar-1"}
+                                intent={"warning"}>
+                        <MessageBarBody id={"exchange-access-management-dialog-message-bar-body-1"}>No Exchange is selected yet.</MessageBarBody>
                     </MessageBar>
                 </DialogContent>
-                <DialogActions>
+                <DialogActions id={"exchange-access-management-dialog-dialog-actions-1"}>
                     <Button
                         id={"access-mgmt-empty-close-btn"}
                         appearance={"secondary"}
@@ -66,7 +67,8 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
     const state = useExchangeAccessManagementDialog(props);
     if (!props.exchange)
     {
-        return <EmptyAccessManagementDialog isOpen={props.isOpen} onDismiss={props.onDismiss}/>;
+        return <EmptyAccessManagementDialog isOpen={props.isOpen}
+                                            onDismiss={props.onDismiss}/>;
     }
     const exchange = props.exchange;
     return (
@@ -74,11 +76,12 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
             modalType={"alert"}
             open={props.isOpen}
         >
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>
-                        <div className={styles.titleRow}>
-                            <span>Manage access</span>
+            <DialogSurface id={"exchange-access-management-dialog-dialog-surface-2"}>
+                <DialogBody id={"exchange-access-management-dialog-dialog-body-2"}>
+                    <DialogTitle id={"exchange-access-management-dialog-dialog-title-2"}>
+                        <div id={"exchange-access-management-dialog-div-1"}
+                             className={styles.titleRow}>
+                            <span id={"exchange-access-management-dialog-span-1"}>Manage access</span>
                             <Tooltip
                                 content={"Learn how access works"}
                                 relationship={"label"}
@@ -95,13 +98,13 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                             </Tooltip>
                         </div>
                     </DialogTitle>
-                    <DialogContent>
+                    <DialogContent id={"exchange-access-management-dialog-dialog-content-2"}>
                         <ExchangeAccessManagementContent
                             exchange={exchange}
                             state={state}
                         />
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"exchange-access-management-dialog-dialog-actions-2"}>
                         <Button
                             id={"access-mgmt-save-btn"}
                             appearance={"primary"}
@@ -109,7 +112,8 @@ const ExchangeAccessManagementDialog: React.FC<ExchangeAccessManagementDialogPro
                             shape={"circular"}
                             onClick={state.onUpdate}
                         >
-                            {state.updatingExchange && <Spinner size={"tiny"}/>}
+                            {state.updatingExchange && <Spinner id={"exchange-access-management-dialog-spinner-1"}
+                                                                size={"tiny"}/>}
                             Save changes
                         </Button>
                         <Button

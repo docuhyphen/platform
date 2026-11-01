@@ -4,41 +4,38 @@ import com.docuhyphen.app.api.model.PlatformUserSubscriptionDtoMapper
 import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyListResponse
 import com.docuhyphen.app.api.resource.model.PlatformUserSubscriptionPolicyRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.resource.user.operations.PlatformUserSubscriptionPolicyResourceOperations
 import com.docuhyphen.app.api.service.subscription.PlatformUserSubscriptionPolicyService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType.APPLICATION_JSON
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/platform/users")
-@Produces(APPLICATION_JSON)
-@Consumes(APPLICATION_JSON)
 class PlatformUserSubscriptionPolicyResource @Inject constructor(
     private val service: PlatformUserSubscriptionPolicyService,
     private val mapper: PlatformUserSubscriptionDtoMapper,
-)
+) : PlatformUserSubscriptionPolicyResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(PlatformUserSubscriptionPolicyResource::class.java)
+        private const val DEFAULT_LIMIT = 50
     }
 
-    @GET
-    @Path("/subscription-policies")
-    fun list(
-        @QueryParam("query") query: String?,
-        @QueryParam("limit") limit: Int?,
-        @QueryParam("offset") offset: Int?,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun list(
+        query: String?,
+        limit: Int?,
+        offset: Int?,
+        requestId: String?,
     ): Response
     {
         return try
         {
-            val result = service.list(query, limit ?: 50, offset ?: 0, requestId)
+            val result = service.list(query, limit ?: DEFAULT_LIMIT, offset ?: 0, requestId)
             Response.ok(
                 PlatformUserSubscriptionPolicyListResponse(
                     total = result.total,
@@ -50,16 +47,33 @@ class PlatformUserSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error listing platform user subscription policies", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error listing platform user subscription policies", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @GET
-    @Path("/{appUserId}/subscription-policy")
-    fun get(
-        @PathParam("appUserId") appUserId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun get(
+        appUserId: String,
+        requestId: String?,
     ): Response
     {
         return try
@@ -68,16 +82,33 @@ class PlatformUserSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error fetching platform user subscription policy", exception)
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error fetching platform user subscription policy", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{appUserId}/subscription-policy")
-    fun update(
-        @PathParam("appUserId") appUserId: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun update(
+        appUserId: String,
+        requestId: String?,
         request: PlatformUserSubscriptionPolicyRequest,
     ): Response
     {
@@ -95,27 +126,27 @@ class PlatformUserSubscriptionPolicyResource @Inject constructor(
         }
         catch (exception: Exception)
         {
-            if (exception is WebApplicationException) throw exception
-            handleException("Error updating platform user subscription policy", exception)
-        }
-    }
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
 
-    private fun handleException(message: String, exception: Exception): Response
-    {
-        logger.error(message, exception)
-        return when (exception)
-        {
-            is UnauthorizedException -> Response.status(Response.Status.UNAUTHORIZED)
-                .entity(ResponseError(exception.message)).build()
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
 
-            is ForbiddenException -> Response.status(Response.Status.FORBIDDEN)
-                .entity(ResponseError(exception.message)).build()
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
 
-            is IllegalArgumentException -> Response.status(Response.Status.BAD_REQUEST)
-                .entity(ResponseError(exception.message)).build()
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
 
-            else -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(ResponseError("An unexpected error occurred")).build()
+                else ->
+                {
+                    logger.error("Error updating platform user subscription policy", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An unexpected error occurred"))
+                        .build()
+                }
+            }
         }
     }
 }

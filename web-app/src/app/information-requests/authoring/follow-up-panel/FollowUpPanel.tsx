@@ -89,7 +89,7 @@ const FollowUpPanel = ({request, sections, permissions, onChanged}: Props) =>
                                 appearance={"secondary"}
                                 shape={"circular"}
                                 disabled={state.busy || !state.nextOccurrenceReady}
-                                onClick={() => void state.createNext(recurrence)}>
+                                onClick={() => { void state.createNext(recurrence); }}>
                             Create the next request
                         </Button>
                     )}
@@ -124,9 +124,11 @@ const FollowUpPanel = ({request, sections, permissions, onChanged}: Props) =>
                             appearance={"secondary"}
                             shape={"circular"}
                             disabled={state.busy || !reason}
-                            onClick={() => void state.supplement(reason).then(result => {
-                                if (result !== null) setReason("");
-                            })}>
+                            onClick={() => {
+                                void state.supplement(reason).then(result => {
+                                    if (result !== null) setReason("");
+                                });
+                            }}>
                         Request a supplement
                     </Button>
                 </div>

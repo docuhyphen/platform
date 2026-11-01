@@ -8,7 +8,7 @@ import com.docuhyphen.app.api.repository.identity.OrganizationIdentityProviderCo
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.resource.model.OrganizationAuthSessionPolicyUpdateRequest
 import com.docuhyphen.app.api.resource.model.OrganizationIdpConfigRequest
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.config.ConfigurationService
@@ -35,7 +35,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
 {
     companion object
     {
-        /** Sentinel provider value reserved for the org's built-in/internal IdP. */
         const val INTERNAL_PROVIDER = "INTERNAL"
     }
 
@@ -165,11 +164,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         )
     }
 
-    /**
-     * Read-only fetch of all IdP configs for an organization (no audit emission).
-     * Used by the auth session policy "settings" endpoint to render per-IdP rows
-     * alongside the effective policy. Authorization is enforced via [requireOrgAdminForOrganization].
-     */
     fun listForPolicyView(organizationId: String): List<OrganizationIdentityProviderConfig>
     {
         requireOrgAdminForOrganization(organizationId)
@@ -177,13 +171,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         return organizationIdentityProviderConfigRepository.findByOrganizationId(orgId)
     }
 
-    /**
-     * Update only the session-policy fields on an existing IdP config. Leaves
-     * provider/secret/issuer/claim configuration untouched. Enforces platform
-     * guardrails server-side before persistence and emits an immutable audit
-     * event with before/after snapshots. Step-up is intentionally deferred per
-     * the current security requirements.
-     */
     @EnforceAdminAction("ORG_AUTH_EXCHANGE_POLICY_UPDATE", requireStepUp = false)
     @Transactional
     fun updateSessionPolicyFields(
@@ -300,8 +287,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             throw IllegalArgumentException("Provider is required")
         }
 
-        // INTERNAL provider rows represent the org's built-in IdP and only carry
-        // session-policy settings; they do not need external OAuth client credentials.
         val isInternal = request.provider.trim().equals(INTERNAL_PROVIDER, ignoreCase = true)
 
         if (!isInternal)
@@ -338,11 +323,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
         }
     }
 
-    /**
-     * Returns the INTERNAL IdP config for an organization, creating it on first
-     * access so the policy-settings UI always has a configId to update. This is a
-     * private/internal helper used by the auth session policy endpoint only.
-     */
     @Transactional
     fun ensureInternalConfig(organizationId: UUID): OrganizationIdentityProviderConfig
     {
@@ -350,7 +330,6 @@ class OrganizationIdentityProviderConfigService @Inject constructor(
             .findActiveByOrganizationIdAndProvider(organizationId, INTERNAL_PROVIDER)
         if (existing != null) return existing
 
-        // Also catch an inactive prior INTERNAL row to avoid duplicates.
         val priorInactive = organizationIdentityProviderConfigRepository
             .findByOrganizationId(organizationId)
             .firstOrNull { it.provider.trim().equals(INTERNAL_PROVIDER, ignoreCase = true) }

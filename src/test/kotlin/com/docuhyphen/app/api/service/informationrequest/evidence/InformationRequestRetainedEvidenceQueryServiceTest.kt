@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.document.DocumentVersionContentHashAlgorithm
 import com.docuhyphen.app.api.model.document.DocumentVersionReadHandle
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.informationrequest.evidence.*
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.auth.authz.Action

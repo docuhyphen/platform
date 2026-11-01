@@ -19,6 +19,7 @@ import com.docuhyphen.app.api.service.exchange.ExchangeRetrievalService
 import com.docuhyphen.app.api.service.subscription.SubscriptionPolicyService
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
+import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneOffset
@@ -50,6 +51,11 @@ class AppUserService @Inject constructor(
     fun getById(id: UUID): AppUser?
     {
         return appUserRepository.findById(id)
+    }
+
+    fun listAll(): List<AppUser>
+    {
+        return appUserRepository.findAll()
     }
 
     fun getByIdWithPerson(id: UUID): AppUser?
@@ -121,6 +127,13 @@ class AppUserService @Inject constructor(
         return settingsService.updateAppUserSettings(targetUserId, settingsDto)
     }
 
+    @Transactional
+    fun updateCurrentPerson(personDto: PersonBasicDto)
+    {
+        updatePerson(authTokenContext.authToken.appUser!!, personDto)
+    }
+
+    @Transactional
     fun updatePerson(appUser: AppUser, personDto: PersonBasicDto)
     {
         if (personDto.firstName.isNullOrBlank())
@@ -166,6 +179,7 @@ class AppUserService @Inject constructor(
         sendProfileUpdatedEmail(appUser, changes)
     }
 
+    @Transactional
     fun initiateEmailUpdate(email: String?)
     {
         val appUser = authTokenContext.authToken.appUser!!
@@ -220,6 +234,7 @@ class AppUserService @Inject constructor(
         }
     }
 
+    @Transactional
     fun confirmOldEmailForUpdate(verificationCode: String?)
     {
         val appUser = authTokenContext.authToken.appUser!!
@@ -264,6 +279,7 @@ class AppUserService @Inject constructor(
         }
     }
 
+    @Transactional
     fun completeEmailUpdate(email: String?, verificationCode: String?)
     {
         val appUser = authTokenContext.authToken.appUser!!

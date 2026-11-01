@@ -31,19 +31,19 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         accessLinkToken: String?,
     ): Response
     {
-        return ResourceEndpointDelayHelper.withFixedFloor(1000) {
-            try
-            {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1000) {
                 rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE, requestContext.clientIp)
                 val token = requiredToken(accessLinkToken)
                     ?: return@withFixedFloor missingTokenResponse()
                 contactProofService.issueChallenge(token)
                 Response.status(NO_CONTENT).build()
             }
-            catch (exception: Exception)
-            {
-                handleException("Information Request contact-proof challenge issuance failed", exception)
-            }
+        }
+        catch (exception: Exception)
+        {
+            handleException("Information Request contact-proof challenge issuance failed", exception)
         }
     }
 
@@ -69,17 +69,21 @@ class InformationRequestNoAuthAccessResource @Inject constructor(
         }
     }
 
-    override fun issueStepUpChallenge(accessLinkToken: String?, sessionToken: String?): Response {
-        return ResourceEndpointDelayHelper.withFixedFloor(1000) {
-            try {
+    override fun issueStepUpChallenge(accessLinkToken: String?, sessionToken: String?): Response
+    {
+        return try
+        {
+            ResourceEndpointDelayHelper.withFixedFloor(1000) {
                 rateLimit.requireWithinLimit(InformationRequestNoAuthAttempt.CHALLENGE, requestContext.clientIp)
                 val token = requiredToken(accessLinkToken)
                     ?: return@withFixedFloor missingTokenResponse()
                 stepUpService.issueChallenge(token, sessionToken)
                 Response.status(NO_CONTENT).build()
-            } catch (exception: Exception) {
-                handleException("Information Request access session step-up challenge issuance failed", exception)
             }
+        }
+        catch (exception: Exception)
+        {
+            handleException("Information Request access session step-up challenge issuance failed", exception)
         }
     }
 

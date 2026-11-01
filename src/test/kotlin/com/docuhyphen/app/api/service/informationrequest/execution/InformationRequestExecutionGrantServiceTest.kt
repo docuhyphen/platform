@@ -7,6 +7,10 @@ import com.docuhyphen.app.api.model.entity.InformationRequestTemplateRequirement
 import com.docuhyphen.app.api.model.entity.RequestExecutionGrant
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestContinuationAction
 import com.docuhyphen.app.api.model.informationrequest.execution.InformationRequestEntitlementSource
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.PlanLimits
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.repository.informationrequest.execution.RequestExecutionGrantRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateRequirementBindingRepository
 import com.docuhyphen.app.api.service.subscription.*

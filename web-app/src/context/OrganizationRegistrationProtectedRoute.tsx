@@ -7,17 +7,20 @@ export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Ele
 
     if (!token)
     {
-        return <Navigate to="/sign-in" replace/>;
+        return <Navigate to="/sign-in"
+                         replace/>;
     }
 
     if (!appUser || !appUser.person)
     {
-        return <Navigate to="/onboarding/individual" replace/>;
+        return <Navigate to="/onboarding/individual"
+                         replace/>;
     }
 
     if (appUserPersonOrganization)
     {
-        return <Navigate to="/exchanges" replace/>;
+        return <Navigate to="/exchanges"
+                         replace/>;
     }
 
     return element;

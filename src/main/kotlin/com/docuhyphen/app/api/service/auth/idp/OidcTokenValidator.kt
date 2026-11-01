@@ -1,20 +1,13 @@
 package com.docuhyphen.app.api.service.auth.idp
 
+import com.docuhyphen.app.api.model.auth.idp.DecodedIdToken
 import com.docuhyphen.app.api.service.config.ConfigurationService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import java.util.*
 
-/** Raised when an ID token fails any structural, signature, or claim check. */
 class OidcValidationException(message: String) : RuntimeException(message)
 
-/**
- * Shared OIDC ID token validation used by every external identity provider.
- *
- * Keeping the checks in one place means a provider implementation only supplies the values that
- * genuinely differ (issuer, JWKS location, audience set, provider-specific claims), and a fix to
- * a check applies everywhere at once.
- */
 @ApplicationScoped
 class OidcTokenValidator @Inject constructor(
     private val configurationService: ConfigurationService,
@@ -25,7 +18,6 @@ class OidcTokenValidator @Inject constructor(
         private val DEFAULT_ALLOWED_ALGS = setOf("RS256", "RS384", "RS512")
     }
 
-    /** Splits a compact JWS and returns the decoded header and payload claim maps. */
     fun decode(idToken: String, provider: String): DecodedIdToken
     {
         val parts = idToken.split(".")
@@ -42,11 +34,6 @@ class OidcTokenValidator @Inject constructor(
         return DecodedIdToken(header = header, claims = claims)
     }
 
-    /**
-     * Validates the JOSE header and returns the key id to verify the signature with.
-     * Only asymmetric signature algorithms are ever accepted, so an `alg: none` or an HMAC
-     * token signed with a public value can never be presented as a provider assertion.
-     */
     fun requireSupportedHeader(header: Map<String, Any?>, allowedAlgs: Set<String>, provider: String): String
     {
         val alg = header["alg"] as? String ?: throw OidcValidationException("Missing alg in $provider ID token")
@@ -82,14 +69,6 @@ class OidcTokenValidator @Inject constructor(
         return issuer
     }
 
-    /**
-     * Validates `aud` in both of its legal forms.
-     *
-     * `aud` may be a single string or an array of strings. When more than one audience is
-     * present the token was minted for several clients, so `azp` must name the client this
-     * deployment actually is, otherwise a token issued to a different relying party would be
-     * accepted here.
-     */
     fun requireAudience(claims: Map<String, Any?>, acceptedAudiences: Set<String>, provider: String)
     {
         if (acceptedAudiences.isEmpty())
@@ -168,9 +147,3 @@ class OidcTokenValidator @Inject constructor(
         }
     }
 }
-
-data class DecodedIdToken(
-    val header: Map<String, Any?>,
-    val claims: Map<String, Any?>,
-)
-

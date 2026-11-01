@@ -10,12 +10,12 @@ import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestC
 import com.docuhyphen.app.api.model.informationrequest.clock.InformationRequestWorkingPeriod
 import com.docuhyphen.app.api.model.informationrequest.clock.PublishInformationRequestClockPolicyVersionCommand
 import com.docuhyphen.app.api.repository.informationrequest.clock.*
-import com.docuhyphen.app.api.service.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.command.CommandReceiptScope
 import com.docuhyphen.app.api.service.command.CommandReceiptService

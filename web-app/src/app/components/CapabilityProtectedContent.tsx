@@ -2,7 +2,7 @@ import React from "react";
 import {Navigate} from "react-router-dom";
 import {useAuth} from "../../context/AuthContext.tsx";
 import {Capability} from "../models/models.tsx";
-import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
+import AuthBootstrapSplash from "./auth-bootstrap-splash/AuthBootstrapSplash.tsx";
 
 interface CapabilityProtectedContentProps
 {
@@ -26,7 +26,8 @@ const CapabilityProtectedContent = ({
 
     return hasCapability(capability)
         ? element
-        : <Navigate to={deniedPath} replace/>;
+        : <Navigate to={deniedPath}
+                    replace/>;
 };
 
 export default CapabilityProtectedContent;

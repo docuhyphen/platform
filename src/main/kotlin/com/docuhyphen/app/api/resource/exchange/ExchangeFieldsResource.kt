@@ -23,7 +23,7 @@ class ExchangeFieldsResource @Inject constructor(
         return try {
             FieldsHttp.requireUser(authTokenContext)
             val state = schemaAssignmentService.getAssignmentState(
-                FieldValueReadCommand(exchange(id), fieldsAccessContextFactory.current()),
+                FieldValueReadCommand(FieldsResourceRef(RESOURCE_TYPE, FieldsHttp.uuid(id, "Exchange id")), fieldsAccessContextFactory.current()),
             )
             FieldsHttp.withETag(Response.ok(state), state.assignment?.etag)
         } catch (exception: Exception) {
@@ -44,7 +44,7 @@ class ExchangeFieldsResource @Inject constructor(
             FieldsHttp.requireUser(authTokenContext)
             val assignment = schemaAssignmentService.applySchemaAssignment(
                 SchemaAssignmentCommand(
-                    resource = exchange(id),
+                    resource = FieldsResourceRef(RESOURCE_TYPE, FieldsHttp.uuid(id, "Exchange id")),
                     access = fieldsAccessContextFactory.current(),
                     operation = SchemaAssignmentOperation.ASSIGN,
                     schemaDefinitionId = request.schemaDefinitionId,
@@ -69,7 +69,7 @@ class ExchangeFieldsResource @Inject constructor(
             FieldsHttp.requireUser(authTokenContext)
             schemaAssignmentService.applySchemaAssignment(
                 SchemaAssignmentCommand(
-                    resource = exchange(id),
+                    resource = FieldsResourceRef(RESOURCE_TYPE, FieldsHttp.uuid(id, "Exchange id")),
                     access = fieldsAccessContextFactory.current(),
                     operation = SchemaAssignmentOperation.UNASSIGN,
                     precondition = FieldsPreconditionHeader.required(ifMatch),
@@ -92,7 +92,7 @@ class ExchangeFieldsResource @Inject constructor(
             FieldsHttp.requireUser(authTokenContext)
             val assignment = schemaAssignmentService.setValues(
                 FieldValueWriteCommand(
-                    resource = exchange(id),
+                    resource = FieldsResourceRef(RESOURCE_TYPE, FieldsHttp.uuid(id, "Exchange id")),
                     access = fieldsAccessContextFactory.current(),
                     entries = request.values,
                     precondition = FieldsPreconditionHeader.required(ifMatch),
@@ -109,8 +109,6 @@ class ExchangeFieldsResource @Inject constructor(
             }
         }
     }
-
-    private fun exchange(id: String) = FieldsResourceRef(RESOURCE_TYPE, FieldsHttp.uuid(id, "Exchange id"))
 
     private companion object {
         const val RESOURCE_TYPE = "EXCHANGE"

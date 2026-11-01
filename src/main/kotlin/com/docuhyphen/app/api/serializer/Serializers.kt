@@ -32,11 +32,11 @@ object TimestampSerializer : KSerializer<Timestamp>
 
     override fun serialize(encoder: Encoder, value: Timestamp)
     {
-        encoder.encodeLong(value.time) // Serialize as milliseconds since epoch
+        encoder.encodeLong(value.time)
     }
 
     override fun deserialize(decoder: Decoder): Timestamp
     {
-        return Timestamp(decoder.decodeLong()) // Deserialize from milliseconds
+        return Timestamp(decoder.decodeLong())
     }
 }

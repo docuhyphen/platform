@@ -2,16 +2,12 @@ import { describe, expect, it } from "vitest";
 import { validateWorkflowGraph } from "../workflowGraphValidation.ts";
 import { WorkflowGraph } from "../workflowGraphModels.ts";
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
 const makeGraph = (partial: Partial<WorkflowGraph>): WorkflowGraph => ({
     nodes: [],
     edges: [],
     warnings: [],
     ...partial,
 });
-
-// ── valid graph ───────────────────────────────────────────────────────────────
 
 describe("validateWorkflowGraph: valid graph", () =>
 {
@@ -31,8 +27,6 @@ describe("validateWorkflowGraph: valid graph", () =>
         expect(result.warnings).toHaveLength(0);
     });
 });
-
-// ── unreachable steps ─────────────────────────────────────────────────────────
 
 describe("validateWorkflowGraph: unreachable steps", () =>
 {
@@ -54,8 +48,6 @@ describe("validateWorkflowGraph: unreachable steps", () =>
     });
 });
 
-// ── no path to End ────────────────────────────────────────────────────────────
-
 describe("validateWorkflowGraph: no path to End", () =>
 {
     it("warns about a step with no path to End", () =>
@@ -70,15 +62,12 @@ describe("validateWorkflowGraph: no path to End", () =>
             edges: [
                 { id: "e1", source: "start", target: "s0", outcome: "DEFAULT", state: "DEFAULT" },
                 { id: "e2", source: "s0", target: "end", outcome: "APPROVE", state: "DEFAULT" },
-                // s1 has no outgoing edge to End
                 { id: "e3", source: "start", target: "s1", outcome: "DEFAULT", state: "DEFAULT" },
             ],
         }));
         expect(result.warnings.some(w => w.includes("no path to the end") && w.includes("Step 2"))).toBe(true);
     });
 });
-
-// ── cycles ────────────────────────────────────────────────────────────────────
 
 describe("validateWorkflowGraph: cycles", () =>
 {
@@ -117,8 +106,6 @@ describe("validateWorkflowGraph: cycles", () =>
         expect(result.warnings.some(w => w.toLowerCase().includes("cycle"))).toBe(false);
     });
 });
-
-// ── ambiguous transitions ─────────────────────────────────────────────────────
 
 describe("validateWorkflowGraph: ambiguous transitions", () =>
 {
@@ -159,8 +146,6 @@ describe("validateWorkflowGraph: ambiguous transitions", () =>
     });
 });
 
-// ── cycle without a path to End ───────────────────────────────────────────────
-
 describe("validateWorkflowGraph: cycle without a path to End", () =>
 {
     it("reports both a cycle and a no-path-to-End warning", () =>
@@ -182,8 +167,6 @@ describe("validateWorkflowGraph: cycle without a path to End", () =>
         expect(result.warnings.some(w => w.includes("no path to the end"))).toBe(true);
     });
 });
-
-// ── adapter warnings are preserved ───────────────────────────────────────────
 
 describe("validateWorkflowGraph: adapter warnings passthrough", () =>
 {

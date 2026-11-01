@@ -38,8 +38,6 @@ class BasicEntityToDtoTransformer
                         name,
                         initialShareMessage,
                         status.toString(),
-                        // Recipient email lives on the recipient's Share now; the no-auth viewer
-                        // is the recipient themselves, so it is not echoed back here.
                         null,
                         initiator?.person?.firstName,
                         initiator?.person?.lastName,

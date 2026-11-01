@@ -13,16 +13,6 @@ import java.util.UUID
 private class SchemaTargetPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<SchemaTargetPostgreSQLContainer>(imageName)
 
-/**
- * `schema_definition.target_resource_type` records which kind of resource a schema is written for.
- * It carries a default of the only kind that existed when it was released, and it is a plain string
- * column: nothing in the database narrows what may be stored in it.
- *
- * That is what lets a second kind of resource be named in code alone. It is also worth holding down
- * rather than assuming, because the whole argument for changing no migration rests on it. These
- * tests state both halves: the column constrains nothing, and a row naming a second kind is stored
- * and read back exactly as written.
- */
 class SchemaTargetOpenColumnContractTest
 {
     @Test
@@ -78,8 +68,6 @@ class SchemaTargetOpenColumnContractTest
         }
     }
 
-    // ── Support ─────────────────────────────────────────────────────────────────
-
     private fun withPostgres(block: (SchemaTargetPostgreSQLContainer) -> Unit)
     {
         val postgres = SchemaTargetPostgreSQLContainer("postgres:16-alpine")
@@ -104,7 +92,6 @@ class SchemaTargetOpenColumnContractTest
             .locations("classpath:db/migration")
             .load()
 
-    /** Every CHECK constraint on [table] whose expression mentions [column]. */
     private fun checkConstraintsOn(connection: Connection, table: String, column: String): List<String>
     {
         val found = mutableListOf<String>()

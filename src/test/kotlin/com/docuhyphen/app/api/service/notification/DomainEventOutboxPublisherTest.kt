@@ -1,8 +1,10 @@
 package com.docuhyphen.app.api.service.notification
 
 import com.docuhyphen.app.api.model.entity.DomainEventOutboxEntry
+import com.docuhyphen.app.api.model.notification.DomainEvent
+import com.docuhyphen.app.api.model.notification.DomainEventJson
 import com.docuhyphen.app.api.repository.notification.DomainEventOutboxRepository
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach

@@ -85,8 +85,9 @@ const SubscriptionTrialTransitionDialog = (props: Props) =>
                             appearance={"primary"}
                             shape={"circular"}
                             disabled={dialog.saving}
-                            onClick={() => void dialog.save()}>
-                            {dialog.saving ? <Spinner size={"tiny"}/> : dialog.actionLabel}
+                            onClick={() => { void dialog.save(); }}>
+                            {dialog.saving ? <Spinner id={"subscription-trial-transition-dialog-spinner-1"}
+                                                      size={"tiny"}/> : dialog.actionLabel}
                         </Button>
                         <Button
                             id={`${idPrefix}-cancel`}

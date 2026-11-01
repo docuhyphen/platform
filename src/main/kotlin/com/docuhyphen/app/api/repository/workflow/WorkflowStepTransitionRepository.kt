@@ -9,7 +9,6 @@ import java.util.*
 class WorkflowStepTransitionRepository :
     BaseRepository<WorkflowStepTransition>(WorkflowStepTransition::class.java)
 {
-    /** All traversed edges for an instance, oldest first (chronological execution order). */
     fun findByInstanceId(instanceId: UUID): List<WorkflowStepTransition> =
         entityManager.createQuery(
             """SELECT t FROM WorkflowStepTransition t
@@ -20,7 +19,6 @@ class WorkflowStepTransitionRepository :
             .setParameter("iid", instanceId)
             .resultList
 
-    /** Whether the given source step instance has already recorded its single outgoing edge. */
     fun existsByFromStepInstanceId(fromStepInstanceId: UUID): Boolean =
         entityManager.createQuery(
             """SELECT COUNT(t) FROM WorkflowStepTransition t
@@ -31,7 +29,6 @@ class WorkflowStepTransitionRepository :
             .singleResult
             .toLong() > 0
 
-    /** Whether the instance's single START edge has already been recorded. */
     fun existsStartByInstanceId(instanceId: UUID): Boolean =
         entityManager.createQuery(
             """SELECT COUNT(t) FROM WorkflowStepTransition t

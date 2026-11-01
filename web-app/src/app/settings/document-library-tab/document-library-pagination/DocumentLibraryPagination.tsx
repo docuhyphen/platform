@@ -35,7 +35,8 @@ const DocumentLibraryPagination = ({
                 id={"document-library-pagination-actions"}
                 className={styles.actions}
             >
-                <Tooltip content={"First page"} relationship={"description"}>
+                <Tooltip content={"First page"}
+                         relationship={"description"}>
                     <Button
                         id={"document-library-pagination-first"}
                         icon={<FirstPageIcon/>}
@@ -45,7 +46,8 @@ const DocumentLibraryPagination = ({
                         onClick={() => onPageChange(0)}
                     />
                 </Tooltip>
-                <Tooltip content={"Previous page"} relationship={"description"}>
+                <Tooltip content={"Previous page"}
+                         relationship={"description"}>
                     <Button
                         id={"document-library-pagination-previous"}
                         icon={<PreviousPageIcon/>}
@@ -61,7 +63,8 @@ const DocumentLibraryPagination = ({
                 >
                     {currentPage + 1} / {totalPages}
                 </Text>
-                <Tooltip content={"Next page"} relationship={"description"}>
+                <Tooltip content={"Next page"}
+                         relationship={"description"}>
                     <Button
                         id={"document-library-pagination-next"}
                         icon={<NextPageIcon/>}
@@ -71,7 +74,8 @@ const DocumentLibraryPagination = ({
                         onClick={() => onPageChange(currentPage + 1)}
                     />
                 </Tooltip>
-                <Tooltip content={"Last page"} relationship={"description"}>
+                <Tooltip content={"Last page"}
+                         relationship={"description"}>
                     <Button
                         id={"document-library-pagination-last"}
                         icon={<LastPageIcon/>}

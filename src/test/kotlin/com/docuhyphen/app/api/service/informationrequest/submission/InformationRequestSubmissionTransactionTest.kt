@@ -1,7 +1,10 @@
 package com.docuhyphen.app.api.service.informationrequest.submission
 
 import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.command.CommandPrecondition
 import com.docuhyphen.app.api.model.entity.InformationRequestAttestationDecision
 import com.docuhyphen.app.api.model.entity.InformationRequestEvidenceCollectionState

@@ -58,8 +58,9 @@ const RequirementEvidenceContent = ({
     const captured = useMemo(() => capturedEvidenceDetails(evidencePolicy), [evidencePolicy]);
     const id = `information-request-evidence-${elementId}-PANEL`;
 
-    const send = ({file, artifact}: ChosenFile, details: EvidenceDetails) =>
+    const send = ({file, artifact}: ChosenFile, details: EvidenceDetails) => {
         void (artifact ? replace(artifact, file, details) : upload(file, details));
+    };
 
     const choose = (file: File, artifact?: InformationRequestEvidenceArtifactDto) => {
         if (captured.length === 0) send({file, artifact}, {});

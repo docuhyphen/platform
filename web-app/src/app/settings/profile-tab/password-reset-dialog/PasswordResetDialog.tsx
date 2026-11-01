@@ -30,17 +30,18 @@ const PasswordResetDialog : React.FC<PasswordResetDialogProps> = (
     return <>
         <Dialog modalType="alert"
                 open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Reset password</DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        <Text>
+            <DialogSurface id={"password-reset-dialog-dialog-surface-1"}>
+                <DialogBody id={"password-reset-dialog-dialog-body-1"}>
+                    <DialogTitle id={"password-reset-dialog-dialog-title-1"}>Reset password</DialogTitle>
+                    <DialogContent id={"password-reset-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        <Text id={"password-reset-dialog-text-1"}>
                             This feature is temporarily unavailable. To reset your password please sign out and reset
-                            your password using the <strong>"Recover Account"</strong> link on the sign page.
+                            your password using the <strong id={"password-reset-dialog-strong-1"}>"Recover Account"</strong> link on the sign page.
                         </Text>
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
+                <DialogActions id={"password-reset-dialog-dialog-actions-1"}>
                     <DialogTrigger disableButtonEnhancement>
                         <Button id={"button-password-reset-close"}
                                 appearance="secondary"

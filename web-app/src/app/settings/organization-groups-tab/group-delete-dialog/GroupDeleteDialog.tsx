@@ -1,5 +1,4 @@
 import React from "react";
-import useToken from "../../../../context/useToken.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
 import {
     Button,
@@ -13,14 +12,15 @@ import {
     Spinner,
 } from "@fluentui/react-components";
 import {useGroupDeleteDialogStyles} from "./GroupDeleteDialogStyles.tsx";
-import {deleteOrganizationGroup, OrganizationGroupBasicDto} from "../../../../services/organizationApi.ts";
+import {useGroupDeleteCountdown} from "./useGroupDeleteCountdown.ts";
+import {OrganizationGroupDetailedDto} from "../../../models/models.tsx";
 
 interface GroupDeleteDialog
 {
     organizationId: string,
     isOpen: boolean;
     onDismiss: () => void;
-    group: OrganizationGroupBasicDto;
+    group: OrganizationGroupDetailedDto | null;
     onDeleted: (groupId: string) => void;
 }
 
@@ -33,102 +33,31 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
         onDeleted
     }) =>
 {
-    const token = useToken();
-    const [deletingSession, setDeletingSession] = React.useState(false);
-    const globalStyles = useGlobalStyles()
+    const globalStyles = useGlobalStyles();
     const deleteDialogStyles = useGroupDeleteDialogStyles();
-    const [deleteStarted, setDeleteStarted] = React.useState(false);
-    const [countdown, setCountdown] = React.useState(10);
-    const [error, setError] = React.useState<string | null>(null);
-    const timerRef = React.useRef<NodeJS.Timeout | null>(null);
-
-    const extractErrorMessage = (e: unknown): string =>
-    {
-        if (typeof e === "string") return e;
-        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
-        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
-        if (msg) return msg;
-        return "Something went wrong while deleting the group. Please try again in a moment.";
-    }
-
-    const onDelete = () =>
-    {
-        setDeleteStarted(true);
-        setCountdown(10);
-
-        timerRef.current = setInterval(() =>
-        {
-            setCountdown(prevCountdown =>
-            {
-                if (prevCountdown <= 1)
-                {
-                    clearInterval(timerRef.current!);
-                    completeDeletion();
-                    return 0;
-                }
-                return prevCountdown - 1;
-            });
-        }, 1000);
-    }
-
-    const onCancel = () =>
-    {
-        if (timerRef.current)
-        {
-            clearInterval(timerRef.current);
-        }
-        setDeleteStarted(false);
-        setCountdown(5);
-    }
-
-    const completeDeletion = async () =>
-    {
-        if (!organizationId || !group?.id)
-        {
-            setError("Cannot delete: missing organization or group information. Please reload the page.");
-            setDeleteStarted(false);
-            return;
-        }
-
-        setDeletingSession(true)
-        setError(null);
-
-        try
-        {
-            await deleteOrganizationGroup(organizationId, group.id, token || undefined);
-            onDeleted(group.id);
-            onDismiss();
-        }
-        catch (e)
-        {
-            setError(extractErrorMessage(e));
-            console.error("Error deleting group:", e);
-        }
-        finally
-        {
-            setDeletingSession(false);
-            setDeleteStarted(false);
-        }
-    }
+    const {deleting, deleteStarted, countdown, error, onDelete, onCancel} =
+        useGroupDeleteCountdown({organizationId, group, onDeleted, onDismiss});
 
     return <>
-        {<Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Deleting {group && group.name}</DialogTitle>
-                    <DialogContent>
-                        <div className={deleteDialogStyles.errorMessage}>{error || " "}</div>
+        {<Dialog modalType="alert"
+                 open={isOpen}>
+            <DialogSurface id={"group-delete-dialog-dialog-surface-1"}>
+                <DialogBody id={"group-delete-dialog-dialog-body-1"}>
+                    <DialogTitle id={"group-delete-dialog-dialog-title-1"}>Deleting {group && group.name}</DialogTitle>
+                    <DialogContent id={"group-delete-dialog-dialog-content-1"}>
+                        <div id={"group-delete-dialog-div-1"}
+                             className={deleteDialogStyles.errorMessage}>{error || " "}</div>
                         {deleteStarted ? (
-                            <div>
+                            <div id={"group-delete-dialog-div-2"}>
                                 Deleting in {countdown} seconds...
                             </div>
                         ) : (
-                            <div>
+                            <div id={"group-delete-dialog-div-3"}>
                                 Are you sure you want to delete this group?
                             </div>
                         )}
                     </DialogContent>
-                    <DialogActions>
+                    <DialogActions id={"group-delete-dialog-dialog-actions-1"}>
                         {deleteStarted ? (
                             <Button
                                 id="group-delete-dialog-cancel-countdown"
@@ -146,7 +75,8 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                                     className={globalStyles.buttonWithLoading}
                                     shape={"circular"}
                                     onClick={onDelete}>
-                                    {deletingSession && <Spinner size={"tiny"}/>}
+                                    {deleting && <Spinner id={"group-delete-dialog-spinner-1"}
+                                                          size={"tiny"}/>}
                                     Yes, Delete
                                 </Button>
                                 <DialogTrigger disableButtonEnhancement>
@@ -154,7 +84,7 @@ const GroupDeleteDialog: React.FC<GroupDeleteDialog> = (
                                         id="group-delete-dialog-no-cancel"
                                         appearance="secondary"
                                         shape={"circular"}
-                                        disabled={deletingSession}
+                                        disabled={deleting}
                                         onClick={onDismiss}>
                                         No, Cancel
                                     </Button>

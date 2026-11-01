@@ -5,7 +5,7 @@ import SettingsLeaveDialog from "./SettingsLeaveDialog.tsx";
 import {SettingsLeaveGuardContext, useUnsavedSettingsWork} from "./settingsLeaveGuard.ts";
 import {useSettingsTabSelection} from "./useSettingsTabSelection.ts";
 
-const UnsavedWork = ({unsaved}: { unsaved: boolean }) => {
+const UnsavedWork = ({unsaved}: { unsaved: boolean }): null => {
     useUnsavedSettingsWork(unsaved);
     return null;
 };

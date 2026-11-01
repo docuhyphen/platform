@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React from "react";
 import {ContactDetailsDetailedDto} from "../../models/models.tsx";
 import {
     Button,
@@ -13,22 +13,11 @@ import {
     Input,
     Spinner
 } from "@fluentui/react-components";
-import {useAuth} from "../../../context/AuthContext.tsx";
-import {
-    completePhoneAddition,
-    completePhoneUpdate,
-    initiatePhoneAddition,
-    initiatePhoneUpdate
-} from "../../../services/contactDetailsApi";
 import {usePhoneManagementDialogStyles} from "./PhoneManagementDialogStyles.tsx";
 import {useGlobalStyles} from "../../../GlobalStyles.tsx";
-import validator from "validator";
+import {PhoneManagementMode, usePhoneManagement} from "./usePhoneManagement.ts";
 
-export enum PhoneManagementMode
-{
-    ADD,
-    EDIT
-}
+export {PhoneManagementMode} from "./usePhoneManagement.ts";
 
 interface PhoneManagementDialogProps
 {
@@ -48,246 +37,35 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
         onComplete
     }) =>
 {
-    const styles = usePhoneManagementDialogStyles()
-    const globalStyles = useGlobalStyles()
-    const {token} = useAuth();
-    const [phoneNumber, setPhoneNumber] = useState<string | undefined>(contactDetails?.phoneNumber);
-    const [processing, setProcessing] = useState(false);
-    const [addOrEditInitiated, setAddOrEditInitiated] = useState(false);
-    const [verificationCode, setVerificationCode] = useState('');
-    const [error, setError] = useState<string | null>(null);
-
-    const onPhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        setPhoneNumber(e.target.value);
-    }
-
-    const onVerificationCodeChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    {
-        setVerificationCode(e.target.value);
-    }
-
-    const extractErrorMessage = (e: unknown, fallback: string): string =>
-    {
-        if (typeof e === "string") return e;
-        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
-        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
-        if (msg) return msg;
-        return "Something went wrong. Please try again in a moment.";
-    }
-
-    const validatePhone = (value: string | undefined): string | null =>
-    {
-        if (!value || !value.trim()) return "Phone number is required";
-        if (!validator.isMobilePhone(value.trim(), "any", {strictMode: false}))
-        {
-            return "Please enter a valid phone number";
-        }
-        return null;
-    }
-
-    const onInitiateAddPhoneNumber = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validatePhone(phoneNumber);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await initiatePhoneAddition(contactDetails.id, phoneNumber!, token);
-            setAddOrEditInitiated(true);
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e, "Failed to initiate phone number addition"));
-            console.error("Failed to initiate phone number addition:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onCompleteAddPhoneNumber = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validatePhone(phoneNumber);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        if (!verificationCode.trim())
-        {
-            setError("Verification code is required");
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await completePhoneAddition(contactDetails.id, phoneNumber!, verificationCode, token);
-
-            const updatedContactDetails = {
-                ...contactDetails,
-                phoneNumber: phoneNumber
-            } as ContactDetailsDetailedDto;
-
-            if (onComplete)
-            {
-                onComplete(updatedContactDetails);
-                resetDialog()
-            }
-
-            onDismiss();
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e, "Failed to complete phone number addition"));
-            console.error("Failed to complete phone number addition:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onInitiateEditPhoneNumber = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validatePhone(phoneNumber);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await initiatePhoneUpdate(contactDetails.id, phoneNumber!, token);
-            setAddOrEditInitiated(true);
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e, "Failed to initiate phone number update"));
-            console.error("Failed to initiate phone number update:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onCompleteEditPhoneNumber = async () =>
-    {
-        if (processing || !contactDetails?.id) return;
-
-        const validationError = validatePhone(phoneNumber);
-        if (validationError)
-        {
-            setError(validationError);
-            return;
-        }
-
-        if (!verificationCode.trim())
-        {
-            setError("Verification code is required");
-            return;
-        }
-
-        setProcessing(true);
-        setError(null);
-
-        try
-        {
-            await completePhoneUpdate(contactDetails.id, phoneNumber!, verificationCode, token);
-
-            const updatedContactDetails = {
-                ...contactDetails,
-                phoneNumber: phoneNumber
-            } as ContactDetailsDetailedDto;
-
-            if (onComplete)
-            {
-                onComplete(updatedContactDetails);
-                resetDialog()
-            }
-
-            onDismiss();
-        }
-        catch (e: unknown)
-        {
-            setError(extractErrorMessage(e, "Failed to complete phone number update"));
-            console.error("Failed to complete phone number update:", e);
-        }
-        finally
-        {
-            setProcessing(false);
-        }
-    }
-
-    const onAddOrUpdatePhoneNumber = () =>
-    {
-        if (addOrEditInitiated)
-        {
-            if (mode === PhoneManagementMode.ADD)
-            {
-                onCompleteAddPhoneNumber();
-            }
-            else
-            {
-                onCompleteEditPhoneNumber();
-            }
-        }
-        else
-        {
-            if (mode === PhoneManagementMode.ADD)
-            {
-                onInitiateAddPhoneNumber();
-            }
-            else
-            {
-                onInitiateEditPhoneNumber();
-            }
-        }
-    }
-
-    const resetDialog = () =>
-    {
-        setPhoneNumber(contactDetails?.phoneNumber);
-        setVerificationCode('');
-        setAddOrEditInitiated(false);
-        setError(null);
-        onDismiss();
-    }
+    const styles = usePhoneManagementDialogStyles();
+    const globalStyles = useGlobalStyles();
+    const {
+        phoneNumber,
+        processing,
+        addOrEditInitiated,
+        verificationCode,
+        error,
+        onPhoneNumberChange,
+        onVerificationCodeChange,
+        onAddOrUpdatePhoneNumber,
+        resetDialog,
+    } = usePhoneManagement({contactDetails, mode, onDismiss, onComplete});
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"phone-management-dialog-dialog-surface-1"}>
+                <DialogBody id={"phone-management-dialog-dialog-body-1"}>
+                    <DialogTitle id={"phone-management-dialog-dialog-title-1"}>
                         {mode === PhoneManagementMode.ADD ? "Add new phone number" : "Edit phone number"}
                     </DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        { error && <div className={styles.errorContainer}>{error}</div>}
+                    <DialogContent id={"phone-management-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        {error && <div id={"phone-management-dialog-div-1"}
+                                       className={styles.errorContainer}>{error}</div>}
 
-                        <Field label="Phone number">
+                        <Field id={"phone-management-dialog-field-1"}
+                               label="Phone number">
                             <Input
                                 id={"phone-management-phone-input"}
                                 type="text"
@@ -300,7 +78,8 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         </Field>
 
                         {addOrEditInitiated && (
-                            <Field label="Verification code">
+                            <Field id={"phone-management-dialog-field-2"}
+                                   label="Verification code">
                                 <Input
                                     id={"phone-management-verification-input"}
                                     type="text"
@@ -313,7 +92,7 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         )}
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
+                <DialogActions id={"phone-management-dialog-dialog-actions-1"}>
                     <Button
                         id={"phone-management-submit-btn"}
                         appearance="primary"
@@ -322,7 +101,8 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
                         disabled={processing}
                         onClick={onAddOrUpdatePhoneNumber}
                     >
-                        {processing && <Spinner size="tiny"/>}
+                        {processing && <Spinner id={"phone-management-dialog-spinner-1"}
+                                                size="tiny"/>}
                         {addOrEditInitiated ? "Verify" : (mode === PhoneManagementMode.ADD ? "Add" : "Update")}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
@@ -339,6 +119,6 @@ const PhoneManagementDialog: React.FC<PhoneManagementDialogProps> = (
             </DialogSurface>
         </Dialog>
     );
-}
+};
 
 export default PhoneManagementDialog;

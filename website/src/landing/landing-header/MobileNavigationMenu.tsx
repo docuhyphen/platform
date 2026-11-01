@@ -34,7 +34,7 @@ export function MobileNavigationMenu({activePath, onNavigate}: MobileNavigationM
                     className={styles.mobileMenuButton}
                 />
             </MenuTrigger>
-            <MenuPopover>
+            <MenuPopover id={"mobile-navigation-menu-menu-popover-1"}>
                 <MenuList
                     id="landing-mobile-menu"
                     className={styles.mainMobileMenu}
@@ -65,7 +65,6 @@ export function MobileNavigationMenu({activePath, onNavigate}: MobileNavigationM
                     >
                         Pricing
                     </MenuItem>
-                    {/* About menu item hidden while the page is pending redesign */}
                     <MenuItem
                         id="landing-mobile-contact"
                         onClick={() => onNavigate("/#home-contact-info")}

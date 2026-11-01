@@ -22,11 +22,6 @@ class UserSubscriptionPolicyRepository :
             .firstOrNull()
     }
 
-    /**
-     * Loads the policy with a row-level write lock so quota checks and the work they authorize
-     * commit as one serialized unit. Two concurrent requests cannot both consume the last
-     * remaining allowance because the second waits for the first to commit.
-     */
     fun findByAppUserIdForUpdate(appUserId: UUID): UserSubscriptionPolicy?
     {
         return entityManager.createQuery(

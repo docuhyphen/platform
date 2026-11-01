@@ -41,7 +41,7 @@ class Document
     var type: DocumentType? = null
 
     @Column(name = "hash", nullable = true)
-    var hash: String = "" // For file integrity verification (e.g., SHA256)
+    var hash: String = ""
 
     @OneToOne
     @JoinColumn(name = "last_updated_by_id")

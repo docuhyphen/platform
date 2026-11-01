@@ -2,7 +2,10 @@ package com.docuhyphen.app.api.service.identity
 
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.identity.OrganizationIdpRotationPreviewResult
+import com.docuhyphen.app.api.model.identity.OrganizationIdpRotationRunResult
+import com.docuhyphen.app.api.model.identity.OrganizationIdpRotationStatusResult
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import io.quarkus.security.UnauthorizedException
 import jakarta.enterprise.context.RequestScoped

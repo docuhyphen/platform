@@ -6,14 +6,6 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.util.*
 
-/**
- * Resolves the [AuditFailurePolicy] for a given [AuditCategory].
- *
- * No category is confirmed as fail-closed yet, so every category defaults to
- * [AuditFailurePolicy.DEGRADED] (log-only, never blocks the caller's transaction) until an
- * operator explicitly opts a category in via `app.audit.failure-policy.fail-closed-categories`.
- * This is a deliberate degraded/log-only default, not an oversight.
- */
 @ApplicationScoped
 class AuditFailurePolicyResolver @Inject constructor(
     @ConfigProperty(name = "app.audit.failure-policy.fail-closed-categories")

@@ -1,4 +1,4 @@
-import {ExchangeShareRoleName} from "../../services/types/roles.ts";
+import {ExchangeShareRoleName, PrincipalGroupRoleName} from "../../services/types/roles.ts";
 
 export interface ResponseError
 {
@@ -276,7 +276,8 @@ export interface OrganizationDetailedDto
     name: string,
     registrationNumber: string,
     isActive: boolean,
-    contactDetails: ContactDetailsDetailedDto,
+    verificationComplete?: boolean,
+    contactDetails?: ContactDetailsDetailedDto,
     settings?: OrganizationSettingsDto,
 }
 
@@ -422,6 +423,8 @@ export interface ExchangeDetailedDto
     requireMfa?: boolean;
     allowedDownloadFormats?: string[];
 }
+
+export type ExchangeListEntry = ExchangeBasicDto | ExchangeDetailedDto;
 
 export interface ExchangeParticipantDetailedDto
 {
@@ -1055,6 +1058,7 @@ export interface OrganizationGroupDetailedDto
 export interface OrganizationGroupMemberDetailedDto
 {
     user: AppUserDetailedDto;
+    groupRole?: PrincipalGroupRoleName;
     permissions: OrganizationGroupMemberPermissionDto;
 }
 

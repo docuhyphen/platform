@@ -15,7 +15,8 @@ const application = (
         targetDocument={document}
     >
         <SSRProvider>
-            <FluentProvider theme={lightTheme} id="fluent-provider">
+            <FluentProvider theme={lightTheme}
+                            id="fluent-provider">
                 <BrowserRouter>
                     <App/>
                 </BrowserRouter>

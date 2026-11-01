@@ -1,54 +1,59 @@
 package com.docuhyphen.app.api.resource.contactdetails
 
-import com.docuhyphen.app.api.resource.BaseResource
-
+import com.docuhyphen.app.api.resource.contactdetails.operations.PhoneContactDetailsResourceOperations
 import com.docuhyphen.app.api.resource.model.CompleteAddOrUpdatePhoneNumberRequest
 import com.docuhyphen.app.api.resource.model.InitiateAddOrUpdatePhoneNumberRequest
+import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.service.contactdetails.PhoneContactDetailsService
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
 import jakarta.ws.rs.core.Response
-import org.slf4j.Logger
+import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
 
-@Path("/contact-details")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class PhoneContactDetailsResource @Inject constructor(
-    private val phoneContactDetailsService: PhoneContactDetailsService
-) : BaseResource()
+    private val phoneContactDetailsService: PhoneContactDetailsService,
+) : PhoneContactDetailsResourceOperations
 {
-    override val logger: Logger
-        get() = LoggerFactory.getLogger(PhoneContactDetailsResource::class.java)
+    companion object
+    {
+        private val logger = LoggerFactory.getLogger(PhoneContactDetailsResource::class.java)
+    }
 
-    @POST
-    @Path("/{contactDetailsId}/phone/addition-initiation")
-    fun initiatePhoneNumberAddition(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateAddOrUpdatePhoneNumberRequest
+    override fun initiatePhoneNumberAddition(
+        contactDetailsId: String,
+        request: InitiateAddOrUpdatePhoneNumberRequest,
     ): Response
     {
         return try
         {
-            phoneContactDetailsService.initiatePhoneNumberAddition(
-                contactDetailsId,
-                request.phoneNumber
-            )
+            phoneContactDetailsService.initiatePhoneNumberAddition(contactDetailsId, request.phoneNumber)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error initiating phone number addition", exception)
-            handleException(exception, "An error occurred while initiating phone number addition")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error initiating phone number addition", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while initiating phone number addition"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/phone/addition-completion")
-    fun completePhoneNumberAddition(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteAddOrUpdatePhoneNumberRequest
+    override fun completePhoneNumberAddition(
+        contactDetailsId: String,
+        request: CompleteAddOrUpdatePhoneNumberRequest,
     ): Response
     {
         return try
@@ -56,44 +61,65 @@ class PhoneContactDetailsResource @Inject constructor(
             phoneContactDetailsService.completePhoneNumberAddition(
                 contactDetailsId,
                 request.phoneNumber,
-                request.verificationCode
+                request.verificationCode,
             )
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error completing phone number addition", exception)
-            handleException(exception, "An error occurred while completing phone number addition")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error completing phone number addition", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while completing phone number addition"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/phone/initiate-update")
-    fun initiatePhoneNumberUpdate(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: InitiateAddOrUpdatePhoneNumberRequest
+    override fun initiatePhoneNumberUpdate(
+        contactDetailsId: String,
+        request: InitiateAddOrUpdatePhoneNumberRequest,
     ): Response
     {
         return try
         {
-            phoneContactDetailsService.initiatePhoneNumberUpdate(
-                contactDetailsId,
-                request.phoneNumber
-            )
+            phoneContactDetailsService.initiatePhoneNumberUpdate(contactDetailsId, request.phoneNumber)
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error initiating phone number update", exception)
-            handleException(exception, "An error occurred while initiating phone number update")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error initiating phone number update", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while initiating phone number update"))
+                        .build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{contactDetailsId}/phone/complete-update")
-    fun completePhoneNumberUpdate(
-        @PathParam("contactDetailsId") contactDetailsId: String,
-        request: CompleteAddOrUpdatePhoneNumberRequest
+    override fun completePhoneNumberUpdate(
+        contactDetailsId: String,
+        request: CompleteAddOrUpdatePhoneNumberRequest,
     ): Response
     {
         return try
@@ -101,14 +127,28 @@ class PhoneContactDetailsResource @Inject constructor(
             phoneContactDetailsService.completePhoneNumberUpdate(
                 contactDetailsId,
                 request.phoneNumber,
-                request.verificationCode
+                request.verificationCode,
             )
             Response.ok().build()
         }
         catch (exception: Exception)
         {
-            logger.error("Error completing phone number update", exception)
-            handleException(exception, "An error occurred while completing phone number update")
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error completing phone number update", exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("An error occurred while completing phone number update"))
+                        .build()
+                }
+            }
         }
     }
 }

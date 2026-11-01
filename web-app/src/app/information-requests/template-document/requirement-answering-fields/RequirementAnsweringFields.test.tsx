@@ -5,11 +5,13 @@ import {
     InformationRequestRequiredness,
     InformationRequestRequirementType,
     InformationRequestResponseMode,
+    InformationRequestTemplateConditionRuleRequest,
+    InformationRequestTemplateGroupRequest,
 } from "../../../models/models.tsx";
 import RequirementAnsweringFields from "./RequirementAnsweringFields.tsx";
 
 vi.mock("../TemplateDocumentContext.ts", () => ({
-    useTemplateDocument: () => ({document: {groups: [], conditionRules: []}}),
+    useTemplateDocument: () => ({document: {groups: [] as InformationRequestTemplateGroupRequest[], conditionRules: [] as InformationRequestTemplateConditionRuleRequest[]}}),
 }));
 
 describe("RequirementAnsweringFields", () => {

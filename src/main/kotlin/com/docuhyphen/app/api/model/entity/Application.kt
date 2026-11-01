@@ -52,10 +52,6 @@ class Application
     @Column(name = "owner_organization_id")
     var ownerOrganizationId: UUID? = null
 
-    // JSON array of Capability enum names explicitly granted to this application.
-    // Resolved to Set<Capability> in DefaultAuthorizationService. Stored as a plain
-    // JSON string rather than a relation because capability grants are a small, stable
-    // set managed by app-admins, not a high-churn join table.
     @Column(name = "granted_capabilities", nullable = false)
     var grantedCapabilitiesJson: String = "[]"
 

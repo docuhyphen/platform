@@ -12,7 +12,6 @@ interface AuditIntegritySectionProps
     scope: AuditScope;
 }
 
-/** Per-stream integrity (hash chain + archive segment) report section of the Audit workspace. */
 const AuditIntegritySection = (
     {
         scope,
@@ -23,8 +22,6 @@ const AuditIntegritySection = (
     const [report, setReport] = useState<AuditOrganizationIntegrityDto | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    // Bumped on every load() call so a response from a superseded scope switch can detect it is
-    // stale and discard itself instead of overwriting state a newer request already populated.
     const requestGenerationRef = useRef(0);
 
     const load = useCallback(async () =>
@@ -67,8 +64,10 @@ const AuditIntegritySection = (
     }, [load]);
 
     return (
-        <div id={"audit-integrity-section"} className={styles.container}>
-            <div className={styles.summary}>
+        <div id={"audit-integrity-section"}
+             className={styles.container}>
+            <div id={"audit-integrity-section-div-1"}
+                 className={styles.summary}>
                 <Button
                     id={"button-audit-integrity-refresh"}
                     appearance={"secondary"}
@@ -90,27 +89,43 @@ const AuditIntegritySection = (
                 )}
             </div>
 
-            {loading && <Spinner size={"small"} label={"Checking integrity..."} labelPosition={"after"}/>}
-            {error && <Text id={"audit-integrity-error"} className={styles.errorText}>{error}</Text>}
+            {loading && <Spinner id={"audit-integrity-section-spinner-1"}
+                                 size={"small"}
+                                 label={"Checking integrity..."}
+                                 labelPosition={"after"}/>}
+            {error && <Text id={"audit-integrity-error"}
+                            className={styles.errorText}>{error}</Text>}
 
             {!loading && report && report.streams.length === 0 && (
                 <Text id={"audit-integrity-empty"}>No archived streams to verify yet.</Text>
             )}
 
             {!loading && report?.streams.map((stream) => (
-                <div key={stream.streamId} id={`audit-integrity-stream-${stream.streamId}`} className={styles.streamCard}>
-                    <div className={styles.streamHeader}>
-                        <Text weight={"semibold"}>{stream.streamId}</Text>
-                        <Badge color={stream.chainValid ? "success" : "danger"} appearance={"tint"}>
+                <div key={stream.streamId}
+                     id={`audit-integrity-stream-${stream.streamId}`}
+                     className={styles.streamCard}>
+                    <div id={"audit-integrity-section-div-2"}
+                         className={styles.streamHeader}>
+                        <Text id={"audit-integrity-section-text-1"}
+                              weight={"semibold"}>{stream.streamId}</Text>
+                        <Badge id={"audit-integrity-section-badge-1"}
+                               color={stream.chainValid ? "success" : "danger"}
+                               appearance={"tint"}>
                             Chain {stream.chainValid ? "valid" : "invalid"}
                         </Badge>
-                        <Badge color={stream.segmentsValid === stream.segmentsChecked ? "success" : "danger"} appearance={"tint"}>
+                        <Badge id={"audit-integrity-section-badge-2"}
+                               color={stream.segmentsValid === stream.segmentsChecked ? "success" : "danger"}
+                               appearance={"tint"}>
                             Segments {stream.segmentsValid}/{stream.segmentsChecked}
                         </Badge>
                     </div>
-                    <Text size={200}>{stream.chainNote}</Text>
+                    <Text id={"audit-integrity-section-text-2"}
+                          size={200}>{stream.chainNote}</Text>
                     {stream.segmentFailureNotes.map((note, index) => (
-                        <Text key={index} size={200} className={styles.failureNote}>{note}</Text>
+                        <Text id={`audit-integrity-section-text-3-${index}`}
+                              key={index}
+                              size={200}
+                              className={styles.failureNote}>{note}</Text>
                     ))}
                 </div>
             ))}

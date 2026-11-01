@@ -1,23 +1,13 @@
 package com.docuhyphen.app.api.interceptor
 
 import com.docuhyphen.app.api.service.auth.AdminActionGuardService
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import jakarta.annotation.Priority
 import jakarta.inject.Inject
 import jakarta.interceptor.AroundInvoke
 import jakarta.interceptor.Interceptor
 import jakarta.interceptor.InvocationContext
 
-/**
- * CDI interceptor that enforces the admin action guard for any method annotated with
- * [EnforceAdminAction].
- *
- * Execution order:
- * 1. Resolve the [EnforceAdminAction] annotation from the intercepted method.
- * 2. Extract the first [AdminApprovalContext] argument from the invocation (null-safe default).
- * 3. Call [AdminActionGuardService.enforce] — throws on step-up failure before the method body runs.
- * 4. Proceed with the original method.
- */
 @EnforceAdminAction
 @Interceptor
 @Priority(Interceptor.Priority.APPLICATION)

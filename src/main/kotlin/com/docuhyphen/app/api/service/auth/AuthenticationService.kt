@@ -1,5 +1,8 @@
 ﻿package com.docuhyphen.app.api.service.auth
 
+import com.docuhyphen.app.api.model.auth.RefreshRotationResult
+import com.docuhyphen.app.api.model.auth.RefreshRotationStatus
+import com.docuhyphen.app.api.model.auth.StoredRefreshToken
 import com.docuhyphen.app.api.model.entity.AppUser
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ACCESS
 import com.docuhyphen.app.api.model.entity.AuthTokenType.ID
@@ -48,13 +51,6 @@ class AuthenticationService @Inject constructor(
 
     fun isEmailInvalid(email: String): Boolean = !isValidEmail(email)
 
-    /**
-     * Composition rules for the internal identity provider.
-     *
-     * The upper bound only exists to keep unbounded input away from the hash function; it is
-     * deliberately high enough that passphrases are practical, since length is the single
-     * biggest contributor to resistance against offline cracking.
-     */
     fun isPasswordStrong(password: String): Boolean
     {
         val minLength = configurationService.getPasswordMinLength()
@@ -165,15 +161,6 @@ class AuthenticationService @Inject constructor(
             .compact()
     }
 
-    /**
-     * Generates an opaque refresh token: `{jti}.{base64url(32 random bytes)}`.
-     *
-     * - jti: server-side lookup key (UUID, 122 bits entropy)
-     * - secret: 256-bit bearer credential. We store only its hash; the raw secret never
-     *   appears on disk or in our DB once the cookie is set on the response.
-     *
-     * Total cookie payload ~ 80 bytes, vs ~300 bytes for a signed JWT.
-     */
     fun generateRefreshToken(
         appUser: AppUser,
         familyId: String = UUID.randomUUID().toString(),
@@ -205,8 +192,6 @@ class AuthenticationService @Inject constructor(
             .compact()
     }
 
-    // ── Token verification ──
-
     fun verifyAccessToken(token: String?): Claims?
     {
         if (token.isNullOrBlank())
@@ -220,7 +205,6 @@ class AuthenticationService @Inject constructor(
 
     fun parseTokenClaims(token: String): Claims? = parseWithPurpose(token, TokenPurpose.USER_TOKEN)
 
-    /** Parses a token that was signed with the account-linking key, never the session key. */
     fun parseLinkTokenClaims(token: String): Claims? = parseWithPurpose(token, TokenPurpose.LINK_TOKEN)
 
     private fun parseWithPurpose(token: String, purpose: TokenPurpose): Claims?
@@ -240,8 +224,6 @@ class AuthenticationService @Inject constructor(
             null
         }
     }
-
-    // ── Refresh token operations (delegated to Redis) ──
 
     fun saveRefreshToken(
         appUser: AppUser,
@@ -279,13 +261,6 @@ class AuthenticationService @Inject constructor(
         return refreshTokenStore.findByJti(jti)
     }
 
-    /**
-     * Constant-time comparison of the presented token's hash against the stored hash.
-     *
-     * The store never holds the raw token, so this is the only way to authenticate a
-     * presentation, and [MessageDigest.isEqual] keeps the comparison free of a timing
-     * side channel on the secret.
-     */
     fun verifyRefreshTokenSecret(presentedToken: String, stored: StoredRefreshToken): Boolean
     {
         val presentedHash = hashToken(presentedToken).toByteArray(Charsets.UTF_8)
@@ -360,7 +335,6 @@ class AuthenticationService @Inject constructor(
             )
         }
 
-        // The successor's raw value only exists here, in memory, for the life of this request.
         return if (result.status == RefreshRotationStatus.ROTATED || result.status == RefreshRotationStatus.GRACE_REPLAY)
         {
             result.copy(successorToken = newToken)

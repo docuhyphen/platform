@@ -15,12 +15,12 @@ import com.docuhyphen.app.api.model.informationrequest.party.AssignExternalParti
 import com.docuhyphen.app.api.model.informationrequest.party.AssignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestLifecycleException
 import com.docuhyphen.app.api.service.subscription.PlanCode
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionDenialReason
 import com.docuhyphen.app.api.service.subscription.SubscriptionOwnerType
 import org.junit.jupiter.api.Assertions.*

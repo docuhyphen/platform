@@ -68,9 +68,10 @@ const TrialRequestDecisionDialog = ({request, decision, onDismiss, onSaved}: Pro
                             appearance={"primary"}
                             shape={"circular"}
                             disabled={dialog.saving}
-                            onClick={() => void dialog.save()}>
+                            onClick={() => { void dialog.save(); }}>
                             {dialog.saving
-                                ? <Spinner id={"platform-trial-request-decision-saving"} size={"tiny"}/>
+                                ? <Spinner id={"platform-trial-request-decision-saving"}
+                                           size={"tiny"}/>
                                 : dialog.approving ? "Approve" : "Reject"}
                         </Button>
                         <Button

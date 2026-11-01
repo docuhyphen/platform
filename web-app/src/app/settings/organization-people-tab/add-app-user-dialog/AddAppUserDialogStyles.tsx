@@ -10,7 +10,7 @@ export const useAddAppUserDialogStyles = makeStyles({
     errorContainer: {
         minHeight: "20px",
         color: tokens.colorStatusDangerForeground1,
-        fontSize: "12px",
-        lineHeight: "20px"
+        fontSize: tokens.fontSizeBase200,
+        lineHeight: tokens.lineHeightBase300
     }
 });

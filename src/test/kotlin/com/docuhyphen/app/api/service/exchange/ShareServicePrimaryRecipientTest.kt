@@ -5,7 +5,7 @@ import com.docuhyphen.app.api.repository.exchange.ShareRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupMemberRepository
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.auth.authz.GroupShareExpansionPolicy
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry
 import jakarta.inject.Provider
 import org.junit.jupiter.api.Assertions.assertEquals

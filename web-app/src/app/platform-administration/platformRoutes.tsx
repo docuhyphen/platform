@@ -1,6 +1,6 @@
 import {Route} from "react-router-dom";
 import CapabilityProtectedContent from "../components/CapabilityProtectedContent.tsx";
-import ProtectedRoute from "../components/ProtectedRoutes.tsx";
+import ProtectedRoute from "../components/protected-routes/ProtectedRoutes.tsx";
 import {Capability} from "../models/models.tsx";
 import PlatformAudit from "../platform-audit/PlatformAudit.tsx";
 import PlatformAdministration from "./PlatformAdministration.tsx";

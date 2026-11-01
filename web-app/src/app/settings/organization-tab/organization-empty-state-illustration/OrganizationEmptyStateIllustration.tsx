@@ -5,7 +5,7 @@ interface OrganizationEmptyStateIllustrationProps
     className?: string;
 }
 
-const OrganizationEmptyStateIllustration: React.FC<OrganizationEmptyStateIllustrationProps> = ({className}) =>
+const OrganizationEmptyStateIllustration: React.FC<OrganizationEmptyStateIllustrationProps> = () =>
 {
     return (
         <></>

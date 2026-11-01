@@ -9,18 +9,6 @@ export const useExchangeInitiationStyles = makeStyles({
     sharingDetailsInput: {
         flex: 1,
     },
-    exchangeInitiationTaps: {
-        minHeight: "400px",
-        // Phones: the dialog shrinks to viewport width via the global
-        // .fui-DialogSurface override in index.css. The tab content has
-        // its own min-height that's fine, but we relax the min-width and
-        // allow the inner panels to wrap to avoid horizontal overflow.
-        "@media (max-width: 768px)": {
-            minHeight: "auto",
-            width: "100%",
-            minWidth: 0,
-        },
-    },
     exchangeDocumentsTabContent: {
         display: "flex",
         gap: tokens.spacingHorizontalL,
@@ -33,9 +21,6 @@ export const useExchangeInitiationStyles = makeStyles({
         justifyContent: "space-between",
         alignItems: "center",
         flexWrap: "wrap",
-        // Phones: stack the Restrict-type switch, the type Dropdown,
-        // and the Required checkbox vertically so each control gets
-        // the full row width instead of being squeezed off-screen.
         "@media (max-width: 768px)": {
             flexDirection: "column",
             alignItems: "stretch",
@@ -48,8 +33,6 @@ export const useExchangeInitiationStyles = makeStyles({
         alignItems: "center",
         gap: tokens.spacingHorizontalS,
         minWidth: 0,
-        // Phones: switch + dropdown stack rather than sit side-by-side,
-        // matching the parent's vertical layout.
         "@media (max-width: 768px)": {
             flexDirection: "column",
             alignItems: "stretch",
@@ -59,9 +42,6 @@ export const useExchangeInitiationStyles = makeStyles({
     exchangeDocumentsDropdown: {
         marginRight: tokens.spacingHorizontalXXXL,
         minWidth: "100px",
-        // Phones: take full available width and drop the right margin
-        // (which was there to visually separate it from the sibling
-        // Required checkbox in the horizontal layout).
         "@media (max-width: 768px)": {
             marginRight: 0,
             width: "100%",
@@ -85,44 +65,6 @@ export const useExchangeInitiationStyles = makeStyles({
     dialogContent: {
         paddingTop: "0"
     },
-    dialogContentTransitionFrame: {
-        minWidth: 0,
-        animationFillMode: "both",
-        willChange: "opacity, transform",
-        "@media (prefers-reduced-motion: reduce)": {
-            animationName: "none",
-            animationDuration: "0ms",
-            transform: "none",
-        },
-    },
-    dialogContentSlideInFromRight: {
-        animationName: {
-            from: {
-                opacity: 0,
-                transform: "translateX(28px)",
-            },
-            to: {
-                opacity: 1,
-                transform: "translateX(0)",
-            },
-        },
-        animationDuration: "190ms",
-        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
-    },
-    dialogContentSlideInFromLeft: {
-        animationName: {
-            from: {
-                opacity: 0,
-                transform: "translateX(-28px)",
-            },
-            to: {
-                opacity: 1,
-                transform: "translateX(0)",
-            },
-        },
-        animationDuration: "190ms",
-        animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
-    },
     dialogTitle1: {
         display: "flex",
         justifyContent: "space-between",
@@ -137,36 +79,6 @@ export const useExchangeInitiationStyles = makeStyles({
         gap: tokens.spacingHorizontalL,
         flexDirection: "column",
     },
-    exchangeInitiationSuccess: {
-        minHeight: "200px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalL,
-    },
-    exchangeSuccessDetails: {
-        display: "grid",
-        gridTemplateColumns: "auto 1fr",
-        columnGap: tokens.spacingHorizontalM,
-        rowGap: tokens.spacingVerticalS,
-        width: "100%",
-        maxWidth: "440px",
-        padding: tokens.spacingHorizontalM,
-        borderRadius: tokens.borderRadiusMedium,
-        backgroundColor: tokens.colorNeutralBackground2,
-    },
-    exchangeSuccessActions: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        alignItems: "center",
-        marginBottom: tokens.spacingVerticalL
-    },
-    errorMessagesGroup: {
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalS,
-    },
     iconDeleteFilled: {
         color: tokens.colorPaletteRedForeground1,
     },
@@ -178,9 +90,6 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     dialogContentContainer: {
         minHeight: "460px",
-        // Phones: don't force a 460px min-height (some phones in
-        // landscape barely have that vertical room) and never allow the
-        // form to push the dialog wider than the viewport.
         "@media (max-width: 768px)": {
             minHeight: "auto",
             minWidth: 0,
@@ -188,11 +97,6 @@ export const useExchangeInitiationStyles = makeStyles({
         },
     },
 
-    /**
-     * Mobile-only: the selected tab's full label rendered above the tab
-     * content. On phone viewports the tabs themselves collapse to
-     * icon-only buttons; this title keeps the user oriented.
-     */
     mobileSelectedTabTitle: {
         display: "block",
         marginTop: tokens.spacingVerticalXS,
@@ -223,41 +127,6 @@ export const useExchangeInitiationStyles = makeStyles({
         padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
         minHeight: "32px",
         cursor: "text",
-    },
-    variableOverridesPanel: {
-        padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
-        border: `1px solid ${tokens.colorBrandStroke2}`,
-        borderRadius: tokens.borderRadiusXLarge,
-        background: tokens.colorNeutralBackground2,
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacingHorizontalS,
-        marginBottom: tokens.spacingVerticalM,
-    },
-    variableOverridesSubtext: {
-        color: tokens.colorNeutralForeground3,
-    },
-    variableOverridesRow: {
-        display: "flex",
-        gap: tokens.spacingHorizontalS,
-        alignItems: "center",
-    },
-    variableOverridesLabel: {
-        minWidth: "120px",
-        fontFamily: "monospace",
-    },
-    variableOverridesInput: {
-        flex: 1,
-        padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
-        borderRadius: tokens.borderRadiusMedium,
-        border: `1px solid ${tokens.colorNeutralStroke1}`,
-        background: tokens.colorNeutralBackground1,
-        color: "inherit",
-    },
-    saveBlueprintBackRow: {
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacingHorizontalS,
     },
     blueprintPickerContainer: {
         display: "flex",
@@ -364,7 +233,7 @@ export const useExchangeInitiationStyles = makeStyles({
     },
     saveBlueprintErrorText: {
         color: tokens.colorPaletteRedForeground1,
-        fontSize: "12px",
+        fontSize: tokens.fontSizeBase200,
     },
     saveBlueprintActions: {
         display: "flex",

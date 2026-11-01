@@ -27,7 +27,7 @@ const getStepDetail = (step: WorkflowStepSpecDraft): string =>
     if (step.type === "APPROVAL")
     {
         const assigneeCount = step.assignees.length;
-        return `${assigneeCount} ${assigneeCount === 1 ? "assignee" : "assignees"}, ${step.quorum.kind.toLowerCase().replaceAll("_", " ")} quorum`;
+        return `${assigneeCount} ${assigneeCount === 1 ? "assignee" : "assignees"}, ${step.quorum.kind.toLowerCase().replace(/_/g, " ")} quorum`;
     }
 
     if (step.type === "NOTIFICATION")

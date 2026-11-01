@@ -2,6 +2,8 @@ package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.workflow.*
+import com.docuhyphen.app.api.model.workflow.WorkflowDefinitionScope
+import com.docuhyphen.app.api.model.workflow.WorkflowValidationError
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import org.junit.jupiter.api.Assertions.*
@@ -11,11 +13,6 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Structural and referenced-resource validation for [WorkflowSpecValidator.validate]. Proves that a
- * definition which would fail open, stall, or auto-complete at runtime is rejected before it can be
- * saved, and that every rejection carries a stable code and field path.
- */
 class WorkflowSpecValidatorStructureTest
 {
     private val triggerRepository: WorkflowTriggerEventRepository = mock()
@@ -30,8 +27,6 @@ class WorkflowSpecValidatorStructureTest
 
     private val creatorId = UUID.randomUUID()
     private val orgId = UUID.randomUUID()
-
-    // ── structural ───────────────────────────────────────────────────────────────
 
     @Test
     fun `rejects an empty definition`()
@@ -64,8 +59,6 @@ class WorkflowSpecValidatorStructureTest
     @Test
     fun `rejects a step with no path to end`()
     {
-        // 0 -> 1 -> 0 loops with no terminal edge; both are flagged for having no path to END
-        // (and the cycle is detected too).
         val spec = WorkflowSpec(
             steps = listOf(
                 notification(onApprove = "1"),
@@ -88,8 +81,6 @@ class WorkflowSpecValidatorStructureTest
         )
         assertDoesNotThrow { validator.validate(spec, TRIGGER, null) }
     }
-
-    // ── approval + quorum ─────────────────────────────────────────────────────────
 
     @Test
     fun `rejects an approval step with no assignees`()
@@ -127,8 +118,6 @@ class WorkflowSpecValidatorStructureTest
         )
         assertDoesNotThrow { validator.validate(spec, TRIGGER, null) }
     }
-
-    // ── escalation + SLA ────────────────────────────────────────────────────────
 
     @Test
     fun `rejects escalation without an SLA`()
@@ -183,8 +172,6 @@ class WorkflowSpecValidatorStructureTest
         assertTrue(codes(spec).contains("WORKFLOW_REMINDER_INTERVAL_INVALID"))
     }
 
-    // ── assignee well-formedness ───────────────────────────────────────────────────
-
     @Test
     fun `rejects a malformed principal assignee`()
     {
@@ -202,8 +189,6 @@ class WorkflowSpecValidatorStructureTest
         assertTrue(codes(spec).contains("WORKFLOW_ASSIGNEE_MALFORMED"))
     }
 
-    // ── condition branches ────────────────────────────────────────────────────────
-
     @Test
     fun `rejects a condition step missing a branch`()
     {
@@ -220,8 +205,6 @@ class WorkflowSpecValidatorStructureTest
         )
         assertTrue(codes(spec).contains("WORKFLOW_CONDITION_MISSING_BRANCH"))
     }
-
-    // ── action handlers ────────────────────────────────────────────────────────────
 
     @Test
     fun `rejects an action step with no handler`()
@@ -266,8 +249,6 @@ class WorkflowSpecValidatorStructureTest
         assertTrue(codes(spec).contains("WORKFLOW_WEBHOOK_ENDPOINT_INVALID"))
     }
 
-    // ── referenced communications ──────────────────────────────────────────────────
-
     @Test
     fun `rejects a notification referencing a missing communication`()
     {
@@ -305,8 +286,6 @@ class WorkflowSpecValidatorStructureTest
         assertEquals("WORKFLOW_COMMUNICATION_OUT_OF_SCOPE", error.code)
     }
 
-    // ── accepts a fully valid multi-type definition ─────────────────────────────────
-
     @Test
     fun `accepts a valid approval condition notification action and wait definition`()
     {
@@ -342,8 +321,6 @@ class WorkflowSpecValidatorStructureTest
             validator.validate(spec, TRIGGER, WorkflowDefinitionScope(WorkflowScope.PERSONAL, orgId, creatorId))
         }
     }
-
-    // ── helpers ─────────────────────────────────────────────────────────────────────
 
     private fun codes(spec: WorkflowSpec): Set<String> =
         assertThrows(WorkflowSpecValidationException::class.java) {

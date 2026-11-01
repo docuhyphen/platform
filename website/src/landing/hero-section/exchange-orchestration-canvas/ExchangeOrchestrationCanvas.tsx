@@ -29,37 +29,43 @@ export function ExchangeOrchestrationCanvas()
                 id="orchestration-node-participants"
                 label="Participants"
                 className={mergeClasses(styles.node, styles.nodeParticipants)}
-                icon={<PeopleTeam24Regular aria-hidden="true"/>}
+                icon={<PeopleTeam24Regular id={"exchange-orchestration-canvas-people-team24-regular-1"}
+                                           aria-hidden="true"/>}
             />
             <OrchestrationNode
                 id="orchestration-node-documents"
                 label="Documents"
                 className={mergeClasses(styles.node, styles.nodeDocuments)}
-                icon={<DocumentText24Regular aria-hidden="true"/>}
+                icon={<DocumentText24Regular id={"exchange-orchestration-canvas-document-text24-regular-1"}
+                                             aria-hidden="true"/>}
             />
             <OrchestrationNode
                 id="orchestration-node-workflows"
                 label="Workflows"
                 className={mergeClasses(styles.node, styles.nodeWorkflows)}
-                icon={<BranchFork24Regular aria-hidden="true"/>}
+                icon={<BranchFork24Regular id={"exchange-orchestration-canvas-branch-fork24-regular-1"}
+                                           aria-hidden="true"/>}
             />
             <OrchestrationNode
                 id="orchestration-node-notifications"
                 label="Notifications"
                 className={mergeClasses(styles.node, styles.nodeNotifications)}
-                icon={<MailAlert24Regular aria-hidden="true"/>}
+                icon={<MailAlert24Regular id={"exchange-orchestration-canvas-mail-alert24-regular-1"}
+                                          aria-hidden="true"/>}
             />
             <OrchestrationNode
                 id="orchestration-node-audit"
                 label="Audit trail"
                 className={mergeClasses(styles.node, styles.nodeAudit)}
-                icon={<History24Regular aria-hidden="true"/>}
+                icon={<History24Regular id={"exchange-orchestration-canvas-history24-regular-1"}
+                                        aria-hidden="true"/>}
             />
             <OrchestrationNode
                 id="orchestration-node-integrations"
                 label="Integrations"
                 className={mergeClasses(styles.node, styles.nodeIntegrations)}
-                icon={<PlugConnected24Regular aria-hidden="true"/>}
+                icon={<PlugConnected24Regular id={"exchange-orchestration-canvas-plug-connected24-regular-1"}
+                                              aria-hidden="true"/>}
             />
 
             <ExchangeWorkspaceCard/>
@@ -69,7 +75,7 @@ export function ExchangeOrchestrationCanvas()
                 className={mergeClasses(styles.eventChip, styles.eventApproved)}
                 aria-hidden="true"
             >
-                <CheckmarkCircle24Filled/>
+                <CheckmarkCircle24Filled id={"exchange-orchestration-canvas-checkmark-circle24-filled-1"}/>
                 Approved
             </div>
             <div
@@ -77,7 +83,7 @@ export function ExchangeOrchestrationCanvas()
                 className={mergeClasses(styles.eventChip, styles.eventAudit)}
                 aria-hidden="true"
             >
-                <History24Regular/>
+                <History24Regular id={"exchange-orchestration-canvas-history24-regular-2"}/>
                 Audit recorded
             </div>
         </div>

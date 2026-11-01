@@ -30,7 +30,7 @@ import {
 import InformationRequestRespondentWorkspace from "./InformationRequestRespondentWorkspace.tsx";
 import {evidenceSuffix, FIRST, noFiles, panelId, readFor, requestPath} from "./testing/respondentChangeFixture.tsx";
 
-vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: () => null}));
+vi.mock("./account-link-offer/AccountLinkOffer.tsx", () => ({default: (): null => null}));
 
 const EXPIRED = {
     reasonCode: "INFORMATION_REQUEST_ACCESS_SESSION_EXPIRED",

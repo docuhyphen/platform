@@ -1,21 +1,18 @@
 ﻿import {DocumentDetailedDto, ExchangeDetailedDto} from "../../../models/models.tsx";
-import React, {useEffect, useState} from "react";
-import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
-import {deleteExchangeDocument} from "../../../../services/exchangeApi.ts";
+import React from "react";
 import {
-    Button,
     Dialog,
     DialogActions,
     DialogBody,
     DialogContent,
     DialogSurface,
     DialogTitle,
-    DialogTrigger,
     MessageBar,
     MessageBarBody,
-    Spinner,
     Text
 } from "@fluentui/react-components";
+import {useExchangeDocumentDeletion} from "./useExchangeDocumentDeletion.ts";
+import ExchangeDocumentDeleteActions from "./exchange-document-delete-actions/ExchangeDocumentDeleteActions.tsx";
 
 interface DeleteDocumentDialogProps
 {
@@ -35,132 +32,36 @@ const ExchangeDocumentDeleteDialog: React.FC<DeleteDocumentDialogProps> = (
         onDocumentDeleted
     }) =>
 {
-    const [deletingDocument, setDeletingDocument] = React.useState(false);
-    const [deleteStarted, setDeleteStarted] = React.useState(false);
-    const [countdown, setCountdown] = React.useState(10);
-    const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-    const globalStyles = useGlobalStyles();
-    const [dialogErrorMessage, setDialogErrorMessage] = useState<string | null>(null);
-
-    useEffect(() =>
-    {
-        if (isOpen) setDialogErrorMessage(null);
-    }, [isOpen]);
-
-    const onDelete = () =>
-    {
-        setDeleteStarted(true);
-        setCountdown(10);
-
-        timerRef.current = setInterval(() =>
-        {
-            setCountdown(prevCountdown =>
-            {
-                if (prevCountdown <= 1)
-                {
-                    clearInterval(timerRef.current!);
-                    completeDeletion();
-                    return 0;
-                }
-                return prevCountdown - 1;
-            });
-        }, 1000);
-    };
-
-    const onCancel = () =>
-    {
-        if (timerRef.current)
-        {
-            clearInterval(timerRef.current);
-        }
-        setDeleteStarted(false);
-        setCountdown(10);
-    };
-
-    const onDismiss = () =>
-    {
-        if (timerRef.current)
-        {
-            clearInterval(timerRef.current);
-        }
-        setDeleteStarted(false);
-        setCountdown(10);
-        onClose();
-    };
-
-    const completeDeletion = async () =>
-    {
-        setDeletingDocument(true);
-
-        try
-        {
-            await deleteExchangeDocument(exchange.id, exchangeDocument.id);
-            onDocumentDeleted(exchangeDocument.id);
-        }
-        catch (error)
-        {
-            setDialogErrorMessage("Error deleting document");
-            console.error("Error deleting document:", error);
-        }
-        finally
-        {
-            setDeletingDocument(false);
-            setDeleteStarted(false);
-            onClose();
-        }
-    };
+    const deletion = useExchangeDocumentDeletion(isOpen, exchange, exchangeDocument, onDocumentDeleted, onClose);
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Deleting {exchangeDocument && exchangeDocument.title}</DialogTitle>
-                    <DialogContent>
-                        {dialogErrorMessage && (
-                            <MessageBar intent="error">
-                                <MessageBarBody>
-                                    <Text size={200}>{dialogErrorMessage}</Text>
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"exchange-document-delete-dialog-dialog-surface-1"}>
+                <DialogBody id={"exchange-document-delete-dialog-dialog-body-1"}>
+                    <DialogTitle id={"exchange-document-delete-dialog-dialog-title-1"}>Deleting {exchangeDocument && exchangeDocument.title}</DialogTitle>
+                    <DialogContent id={"exchange-document-delete-dialog-dialog-content-1"}>
+                        {deletion.dialogErrorMessage && (
+                            <MessageBar id={"exchange-document-delete-dialog-message-bar-1"}
+                                        intent="error">
+                                <MessageBarBody id={"exchange-document-delete-dialog-message-bar-body-1"}>
+                                    <Text id={"exchange-document-delete-dialog-text-1"}
+                                          size={200}>{deletion.dialogErrorMessage}</Text>
                                 </MessageBarBody>
                             </MessageBar>
                         )}
-                        {deleteStarted ? (
-                            <div>Deleting in {countdown} seconds...</div>
+                        {deletion.deleteStarted ? (
+                            <div id={"exchange-document-delete-dialog-div-1"}>Deleting in {deletion.countdown} seconds...</div>
                         ) : (
-                            <div>Are you sure you want to delete this document?</div>
+                            <div id={"exchange-document-delete-dialog-div-2"}>Are you sure you want to delete this document?</div>
                         )}
                     </DialogContent>
-                    <DialogActions>
-                        {deleteStarted ? (
-                            <Button
-                                id="document-delete-countdown-cancel-btn"
-                                appearance="primary"
-                                shape="circular"
-                                onClick={onCancel}>
-                                Cancel
-                            </Button>
-                        ) : (
-                            <>
-                                <Button
-                                    id="document-delete-confirm-btn"
-                                    appearance="primary"
-                                    className={globalStyles.buttonWithLoading}
-                                    shape="circular"
-                                    onClick={onDelete}>
-                                    {deletingDocument && <Spinner size="tiny"/>}
-                                    Yes, Delete
-                                </Button>
-                                <DialogTrigger disableButtonEnhancement>
-                                    <Button
-                                        id="document-delete-cancel-btn"
-                                        appearance="secondary"
-                                        shape="circular"
-                                        disabled={deletingDocument}
-                                        onClick={onDismiss}>
-                                        No, Cancel
-                                    </Button>
-                                </DialogTrigger>
-                            </>
-                        )}
+                    <DialogActions id={"exchange-document-delete-dialog-dialog-actions-1"}>
+                        <ExchangeDocumentDeleteActions deleteStarted={deletion.deleteStarted}
+                                                       deletingDocument={deletion.deletingDocument}
+                                                       onDelete={deletion.onDelete}
+                                                       onCancel={deletion.onCancel}
+                                                       onDismiss={deletion.onDismiss}/>
                     </DialogActions>
                 </DialogBody>
             </DialogSurface>

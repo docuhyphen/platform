@@ -1,5 +1,4 @@
 /** @vitest-environment jsdom */
-import React from 'react';
 import {act, render, screen, waitFor} from '@testing-library/react';
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {ExchangeBasicDto, ExchangeDetailedDto, ExchangeStatus} from '../../../models/models.tsx';
@@ -25,12 +24,20 @@ const activeExchange: ExchangeBasicDto = {
     id: 'exchange-1',
     createdDate: '2026-08-01T12:00:00Z',
     lastActivity: '2026-08-01T12:00:00Z',
-    name: 'Loan Application Package',
+    name: 'Onboarding Document Package',
     status: ExchangeStatus.ACCEPTED_STARTED,
 };
 
-const endedExchange: ExchangeDetailedDto = {
+const endedExchange: ExchangeBasicDto = {
     ...activeExchange,
+    status: ExchangeStatus.ENDED,
+};
+
+const endedExchangeDetails: ExchangeDetailedDto = {
+    id: activeExchange.id,
+    createdDate: activeExchange.createdDate,
+    lastActivity: activeExchange.lastActivity,
+    name: activeExchange.name,
     endDate: '2026-08-01T13:00:00Z',
     status: ExchangeStatus.ENDED,
     documents: [],
@@ -72,10 +79,10 @@ describe('ExchangeList lifecycle transitions', () =>
             />,
         );
 
-        await screen.findByText('Loan Application Package');
+        await screen.findByText('Onboarding Document Package');
         onSelectionChange.mockClear();
 
-        act(() => publishExchangeUpdate(endedExchange));
+        act(() => publishExchangeUpdate(endedExchangeDetails));
 
         rerender(
             <ExchangeList

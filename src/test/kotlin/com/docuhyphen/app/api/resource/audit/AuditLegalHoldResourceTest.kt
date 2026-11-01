@@ -2,10 +2,10 @@ package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.service.audit.*
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.ws.rs.core.Response
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -29,8 +29,7 @@ class AuditLegalHoldResourceTest
         whenever(legalHoldService.releaseHold(holdId, organizationId, principal.id))
             .thenThrow(AuditLegalHoldNotFoundException())
         val resource = AuditOrganizationLegalHoldResource(
-            authorizationService,
-            contextFactory,
+            AuditLegalHoldAccessService(AuditAccessAuthorizer(authorizationService, contextFactory), legalHoldService),
             legalHoldService,
         )
 
@@ -51,8 +50,7 @@ class AuditLegalHoldResourceTest
         whenever(legalHoldService.releaseHold(holdId, null, principal.id))
             .thenThrow(AuditLegalHoldNotFoundException())
         val resource = AuditGovernanceResource(
-            authorizationService,
-            contextFactory,
+            AuditAccessAuthorizer(authorizationService, contextFactory),
             mock<AuditRetentionPolicyService>(),
             legalHoldService,
             mock<AuditAnalyticsReconciliationService>(),

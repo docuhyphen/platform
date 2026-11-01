@@ -57,9 +57,9 @@ describe("AuditEventDetail", () =>
                     actorRole: "APP_USER",
                     eventTypeKey: "document.preview",
                     payload: {
-                        document_title: "Bank Statements (3 Months)",
+                        document_title: "Activity Statements (3 Months)",
                         exchange_id: "8358a44e-7c2f-4ea9-947e-b9e595498386",
-                        exchange_name: "Quarterly Finance Review",
+                        exchange_name: "Quarterly Operations Review",
                     },
                 }}
                 open={true}
@@ -74,7 +74,7 @@ describe("AuditEventDetail", () =>
         expect(screen.getByText("Successful")).toBeTruthy();
         expect(screen.getByText("Document title:")).toBeTruthy();
         expect(screen.getByText("Exchange:")).toBeTruthy();
-        expect(screen.getByText("Quarterly Finance Review")).toBeTruthy();
+        expect(screen.getByText("Quarterly Operations Review")).toBeTruthy();
         expect(screen.queryByText("document.preview")).toBeFalsy();
         expect(screen.queryByText("document_title:")).toBeFalsy();
         expect(screen.queryByText("Exchange name:")).toBeFalsy();
@@ -90,7 +90,7 @@ describe("AuditEventDetail", () =>
                 event={{
                     ...event,
                     targetType: "DOCUMENT",
-                    targetLabel: "Bank Statements (3 Months)",
+                    targetLabel: "Activity Statements (3 Months)",
                     payload: {
                         document_id: "8358a44e-7c2f-4ea9-947e-b9e595498386",
                     },
@@ -103,7 +103,7 @@ describe("AuditEventDetail", () =>
         fireEvent.click(screen.getByText("More info"));
 
         expect(screen.getByText("Document:")).toBeTruthy();
-        expect(screen.getAllByText("Bank Statements (3 Months)").length).toBeGreaterThan(0);
+        expect(screen.getAllByText("Activity Statements (3 Months)").length).toBeGreaterThan(0);
         expect(screen.queryByText("8358a44e-7c2f-4ea9-947e-b9e595498386")).toBeFalsy();
     });
 

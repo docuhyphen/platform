@@ -13,7 +13,7 @@ import com.docuhyphen.app.api.repository.recordpreservation.RecordDisposalClaimR
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldEventRepository
 import com.docuhyphen.app.api.repository.recordpreservation.RecordPreservationHoldRepository
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional

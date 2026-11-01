@@ -23,7 +23,7 @@ const summary = (id: string, name: string, scope: "PERSONAL" | "ORG" | "PLATFORM
     isActive: true,
     isPublished: true,
     isTemplate: false,
-    generalTags: [],
+    generalTags: [] as string[],
     createdAt: "2026-08-01T08:00:00Z",
     updatedAt: "2026-08-01T08:00:00Z",
 });

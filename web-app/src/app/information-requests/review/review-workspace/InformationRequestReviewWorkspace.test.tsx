@@ -24,6 +24,7 @@ import {
     InformationRequestReviewTieResolution,
     InformationRequestReviewVisibility,
     InformationRequestState,
+    PlanCode,
 } from "../../../models/models.tsx";
 import {requestStepUp} from "../../../../services/stepUpBroker.ts";
 import {getInformationRequestResponseWorkspace} from "../../../../services/informationRequestRuntimeService.ts";
@@ -141,7 +142,7 @@ const availability = (isAvailable: boolean) => ({
     isEnforced: true,
     isDiscoverable: isAvailable,
     isAvailable,
-    upgradePlanCode: null,
+    upgradePlanCode: null as PlanCode | null,
 });
 
 const renderWorkspace = () => render(

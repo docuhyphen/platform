@@ -2,8 +2,8 @@ import {useEffect, useMemo, useRef, useState} from "react";
 import {Spinner} from "@fluentui/react-components";
 import {WorkflowInstanceDetailDto} from "../../../../models/models.tsx";
 import {buildInstanceGraph} from "../../../../settings/workflows-tab/workflow-graph/workflowInstanceGraphAdapter.ts";
-import {WorkflowGraphPreview} from "../../../../settings/workflows-tab/workflow-graph/WorkflowGraphPreview.tsx";
-import {WorkflowGraphErrorBoundary} from "../../../../settings/workflows-tab/workflow-graph/WorkflowGraphErrorBoundary.tsx";
+import {WorkflowGraphPreview} from "../../../../settings/workflows-tab/workflow-graph/workflow-graph-preview/WorkflowGraphPreview.tsx";
+import {WorkflowGraphErrorBoundary} from "../../../../settings/workflows-tab/workflow-graph/workflow-graph-error-boundary/WorkflowGraphErrorBoundary.tsx";
 import {useWorkflowInstanceDiagramStyles} from "./WorkflowInstanceDiagramStyles.tsx";
 
 interface Props
@@ -12,13 +12,6 @@ interface Props
     onViewTimeline: () => void;
 }
 
-/**
- * Builds the frozen instance graph and renders it through the shared read-only
- * renderer. The adapter runs inside the graph error boundary (Decision 16) so a
- * malformed snapshot falls back to Timeline instead of throwing to the tab. The
- * Exchange view opens in a top-to-bottom layout by default, but each diagram can
- * be switched to a horizontal layout from its own checkbox.
- */
 const InstanceGraphBody = ({instance, onViewTimeline}: Props) =>
 {
     const graph = useMemo(() => buildInstanceGraph(instance), [instance]);
@@ -33,12 +26,6 @@ const InstanceGraphBody = ({instance, onViewTimeline}: Props) =>
     );
 };
 
-/**
- * Lazy-mounts each Exchange workflow diagram (Decision 14): the heavy graph
- * library and adapter only run once the section scrolls into view, so stacked
- * off-screen instances do not all mount eagerly. Each diagram is isolated by its
- * own error boundary that directs the user to Timeline.
- */
 const WorkflowInstanceDiagram = ({instance, onViewTimeline}: Props) =>
 {
     const styles = useWorkflowInstanceDiagramStyles();
@@ -77,8 +64,10 @@ const WorkflowInstanceDiagram = ({instance, onViewTimeline}: Props) =>
                                        onViewTimeline={onViewTimeline} />
                 </WorkflowGraphErrorBoundary>
             ) : (
-                <div className={styles.placeholder}>
-                    <Spinner size="small"
+                <div id={"workflow-instance-diagram-div-1"}
+                     className={styles.placeholder}>
+                    <Spinner id={"workflow-instance-diagram-spinner-1"}
+                             size="small"
                              label="Preparing diagram" />
                 </div>
             )}

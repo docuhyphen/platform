@@ -11,12 +11,11 @@ import {
     Input,
     Spinner
 } from "@fluentui/react-components";
-import React, {useState} from "react";
-import {useAuth} from "../../../../context/AuthContext.tsx";
+import React from "react";
 import {OrganizationDetailedDto} from "../../../models/models.tsx";
-import {updateOrganization} from "../../../../services/organizationApi.ts";
 import {useOrganizationEditDialogStyles} from "./OrganizationDetailsEditDialogStyles.tsx";
 import {useGlobalStyles} from "../../../../GlobalStyles.tsx";
+import {useOrganizationDetailsForm} from "./useOrganizationDetailsForm.ts";
 
 interface OrganizationDetailsEditDialogProps
 {
@@ -34,135 +33,66 @@ const OrganizationDetailsEditDialog: React.FC<OrganizationDetailsEditDialogProps
         onComplete
     }) =>
 {
-    const styles = useOrganizationEditDialogStyles()
-    const globalStyles = useGlobalStyles()
-    const {token} = useAuth();
-    const [organizationName, setOrganizationName] = useState(organization?.name || "");
-    const [registrationNumber, setRegistrationNumber] = useState(organization?.registrationNumber || "");
-    const [savingData, setSavingData] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const extractErrorMessage = (e: unknown): string =>
-    {
-        if (typeof e === "string") return e;
-        const error = e as { errorMessage?: string; message?: string; response?: { data?: { errorMessage?: string; message?: string } } };
-        const msg = error.errorMessage || error.message || error.response?.data?.errorMessage || error.response?.data?.message;
-        if (msg) return msg;
-        return "Something went wrong. Please try again in a moment.";
-    }
-
-    const handleSave = async () =>
-    {
-        if (!organization?.id) return;
-
-        if (!organizationName.trim())
-        {
-            setError("Organization name is required");
-            return;
-        }
-
-        if (!registrationNumber.trim())
-        {
-            setError("Registration number is required");
-            return;
-        }
-
-        setSavingData(true);
-        setError(null);
-
-        try
-        {
-            await updateOrganization(
-                organization.id,
-                {
-                    name: organizationName.trim(),
-                    registrationNumber: registrationNumber.trim()
-                },
-                token || undefined
-            );
-
-            const updatedOrganization = {
-                ...organization,
-                name: organizationName.trim(),
-                registrationNumber: registrationNumber.trim()
-            };
-
-            onComplete(updatedOrganization);
-            onClose();
-        }
-        catch (err: unknown)
-        {
-            setError(extractErrorMessage(err));
-            console.error("Failed to update organization details:", err);
-        }
-        finally
-        {
-            setSavingData(false);
-        }
-    };
-
-    const onClose = () =>
-    {
-        setOrganizationName(organization?.name || "");
-        setRegistrationNumber(organization?.registrationNumber || "");
-        setError(null);
-        onDismiss();
-    };
-
-    const hasChanges =
-        organizationName !== organization?.name ||
-        registrationNumber !== organization?.registrationNumber;
+    const styles = useOrganizationEditDialogStyles();
+    const globalStyles = useGlobalStyles();
+    const form = useOrganizationDetailsForm({organization, onDismiss, onComplete});
 
     return (
-        <Dialog modalType="alert" open={isOpen}>
-            <DialogSurface>
-                <DialogBody>
-                    <DialogTitle>Update Organization Details</DialogTitle>
-                    <DialogContent className={styles.dialogContentContainer}>
-                        { error && <div className={styles.errorContainer}>{error}</div>}
+        <Dialog modalType="alert"
+                open={isOpen}>
+            <DialogSurface id={"organization-details-edit-dialog-dialog-surface-1"}>
+                <DialogBody id={"organization-details-edit-dialog-dialog-body-1"}>
+                    <DialogTitle id={"organization-details-edit-dialog-dialog-title-1"}>Update Organization Details</DialogTitle>
+                    <DialogContent id={"organization-details-edit-dialog-dialog-content-1"}
+                                   className={styles.dialogContentContainer}>
+                        {form.error && <div id={"organization-details-edit-dialog-div-1"}
+                                            className={styles.errorContainer}>{form.error}</div>}
 
-                        <Field label="Organization Name">
+                        <Field id={"organization-details-edit-dialog-field-1"}
+                               label="Organization Name">
                             <Input
                                 id={"input-org-name"}
                                 type="text"
-                                value={organizationName}
+                                value={form.organizationName}
                                 maxLength={120}
-                                onChange={(e) => setOrganizationName(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+                                onChange={(e) => form.setOrganizationName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") form.handleSave(); }}
                             />
                         </Field>
 
-                        <Field label="Registration Number">
+                        <Field id={"organization-details-edit-dialog-field-2"}
+                               label="Registration Number">
                             <Input
                                 id={"input-reg-number"}
                                 type="text"
-                                value={registrationNumber}
+                                value={form.registrationNumber}
                                 maxLength={30}
-                                onChange={(e) => setRegistrationNumber(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+                                onChange={(e) => form.setRegistrationNumber(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") form.handleSave(); }}
                             />
                         </Field>
                     </DialogContent>
                 </DialogBody>
-                <DialogActions>
+                <DialogActions id={"organization-details-edit-dialog-dialog-actions-1"}>
                     <Button
                         id={"button-update-org"}
                         appearance="primary"
                         shape="circular"
                         className={globalStyles.buttonWithLoading}
-                        disabled={savingData || !organizationName.trim() || !registrationNumber.trim() || !hasChanges}
-                        onClick={handleSave}
+                        disabled={form.savingData || !form.organizationName.trim() || !form.registrationNumber.trim() || !form.hasChanges}
+                        onClick={form.handleSave}
                     >
-                        {savingData && <Spinner size="tiny"/>}
-                        {savingData ? "Updating…" : "Update"}
+                        {form.savingData && <Spinner id={"organization-details-edit-dialog-spinner-1"}
+                                                     size="tiny"/>}
+                        {form.savingData ? "Updating…" : "Update"}
                     </Button>
                     <DialogTrigger disableButtonEnhancement>
                         <Button
                             id={"button-close-org-edit"}
                             appearance="secondary"
                             shape="circular"
-                            disabled={savingData}
-                            onClick={onClose}
+                            disabled={form.savingData}
+                            onClick={form.onClose}
                         >
                             Close
                         </Button>

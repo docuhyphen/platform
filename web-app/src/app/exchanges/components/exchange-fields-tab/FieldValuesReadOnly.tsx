@@ -6,7 +6,6 @@ import {groupBindingsBySection, toFieldElementId} from './fieldLayoutUtils';
 
 interface Props
 {
-    /** The questions asked of this reader, described as they were served with their answers. */
     bindings: SchemaFieldBindingDto[];
     values: FieldValueDto[];
 }
@@ -24,7 +23,8 @@ const FieldValuesReadOnly = ({bindings, values}: Props) =>
                 <div id={`exchange-field-section-${section.key}`}
                      key={section.key}
                      className={styles.sectionBlock}>
-                    <div className={styles.fieldLane}>
+                    <div id={"field-values-read-only-div-1"}
+                         className={styles.fieldLane}>
                         {section.bindings.map(binding =>
                         {
                             const held = valueLookup.get(binding.fieldContractId);

@@ -43,7 +43,6 @@ const TrustActionDialog = ({action, partnerName, busy, onDismiss, onConfirm}: Tr
 
     return (
         <Dialog
-            id={"trusted-organization-action-dialog-root"}
             open={true}
             onOpenChange={(_, data) => !data.open && onDismiss()}
         >
@@ -76,7 +75,7 @@ const TrustActionDialog = ({action, partnerName, busy, onDismiss, onConfirm}: Tr
                             shape={"circular"}
                             appearance={"primary"}
                             disabled={busy || (reasonRequired && !reason.trim())}
-                            onClick={() => void onConfirm(reason.trim() || undefined)}
+                            onClick={() => { void onConfirm(reason.trim() || undefined); }}
                         >
                             {label.confirm}
                         </Button>

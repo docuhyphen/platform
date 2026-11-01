@@ -84,7 +84,6 @@ const OAuthCallback: React.FC = () =>
                     }
                     catch
                     {
-                        // Organization not found is okay
                     }
                     navigate('/exchanges');
                 }

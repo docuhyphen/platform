@@ -3,8 +3,8 @@ package com.docuhyphen.app.api.service.command
 import com.docuhyphen.app.api.model.command.*
 import com.docuhyphen.app.api.model.entity.CommandReceipt
 import com.docuhyphen.app.api.model.entity.ResourceType
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

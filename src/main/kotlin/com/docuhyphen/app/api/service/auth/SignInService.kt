@@ -3,6 +3,7 @@
 import com.docuhyphen.app.api.exception.*
 import com.docuhyphen.app.api.extension.maskEmailForLogs
 import com.docuhyphen.app.api.extension.normalizeEmailOrNull
+import com.docuhyphen.app.api.model.auth.TokenTriple
 import com.docuhyphen.app.api.model.dto.MfaSessionDto
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationStatus
 import com.docuhyphen.app.api.model.entity.MultifactorAuthenticationType
@@ -76,8 +77,6 @@ class SignInService @Inject constructor(
 
         val appUser = appUserService.findByEmail(sanitizedEmail) ?: throw InvalidSignInCredentialsException()
 
-        // Account state is only revealed after the password is proven. Accounts without a password,
-        // such as external-provider and placeholder accounts, fail exactly like an unknown email.
         val storedPasswordHash = appUser.password
         if (storedPasswordHash.isNullOrBlank() || !authenticationService.validatePassword(password, storedPasswordHash))
         {
@@ -182,7 +181,6 @@ class SignInService @Inject constructor(
             throw OTPExpiredException("Verification code expired.")
         }
 
-        // Track verification attempts
         mfaRecord.attemptCount++
 
         if (mfaRecord.attemptCount > configurationService.getMaxSignInAttempts())
@@ -251,9 +249,6 @@ class SignInService @Inject constructor(
 
         val signedInUser = mfaRecord.appUser!!
 
-        // Re-check eligibility at the moment tokens are minted. An administrator may have
-        // deactivated or deprovisioned the account between the password step and this one, and
-        // that decision must take effect immediately rather than at the next request.
         if (signedInUser.isTemporary && signedInUser.deprovisionedAt == null)
         {
             logger.warn("Sign in completion blocked: temporary account for {}", sanitizedEmail.maskEmailForLogs())
@@ -266,7 +261,6 @@ class SignInService @Inject constructor(
             throw InactiveAccountException()
         }
 
-        // Issue token triple via shared service
         val tokenTriple = tokenIssuanceService.issueTokenTriple(signedInUser, userAgent, ipAddress)
 
         mfaService.removeMfaRecord(mfaRecord)
@@ -348,10 +342,8 @@ class SignInService @Inject constructor(
 
         mfaService.enforceRateLimits(sanitizedEmail, mfaRecord.ipAddress ?: "0.0.0.0")
 
-        // Regenerate OTP and get the plaintext version for sending
         val newOtp = mfaService.regenerateOtp(mfaRecord)
 
-        // Send the new OTP based on MFA type
         when (mfaRecord.mfaType)
         {
             EMAIL ->
@@ -382,7 +374,6 @@ class SignInService @Inject constructor(
 
         return MfaSessionDto().apply {
             this.id = UUID.fromString(mfaRecord.sessionId)
-            // Don't include plaintext OTP in response for security
             this.mfaTokenHashed = mfaRecord.mfaToken
             this.mfaType = mfaRecord.mfaType?.name
         }

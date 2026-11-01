@@ -13,7 +13,7 @@ vi.mock("../../../../services/fieldsService.ts", () => ({
 vi.mock(
     "../../../exchange-initiation/components/exchange-initiation-fields-tab/creationFieldsUtils.ts",
     () => ({
-        buildBlueprintFieldDefaults: () => [],
+        buildBlueprintFieldDefaults: vi.fn(() => []),
         filterEligibleExchangeSchemas: (schemas: unknown[]) => schemas,
     }),
 );

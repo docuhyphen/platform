@@ -9,11 +9,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-/**
- * One denormalized dimensional fact per ledger event, keyed by [ledgerEventId] so projection is
- * idempotent under retry/rebuild. Deliberately carries no payload column - only dimensions safe
- * for aggregation - so it can never copy forward a prohibited field.
- */
 @Entity
 @Table(name = "audit_analytics_fact")
 class AuditAnalyticsFact

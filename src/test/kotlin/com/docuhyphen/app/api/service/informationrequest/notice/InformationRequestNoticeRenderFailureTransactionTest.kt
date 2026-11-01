@@ -16,8 +16,8 @@ import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRe
 import com.docuhyphen.app.api.repository.informationrequest.oversight.InformationRequestHealthRepository
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestOwnerScopeAccess
 import com.docuhyphen.app.api.service.informationrequest.lifecycle.InformationRequestTransitionHistoryService

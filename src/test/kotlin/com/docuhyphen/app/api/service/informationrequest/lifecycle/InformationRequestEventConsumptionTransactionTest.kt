@@ -3,12 +3,13 @@ package com.docuhyphen.app.api.service.informationrequest.lifecycle
 import com.docuhyphen.app.api.migration.execute
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestMutation
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestState
+import com.docuhyphen.app.api.model.notification.DomainEvent
 import com.docuhyphen.app.api.model.notification.DomainEventConsumptionOutcome
 import com.docuhyphen.app.api.repository.informationrequest.InformationRequestRepository
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.review.InformationRequestReviewRepository
 import com.docuhyphen.app.api.repository.notification.DomainEventConsumptionRepository
-import com.docuhyphen.app.api.service.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
 import com.docuhyphen.app.api.service.informationrequest.oversight.InformationRequestOperationsPostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.review.InformationRequestReviewTestSupport

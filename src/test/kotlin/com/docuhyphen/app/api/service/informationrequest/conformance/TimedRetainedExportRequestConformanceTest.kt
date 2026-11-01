@@ -31,9 +31,9 @@ import com.docuhyphen.app.api.repository.informationrequest.record.InformationRe
 import com.docuhyphen.app.api.service.audit.AuditRecorder
 import com.docuhyphen.app.api.service.audit.AuditTargetHistoryService
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestMutationGate
@@ -256,7 +256,7 @@ class TimedRetainedExportRequestConformanceTest
         val refused =
             privacy.submit(privacyCommand(subjectId, InformationRequestPrivacyRequestKind.DELETION, "policy.erasure"))
         assertEquals(InformationRequestErrorCatalog.RECORD_HELD, refused.request.refusalCode)
-        QuarkusTransaction.requiringNew().run { holds.release(ReleaseRecordPreservationHoldCommand(hold.hold.id, recordOwner, "matter closed", owner.principal)) }
+        QuarkusTransaction.requiringNew().run { holds.release(ReleaseRecordPreservationHoldCommand(hold.hold.id, recordOwner, "case closed", owner.principal)) }
         disposalWorker.run()
         assertEquals(0, requestCount(request.requestId))
         dataSource.connection.use { connection ->

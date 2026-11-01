@@ -4,7 +4,7 @@ import com.docuhyphen.app.api.migration.SubmissionRuntimeSqlFixture
 import com.docuhyphen.app.api.model.entity.InformationRequestRecurrence
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.CreateNextInformationRequestOccurrenceCommand
 import com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestSuccessorResult
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.model.InformationRequestRuntimeServices
 import java.util.*
 

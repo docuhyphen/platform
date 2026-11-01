@@ -1,355 +1,403 @@
 package com.docuhyphen.app.api.resource.blueprint
 
+import com.docuhyphen.app.api.exception.RequestValidationException
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
 import com.docuhyphen.app.api.interceptor.AuthTokenContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.model.dto.*
+import com.docuhyphen.app.api.resource.RequestGuards
+import com.docuhyphen.app.api.resource.blueprint.operations.BlueprintDefinitionResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.blueprint.BlueprintDefinitionService
 import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import jakarta.ws.rs.core.Response.Status.*
 import org.slf4j.LoggerFactory
-import java.util.*
 
-/**
- * REST endpoints for blueprint definition management.
- *
- *   GET    /blueprints                     - list accessible blueprints
- *   POST   /blueprints                     - create blueprint
- *   GET    /blueprints/{id}                - get full blueprint
- *   PUT    /blueprints/{id}                - update blueprint
- *   PATCH  /blueprints/{id}/status         - activate / deactivate
- *   PATCH  /blueprints/{id}/published      - publish / unpublish (ORG/APP scope)
- *   DELETE /blueprints/{id}                - soft-delete
- *   POST   /blueprints/{id}/clone          - clone to PERSONAL scope
- */
-@Path("/blueprints")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class BlueprintDefinitionResource @Inject constructor(
     private val authTokenContext: AuthTokenContext,
     private val blueprintService: BlueprintDefinitionService,
-)
+) : BlueprintDefinitionResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(BlueprintDefinitionResource::class.java)
+
+        private const val INVALID_BLUEPRINT_ID = "Invalid blueprint id"
     }
 
-    @GET
-    fun listBlueprints(
-        @QueryParam("scope") scope: String?,
-        @QueryParam("tag") tag: String?,
-        @QueryParam("isTemplate") isTemplate: Boolean?,
+    override fun listBlueprints(
+        scope: String?,
+        tag: String?,
+        isTemplate: Boolean?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
             val items = blueprintService.listBlueprints(scope, tag, isTemplate)
             Response.ok(items.toTypedArray()).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Listing blueprints refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to list blueprints", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list blueprints")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Listing blueprints refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                else ->
+                {
+                    logger.error("Failed to list blueprints", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to list blueprints")).build()
+                }
+            }
         }
     }
 
-    @POST
-    fun createBlueprint(
+    override fun createBlueprint(
         request: CreateBlueprintRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        if (request.name.isBlank())
-        {
-            return Response.status(BAD_REQUEST).entity(ResponseError("name is required")).build()
-        }
-
         return try
         {
+            RequestGuards.requireUser(authTokenContext)
+            RequestGuards.requireNotBlank(request.name, "name is required")
             val dto = blueprintService.createBlueprint(request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Creating a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to create blueprint", e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create blueprint")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Creating a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to create blueprint", exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to create blueprint")).build()
+                }
+            }
         }
     }
 
-    @GET
-    @Path("/{id}")
-    fun getBlueprint(@PathParam("id") id: String): Response
+    override fun getBlueprint(id: String): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.getBlueprint(bpId)
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            val dto = blueprintService.getBlueprint(blueprintId)
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Reading a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            logger.error("Failed to get blueprint {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to get blueprint")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Reading a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Failed to get blueprint {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to get blueprint")).build()
+                }
+            }
         }
     }
 
-    @PUT
-    @Path("/{id}")
-    fun updateBlueprint(
-        @PathParam("id") id: String,
+    override fun updateBlueprint(
+        id: String,
         request: UpdateBlueprintRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.updateBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            val dto = blueprintService.updateBlueprint(blueprintId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Updating a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to update blueprint {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update blueprint")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Updating a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException,
+                is IllegalArgumentException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to update blueprint {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to update blueprint")).build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{id}/status")
-    fun patchBlueprintStatus(
-        @PathParam("id") id: String,
+    override fun patchBlueprintStatus(
+        id: String,
         request: PatchBlueprintStatusRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.patchStatus(bpId, request, AdminApprovalContext(requestId = requestId))
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            val dto = blueprintService.patchStatus(blueprintId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Changing a blueprint status was refused by the subscription plan check: plan={}",
-                e.denial.planCode,
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to patch blueprint status {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch blueprint status")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Changing a blueprint status was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to patch blueprint status {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to patch blueprint status"))
+                        .build()
+                }
+            }
         }
     }
 
-    @PATCH
-    @Path("/{id}/published")
-    fun patchBlueprintPublished(
-        @PathParam("id") id: String,
+    override fun patchBlueprintPublished(
+        id: String,
         request: PatchBlueprintPublishedRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.patchPublished(bpId, request, AdminApprovalContext(requestId = requestId))
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            val dto = blueprintService.patchPublished(blueprintId, request, AdminApprovalContext(requestId = requestId))
             Response.ok(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn(
-                "Publishing a blueprint was refused by the subscription plan check: plan={}",
-                e.denial.planCode,
-            )
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to patch blueprint published {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to patch blueprint published")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Publishing a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to patch blueprint published {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Failed to patch blueprint published"))
+                        .build()
+                }
+            }
         }
     }
 
-    @DELETE
-    @Path("/{id}")
-    fun deleteBlueprint(
-        @PathParam("id") id: String,
-        @HeaderParam("X-Request-Id") requestId: String?,
+    override fun deleteBlueprint(
+        id: String,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            blueprintService.deleteBlueprint(bpId, AdminApprovalContext(requestId = requestId))
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            blueprintService.deleteBlueprint(blueprintId, AdminApprovalContext(requestId = requestId))
             Response.noContent().build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Deleting a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to delete blueprint {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete blueprint")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Deleting a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to delete blueprint {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to delete blueprint")).build()
+                }
+            }
         }
     }
 
-    @POST
-    @Path("/{id}/clone")
-    fun cloneBlueprint(
-        @PathParam("id") id: String,
+    override fun cloneBlueprint(
+        id: String,
         request: CloneBlueprintRequest,
-        @HeaderParam("X-Request-Id") requestId: String?,
+        requestId: String?,
     ): Response
     {
-        authTokenContext.authToken.appUser
-            ?: return Response.status(UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-
-        val bpId = runCatching { UUID.fromString(id) }.getOrElse {
-            return Response.status(BAD_REQUEST).entity(ResponseError("Invalid blueprint id")).build()
-        }
-
         return try
         {
-            val dto = blueprintService.cloneBlueprint(bpId, request, AdminApprovalContext(requestId = requestId))
+            RequestGuards.requireUser(authTokenContext)
+            val blueprintId = RequestGuards.uuid(id, INVALID_BLUEPRINT_ID)
+            val dto = blueprintService.cloneBlueprint(blueprintId, request, AdminApprovalContext(requestId = requestId))
             Response.status(CREATED).entity(dto).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Cloning a blueprint was refused by the subscription plan check: plan={}", e.denial.planCode)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: ForbiddenException)
-        {
-            Response.status(FORBIDDEN).entity(ResponseError(e.message)).build()
-        }
-        catch (e: Exception)
-        {
-            if (e is jakarta.ws.rs.WebApplicationException) throw e
-            logger.error("Failed to clone blueprint {}", id, e)
-            Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone blueprint")).build()
+            when (exception)
+            {
+                is UnauthorizedException ->
+                    Response.status(UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is SubscriptionDenialException ->
+                {
+                    logger.warn(
+                        "Cloning a blueprint was refused by the subscription plan check: plan={}",
+                        exception.denial.planCode,
+                    )
+                    throw exception
+                }
+
+                is RequestValidationException ->
+                    Response.status(BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is WebApplicationException -> throw exception
+
+                else ->
+                {
+                    logger.error("Failed to clone blueprint {}", id, exception)
+                    Response.status(INTERNAL_SERVER_ERROR).entity(ResponseError("Failed to clone blueprint")).build()
+                }
+            }
         }
     }
 }

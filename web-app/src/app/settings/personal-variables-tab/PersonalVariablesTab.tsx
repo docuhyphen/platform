@@ -1,32 +1,13 @@
-import {forwardRef, useEffect, useImperativeHandle, useState} from 'react';
-import {
-    Badge,
-    Button,
-    Drawer,
-    DrawerBody,
-    DrawerHeader,
-    DrawerHeaderTitle,
-    Field,
-    Input,
-    Menu,
-    MenuList,
-    MenuItem,
-    MenuPopover,
-    MenuTrigger,
-    Spinner,
-    Text,
-} from '@fluentui/react-components';
-import {CheckmarkRegular, CopyRegular, DeleteRegular, EditRegular, MoreVerticalRegular} from '@fluentui/react-icons';
-import {CreateVariableRequest, UpdateVariableRequest, VariableDefinitionDto, ViewMode} from '../../models/models';
-import {createVariable, deleteVariable, listVariables, updateVariable} from '../../../services/variableService';
+import {forwardRef, useImperativeHandle} from 'react';
+import {Text} from '@fluentui/react-components';
+import {ViewMode} from '../../models/models';
 import {usePersonalVariablesTabStyles} from './PersonalVariablesTabStyles';
-import {copyText} from '../../utils/copyText';
-
-interface DrawerState
-{
-    open: boolean;
-    editing?: VariableDefinitionDto;
-}
+import {personalVariableIds} from '../variables-tab/variableIds.ts';
+import {useCopiedToken} from '../variables-tab/useCopiedToken.ts';
+import {useVariableList} from '../variables-tab/useVariableList.ts';
+import {useVariableEditor} from '../variables-tab/useVariableEditor.ts';
+import ScopedVariablesList from '../variables-tab/scoped-variables-list/ScopedVariablesList.tsx';
+import VariableDrawer from '../variables-tab/variable-drawer/VariableDrawer.tsx';
 
 export interface PersonalVariablesTabHandle
 {
@@ -41,287 +22,42 @@ interface PersonalVariablesTabProps
 const PersonalVariablesTab = forwardRef<PersonalVariablesTabHandle, PersonalVariablesTabProps>(({viewMode = 'cards'}, ref) =>
 {
     const styles = usePersonalVariablesTabStyles();
-    const [variables, setVariables] = useState<VariableDefinitionDto[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [drawer, setDrawer] = useState<DrawerState>({open: false});
-    const [formKey, setFormKey] = useState('');
-    const [formValue, setFormValue] = useState('');
-    const [formError, setFormError] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
-    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const list = useVariableList('PERSONAL', 'Failed to load personal variables');
+    const editor = useVariableEditor('PERSONAL', list.load);
+    const {copiedToken, copy} = useCopiedToken();
 
-    const load = () =>
-    {
-        setLoading(true);
-        setError(null);
-        listVariables('PERSONAL')
-            .then(setVariables)
-            .catch(() => setError('Failed to load personal variables'))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => { load(); }, []);
-
-    const openCreate = () =>
-    {
-        setFormKey('');
-        setFormValue('');
-        setFormError(null);
-        setDrawer({open: true});
-    };
-
-    useImperativeHandle(ref, () => ({openCreate}));
-
-    const openEdit = (v: VariableDefinitionDto) =>
-    {
-        setFormKey(v.key);
-        setFormValue(v.defaultValue ?? '');
-        setFormError(null);
-        setDrawer({open: true, editing: v});
-    };
-
-    const handleSave = async () =>
-    {
-        if (!formKey.trim()) { setFormError('Key is required'); return; }
-        setSaving(true);
-        setFormError(null);
-        try
-        {
-            if (drawer.editing)
-            {
-                const req: UpdateVariableRequest = {defaultValue: formValue};
-                await updateVariable(drawer.editing.id, req);
-            }
-            else
-            {
-                const req: CreateVariableRequest = {key: formKey.toUpperCase(), defaultValue: formValue, scope: 'PERSONAL'};
-                await createVariable(req);
-            }
-            setDrawer({open: false});
-            load();
-        }
-        catch (e: unknown)
-        {
-            const msg = typeof e === 'object' && e !== null && 'errorMessage' in e
-                ? (e as {errorMessage: string}).errorMessage
-                : 'Failed to save variable';
-            setFormError(msg);
-        }
-        finally
-        {
-            setSaving(false);
-        }
-    };
-
-    const handleDelete = async (v: VariableDefinitionDto) =>
-    {
-        await deleteVariable(v.id).catch(() => null);
-        load();
-    };
-
-    const handleCopy = async (key: string) =>
-    {
-        const copied = await copyText(`{{${key}}}`);
-        if (copied)
-        {
-            setCopiedKey(key);
-            window.setTimeout(() => setCopiedKey(current => current === key ? null : current), 1500);
-        }
-    };
+    useImperativeHandle(ref, () => ({openCreate: editor.openCreate}));
 
     return (
         <>
-            <div className={styles.container}>
+            <div id={"personal-variables-tab-div-1"}
+                 className={styles.container}>
                 <Text
+                    id={"personal-variables-tab-text-1"}
                     size={300}
                     className={styles.descriptionText}
                 >
-                    Private key-value pairs only you can see and use. Override them when creating an exchange.
+                    Private key-value pairs only you can see and use. Override them when creating an Exchange.
                 </Text>
 
-                {loading && <Spinner size="small" label="Loading…"/>}
-                {!loading && error && (
-                    <Text className={styles.errorText}>{error}</Text>
-                )}
-                {!loading && !error && variables.length === 0 && (
-                    <Text className={styles.emptyText}>No personal variables yet.</Text>
-                )}
-                {!loading && !error && variables.length > 0 && viewMode === 'cards' && variables.map(v => (
-                    <div
-                        key={v.id}
-                        className={styles.variableRow}
-                    >
-                        <div className={styles.variableRowInner}>
-                            <Button
-                                id={`button-personal-var-copy-${v.id}`}
-                                size="small"
-                                appearance="subtle"
-                                shape={"circular"}
-                                icon={copiedKey === v.key ? <CheckmarkRegular className={styles.copySuccess}/> : <CopyRegular/>}
-                                aria-label={`Copy variable ${v.key}`}
-                                title={copiedKey === v.key ? 'Copied' : `Copy {{${v.key}}}`}
-                                onClick={() => handleCopy(v.key)}
-                            />
-                            <code className={styles.codeKey}>{v.key}</code>
-                            <Text
-                                size={200}
-                                className={styles.defaultValueText}
-                            >
-                                {v.defaultValue ? `Default: "${v.defaultValue}"` : <em>no default</em>}
-                            </Text>
-                            {!v.isActive && (
-                                <Badge
-                                    appearance="tint"
-                                    color="severe"
-                                    size="small"
-                                >
-                                    Inactive
-                                </Badge>
-                            )}
-                        </div>
-                        <div className={styles.actionGroup}>
-                            <Menu>
-                                <MenuTrigger disableButtonEnhancement>
-                                    <Button
-                                        id={`button-personal-var-menu-${v.id}`}
-                                        size="small"
-                                        appearance="subtle"
-                                        shape={"circular"}
-                                        icon={<MoreVerticalRegular/>}
-                                    />
-                                </MenuTrigger>
-                                <MenuPopover>
-                                    <MenuList>
-                                        <MenuItem
-                                            icon={<EditRegular/>}
-                                            onClick={() => openEdit(v)}
-                                        >
-                                            Edit
-                                        </MenuItem>
-                                        <MenuItem
-                                            icon={<DeleteRegular/>}
-                                            onClick={() => handleDelete(v)}
-                                        >
-                                            Delete
-                                        </MenuItem>
-                                    </MenuList>
-                                </MenuPopover>
-                            </Menu>
-                        </div>
-                    </div>
-                ))}
-                {!loading && !error && variables.length > 0 && viewMode === 'table' && (
-                    <table className={styles.table}>
-                        <thead>
-                            <tr>
-                                <th className={styles.th}>Token</th>
-                                <th className={styles.th}>Default Value</th>
-                                <th className={styles.th}>Active</th>
-                                <th className={styles.th}/>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {variables.map(v => (
-                                <tr key={v.id} className={styles.tr}>
-                                    <td className={styles.td}>
-                                        <div className={styles.tokenCell}>
-                                            <Button
-                                                id={`button-personal-var-copy-table-${v.id}`}
-                                                size="small"
-                                                appearance="subtle"
-                                                shape={"circular"}
-                                                icon={copiedKey === v.key ? <CheckmarkRegular className={styles.copySuccess}/> : <CopyRegular/>}
-                                                aria-label={`Copy variable ${v.key}`}
-                                                title={copiedKey === v.key ? 'Copied' : `Copy {{${v.key}}}`}
-                                                onClick={() => handleCopy(v.key)}
-                                            />
-                                            <code className={styles.codeKey}>{v.key}</code>
-                                        </div>
-                                    </td>
-                                    <td className={styles.td}><Text size={200}>{v.defaultValue || <em>no default</em>}</Text></td>
-                                    <td className={styles.td}><Text size={200}>{v.isActive ? 'Active' : 'Inactive'}</Text></td>
-                                    <td className={styles.td}>
-                                        <Menu>
-                                            <MenuTrigger disableButtonEnhancement>
-                                                <Button
-                                                    id={`button-personal-var-menu-table-${v.id}`}
-                                                    size="small"
-                                                    appearance="subtle"
-                                                    shape="circular"
-                                                    icon={<MoreVerticalRegular/>}
-                                                />
-                                            </MenuTrigger>
-                                            <MenuPopover>
-                                                <MenuList>
-                                                    <MenuItem icon={<EditRegular/>} onClick={() => openEdit(v)}>Edit</MenuItem>
-                                                    <MenuItem icon={<DeleteRegular/>} onClick={() => handleDelete(v)}>Delete</MenuItem>
-                                                </MenuList>
-                                            </MenuPopover>
-                                        </Menu>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
+                <ScopedVariablesList ids={personalVariableIds}
+                                     variables={list.variables}
+                                     loading={list.loading}
+                                     error={list.error}
+                                     emptyText="No personal variables yet."
+                                     viewMode={viewMode}
+                                     canManage={true}
+                                     copiedToken={copiedToken}
+                                     onCopy={copy}
+                                     onEdit={editor.openEdit}
+                                     onDelete={list.remove}/>
             </div>
 
-            <Drawer
-                open={drawer.open}
-                onOpenChange={(_, d) => setDrawer(prev => ({...prev, open: d.open}))}
-                position="end"
-                size="small"
-            >
-                <DrawerHeader>
-                    <DrawerHeaderTitle>{drawer.editing ? 'Edit Variable' : 'New Personal Variable'}</DrawerHeaderTitle>
-                </DrawerHeader>
-                <DrawerBody className={styles.drawerBody}>
-                    <Field
-                        label="Key"
-                        required
-                        hint="Uppercase alphanumeric. Used as {{KEY}} in templates."
-                    >
-                        <Input
-                            id={"input-personal-var-key"}
-                            value={formKey}
-                            onChange={(_, d) => setFormKey(d.value.toUpperCase())}
-                            placeholder="e.g. MY_COMPANY"
-                            disabled={!!drawer.editing}
-                        />
-                    </Field>
-                    <Field label="Default Value">
-                        <Input
-                            id={"input-personal-var-value"}
-                            value={formValue}
-                            onChange={(_, d) => setFormValue(d.value)}
-                            placeholder="e.g. Smith & Co"
-                        />
-                    </Field>
-                    {formError && (
-                        <Text className={styles.errorText}>{formError}</Text>
-                    )}
-                    <div className={styles.buttonRow}>
-                        <Button
-                            id={"button-personal-var-cancel"}
-                            appearance="secondary"
-                            shape={"circular"}
-                            onClick={() => setDrawer({open: false})}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            id={"button-personal-var-save"}
-                            appearance="primary"
-                            shape={"circular"}
-                            onClick={handleSave}
-                            disabled={saving}
-                        >
-                            {saving ? 'Saving…' : 'Save'}
-                        </Button>
-                    </div>
-                </DrawerBody>
-            </Drawer>
+            <VariableDrawer ids={personalVariableIds}
+                            editor={editor}
+                            createTitle="New Personal Variable"
+                            keyPlaceholder="e.g. MY_COMPANY"
+                            valuePlaceholder="e.g. Smith & Co"/>
         </>
     );
 });

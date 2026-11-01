@@ -5,11 +5,6 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-/**
- * An immutable published version of a [FieldDefinition]. Once used by a published Schema Version
- * its value type and semantic meaning must not change; a new contract version is required.
- * See FIELDS-FEATURE.md "Field Contract".
- */
 @Entity
 @Table(name = "field_contract")
 class FieldContract
@@ -39,11 +34,9 @@ class FieldContract
     @Column(name = "help_text", nullable = true, length = 1024)
     var helpText: String? = null
 
-    /** JSON object of type-specific constraints (length, range, precision, pattern, ...). */
     @Column(name = "constraints_json", nullable = false, columnDefinition = "text")
     var constraintsJson: String = "{}"
 
-    /** JSON array of inline options for SINGLE_SELECT / MULTI_SELECT contracts. */
     @Column(name = "options_json", nullable = false, columnDefinition = "text")
     var optionsJson: String = "[]"
 
@@ -63,7 +56,6 @@ class FieldContract
     @Column(name = "is_reportable", nullable = false)
     var isReportable: Boolean = false
 
-    /** JSON array of external system aliases (reserved in the first release). */
     @Column(name = "external_aliases_json", nullable = false, columnDefinition = "text")
     var externalAliasesJson: String = "[]"
 

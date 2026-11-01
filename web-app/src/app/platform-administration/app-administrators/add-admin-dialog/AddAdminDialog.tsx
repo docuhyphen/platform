@@ -76,7 +76,8 @@ const AddAdminDialog = (props: AddAdminDialogProps) =>
                         id={"btn-dialog-add-admin"}
                         appearance={"primary"}
                         shape={"circular"}
-                        icon={state.busy ? <Spinner size={"tiny"}/> : <PersonAddRegular/>}
+                        icon={state.busy ? <Spinner id={"add-admin-dialog-spinner-1"}
+                                                    size={"tiny"}/> : <PersonAddRegular/>}
                         disabled={state.busy || state.selectedCount === 0}
                         onClick={state.handleAdd}>
                         {state.submitLabel}

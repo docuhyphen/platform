@@ -10,9 +10,6 @@ vi.mock("../apiClient.ts", () => ({
     },
 }));
 
-// AuditExportDto shape (see web-app/src/app/models/models.tsx) as actually returned by
-// AuditOrganizationExportsResource.approveOrganizationExport / AuditExportResource.approvePlatformExport
-// - both endpoints return the mutated export, not an approval record.
 const exportResponseBody = {
     exportId: "export-1",
     requestedByUserId: "user-1",
@@ -57,7 +54,7 @@ describe("auditService export approval contract", () =>
 
     it("listPlatformAuditExportApprovals calls the now-existing platform approvals route", async () =>
     {
-        const approvalBody = [{approvedByUserId: "user-2", approvedAt: "2024-03-01T00:00:00Z", note: null}];
+        const approvalBody = [{approvedByUserId: "user-2", approvedAt: "2024-03-01T00:00:00Z", note: null as string | null}];
         get.mockResolvedValueOnce({data: approvalBody});
         const {listPlatformAuditExportApprovals} = await import("../auditService.ts");
 

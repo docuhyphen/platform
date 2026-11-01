@@ -51,7 +51,8 @@ const BillingTrialRequestAction = ({ownerType}: Props) =>
         }
     };
 
-    if (loading) return <Spinner id={"settings-billing-trial-request-loading"} size={"tiny"}/>;
+    if (loading) return <Spinner id={"settings-billing-trial-request-loading"}
+                                 size={"tiny"}/>;
     const pending = state?.request?.status === "PENDING";
     const targetPlan = ownerType === "USER" ? "Personal" : "Business";
     return (
@@ -87,8 +88,9 @@ const BillingTrialRequestAction = ({ownerType}: Props) =>
                     appearance={"primary"}
                     shape={"circular"}
                     disabled={saving}
-                    onClick={() => void submit()}>
-                    {saving ? <Spinner id={"settings-billing-trial-request-saving"} size={"tiny"}/>
+                    onClick={() => { void submit(); }}>
+                    {saving ? <Spinner id={"settings-billing-trial-request-saving"}
+                                       size={"tiny"}/>
                         : `Request ${targetPlan} trial`}
                 </Button>
             )}

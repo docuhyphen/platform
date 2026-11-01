@@ -10,8 +10,8 @@ import com.docuhyphen.app.api.model.fields.FieldsAccessContext
 import com.docuhyphen.app.api.resource.model.AssignSchemaRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.SetFieldValuesRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.fields.FieldsAccessContextFactory
 import com.docuhyphen.app.api.service.fields.FieldsPreconditionException
 import com.docuhyphen.app.api.service.fields.SchemaAssignmentService

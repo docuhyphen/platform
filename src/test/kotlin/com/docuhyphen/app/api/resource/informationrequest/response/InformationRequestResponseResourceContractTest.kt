@@ -15,8 +15,8 @@ import com.docuhyphen.app.api.resource.model.InformationRequestResponseFieldValu
 import com.docuhyphen.app.api.resource.model.InformationRequestResponsePatchRequest
 import com.docuhyphen.app.api.resource.model.PatchInformationRequestResponsesRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestItemRefusalException

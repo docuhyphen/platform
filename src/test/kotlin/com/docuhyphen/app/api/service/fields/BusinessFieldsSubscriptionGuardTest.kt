@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.service.fields
 import com.docuhyphen.app.api.model.entity.FieldScopeKind
 import com.docuhyphen.app.api.service.subscription.PlanFeature
 import com.docuhyphen.app.api.service.subscription.SubscriptionAccessService
-import com.docuhyphen.app.api.service.subscription.SubscriptionContext
+import com.docuhyphen.app.api.model.subscription.SubscriptionContext
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

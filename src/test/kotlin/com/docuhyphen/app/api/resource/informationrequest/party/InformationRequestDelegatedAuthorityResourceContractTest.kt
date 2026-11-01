@@ -13,8 +13,8 @@ import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRe
 import com.docuhyphen.app.api.resource.model.GrantInformationRequestDelegatedAuthorityRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
 import com.docuhyphen.app.api.resource.model.RevokeInformationRequestDelegatedAuthorityRequest
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.command.CommandReceiptConflictException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog

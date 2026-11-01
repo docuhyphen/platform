@@ -30,7 +30,6 @@ class DirectoryLookupGuardService @Inject constructor(
         val actorId = authTokenContext.authToken.appUser?.id
         val scopedOrg = targetOrganizationId.orEmpty().ifBlank { "unknown" }
 
-        // Anti-enumeration: enforce minimum query length when caller passes a search term
         if (query != null)
         {
             val minLen = configurationService.getDirectoryLookupMinQueryLength()
@@ -94,7 +93,6 @@ class DirectoryLookupGuardService @Inject constructor(
             .build()
     }
 
-    /** Cap a directory lookup result list to the configured maximum to prevent enumeration. */
     fun <T> capResults(results: List<T>): List<T>
     {
         val max = configurationService.getDirectoryLookupMaxResults()

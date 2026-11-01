@@ -8,14 +8,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * O(1) revocation check for session IDs. Replaces the coarser `sessionVersion` global bump:
- * EndpointAuthorizationFilter looks up the current request's exchange_id against this set on
- * every authenticated request, denying immediately if present.
- *
- * Entries TTL out after [DEFAULT_TTL_DAYS],  sessions older than that are guaranteed to have
- * expired naturally via the access-token / refresh-token expiry chain.
- */
 @ApplicationScoped
 class SessionRevocationCache @Inject constructor(
     private val redis: Redis,
@@ -25,7 +17,7 @@ class SessionRevocationCache @Inject constructor(
     {
         private val logger = LoggerFactory.getLogger(SessionRevocationCache::class.java)
         private const val PREFIX = "revoked_session:"
-        private const val DEFAULT_TTL_SECONDS = (30L * 24L * 60L * 60L) // 30 days
+        private const val DEFAULT_TTL_SECONDS = (30L * 24L * 60L * 60L)
     }
 
     fun isRevoked(sessionId: UUID): Boolean

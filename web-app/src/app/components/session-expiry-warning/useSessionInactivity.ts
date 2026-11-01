@@ -181,7 +181,7 @@ export function useSessionInactivity(
             ? window.setTimeout(openWarning, warningDelay)
             : null;
         const expiryTimer = window.setTimeout(
-            () => void expireWithReason(expiry.reason),
+            () => { void expireWithReason(expiry.reason); },
             Math.max(0, expiryDelay),
         );
 

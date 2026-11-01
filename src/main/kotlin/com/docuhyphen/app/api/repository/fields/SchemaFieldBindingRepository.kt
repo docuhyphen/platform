@@ -6,12 +6,10 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.transaction.Transactional
 import java.util.*
 
-/** Persistence for [SchemaFieldBinding] rows composing a [com.docuhyphen.app.api.model.entity.SchemaVersion]. */
 @ApplicationScoped
 class SchemaFieldBindingRepository :
     BaseRepository<SchemaFieldBinding>(SchemaFieldBinding::class.java)
 {
-    /** All bindings for a version in display order. */
     fun findByVersion(schemaVersionId: UUID): List<SchemaFieldBinding> =
         entityManager.createQuery(
             """SELECT b FROM SchemaFieldBinding b

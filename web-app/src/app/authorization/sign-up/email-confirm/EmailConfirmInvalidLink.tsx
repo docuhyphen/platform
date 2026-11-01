@@ -32,7 +32,8 @@ const EmailConfirmInvalidLink = ({tokenError}: EmailConfirmInvalidLinkProps) =>
             id={"email-confirm-invalid-message"}
             intent={"warning"}>
             <MessageBarBody id={"email-confirm-invalid-message-body"}>
-                <Text size={200}>
+                <Text id={"email-confirm-invalid-link-text-1"}
+                      size={200}>
                     {tokenError || "This verification link is invalid or has expired."}
                     {" "}Please start sign-up again to receive a new email.
                 </Text>

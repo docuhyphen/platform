@@ -6,7 +6,6 @@ interface AuditCategoryBadgeProps
     category: string;
 }
 
-/** Small colored Fluent Badge for one AuditCategory value, with a friendly label. */
 const AuditCategoryBadge = (
     {
         category,

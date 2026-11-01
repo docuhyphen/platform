@@ -1,10 +1,9 @@
-import React from "react";
 
 export const workflowDiagramPreviewArticle = (
     <>
         <p id={"workflow-diagram-preview-intro-paragraph"}>
             Two read-only diagram surfaces visualize a workflow: the{" "}
-            <b>Diagram</b> in the Workflow Designer and the <b>Diagram</b> view on
+            <b id={"workflow-diagram-preview-article-b-1"}>Diagram</b> in the Workflow Designer and the <b id={"workflow-diagram-preview-article-b-2"}>Diagram</b> view on
             an Exchange's Workflow tab. Both are read-only for workflow data. You
             cannot add, edit, connect, or
             delete anything from a diagram, but you can drag a node to reposition it
@@ -33,7 +32,7 @@ export const workflowDiagramPreviewArticle = (
             icons while those modes are active.
         </p>
         <p id={"workflow-diagram-preview-in-the-workflow-paragraph-4"}>
-            An <b>Applicability</b> summary line above the diagram states whether
+            An <b id={"workflow-diagram-preview-article-b-3"}>Applicability</b> summary line above the diagram states whether
             the workflow always runs or only when field conditions match. The
             diagram itself is read-only: pan, zoom, drag a node to reposition it,
             or select a node to read its details, but nothing there changes the
@@ -42,35 +41,35 @@ export const workflowDiagramPreviewArticle = (
 
         <h3 id={"workflow-diagram-preview-reading-the-diagram-heading"}>Reading the diagram</h3>
         <ul id={"workflow-diagram-preview-reading-the-diagram-list"}>
-            <li><b>Start</b> and <b>End</b> mark where the workflow begins and terminates.</li>
-            <li>Each step is a node labeled by its type.</li>
-            <li>
+            <li id={"workflow-diagram-preview-article-li-1"}><b id={"workflow-diagram-preview-article-b-4"}>Start</b> and <b id={"workflow-diagram-preview-article-b-5"}>End</b> mark where the workflow begins and terminates.</li>
+            <li id={"workflow-diagram-preview-article-li-2"}>Each step is a node labeled by its type.</li>
+            <li id={"workflow-diagram-preview-article-li-3"}>
                 Webhook delivery is shown as its own distinct node type, never as a
                 generic Action node.
             </li>
-            <li>
-                Connectors are labeled by outcome: <b>On Approve</b>, <b>On Reject</b>,{" "}
-                <b>On True</b>, <b>On False</b>, or <b>Continue</b> for a Wait for
+            <li id={"workflow-diagram-preview-article-li-4"}>
+                Connectors are labeled by outcome: <b id={"workflow-diagram-preview-article-b-6"}>On Approve</b>, <b id={"workflow-diagram-preview-article-b-7"}>On Reject</b>,{" "}
+                <b id={"workflow-diagram-preview-article-b-8"}>On True</b>, <b id={"workflow-diagram-preview-article-b-9"}>On False</b>, or <b id={"workflow-diagram-preview-article-b-10"}>Continue</b> for a Wait for
                 Counterparty Clearance step. Plain sequence connectors are unlabeled.
             </li>
-            <li>A legend below the canvas explains the node and connector meanings.</li>
+            <li id={"workflow-diagram-preview-article-li-5"}>A legend below the canvas explains the node and connector meanings.</li>
         </ul>
 
         <h3 id={"workflow-diagram-preview-diagram-notices-heading"}>Diagram notices</h3>
         <p id={"workflow-diagram-preview-diagram-notices-paragraph"}>
             The Diagram reports structural notices such as an outcome pointing to a
             missing step, an unreachable step, or a branch with no path to End.
-            These notices are <b>informational only</b>. They do not block saving,
+            These notices are <b id={"workflow-diagram-preview-article-b-11"}>informational only</b>. They do not block saving,
             and the Save rules are unchanged.
         </p>
 
         <h3 id={"workflow-diagram-preview-diagram-view-on-an-heading"}>Diagram view on an Exchange</h3>
         <ol id={"workflow-diagram-preview-diagram-view-on-an-list"}>
-            <li>Open an Exchange and select the <b>Workflow</b> tab.</li>
-            <li>
+            <li id={"workflow-diagram-preview-article-li-6"}>Open an Exchange and select the <b id={"workflow-diagram-preview-article-b-12"}>Workflow</b> tab.</li>
+            <li id={"workflow-diagram-preview-article-li-7"}>
                 Use the circular menu control at the top right to choose{" "}
-                <b>Timeline</b>, <b>Diagram</b>, or <b>Both</b> for the whole tab.
-                Timeline is the default. <b>Both</b> splits the tab into a detail
+                <b id={"workflow-diagram-preview-article-b-13"}>Timeline</b>, <b id={"workflow-diagram-preview-article-b-14"}>Diagram</b>, or <b id={"workflow-diagram-preview-article-b-15"}>Both</b> for the whole tab.
+                Timeline is the default. <b id={"workflow-diagram-preview-article-b-16"}>Both</b> splits the tab into a detail
                 column on the left (about 40% width, with the summary, any action
                 required, and the Timeline) and a live diagram preview on the right
                 (about 60% width), so you can read step history and the diagram at
@@ -90,13 +89,13 @@ export const workflowDiagramPreviewArticle = (
             top.
         </p>
         <ul id={"workflow-diagram-preview-diagram-view-on-an-list-2"}>
-            <li>
-                <b>Node states:</b> Not reached, In progress, Awaiting counterparty,
+            <li id={"workflow-diagram-preview-article-li-8"}>
+                <b id={"workflow-diagram-preview-article-b-17"}>Node states:</b> Not reached, In progress, Awaiting counterparty,
                 Completed, Skipped, Rejected, Escalated, Cancelled, Failed, Paused,
                 and Unknown status.
             </li>
-            <li>
-                <b>Traversed route:</b> the connector actually taken between steps is
+            <li id={"workflow-diagram-preview-article-li-9"}>
+                <b id={"workflow-diagram-preview-article-b-18"}>Traversed route:</b> the connector actually taken between steps is
                 emphasized; other connectors are dimmed. Traversed routes come from
                 recorded execution data and are never guessed from step order.
             </li>
@@ -109,7 +108,7 @@ export const workflowDiagramPreviewArticle = (
         <h3 id={"workflow-diagram-preview-when-a-diagram-cannot-heading"}>When a diagram cannot be shown</h3>
         <p id={"workflow-diagram-preview-when-a-diagram-cannot-paragraph"}>
             If a diagram fails to render, that workflow section shows a short message
-            with a <b>View timeline</b> button and switches you to the Timeline view.
+            with a <b id={"workflow-diagram-preview-article-b-19"}>View timeline</b> button and switches you to the Timeline view.
             Other workflows and the Timeline are unaffected.
         </p>
 

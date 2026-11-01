@@ -8,22 +8,22 @@ export const requestTriggerEventsArticle = (
 
         <h3 id={"request-trigger-events-list-heading"}>Triggers</h3>
         <ul id={"request-trigger-events-list"}>
-            <li><code>information_request.request.issue</code>: the request is issued to its parties.</li>
-            <li><code>information_request.request.view</code>: a responding party opens the issued request for the first time.</li>
-            <li>
-                <code>information_request.request.start</code>: a responding party first saves an
+            <li id={"request-trigger-events-article-li-1"}><code id={"request-trigger-events-article-code-1"}>information_request.request.issue</code>: the request is issued to its parties.</li>
+            <li id={"request-trigger-events-article-li-2"}><code id={"request-trigger-events-article-code-2"}>information_request.request.view</code>: a responding party opens the issued request for the first time.</li>
+            <li id={"request-trigger-events-article-li-3"}>
+                <code id={"request-trigger-events-article-code-3"}>information_request.request.start</code>: a responding party first saves an
                 answer, file, confirmation, or submission.
             </li>
-            <li><code>information_request.request.submit</code>: a Submission Package is submitted.</li>
-            <li>
-                <code>information_request.request.correction</code>: a review returns items of a
+            <li id={"request-trigger-events-article-li-4"}><code id={"request-trigger-events-article-code-4"}>information_request.request.submit</code>: a Submission Package is submitted.</li>
+            <li id={"request-trigger-events-article-li-5"}>
+                <code id={"request-trigger-events-article-code-5"}>information_request.request.correction</code>: a review returns items of a
                 Submission Package for correction.
             </li>
-            <li><code>information_request.request.close</code>: the request is satisfied and closed.</li>
-            <li><code>information_request.request.expire</code>: the request expires.</li>
-            <li><code>information_request.request.cancel</code>: the request is cancelled.</li>
-            <li><code>information_request.request.supersede</code>: another request supersedes it.</li>
-            <li><code>information_request.request.overdue</code>: a request clock passes its due time.</li>
+            <li id={"request-trigger-events-article-li-6"}><code id={"request-trigger-events-article-code-6"}>information_request.request.close</code>: the request is satisfied and closed.</li>
+            <li id={"request-trigger-events-article-li-7"}><code id={"request-trigger-events-article-code-7"}>information_request.request.expire</code>: the request expires.</li>
+            <li id={"request-trigger-events-article-li-8"}><code id={"request-trigger-events-article-code-8"}>information_request.request.cancel</code>: the request is cancelled.</li>
+            <li id={"request-trigger-events-article-li-9"}><code id={"request-trigger-events-article-code-9"}>information_request.request.supersede</code>: another request supersedes it.</li>
+            <li id={"request-trigger-events-article-li-10"}><code id={"request-trigger-events-article-code-10"}>information_request.request.overdue</code>: a request clock passes its due time.</li>
         </ul>
 
         <h3 id={"request-trigger-events-owner-heading"}>Whose workflows run</h3>
@@ -53,15 +53,15 @@ export const requestTriggerEventsArticle = (
             Exchange Field conditions apply only to Exchange triggers, so the workflow designer does
             not offer them for a request trigger. An organization workflow whose trigger names a
             Submission Package can instead be limited by requirement conditions on the submitted answers.
-            Open <b>Applicability</b>, choose an organization <b>Template</b>, and pick one of the typed
-            answers of its latest published Version under <b>Add condition</b>. Each condition has an
+            Open <b id={"request-trigger-events-article-b-1"}>Applicability</b>, choose an organization <b id={"request-trigger-events-article-b-2"}>Template</b>, and pick one of the typed
+            answers of its latest published Version under <b id={"request-trigger-events-article-b-3"}>Add condition</b>. Each condition has an
             operator and, for most operators, a value. An answer inside a repeated group also names its
-            occurrence, such as <b>group[0]</b> for the first one. The workflow then starts only when every
+            occurrence, such as <b id={"request-trigger-events-article-b-4"}>group[0]</b> for the first one. The workflow then starts only when every
             condition matches the answers frozen in that Submission Package. Without conditions, and for
             every other request trigger, the workflow runs for every event of its trigger. Reopening the workflow
             selects
             the Template its conditions belong to, and a Template list or answers that cannot be read are stated with
-            <b> Try again</b>.
+            <b id={"request-trigger-events-article-b-5"}> Try again</b>.
         </p>
     </>
 );

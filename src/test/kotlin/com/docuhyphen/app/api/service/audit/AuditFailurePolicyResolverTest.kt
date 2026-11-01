@@ -5,9 +5,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.Optional
 
-/**
- * Fail-closed vs degraded routing selects the correct behavior per event class.
- */
 class AuditFailurePolicyResolverTest
 {
     @Test

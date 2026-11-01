@@ -22,7 +22,7 @@ import {
 import InformationRequestRespondentWorkspace from "./InformationRequestRespondentWorkspace.tsx";
 
 vi.mock("../../../services/apiClient.ts", () => ({default: {get: vi.fn(), post: vi.fn(), patch: vi.fn()}}));
-vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: () => null}));
+vi.mock("../reusable-answer/useReusableAnswers.ts", () => ({useReusableAnswers: (): null => null}));
 vi.mock("../submission/follow-up-section/InformationRequestSubmissionSection.tsx", () => ({
     default: ({onChanged}: { onChanged: () => void }) => (
         <button id={"respondent-refresh-double"}

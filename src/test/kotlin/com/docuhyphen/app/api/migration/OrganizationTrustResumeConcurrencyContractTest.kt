@@ -14,12 +14,6 @@ import java.util.concurrent.CyclicBarrier
 private class ResumeConcurrencyPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<ResumeConcurrencyPostgreSQLContainer>(imageName)
 
-/**
- * Proves that two organizations clearing their own trust suspensions concurrently cannot both skip
- * the final "last suspension cleared" group access reconciliation. Each resume transaction takes the
- * same per-relationship advisory lock before clearing its suspension and counting the remaining
- * active suspensions, so the transactions serialize and exactly one of them observes zero remaining.
- */
 class OrganizationTrustResumeConcurrencyContractTest
 {
     private val organizationAId = UUID.fromString("10000000-0000-0000-0000-0000000000a1")

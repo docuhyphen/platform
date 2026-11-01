@@ -4,11 +4,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Test
 
-/**
- * Verifies that [MerkleTree] is deterministic, order-sensitive, and sensitive to any leaf
- * change - the property [AuditArchiver]/[AuditArchiveVerifier] rely on to detect a tampered or
- * truncated segment via [com.docuhyphen.app.api.model.entity.AuditArchiveSegment.merkleRoot].
- */
 class MerkleTreeTest
 {
     @Test

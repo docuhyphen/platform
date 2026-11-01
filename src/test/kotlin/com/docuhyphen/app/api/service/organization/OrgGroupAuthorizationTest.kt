@@ -5,12 +5,12 @@ import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.workflow.WorkflowStepSpec
 import com.docuhyphen.app.api.repository.organization.OrganizationRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
-import com.docuhyphen.app.api.service.application.WebhookDeliveryResult
+import com.docuhyphen.app.api.model.application.WebhookDeliveryResult
 import com.docuhyphen.app.api.service.application.WebhookDeliveryService
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import com.docuhyphen.app.api.service.auth.authz.ResourceAuthorizationContextRegistry.Companion.toResourceKind
 import com.docuhyphen.app.api.service.auth.authz.ResourceKind
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.workflow.WebhookWorkflowActionHandler
 import com.docuhyphen.app.api.service.workflow.WorkflowSpecJson
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -22,13 +22,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.util.*
 
-/**
- * Phase 9 completion tests: organization resource auth provider, resource type registry
- * mapping, and the WEBHOOK_DELIVER action handler dispatch.
- */
 class OrgGroupAuthorizationTest
 {
-    // ── OrganizationAuthorizationContextProvider ──────────────────────────────
 
     @Test
     fun `provider returns organization owner context for existing org`()
@@ -74,8 +69,6 @@ class OrgGroupAuthorizationTest
         assertEquals(ResourceKind.ORGANIZATION, provider.supportedKind)
     }
 
-    // ── ResourceType.ORGANIZATION registry mapping ────────────────────────────
-
     @Test
     fun `ResourceType ORGANIZATION maps to ResourceKind ORGANIZATION`()
     {
@@ -90,8 +83,6 @@ class OrgGroupAuthorizationTest
         assertEquals(ResourceType.ORGANIZATION, ref.type)
         assertEquals(id, ref.id)
     }
-
-    // ── WebhookWorkflowActionHandler ──────────────────────────────────────────
 
     @Test
     fun `handler fails when webhookEndpointId is not set in spec`()
@@ -175,8 +166,6 @@ class OrgGroupAuthorizationTest
         val result = service.deliver(UUID.randomUUID(), "test.event", WorkflowInstance())
         assertEquals(false, result.success)
     }
-
-    // ── helpers ───────────────────────────────────────────────────────────────
 
     private fun makeStep(spec: WorkflowStepSpec): WorkflowStepInstance
     {

@@ -1,6 +1,7 @@
 package com.docuhyphen.app.api.resource.subscription
 
 import com.docuhyphen.app.api.model.SubscriptionTrialRequestDtoMapper
+import com.docuhyphen.app.api.resource.subscription.operations.PlatformSubscriptionTrialRequestResourceOperations
 import com.docuhyphen.app.api.service.subscription.PlatformSubscriptionTrialRequestService
 import io.quarkus.security.ForbiddenException
 import io.quarkus.security.UnauthorizedException
@@ -18,7 +19,7 @@ class PlatformSubscriptionTrialRequestResourceContractTest
     @Test
     fun `platform trial request endpoints use resource paths and verbs`()
     {
-        val resource = PlatformSubscriptionTrialRequestResource::class.java
+        val resource = PlatformSubscriptionTrialRequestResourceOperations::class.java
         assertEquals("/platform/subscription-trial-requests", resource.getAnnotation(Path::class.java).value)
         assertTrue(resource.declaredMethods.single { it.name == "list" }.isAnnotationPresent(GET::class.java))
         val decide = resource.declaredMethods.single { it.name == "decide" }

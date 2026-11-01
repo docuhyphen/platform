@@ -4,10 +4,10 @@ import com.docuhyphen.app.api.model.dto.EffectiveSubscriptionDto
 import com.docuhyphen.app.api.model.dto.SubscriptionDenialDto
 import com.docuhyphen.app.api.model.dto.SubscriptionLimitsDto
 import com.docuhyphen.app.api.model.dto.SubscriptionUsageDto
-import com.docuhyphen.app.api.service.subscription.EffectiveSubscription
-import com.docuhyphen.app.api.service.subscription.SubscriptionDenial
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
+import com.docuhyphen.app.api.model.subscription.SubscriptionDenial
 import com.docuhyphen.app.api.service.subscription.SubscriptionEnforcementMode
-import com.docuhyphen.app.api.service.subscription.SubscriptionUsage
+import com.docuhyphen.app.api.model.subscription.SubscriptionUsage
 import java.time.Instant
 
 object SubscriptionDtoMapper

@@ -6,13 +6,6 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.slf4j.LoggerFactory
 
-/**
- * Periodic health check that logs a distinctive, greppable marker on ERROR when a signal crosses
- * its configured threshold, the same alerting mechanism as
- * [com.docuhyphen.app.api.service.audit.archive.AuditArchiveScheduler]'s
- * `AUDIT_ARCHIVE_VERIFICATION_FAILED` marker: a CloudWatch Logs metric filter + alarm on the
- * existing log group, no new AWS service.
- */
 @ApplicationScoped
 class AuditHealthMonitorScheduler @Inject constructor(
     private val auditHealthMonitorService: AuditHealthMonitorService,

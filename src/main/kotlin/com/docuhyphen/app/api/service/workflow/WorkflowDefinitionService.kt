@@ -1,11 +1,21 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
+import com.docuhyphen.app.api.model.WorkflowDefinitionDtoMapper
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.*
 import com.docuhyphen.app.api.model.workflow.AssigneeSpec
+import com.docuhyphen.app.api.model.workflow.CreateWorkflowDefinitionRequest
 import com.docuhyphen.app.api.model.workflow.StepAddonSpec
+import com.docuhyphen.app.api.model.workflow.SubjectFieldEntry
+import com.docuhyphen.app.api.model.workflow.UpdateWorkflowDefinitionRequest
+import com.docuhyphen.app.api.model.workflow.WorkflowDefinitionScope
 import com.docuhyphen.app.api.model.workflow.WorkflowTriggerSubject
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.repository.organization.PrincipalGroupRepository
@@ -17,7 +27,7 @@ import com.docuhyphen.app.api.service.audit.*
 import com.docuhyphen.app.api.service.audit.catalog.AuditActorKind
 import com.docuhyphen.app.api.service.audit.catalog.AuditEventType
 import com.docuhyphen.app.api.service.audit.catalog.AuditOutcome
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import com.docuhyphen.app.api.service.contactdetails.UserContactService
@@ -26,19 +36,11 @@ import io.quarkus.security.ForbiddenException
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Business logic for workflow definition CRUD, clone, and instance queries.
- *
- * All HTTP surface area lives in the WorkflowDefinitionResource JAX-RS class.
- * This service is purely domain logic: access control, portability scrubbing, blocking
- * mutations on in-flight instances, and mapping entities to response DTOs.
- */
 @ApplicationScoped
 class WorkflowDefinitionService @Inject constructor(
     private val definitionRepository: WorkflowDefinitionRepository,
@@ -64,10 +66,6 @@ class WorkflowDefinitionService @Inject constructor(
     private val logger = LoggerFactory.getLogger(WorkflowDefinitionService::class.java)
     private val json = WorkflowSpecJson.instance
 
-    // -------------------------------------------------------------------------
-    // Definitions - read
-    // -------------------------------------------------------------------------
-
     fun listDefinitions(
         scope: String?,
         tag: String?,
@@ -92,7 +90,7 @@ class WorkflowDefinitionService @Inject constructor(
             .filter { tag == null || decodeTags(it.generalTags).contains(tag) }
             .filter { triggerEvent == null || it.triggerEvent == triggerEvent }
             .filter { isTemplate == null || it.isTemplate == isTemplate }
-            .map { it.toListItemDto() }
+            .map(WorkflowDefinitionDtoMapper::toListItemDto)
             .toList()
     }
 
@@ -103,12 +101,8 @@ class WorkflowDefinitionService @Inject constructor(
         val def = definitionRepository.findById(id)
             ?: throw IllegalArgumentException("Workflow definition not found: $id")
         checkReadAccess(def, principal, context)
-        return def.toDto()
+        return WorkflowDefinitionDtoMapper.toDto(def)
     }
-
-    // -------------------------------------------------------------------------
-    // Definitions - write
-    // -------------------------------------------------------------------------
 
     @Transactional
     fun createDefinition(request: CreateWorkflowDefinitionRequest): WorkflowDefinitionDto
@@ -154,7 +148,7 @@ class WorkflowDefinitionService @Inject constructor(
             principal.id,
             activeOrgId
         )
-        return saved.toDto()
+        return WorkflowDefinitionDtoMapper.toDto(saved)
     }
 
     @Transactional
@@ -198,7 +192,7 @@ class WorkflowDefinitionService @Inject constructor(
             principal.id,
             def.organizationId
         )
-        return updated.toDto()
+        return WorkflowDefinitionDtoMapper.toDto(updated)
     }
 
     @Transactional
@@ -222,7 +216,7 @@ class WorkflowDefinitionService @Inject constructor(
                 def.organizationId
             )
         }
-        return updated.toDto()
+        return WorkflowDefinitionDtoMapper.toDto(updated)
     }
 
     @Transactional
@@ -235,7 +229,7 @@ class WorkflowDefinitionService @Inject constructor(
         checkWriteAccess(def, principal, context)
         subscriptionGuard.requireDefinitionMutation(def.scope, def.organizationId, def.createdByAppUserId)
         def.isActive = isActive
-        return definitionRepository.update(def).toDto()
+        return WorkflowDefinitionDtoMapper.toDto(definitionRepository.update(def))
     }
 
     @EnforceAdminAction("ORG_WORKFLOW_DEFINITION_DELETE")
@@ -292,9 +286,6 @@ class WorkflowDefinitionService @Inject constructor(
         subscriptionGuard.requireDefinitionMutation(WorkflowScope.PERSONAL, null, principal.id)
 
         val scrubbedStepsJson = scrubPrincipalUuids(source.stepsJson)
-        // A clone lands in the caller's PERSONAL space; referenced communications keep their own
-        // scope, so scope-visibility is not enforced here (structure, existence, and active state
-        // still are). The caller re-points any out-of-scope references before activating the copy.
         validateStepsJson(scrubbedStepsJson, source.triggerEvent, null)
         val baseName = newName?.trim()?.ifBlank { null } ?: "${source.name} (copy)"
         val clone = WorkflowDefinition().apply {
@@ -310,19 +301,11 @@ class WorkflowDefinitionService @Inject constructor(
             sourceTemplateId = source.id
             createdByAppUserId = principal.id
         }
-        return definitionRepository.save(clone).toDto()
+        return WorkflowDefinitionDtoMapper.toDto(definitionRepository.save(clone))
     }
 
-    // -------------------------------------------------------------------------
-    // Triggers
-    // -------------------------------------------------------------------------
-
     fun listTriggers(): List<WorkflowTriggerEventResponseDto> =
-        triggerEventRepository.findAll().map { it.toDto() }
-
-    // -------------------------------------------------------------------------
-    // Instances
-    // -------------------------------------------------------------------------
+        triggerEventRepository.findAll().map(WorkflowDefinitionDtoMapper::toTriggerDto)
 
     fun listInstances(
         status: String?,
@@ -342,7 +325,7 @@ class WorkflowDefinitionService @Inject constructor(
         return instanceRepository.findForOrg(activeOrgId, statusEnum, subjectResourceType, page, pageSize)
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-                instance.toListItemDto(defName)
+                WorkflowDefinitionDtoMapper.toInstanceListItemDto(instance, defName)
             }
     }
 
@@ -350,7 +333,7 @@ class WorkflowDefinitionService @Inject constructor(
         instanceRepository.findForSubject(resourceType, resourceId)
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-                instance.toListItemDto(defName)
+                WorkflowDefinitionDtoMapper.toInstanceListItemDto(instance, defName)
             }
 
     fun listInstancesForSubject(
@@ -361,7 +344,7 @@ class WorkflowDefinitionService @Inject constructor(
         instanceRepository.findForSubject(resourceType, resourceId, organizationId)
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-                instance.toListItemDto(defName)
+                WorkflowDefinitionDtoMapper.toInstanceListItemDto(instance, defName)
             }
 
     fun listInstancesForSubject(
@@ -378,7 +361,7 @@ class WorkflowDefinitionService @Inject constructor(
         )
             .map { instance ->
                 val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-                instance.toListItemDto(defName)
+                WorkflowDefinitionDtoMapper.toInstanceListItemDto(instance, defName)
             }
 
     fun getExchangeClearanceStatus(exchangeId: UUID, callerOrgId: UUID): ExchangeClearanceStatusDto
@@ -386,29 +369,7 @@ class WorkflowDefinitionService @Inject constructor(
         val myInstances = instanceRepository.findForSubject("EXCHANGE", exchangeId, callerOrgId)
         val counterpartyInstances = instanceRepository.findForSubjectExcludingOrg("EXCHANGE", exchangeId, callerOrgId)
 
-        return ExchangeClearanceStatusDto(
-            myOrg = aggregateClearance(myInstances),
-            counterparties = counterpartyInstances
-                .groupBy { it.organizationId }
-                .values
-                .map { aggregateClearance(it) },
-        )
-    }
-
-    private fun aggregateClearance(instances: List<WorkflowInstance>): PartyClearanceDto
-    {
-        if (instances.isEmpty()) return PartyClearanceDto("NONE")
-        val statuses = instances.map { it.status }
-        return when
-        {
-            statuses.any { it.isActive } -> PartyClearanceDto("RUNNING")
-            statuses.any { it == WorkflowInstanceStatus.REJECTED || it == WorkflowInstanceStatus.CANCELLED } -> PartyClearanceDto(
-                "BLOCKED"
-            )
-
-            statuses.all { it == WorkflowInstanceStatus.COMPLETED } -> PartyClearanceDto("CLEARED")
-            else -> PartyClearanceDto("NONE")
-        }
+        return WorkflowDefinitionDtoMapper.toClearanceStatusDto(myInstances, counterpartyInstances)
     }
 
     fun getInstanceDetail(id: UUID): WorkflowInstanceDetailResponseDto
@@ -426,12 +387,16 @@ class WorkflowDefinitionService @Inject constructor(
         val steps = stepRepository.findByInstance(instance.id)
         val transitions = transitionRepository.findByInstanceId(instance.id)
         val defName = runCatching { definitionRepository.findById(instance.definitionId)?.name }.getOrNull()
-        return instance.toDetailDto(defName, steps, transitions)
+        val stepDtos = steps.map { step ->
+            WorkflowDefinitionDtoMapper.toStepDto(
+                step,
+                assigneeRepository.findAllByStepInstanceId(step.id),
+                decisionRepository.findAllByStepInstanceId(step.id),
+                ::resolveDisplayInfo,
+            )
+        }
+        return WorkflowDefinitionDtoMapper.toInstanceDetailDto(instance, defName, stepDtos, transitions)
     }
-
-    // -------------------------------------------------------------------------
-    // Access control
-    // -------------------------------------------------------------------------
 
     private fun checkReadAccess(def: WorkflowDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
@@ -450,7 +415,6 @@ class WorkflowDefinitionService @Inject constructor(
                 )
                 if (decision is Decision.Deny)
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
-                // Unpublished ORG definitions are hidden from non-admin org members
                 val isOrgAdmin = context.activeOrgId?.let { userRoleService.isOrgAdminIn(principal.id, it) } ?: false
                 if (!isOrgAdmin && !def.isPublished)
                     throw ForbiddenException("Access denied to workflow definition ${def.id}")
@@ -489,10 +453,6 @@ class WorkflowDefinitionService @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Scope resolution
-    // -------------------------------------------------------------------------
-
     private fun resolveScope(
         requestedScope: String?,
         activeOrgId: UUID?,
@@ -518,10 +478,6 @@ class WorkflowDefinitionService @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Clone name deduplication
-    // -------------------------------------------------------------------------
-
     private fun uniqueCloneName(base: String, creatorId: UUID): String
     {
         if (definitionRepository.findByNameVersionAndCreator(base, 1, creatorId) == null) return base
@@ -533,10 +489,6 @@ class WorkflowDefinitionService @Inject constructor(
             suffix++
         }
     }
-
-    // -------------------------------------------------------------------------
-    // UUID scrubbing for clone portability
-    // -------------------------------------------------------------------------
 
     private val roleReplacement = AssigneeSpec.OrganizationRoleAssignees(
         roleName = OrganizationRoleName.ORG_ADMIN,
@@ -577,10 +529,6 @@ class WorkflowDefinitionService @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()
             ?: throw ForbiddenException("Not authenticated")
@@ -588,10 +536,6 @@ class WorkflowDefinitionService @Inject constructor(
     private fun currentContext(): AuthorizationContext =
         authorizationContextFactory.currentContext()
 
-    /**
-     * Captures workflow definition lifecycle mutations onto the ledger. Uses catch-and-log so an audit
-     * failure never blocks the underlying definition write.
-     */
     private fun recordDefinitionEvent(
         eventType: AuditEventType,
         definitionId: UUID,
@@ -630,10 +574,6 @@ class WorkflowDefinitionService @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // JSON helpers
-    // -------------------------------------------------------------------------
-
     private fun decodeTags(tagsJson: String): List<String> =
         runCatching {
             json.decodeFromString(ListSerializer(String.serializer()), tagsJson)
@@ -641,23 +581,6 @@ class WorkflowDefinitionService @Inject constructor(
 
     private fun encodeTags(tags: List<String>): String =
         json.encodeToString(ListSerializer(String.serializer()), tags)
-
-    @Serializable
-    private data class SubjectFieldEntry(
-        val name: String,
-        val type: String,
-        val description: String? = null,
-        val lookupType: String? = null,
-    )
-
-    private fun decodeSubjectFields(jsonStr: String): List<SubjectFieldEntry> =
-        runCatching {
-            json.decodeFromString(ListSerializer(SubjectFieldEntry.serializer()), jsonStr)
-        }.getOrDefault(emptyList())
-
-    // -------------------------------------------------------------------------
-    // Principal display-info resolution
-    // -------------------------------------------------------------------------
 
     private fun resolveDisplayInfo(kind: String, id: String): Pair<String?, String?>
     {
@@ -670,29 +593,6 @@ class WorkflowDefinitionService @Inject constructor(
             Pair(name, user.email)
         }.getOrDefault(Pair(null, null))
     }
-
-    // -------------------------------------------------------------------------
-    // Entity-to-DTO mapping
-    // -------------------------------------------------------------------------
-
-    private fun WorkflowDefinition.toDto() = WorkflowDefinitionDto(
-        id = id,
-        name = name,
-        summary = summary,
-        description = description,
-        triggerEvent = triggerEvent,
-        version = version,
-        scope = scope.name,
-        isActive = isActive,
-        isPublished = isPublished,
-        isTemplate = isTemplate,
-        generalTags = decodeTags(generalTags),
-        organizationId = organizationId,
-        sourceTemplateId = sourceTemplateId,
-        createdByAppUserId = createdByAppUserId,
-        stepsJson = stepsJson,
-        createdAt = createdAt,
-    )
 
     private fun findBlockingInstances(definitionId: UUID): List<WorkflowInstance> =
         instanceRepository.findActiveForDefinition(definitionId)
@@ -746,105 +646,6 @@ class WorkflowDefinitionService @Inject constructor(
             ?.trim()
             ?.ifBlank { null }
 
-    private fun WorkflowDefinition.toListItemDto() = WorkflowDefinitionListItemDto(
-        id = id,
-        name = name,
-        summary = summary,
-        triggerEvent = triggerEvent,
-        version = version,
-        scope = scope.name,
-        isActive = isActive,
-        isPublished = isPublished,
-        isTemplate = isTemplate,
-        generalTags = decodeTags(generalTags),
-        organizationId = organizationId,
-        sourceTemplateId = sourceTemplateId,
-        createdAt = createdAt,
-    )
-
-    private fun WorkflowInstance.toListItemDto(defName: String?) = WorkflowInstanceListItemDto(
-        id = id,
-        definitionId = definitionId,
-        definitionName = defName,
-        subjectResourceType = subjectResourceType,
-        subjectResourceId = subjectResourceId,
-        status = status.name,
-        currentStepIndex = currentStepIndex,
-        createdAt = createdAt,
-        completedAt = completedAt,
-    )
-
-    private fun WorkflowInstance.toDetailDto(
-        defName: String?,
-        steps: List<WorkflowStepInstance>,
-        transitions: List<com.docuhyphen.app.api.model.entity.WorkflowStepTransition>,
-    ) = WorkflowInstanceDetailResponseDto(
-        id = id,
-        definitionId = definitionId,
-        definitionName = defName,
-        subjectResourceType = subjectResourceType,
-        subjectResourceId = subjectResourceId,
-        status = status.name,
-        currentStepIndex = currentStepIndex,
-        steps = steps.map { it.toDto() },
-        definitionVersion = definitionVersion,
-        definitionSnapshotJson = definitionSnapshotJson ?: "",
-        transitions = transitions.map {
-            WorkflowStepTransitionResponseDto(
-                fromStepIndex = it.fromStepIndex,
-                toStepIndex = it.toStepIndex,
-                outcome = it.outcome.name,
-            )
-        },
-        failureCode = failureCode,
-        createdAt = createdAt,
-        completedAt = completedAt,
-    )
-
-    private fun WorkflowStepInstance.toDto() = WorkflowStepInstanceResponseDto(
-        id = id,
-        stepIndex = stepIndex,
-        stepType = stepType.name,
-        status = status.name,
-        assignees = assigneeRepository.findAllByStepInstanceId(id)
-            .map { a ->
-                val kind = a.principalKind.name
-                val pid = a.principalId.toString()
-                val (displayName, email) = resolveDisplayInfo(kind, pid)
-                WorkflowPrincipalRefResponseDto(kind, pid, displayName, email)
-            },
-        decisions = decisionRepository.findAllByStepInstanceId(id).map {
-            val kind = it.principalKind.name
-            val pid = it.principalId.toString()
-            val (displayName, email) = resolveDisplayInfo(kind, pid)
-            WorkflowDecisionResponseDto(
-                principalKind = kind,
-                principalId = pid,
-                decision = it.decision,
-                reason = it.reason,
-                atEpochMillis = it.decidedAt.time,
-                displayName = displayName,
-                email = email,
-            )
-        },
-        dueAt = dueAt,
-        escalatedAt = escalatedAt,
-        completedAt = completedAt,
-        createdAt = createdAt,
-    )
-
-    private fun com.docuhyphen.app.api.model.entity.WorkflowTriggerEventRegistry.toDto() =
-        WorkflowTriggerEventResponseDto(
-            eventName = eventName,
-            description = description,
-            subjectFields = decodeSubjectFields(subjectFieldsJson).map {
-                WorkflowSubjectFieldResponseDto(it.name, it.type, it.description, it.lookupType)
-            },
-            isActive = isActive,
-            subjectResourceType = subjectResourceType,
-            subjectSchemaVersion = subjectSchemaVersion,
-        )
-
     fun entityLookup(actor: AppUser, lookupType: String, query: String?): List<WorkflowEntityRefDto>
     {
         val q = query?.trim()?.takeIf { it.isNotEmpty() } ?: return emptyList()
@@ -853,34 +654,16 @@ class WorkflowDefinitionService @Inject constructor(
             "APP_USER" ->
                 userContactService.searchContacts(actor.id, q, 20)
                     .filter { it.contactAppUserId != null }
-                    .map {
-                        val label = listOfNotNull(it.contactFirstName, it.contactLastName)
-                            .joinToString(" ").ifBlank { it.contactEmail }
-                        WorkflowEntityRefDto(
-                            id = it.contactAppUserId.toString(),
-                            label = label,
-                            sublabel = it.contactEmail,
-                        )
-                    }
+                    .map { WorkflowDefinitionDtoMapper.toEntityRefDto(it) }
 
             "GROUP" ->
                 principalGroupRepository.findByOwnerUser(actor.id)
                     .filter { it.name.contains(q, ignoreCase = true) }
-                    .map {
-                        WorkflowEntityRefDto(
-                            id = it.id.toString(),
-                            label = it.name,
-                            sublabel = it.description,
-                        )
-                    }
+                    .map { WorkflowDefinitionDtoMapper.toEntityRefDto(it) }
 
             else -> emptyList()
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Validation
-    // -------------------------------------------------------------------------
 
     private fun validateStepsJson(
         stepsJson: String,
@@ -899,45 +682,7 @@ class WorkflowDefinitionService @Inject constructor(
         val registered = triggerEventRepository.findByEventName(triggerEvent) ?: return null
         return WorkflowTriggerSubject(
             subjectResourceType = registered.subjectResourceType,
-            subjectFieldNames = decodeSubjectFields(registered.subjectFieldsJson).map { it.name }.toSet(),
+            subjectFieldNames = SubjectFieldEntry.parseList(registered.subjectFieldsJson).map { it.name }.toSet(),
         )
     }
 }
-
-// ── Request DTOs shared with WorkflowDefinitionResource ──────────────────────
-
-@Serializable
-data class CreateWorkflowDefinitionRequest(
-    val name: String,
-    val summary: String? = null,
-    val triggerEvent: String,
-    val stepsJson: String,
-    val generalTags: List<String> = emptyList(),
-    val isActive: Boolean = true,
-    val isTemplate: Boolean = false,
-    val scope: String? = null,
-)
-
-@Serializable
-data class UpdateWorkflowDefinitionRequest(
-    val name: String? = null,
-    val summary: String? = null,
-    val stepsJson: String? = null,
-    val generalTags: List<String>? = null,
-    val isActive: Boolean? = null,
-)
-
-@Serializable
-data class PatchWorkflowStatusRequest(
-    val isActive: Boolean,
-)
-
-@Serializable
-data class PatchWorkflowPublishedRequest(
-    val isPublished: Boolean,
-)
-
-@Serializable
-data class CloneWorkflowRequest(
-    val newName: String? = null,
-)

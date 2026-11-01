@@ -2,7 +2,12 @@ package com.docuhyphen.app.api.service.fields
 
 import com.docuhyphen.app.api.model.SchemaDefinitionDtoMapper
 import com.docuhyphen.app.api.model.SchemaFieldBindingDtoMapper
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.ResolvedSchemaViewDto
 import com.docuhyphen.app.api.model.dto.SchemaDefinitionDto
 import com.docuhyphen.app.api.model.dto.SchemaFieldBindingDto

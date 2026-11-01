@@ -16,8 +16,10 @@ const NoExchangeDocuments: React.FC<NoDocumentsProps> = (
     const styles = useNoExchangeDocumentsStyles()
 
     return (
-        <div className={styles.noDocumentsContainer}>
-            <Text size={500}>No documents available</Text>
+        <div id={"no-exchange-documents-div-1"}
+             className={styles.noDocumentsContainer}>
+            <Text id={"no-exchange-documents-text-1"}
+                  size={500}>No documents available</Text>
             <Button
                 id={"no-exchange-documents-add-btn"}
                 onClick={() => setIsDocumentAddDialogOpen(true)}

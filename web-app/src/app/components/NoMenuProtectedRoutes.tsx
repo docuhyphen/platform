@@ -1,7 +1,7 @@
 import React from 'react';
 import {Navigate} from 'react-router-dom';
 import {useAuth} from '../../context/AuthContext';
-import AuthBootstrapSplash from "./AuthBootstrapSplash.tsx";
+import AuthBootstrapSplash from "./auth-bootstrap-splash/AuthBootstrapSplash.tsx";
 
 const NoMenuProtectedRoutes: React.FC<{ element: React.ReactElement, path: string }> = ({element, path}) =>
 {

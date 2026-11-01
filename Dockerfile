@@ -1,9 +1,7 @@
 # Copy React build into Quarkus static resources
 # Quarkus serves these automatically at /
 #COPY --from=react-build /web/dist /app/quarkus-app/app/META-INF/resources
-# =========================
-# Stage 1 – Build React app
-# =========================
+# Stage 1 - Build React app
 #FROM node:20-alpine AS react-build
 #
 #WORKDIR /web
@@ -16,9 +14,7 @@
 #COPY web-app/doc-hyphen ./
 ## Disable TS type checks for Docker
 #RUN npx tsc --noEmit || echo "Ignoring TS errors for Docker build"
-# =========================
-# Stage 2 – Quarkus runtime
-# =========================
+# Stage 2 - Quarkus runtime
 FROM eclipse-temurin:21-jdk
 
 # Install LibreOffice
@@ -27,7 +23,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends curl libreoffice \
  && rm -rf /var/lib/apt/lists/*
 
-# ── Non-root user ────────────────────────────────────────────────────────────
+# Non-root user
 RUN groupadd -r appgroup --gid 1001 \
  && useradd -r -g appgroup --uid 1001 --create-home appuser
 
@@ -45,13 +41,13 @@ ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 \
   -Dfile.encoding=UTF-8"
 
 EXPOSE 8080
-# ── Health check ─────────────────────────────────────────────────────────────
+# Health check
 # ALB also checks the Quarkus health endpoint, but this catches container-level issues
 # before the ALB can even route traffic.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
   CMD curl -f http://localhost:8080/q/health || exit 1
 
-# ── Entrypoint ───────────────────────────────────────────────────────────────
+# Entrypoint
 # exec form ensures PID 1 receives SIGTERM cleanly (graceful ECS task shutdown).
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/quarkus-run.jar"]
 

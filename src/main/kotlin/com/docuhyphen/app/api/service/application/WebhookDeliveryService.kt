@@ -1,11 +1,12 @@
 package com.docuhyphen.app.api.service.application
 
+import com.docuhyphen.app.api.model.application.WebhookDeliveryResult
+import com.docuhyphen.app.api.model.application.WebhookPayload
 import com.docuhyphen.app.api.model.entity.WorkflowInstance
 import com.docuhyphen.app.api.repository.workflow.WorkflowWebhookEndpointRepository
 import com.docuhyphen.app.api.service.auth.AuthAuditService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -19,12 +20,6 @@ import java.util.*
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/**
- * Delivers outbound webhook payloads for ACTION workflow steps. The raw signing token
- * stored in [com.docuhyphen.app.api.model.entity.WorkflowWebhookEndpoint.signingSecretToken]
- * is used to produce an HMAC-SHA256 signature sent in X-DocuHyphen-Signature-256 so
- * receivers can verify the payload is authentic.
- */
 @ApplicationScoped
 class WebhookDeliveryService @Inject constructor(
     private val webhookEndpointRepository: WorkflowWebhookEndpointRepository,
@@ -127,16 +122,3 @@ class WebhookDeliveryService @Inject constructor(
         }.onFailure { logger.error("Failed to emit audit for $action", it) }
     }
 }
-
-data class WebhookDeliveryResult(val success: Boolean, val reason: String?)
-
-@Serializable
-data class WebhookPayload(
-    val deliveryId: String,
-    val eventType: String,
-    val workflowInstanceId: String,
-    val subjectResourceType: String?,
-    val subjectResourceId: String?,
-    val organizationId: String?,
-    val timestamp: String,
-)

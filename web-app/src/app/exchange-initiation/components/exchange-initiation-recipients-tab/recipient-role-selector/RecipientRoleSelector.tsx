@@ -41,19 +41,27 @@ const RecipientRoleSelector: React.FC<RecipientRoleSelectorProps> = (props) =>
     }, [props.allowAdvancedAccessControls, props.recipientConstraints, props.setRecipientConstraints]);
 
     return (
-        <div className={styles.roleSection}>
+        <div id={"recipient-role-selector-div-1"}
+             className={styles.roleSection}>
             <Field
                 id={"exchange-recipient-role-field"}
                 label={
                     <InfoLabel
+                        id={"recipient-role-selector-info-label-1"}
                         info={
-                            <div className={styles.roleInfoRow}>
-                                <Text size={200}>Each role determines what the recipient can do in this
+                            <div id={"recipient-role-selector-div-2"}
+                                 className={styles.roleInfoRow}>
+                                <Text id={"recipient-role-selector-text-1"}
+                                      size={200}>Each role determines what the recipient can do in this
                                     exchange.</Text>
                                 {roleDescriptions.map((r) => (
-                                    <div key={r.role}>
-                                        <Text size={200} weight="semibold">{r.role}</Text>{' '}
-                                        <Text size={200}>{r.description}</Text>
+                                    <div id={`recipient-role-selector-div-3-${r.role}`}
+                                         key={r.role}>
+                                        <Text id={"recipient-role-selector-text-2"}
+                                              size={200}
+                                              weight="semibold">{r.role}</Text>{' '}
+                                        <Text id={"recipient-role-selector-text-3"}
+                                              size={200}>{r.description}</Text>
                                     </div>
                                 ))}
                             </div>

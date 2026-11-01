@@ -5,17 +5,6 @@ import jakarta.inject.Inject
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import java.util.*
 
-/**
- * Central configuration facade.
- *
- * Core infrastructure properties (base URL, JWT, AWS, secrets rotation) are owned here.
- * Auth-specific properties are delegated to [AuthConfigService].
- * OAuth/OIDC/audit/SCIM properties are delegated to [OAuthConfigService].
- *
- * Splitting avoids the JVM 64 KB method-size limit that Quarkus ArC can hit when a single
- * class has many @ConfigProperty constructor parameters (each becomes a Supplier<T> in
- * the generated *_Bean constructor).
- */
 @ApplicationScoped
 class ConfigurationService @Inject constructor(
     private val awsSecretsManagerService: AwsSecretsManagerService,
@@ -76,26 +65,12 @@ class ConfigurationService @Inject constructor(
 
     companion object
     {
-        /**
-         * The checked-in placeholder used by `application.properties` and the local profile.
-         * Any deployment that resolves this value is signing tokens with a publicly known key,
-         * so [AuthSecurityStartupValidator] refuses to boot outside development.
-         */
         const val DEVELOPMENT_JWT_SECRET =
             "myverysecurekeythatis32byteslong*)&GAS&G_A(&F9*FDA(&_FD_A(&F+(D&FA"
 
-        /** Minimum key length for HS256/HS512 signing material. */
         const val MIN_JWT_SECRET_LENGTH = 32
     }
 
-    // -------------------------------------------------------------------------
-    // Core / general
-    // -------------------------------------------------------------------------
-
-    /**
-     * Email of the user to auto-promote to APP_ADMIN at startup when no active App Admin exists
-     * (dev/first-run bootstrap). Blank/absent disables bootstrapping. See [AppRoleAssignmentService].
-     */
     fun getBootstrapAppAdminEmail(): String? =
         bootstrapAppAdminEmailConfig.orElse(null)?.trim()?.takeIf { it.isNotBlank() }
 
@@ -108,10 +83,6 @@ class ConfigurationService @Inject constructor(
     fun getPasswordResetOtpExpiryMins(): Long = 10
     fun getMaxOtpRequestsPerMinute() = 5L
     fun getSignInResendCooldownSeconds(): Long = 30
-
-    // -------------------------------------------------------------------------
-    // Org-IdP secrets / rotation
-    // -------------------------------------------------------------------------
 
     fun getOrgIdpSecretsRegion(): String = orgIdpSecretsRegionConfig
     fun getOrgIdpSecretsPrefix(): String = orgIdpSecretsPrefixConfig
@@ -129,12 +100,7 @@ class ConfigurationService @Inject constructor(
         .filter { it.isNotBlank() }
         .toSet()
 
-    /** JWT issuer and audience value for tokens produced by this deployment. */
     fun getJwtIssuer(): String = baseUrl
-
-    // -------------------------------------------------------------------------
-    // JWT secret resolution
-    // -------------------------------------------------------------------------
 
     fun getJwtSecret(): String
     {
@@ -172,13 +138,8 @@ class ConfigurationService @Inject constructor(
         return resolvedSecret
     }
 
-    /** True when the resolved signing key is the checked-in development placeholder. */
     fun isUsingDevelopmentJwtSecret(): Boolean =
         runCatching { getJwtSecret() == DEVELOPMENT_JWT_SECRET }.getOrDefault(false)
-
-    // -------------------------------------------------------------------------
-    // Auth token / session,  delegated to AuthConfigService
-    // -------------------------------------------------------------------------
 
     fun getAccessTokenExpiryMinutes(): Long = authConfig.getAccessTokenExpiryMinutes()
     fun getIdTokenExpiryMinutes(): Long = 15
@@ -227,10 +188,6 @@ class ConfigurationService @Inject constructor(
     fun getPasswordMaxLength(): Int = authConfig.getPasswordMaxLength()
     fun getPasswordBcryptCost(): Int = authConfig.getPasswordBcryptCost()
 
-    // -------------------------------------------------------------------------
-    // OAuth providers / OIDC / application tokens / audit / SCIM,  delegated to OAuthConfigService
-    // -------------------------------------------------------------------------
-
     val microsoftOAuthClientId: String get() = oauthConfig.getMicrosoftOAuthClientId()
     val microsoftOAuthClientSecret: String get() = oauthConfig.getMicrosoftOAuthClientSecret()
     val microsoftOAuthTenantId: String get() = oauthConfig.getMicrosoftOAuthTenantId()
@@ -261,7 +218,6 @@ class ConfigurationService @Inject constructor(
     fun getApplicationTokenServiceScope(): String = oauthConfig.getApplicationTokenServiceScope()
     fun getApplicationTokenAllowedEndpointPrefixes(): Set<String> =
         oauthConfig.getApplicationTokenAllowedEndpointPrefixes()
-
 
     fun getScimBearerToken(): String = oauthConfig.getScimBearerToken()
     fun getDirectoryLookupMaxResults(): Int = oauthConfig.getDirectoryLookupMaxResults()

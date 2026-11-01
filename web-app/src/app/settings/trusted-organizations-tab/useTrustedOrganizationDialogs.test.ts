@@ -15,8 +15,11 @@ const relationship = (version: number): OrganizationTrustRelationship => ({
     partnerOrganizationVerified: true,
     requestedByCurrentOrganization: true,
     status: "ACTIVE",
+    requestedAt: 0,
+    requestExpiresAt: 0,
+    effectivelySuspended: false,
     suspendedByCurrentOrganization: false,
-    suspendedByPartnerOrganization: false,
+    suspendedByPartner: false,
     version,
 });
 
@@ -53,7 +56,7 @@ describe("useTrustedOrganizationDialogs", () =>
         const state = trustState(relationship(4), actOnRelationship, setError);
         const {result} = renderHook(() => useTrustedOrganizationDialogs("organization-a", state));
 
-        act(() => result.current.openAction("TERMINATE", relationship(3)));
+        act(() => result.current.openAction("END", relationship(3)));
         await act(() => result.current.confirmAction());
 
         expect(actOnRelationship).not.toHaveBeenCalled();

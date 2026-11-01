@@ -51,7 +51,7 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
         color: tokens.colorBrandForeground1,
         textTransform: "uppercase",
         letterSpacing: "0.08em",
-        fontSize: "12px",
+        fontSize: tokens.fontSizeBase200,
     },
 
     details: {
@@ -92,8 +92,8 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
 
     messageLabel: {
         color: tokens.colorNeutralForeground3,
-        fontSize: "12px",
-        fontWeight: 600,
+        fontSize: tokens.fontSizeBase200,
+        fontWeight: tokens.fontWeightSemibold,
     },
 
     messageText: {
@@ -133,7 +133,7 @@ export const useNoAuthExchangeOverviewStyles = makeStyles({
         paddingTop: tokens.spacingVerticalL,
         color: tokens.colorNeutralForeground3,
         borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-        fontSize: "12px",
+        fontSize: tokens.fontSizeBase200,
         lineHeight: "1.5",
     },
 });

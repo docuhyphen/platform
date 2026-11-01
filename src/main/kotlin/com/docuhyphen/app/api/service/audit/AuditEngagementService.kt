@@ -1,5 +1,9 @@
 package com.docuhyphen.app.api.service.audit
 
+import com.docuhyphen.app.api.model.audit.AuditEngagementAccess
+import com.docuhyphen.app.api.model.audit.AuditEngagementRequest
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.entity.AuditEngagement
 import com.docuhyphen.app.api.model.entity.AuditEngagementSensitivity
 import com.docuhyphen.app.api.model.entity.AuditEngagementStatus
@@ -39,32 +43,6 @@ class AuditEngagementService @Inject constructor(
     private val subscriptionGuard: OrganizationFeatureSubscriptionGuard,
 )
 {
-    data class AuditEngagementRequest(
-        val organizationId: UUID?,
-        val resourceType: String? = null,
-        val resourceId: String? = null,
-        val auditorUserId: UUID? = null,
-        val principalGroupId: UUID? = null,
-        val categories: Set<AuditCategory>,
-        val sensitivityLevel: AuditEngagementSensitivity,
-        val startsAt: Instant,
-        val expiresAt: Instant,
-        val purpose: String,
-        val caseReference: String? = null,
-        val legalBasis: String,
-        val exportPermitted: Boolean = false,
-        val maxQueryRangeDays: Int? = null,
-        val downloadLimit: Int? = null,
-    )
-
-    data class EngagementAccess(
-        val engagementId: UUID,
-        val sensitivityLevel: AuditEngagementSensitivity,
-        val exportPermitted: Boolean,
-        val maxQueryRangeDays: Int?,
-        val downloadLimit: Int?,
-    )
-
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditEngagementService::class.java)
@@ -223,7 +201,7 @@ class AuditEngagementService @Inject constructor(
         requireSensitive: Boolean,
         recentStepUpSatisfied: Boolean? = null,
         requestedRange: Duration? = null,
-    ): EngagementAccess?
+    ): AuditEngagementAccess?
     {
         val now = Instant.now()
         val groupIds = principalGroupService.getActiveGroupIdsForPrincipal(PrincipalKind.USER, principalUserId)
@@ -253,7 +231,7 @@ class AuditEngagementService @Inject constructor(
             .maxByOrNull { sensitivityRank(it.sensitivityLevel) }
             ?: return null
 
-        return EngagementAccess(
+        return AuditEngagementAccess(
             engagementId = access.id,
             sensitivityLevel = access.sensitivityLevel,
             exportPermitted = access.exportPermitted,

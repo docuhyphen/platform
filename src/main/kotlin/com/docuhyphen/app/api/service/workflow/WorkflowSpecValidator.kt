@@ -1,9 +1,12 @@
 package com.docuhyphen.app.api.service.workflow
 
 import com.docuhyphen.app.api.model.entity.CommunicationScope
-import com.docuhyphen.app.api.model.entity.WorkflowScope
 import com.docuhyphen.app.api.model.entity.WorkflowStepType
 import com.docuhyphen.app.api.model.workflow.*
+import com.docuhyphen.app.api.model.workflow.PredicateResult
+import com.docuhyphen.app.api.model.workflow.WorkflowDefinitionScope
+import com.docuhyphen.app.api.model.workflow.WorkflowSubjectField
+import com.docuhyphen.app.api.model.workflow.WorkflowValidationError
 import com.docuhyphen.app.api.repository.communication.CommunicationRepository
 import com.docuhyphen.app.api.repository.workflow.WorkflowTriggerEventRepository
 import jakarta.enterprise.context.ApplicationScoped
@@ -12,39 +15,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import java.util.UUID
 import kotlin.collections.ArrayDeque
 
-data class WorkflowValidationError(
-    val code: String,
-    val stepIndex: Int?,
-    val fieldPath: String,
-    val message: String,
-)
-
 class WorkflowSpecValidationException(val errors: List<WorkflowValidationError>) :
     IllegalArgumentException(errors.joinToString("; ") { it.message })
 
-/**
- * The scope, organization, and creator a definition is being saved under. Used to check that a
- * referenced resource (such as a NOTIFICATION communication) is actually visible to the definition.
- */
-data class WorkflowDefinitionScope(
-    val scope: WorkflowScope,
-    val organizationId: UUID?,
-    val createdByAppUserId: UUID?,
-)
-
-/**
- * Structural and referenced-resource validation for a [WorkflowSpec] before it is persisted.
- *
- * Save-time validation is the authoritative gate: it rejects definitions that would otherwise fail
- * open, auto-complete, or stall at runtime (empty definitions, unreachable steps, approvals with no
- * assignees, impossible static quorum, unregistered action handlers, escalation with no SLA, and so
- * on). Every failure is reported as a structured [WorkflowValidationError] with a stable code, the
- * offending step index, a field path, and a safe message, so the frontend can map errors without
- * parsing free-form text.
- *
- * Predicate and route target checks reuse the same [ConditionPredicateService] and in-range rules
- * the runtime engine uses, so save-time and runtime behavior cannot diverge.
- */
 @ApplicationScoped
 class WorkflowSpecValidator @Inject constructor(
     private val triggerEventRepository: WorkflowTriggerEventRepository,
@@ -53,12 +26,6 @@ class WorkflowSpecValidator @Inject constructor(
     private val communicationRepository: CommunicationRepository,
 )
 {
-    /**
-     * Runs every structural and referenced-resource check and throws once with the full set of
-     * errors. This is the single entry point the definition service calls on create, update, and
-     * clone. [definitionScope] enables scope-aware referenced-resource checks; pass null to skip
-     * the scope-visibility portion (still validating existence and active state).
-     */
     fun validate(spec: WorkflowSpec, triggerEvent: String, definitionScope: WorkflowDefinitionScope?)
     {
         val errors = buildList {
@@ -70,11 +37,6 @@ class WorkflowSpecValidator @Inject constructor(
         if (errors.isNotEmpty()) throw WorkflowSpecValidationException(errors)
     }
 
-    /**
-     * Rejects step outcomes whose `nextStep` is neither the terminal `END` marker nor an in-range
-     * step index. This closes the gap where a deleted step left dangling numeric references that
-     * could route an instance to the wrong step or an out-of-range index at runtime.
-     */
     fun validateRoutes(spec: WorkflowSpec)
     {
         throwIfAny(collectRouteErrors(spec))
@@ -84,10 +46,6 @@ class WorkflowSpecValidator @Inject constructor(
     {
         throwIfAny(collectPredicateErrors(spec, triggerEvent))
     }
-
-    // -------------------------------------------------------------------------
-    // Route target validation
-    // -------------------------------------------------------------------------
 
     private fun collectRouteErrors(spec: WorkflowSpec): List<WorkflowValidationError>
     {
@@ -108,10 +66,6 @@ class WorkflowSpecValidator @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Structural validation (empty definition, reachability, cycles, self-routes)
-    // -------------------------------------------------------------------------
-
     private fun collectStructureErrors(spec: WorkflowSpec): List<WorkflowValidationError>
     {
         if (spec.steps.isEmpty())
@@ -129,14 +83,10 @@ class WorkflowSpecValidator @Inject constructor(
         val errors = mutableListOf<WorkflowValidationError>()
         val stepCount = spec.steps.size
 
-        // Only in-range numeric targets participate in the graph; out-of-range targets are already
-        // reported by route validation, so ignore them here to avoid double-counting and indexing
-        // past the step list.
         val edges = spec.steps.map { step ->
             stepTargets(step).mapNotNull { it.toIntOrNull()?.takeIf { i -> i in 0 until stepCount } }
         }
 
-        // Self-routes: a step that routes to itself never terminates.
         spec.steps.forEachIndexed { index, step ->
             outcomeFields(step).forEach { (field, outcome) ->
                 if (outcome.nextStep.toIntOrNull() == index)
@@ -151,7 +101,6 @@ class WorkflowSpecValidator @Inject constructor(
             }
         }
 
-        // Unreachable steps: not reachable from the entry step (index 0).
         val reachable = reachableFrom(0, edges)
         for (index in 0 until stepCount)
         {
@@ -166,8 +115,6 @@ class WorkflowSpecValidator @Inject constructor(
             }
         }
 
-        // No path to END: every step must be able to reach a terminal edge, otherwise an instance
-        // that lands on it stalls or loops forever.
         val canReachEnd = stepsThatReachEnd(spec, edges)
         for (index in 0 until stepCount)
         {
@@ -182,7 +129,6 @@ class WorkflowSpecValidator @Inject constructor(
             }
         }
 
-        // Cycles: a directed cycle among steps means the workflow can loop indefinitely.
         val cycle = detectCycle(edges)
         if (cycle != null)
         {
@@ -196,10 +142,6 @@ class WorkflowSpecValidator @Inject constructor(
 
         return errors
     }
-
-    // -------------------------------------------------------------------------
-    // Per-step validation (assignees, quorum, action handlers, escalation, SLA, addons)
-    // -------------------------------------------------------------------------
 
     private fun collectStepErrors(
         spec: WorkflowSpec,
@@ -254,9 +196,6 @@ class WorkflowSpecValidator @Inject constructor(
                     message = "Approval step ${index + 1} requires a quorum of at least 1",
                 )
             }
-            // When every assignee is a literal principal, the total is knowable now and an n larger
-            // than the total can never be satisfied. Group/role/placeholder assignees resolve
-            // dynamically, so their feasibility is re-checked when an instance starts.
             val staticTotal = staticAssigneeCount(step.assignees)
             if (staticTotal != null && staticTotal > 0 && quorum.n > staticTotal)
             {
@@ -275,8 +214,6 @@ class WorkflowSpecValidator @Inject constructor(
     {
         val escalation = step.escalation ?: return emptyList()
         val errors = mutableListOf<WorkflowValidationError>()
-        // Escalation is driven by the SLA deadline; without an SLA the step never becomes overdue,
-        // so the escalation configuration would never fire.
         if (step.slaMinutes == null)
         {
             errors += WorkflowValidationError(
@@ -461,10 +398,6 @@ class WorkflowSpecValidator @Inject constructor(
         message = "Step ${index + 1} has a non-positive reminder interval",
     )
 
-    // -------------------------------------------------------------------------
-    // Assignee well-formedness
-    // -------------------------------------------------------------------------
-
     private fun assigneeFormatErrors(index: Int, step: WorkflowStepSpec): List<WorkflowValidationError>
     {
         val errors = mutableListOf<WorkflowValidationError>()
@@ -500,10 +433,6 @@ class WorkflowSpecValidator @Inject constructor(
             ),
         )
     }
-
-    // -------------------------------------------------------------------------
-    // Referenced communication existence, active state, and scope visibility
-    // -------------------------------------------------------------------------
 
     private fun communicationErrors(
         index: Int,
@@ -570,10 +499,6 @@ class WorkflowSpecValidator @Inject constructor(
     private fun communicationError(code: String, index: Int, fieldPath: String, message: String) =
         WorkflowValidationError(code = code, stepIndex = index, fieldPath = fieldPath, message = message)
 
-    // -------------------------------------------------------------------------
-    // Predicate validation
-    // -------------------------------------------------------------------------
-
     private fun collectPredicateErrors(spec: WorkflowSpec, triggerEvent: String): List<WorkflowValidationError>
     {
         val fields = triggerEventRepository.findByEventName(triggerEvent)?.subjectFieldsJson?.let { fieldsJson ->
@@ -599,23 +524,15 @@ class WorkflowSpecValidator @Inject constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Graph helpers
-    // -------------------------------------------------------------------------
-
-    /** Outgoing step-to-step routing targets (as raw strings) for graph analysis. */
     private fun stepTargets(step: WorkflowStepSpec): List<String> = when (step.type)
     {
-        // An approval reject always terminates at runtime, so only the approve branch is a step edge.
         WorkflowStepType.APPROVAL -> listOfNotNull(step.onApprove?.nextStep)
         WorkflowStepType.CONDITION -> listOfNotNull(step.onTrue?.nextStep, step.onFalse?.nextStep)
         else -> listOfNotNull(step.onApprove?.nextStep)
     }
 
-    /** True if a step has at least one outgoing edge that terminates the instance. */
     private fun stepHasTerminalEdge(step: WorkflowStepSpec): Boolean = when (step.type)
     {
-        // Reject always terminates, and a missing approve outcome defaults to END.
         WorkflowStepType.APPROVAL -> true
         WorkflowStepType.CONDITION ->
             terminatesToEnd(step.onTrue) || terminatesToEnd(step.onFalse)
@@ -642,7 +559,6 @@ class WorkflowSpecValidator @Inject constructor(
 
     private fun stepsThatReachEnd(spec: WorkflowSpec, edges: List<List<Int>>): Set<Int>
     {
-        // Reverse reachability from the steps that have a direct terminal edge.
         val reverse = Array(spec.steps.size) { mutableListOf<Int>() }
         edges.forEachIndexed { from, targets -> targets.forEach { to -> reverse[to].add(from) } }
         val canReach = mutableSetOf<Int>()
@@ -657,10 +573,9 @@ class WorkflowSpecValidator @Inject constructor(
         return canReach
     }
 
-    /** Returns a step index participating in a directed cycle, or null when the graph is acyclic. */
     private fun detectCycle(edges: List<List<Int>>): Int?
     {
-        val state = IntArray(edges.size) // 0 = unvisited, 1 = on stack, 2 = done
+        val state = IntArray(edges.size)
         fun dfs(node: Int): Int?
         {
             state[node] = 1
@@ -679,10 +594,6 @@ class WorkflowSpecValidator @Inject constructor(
         return null
     }
 
-    // -------------------------------------------------------------------------
-    // Small helpers
-    // -------------------------------------------------------------------------
-
     private fun outcomeFields(step: WorkflowStepSpec): List<Pair<String, StepOutcomeSpec>> =
         buildList {
             step.onApprove?.let { add("onApprove" to it) }
@@ -691,7 +602,6 @@ class WorkflowSpecValidator @Inject constructor(
             step.onFalse?.let { add("onFalse" to it) }
         }
 
-    /** Total assignees when all are literal principals; null when any resolve dynamically. */
     private fun staticAssigneeCount(assignees: List<AssigneeSpec>): Int?
     {
         if (assignees.isEmpty()) return 0

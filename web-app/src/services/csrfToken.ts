@@ -1,11 +1,3 @@
-/**
- * Double-submit CSRF token handling.
- *
- * The backend sets a readable `csrf_token` cookie alongside the HttpOnly refresh cookie. Any
- * state-changing request must echo that value back in the `X-CSRF-Token` header. A cross-site
- * page can cause the browser to send the cookie, but the same-origin policy stops it from
- * reading the cookie, so it cannot produce the matching header.
- */
 const CSRF_COOKIE_NAME = 'csrf_token';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
 

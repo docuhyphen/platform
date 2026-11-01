@@ -14,13 +14,6 @@ const getHeaderOffset = (): number =>
     return header.getBoundingClientRect().height + HASH_SCROLL_GAP;
 };
 
-/**
- * Scrolls to the top for ordinary route changes or to the element matching the
- * current URL hash. This lets header/navigation links such as
- * "/#home-contact-info" jump straight to a section on the homepage even when
- * the click originates from a different route, since react-router client-side
- * transitions do not scroll to a hash target on their own.
- */
 export function ScrollToHashHandler()
 {
     const location = useLocation();
@@ -73,5 +66,4 @@ export function ScrollToHashHandler()
 
     return null;
 }
-
 

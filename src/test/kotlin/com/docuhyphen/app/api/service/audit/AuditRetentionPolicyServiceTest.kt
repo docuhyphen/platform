@@ -12,11 +12,6 @@ import org.mockito.kotlin.whenever
 import java.time.Instant
 import java.util.*
 
-/**
- * Verifies [AuditRetentionPolicyService]: an organization with no override row gets the
- * platform-default catalog unchanged; an override narrows/widens exactly one category; and
- * validation rejects non-positive retention windows.
- */
 class AuditRetentionPolicyServiceTest
 {
     private fun service(repo: AuditRetentionPolicyRepository = mock()): AuditRetentionPolicyService =

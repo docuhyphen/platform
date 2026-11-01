@@ -51,8 +51,6 @@ class NoAuthExchangeAccessWindowServiceTest
 
         service.markVerified(exchange, verifiedAt)
 
-        // The entity must carry the new value so a later dirty-check flush cannot revert the
-        // row back to the stale null it was loaded with.
         assertEquals(verifiedAt, exchange.noAuthAccessVerifiedAt)
         verify(exchangeRepository).update(exchange)
         verify(exchangeRepository).updateNoAuthAccessVerifiedAt(exchange.id, verifiedAt)

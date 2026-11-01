@@ -9,7 +9,7 @@ import com.docuhyphen.app.api.model.informationrequest.capability.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateDefinitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionCapabilityRepository
 import com.docuhyphen.app.api.repository.informationrequest.template.InformationRequestTemplateVersionRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.template.model.TemplateVersionFreezerFixture
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

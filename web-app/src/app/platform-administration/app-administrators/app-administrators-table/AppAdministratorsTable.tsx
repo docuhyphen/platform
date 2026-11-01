@@ -55,12 +55,13 @@ const AppAdministratorsTable = ({
                         <TableRow
                             id={`app-administrator-row-${admin.assignmentId}`}
                             key={admin.assignmentId}>
-                            <TableCell>{`${admin.firstName ?? ""} ${admin.lastName ?? ""}`.trim() || "-"}</TableCell>
-                            <TableCell>{admin.email}</TableCell>
-                            <TableCell>
+                            <TableCell id={"app-administrators-table-table-cell-1"}>{`${admin.firstName ?? ""} ${admin.lastName ?? ""}`.trim() || "-"}</TableCell>
+                            <TableCell id={"app-administrators-table-table-cell-2"}>{admin.email}</TableCell>
+                            <TableCell id={"app-administrators-table-table-cell-3"}>
                                 {admin.grantedAt ? new Date(admin.grantedAt).toLocaleString() : "-"}
                             </TableCell>
-                            <TableCell className={styles.actionsCell}>
+                            <TableCell id={"app-administrators-table-table-cell-4"}
+                                       className={styles.actionsCell}>
                                 {admin.appUserId === appUser?.id ? (
                                     <Badge id={`app-administrator-current-${admin.assignmentId}`}>You</Badge>
                                 ) : (
@@ -80,7 +81,8 @@ const AppAdministratorsTable = ({
                     ))}
                     {admins.length === 0 && (
                         <TableRow id={"app-administrators-empty-row"}>
-                            <TableCell colSpan={4}>
+                            <TableCell id={"app-administrators-table-table-cell-5"}
+                                       colSpan={4}>
                                 <Text id={"app-administrators-empty-message"}>
                                     No App Administrators found.
                                 </Text>

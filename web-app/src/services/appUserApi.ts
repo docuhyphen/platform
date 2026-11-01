@@ -1,4 +1,5 @@
 import apiClient, {addBearerToHeaderToken} from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     AppUserSettingsDto,
     AuthenticatorEnrollment,
@@ -22,7 +23,7 @@ export const fetchAppUser = async (token: string | null) =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -68,7 +69,7 @@ export const registerIndividual = async (request: PersonRegistrationRequest, tok
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -85,7 +86,7 @@ export const registerOrganization = async (request: OrganizationRegistrationRequ
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -102,7 +103,7 @@ export const updateAppUserSettings = async (request: AppUserSettingsDto, token: 
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 }
 
@@ -162,7 +163,7 @@ export const initiateAppUserEmailUpdate = async (email: string, token: string | 
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -183,7 +184,7 @@ export const confirmOldAppUserEmailForUpdate = async (verificationCode: string, 
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 
@@ -204,6 +205,6 @@ export const completeAppUserEmailUpdate = async (email: string, verificationCode
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };

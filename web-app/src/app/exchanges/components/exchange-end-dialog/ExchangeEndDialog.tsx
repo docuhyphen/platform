@@ -78,8 +78,7 @@ const ExchangeEndDialog: React.FC<ExchangeEndDialogProps> = (
                             </MessageBar>
                         )}
                         <Field id={"end-exchange-note-field"}
-                               label={"Notes"}
-                               className={styles.endNoteField}>
+                               label={"Notes"}>
                             <Textarea
                                 id={"textarea-end-exchange-note"}
                                 value={exchangeEndNote}

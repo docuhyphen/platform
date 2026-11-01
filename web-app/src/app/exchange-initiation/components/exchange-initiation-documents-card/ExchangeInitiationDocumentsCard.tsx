@@ -1,9 +1,11 @@
 import React from 'react';
-import {Badge, Button, Card, Checkbox, Dropdown, Field, Input, Option, OptionGroup, Switch} from "@fluentui/react-components";
+import {Button, Card, Checkbox, Field, Input, Switch} from "@fluentui/react-components";
 import {AvailableVariablesDto, DocumentType, ExchangeRequestDocumentRequest, ImageType} from "../../../models/models.tsx";
 import {useExchangeInitiationStyles} from "../../ExchangeInitiationStyles.tsx";
-import {DeleteIcon, LinkDismissIcon} from "../../../components/IconBundles.tsx";
+import {DeleteIcon} from "../../../components/IconBundles.tsx";
 import VariableTokenInput from "../../../../components/variable-token-input/VariableTokenInput.tsx";
+import DocumentLinkedBadgeRow from "./document-linked-badge-row/DocumentLinkedBadgeRow.tsx";
+import DocumentTypeDropdown from "./document-type-dropdown/DocumentTypeDropdown.tsx";
 
 interface DocumentCardProps
 {
@@ -37,10 +39,14 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
     const isLinked = !!document.libraryDocumentId;
 
     return (
-        <Card key={index} className={styles.shadingExchangeDocumentCard}>
-            <div>
-                <div className={styles.dialogTitle1}>
-                    <Field className={styles.sharingDetailsInput}>
+        <Card id={`exchange-initiation-documents-card-card-1-${index}`}
+              key={index}
+              className={styles.shadingExchangeDocumentCard}>
+            <div id={"exchange-initiation-documents-card-div-1"}>
+                <div id={"exchange-initiation-documents-card-div-2"}
+                     className={styles.dialogTitle1}>
+                    <Field id={"exchange-initiation-documents-card-field-1"}
+                           className={styles.sharingDetailsInput}>
                         {availableVariables ? (
                             <VariableTokenInput
                                 value={document.title || ''}
@@ -73,27 +79,15 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                     )}
                 </div>
                 {isLinked && (
-                    <div className={styles.docLinkedBadgeRow}>
-                        <Badge appearance="tint" color="success" size="small">
-                            Linked from library
-                        </Badge>
-                        {onUnlink && (
-                            <Button
-                                id={`doc-card-unlink-btn-${index}`}
-                                size="small"
-                                appearance="outline"
-                                shape="circular"
-                                icon={<LinkDismissIcon/>}
-                                onClick={() => onUnlink(index)}
-                            >
-                                Unlink
-                            </Button>
-                        )}
-                    </div>
+                    <DocumentLinkedBadgeRow index={index}
+                                            onUnlink={onUnlink}/>
                 )}
-                <div className={styles.exchangeDocumentsRestriction}>
-                    <div className={styles.exchangeDocumentsRestrictionField}>
-                        <Field label="">
+                <div id={"exchange-initiation-documents-card-div-4"}
+                     className={styles.exchangeDocumentsRestriction}>
+                    <div id={"exchange-initiation-documents-card-div-5"}
+                         className={styles.exchangeDocumentsRestrictionField}>
+                        <Field id={"exchange-initiation-documents-card-field-2"}
+                               label="">
                             <Switch
                                 id={`doc-card-restrict-switch-${index}`}
                                 label="Restrict upload type"
@@ -102,38 +96,12 @@ const ExchangeInitiationDocumentsCard: React.FC<DocumentCardProps> = (
                                 onChange={(ev) => onRestrictDocumentTypeChange(index, ev)}
                             />
                         </Field>
-                        <Dropdown
-                            id={`doc-card-type-dropdown-${index}`}
-                            className={styles.exchangeDocumentsDropdown}
+                        <DocumentTypeDropdown
+                            index={index}
+                            value={document.restrictedType}
                             disabled={!document.restrictType || isLinked || locked}
-                            appearance="underline"
-                            value={document.restrictedType ?? ''}
-                            size="small"
-                            placeholder="Select allowed upload type"
-                            onOptionSelect={(_e, data) =>
-                            {
-                                const selectedType = data.optionValue as DocumentType | ImageType | undefined;
-                                if (selectedType)
-                                {
-                                    onDocumentTypeChange(index, selectedType);
-                                }
-                            }}
-                        >
-                            <OptionGroup label="Documents">
-                                {Object.values(DocumentType).map((option) => (
-                                    <Option key={option} value={option}>
-                                        {option}
-                                    </Option>
-                                ))}
-                            </OptionGroup>
-                            <OptionGroup label="Images">
-                                {Object.values(ImageType).map((option) => (
-                                    <Option key={option} value={option}>
-                                        {option}
-                                    </Option>
-                                ))}
-                            </OptionGroup>
-                        </Dropdown>
+                            onChange={(newType) => onDocumentTypeChange(index, newType)}
+                        />
                     </div>
                     <Checkbox
                         id={`doc-card-required-checkbox-${index}`}

@@ -46,7 +46,8 @@ const AuditEventTablePagination = ({
                 id={"audit-event-table-pagination-controls"}
                 className={controlsClassName}
             >
-                <Tooltip content={"First page"} relationship={"description"}>
+                <Tooltip content={"First page"}
+                         relationship={"description"}>
                     <Button
                         id={"audit-event-table-pagination-first"}
                         icon={<FirstPageIcon/>}
@@ -56,7 +57,8 @@ const AuditEventTablePagination = ({
                         onClick={onFirstPage}
                     />
                 </Tooltip>
-                <Tooltip content={"Previous page"} relationship={"description"}>
+                <Tooltip content={"Previous page"}
+                         relationship={"description"}>
                     <Button
                         id={"audit-event-table-pagination-previous"}
                         icon={<PreviousPageIcon/>}
@@ -72,7 +74,8 @@ const AuditEventTablePagination = ({
                 >
                     {currentPage + 1} / {loadedPages}
                 </Text>
-                <Tooltip content={"Next page"} relationship={"description"}>
+                <Tooltip content={"Next page"}
+                         relationship={"description"}>
                     <Button
                         id={"audit-event-table-pagination-next"}
                         icon={<NextPageIcon/>}
@@ -82,7 +85,8 @@ const AuditEventTablePagination = ({
                         onClick={onNextPage}
                     />
                 </Tooltip>
-                <Tooltip content={"Last loaded page"} relationship={"description"}>
+                <Tooltip content={"Last loaded page"}
+                         relationship={"description"}>
                     <Button
                         id={"audit-event-table-pagination-last"}
                         icon={<LastPageIcon/>}

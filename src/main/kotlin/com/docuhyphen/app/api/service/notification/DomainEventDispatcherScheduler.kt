@@ -5,15 +5,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 
-/**
- * Periodically delivers committed `workflow_event_outbox` rows via [DomainEventDispatcher.dispatch]
- * and logs backlog health for operational visibility. Mirrors the existing scheduler pattern
- * (`LedgerProcessorScheduler`, `WorkflowEscalationScheduler`): Quarkus' scheduler bean is already on
- * the classpath via `quarkus-arc`, so no new dependency is needed.
- *
- * The job is deliberately tiny: all delivery and health logic stays in [DomainEventDispatcher] so
- * it can also be driven synchronously from tests or an admin action.
- */
 @ApplicationScoped
 class DomainEventDispatcherScheduler
 {
@@ -25,7 +16,6 @@ class DomainEventDispatcherScheduler
     @Scheduled(
         every = "\${app.domain-event.outbox.dispatch-every:10s}",
         identity = "domain-event-outbox-dispatch",
-        // Skip overlapping fires; one in-flight dispatch pass per node at a time is plenty.
         concurrentExecution = Scheduled.ConcurrentExecution.SKIP,
     )
     fun tick()

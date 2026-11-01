@@ -1,7 +1,7 @@
 package com.docuhyphen.app.api.model.fields
 
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import java.util.*
 
 data class FieldsResourceRef(

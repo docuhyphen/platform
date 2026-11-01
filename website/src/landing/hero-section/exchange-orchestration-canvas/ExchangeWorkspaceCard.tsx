@@ -25,7 +25,8 @@ export function ExchangeWorkspaceCard()
                     id="orchestration-exchange-icon"
                     className={styles.exchangeIcon}
                 >
-                    <ShieldLock24Regular aria-hidden="true"/>
+                    <ShieldLock24Regular id={"exchange-workspace-card-shield-lock24-regular-1"}
+                                         aria-hidden="true"/>
                 </span>
                 <span id="orchestration-exchange-heading">
                     <Text
@@ -54,9 +55,12 @@ export function ExchangeWorkspaceCard()
                 id="orchestration-exchange-summary"
                 className={styles.summary}
             >
-                <Text size={200}>4 participants</Text>
-                <Text size={200}>8 documents</Text>
-                <Text size={200}>2 approvals</Text>
+                <Text id={"exchange-workspace-card-text-1"}
+                      size={200}>4 participants</Text>
+                <Text id={"exchange-workspace-card-text-2"}
+                      size={200}>8 documents</Text>
+                <Text id={"exchange-workspace-card-text-3"}
+                      size={200}>2 approvals</Text>
             </div>
 
             <div
@@ -67,24 +71,32 @@ export function ExchangeWorkspaceCard()
                     id="orchestration-activity-access"
                     className={styles.activityRow}
                 >
-                    <PeopleTeam24Regular aria-hidden="true"/>
-                    <Text className={styles.activityLabel}>Participant access</Text>
-                    <CheckmarkCircle24Filled className={styles.completeIcon}/>
+                    <PeopleTeam24Regular id={"exchange-workspace-card-people-team24-regular-1"}
+                                         aria-hidden="true"/>
+                    <Text id={"exchange-workspace-card-text-4"}
+                          className={styles.activityLabel}>Participant access</Text>
+                    <CheckmarkCircle24Filled id={"exchange-workspace-card-checkmark-circle24-filled-1"}
+                                             className={styles.completeIcon}/>
                 </div>
                 <div
                     id="orchestration-activity-request"
                     className={styles.activityRow}
                 >
-                    <DocumentText24Regular aria-hidden="true"/>
-                    <Text className={styles.activityLabel}>Document requests</Text>
-                    <Text className={styles.activityValue}>6 of 8</Text>
+                    <DocumentText24Regular id={"exchange-workspace-card-document-text24-regular-1"}
+                                           aria-hidden="true"/>
+                    <Text id={"exchange-workspace-card-text-5"}
+                          className={styles.activityLabel}>Document requests</Text>
+                    <Text id={"exchange-workspace-card-text-6"}
+                          className={styles.activityValue}>6 of 8</Text>
                 </div>
                 <div
                     id="orchestration-activity-workflow"
                     className={mergeClasses(styles.activityRow, styles.activeActivityRow)}
                 >
-                    <BranchFork24Regular aria-hidden="true"/>
-                    <Text className={styles.activityLabel}>Approval workflow</Text>
+                    <BranchFork24Regular id={"exchange-workspace-card-branch-fork24-regular-1"}
+                                         aria-hidden="true"/>
+                    <Text id={"exchange-workspace-card-text-7"}
+                          className={styles.activityLabel}>Approval workflow</Text>
                     <span
                         id="orchestration-activity-live-status"
                         className={styles.liveStatus}

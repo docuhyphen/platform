@@ -1,5 +1,6 @@
 ﻿package com.docuhyphen.app.api.realtime
 
+import com.docuhyphen.app.api.service.realtime.RealtimeConnectionService
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.websocket.*
@@ -8,13 +9,6 @@ import jakarta.websocket.server.ServerEndpoint
 import org.eclipse.microprofile.context.ManagedExecutor
 import org.slf4j.LoggerFactory
 
-/**
- * One socket per [UserSession] (per device/browser). Auth: opening handshake's `?token=…`
- * must be a valid ACCESS token whose `exchange_id` claim equals the path's `userSessionId`.
- *
- * Why per-userSession and not per-user: revocation and presence both want to act on one
- * device at a time. Two browsers for the same user need independent lifecycles.
- */
 @ServerEndpoint(
     value = "/realtime/{userSessionId}",
     configurator = RealtimeOriginConfigurator::class,

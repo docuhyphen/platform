@@ -14,8 +14,8 @@ import com.docuhyphen.app.api.resource.informationrequest.evidence.operations.In
 import com.docuhyphen.app.api.resource.informationrequest.evidence.operations.InformationRequestNoAuthEvidenceResourceOperations
 import com.docuhyphen.app.api.resource.model.InformationRequestEvidenceStateChangeRequest
 import com.docuhyphen.app.api.resource.model.ResponseError
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandPreconditionException
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory

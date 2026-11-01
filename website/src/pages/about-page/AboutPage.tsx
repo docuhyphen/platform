@@ -1,5 +1,5 @@
 import {Text, Title1} from "@fluentui/react-components";
-import {PageShell} from "../../shared/PageShell.tsx";
+import {PageShell} from "../../shared/page-shell/PageShell.tsx";
 import {LinkButton} from "../../shared/LinkButton.tsx";
 import {AboutCommitments} from "./AboutCommitments.tsx";
 import {AboutExchangeVisual} from "./AboutExchangeVisual.tsx";
@@ -56,7 +56,6 @@ export function AboutPage()
                     id="about-contact-button"
                     to="/contact"
                     appearance="primary"
-                    shape="circular"
                 >
                     Get in touch
                 </LinkButton>
@@ -64,7 +63,6 @@ export function AboutPage()
                     id="about-security-button"
                     to="/security"
                     appearance="secondary"
-                    shape="circular"
                 >
                     Read about our security
                 </LinkButton>

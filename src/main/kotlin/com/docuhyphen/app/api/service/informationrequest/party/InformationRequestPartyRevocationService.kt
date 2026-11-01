@@ -13,7 +13,7 @@ import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestP
 import com.docuhyphen.app.api.model.informationrequest.party.ReassignInformationRequestPartyCommand
 import com.docuhyphen.app.api.model.informationrequest.party.RevokeInformationRequestPartyCommand
 import com.docuhyphen.app.api.repository.informationrequest.party.InformationRequestPartyRepository
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.command.CommandRequestFingerprint
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestETag
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestErrorCatalog

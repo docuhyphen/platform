@@ -74,7 +74,6 @@ export const getFieldValueLabels = (
     }
 };
 
-/** Formats a canonical field value for read-only display. */
 export const formatFieldValue = (
     valueType: FieldValueType,
     value: unknown,
@@ -105,13 +104,11 @@ export const formatFieldValue = (
     }
 };
 
-/** Normalizes an editor value into the canonical JSON shape the API expects. */
 export const toCanonicalValue = (valueType: FieldValueType, value: unknown): unknown =>
 {
     switch (valueType)
     {
         case FieldValueType.BOOLEAN:
-            // Three readings, not two: an untouched field is unanswered rather than a No.
             return value === true || value === false ? value : null;
         case FieldValueType.INTEGER:
         case FieldValueType.DECIMAL:

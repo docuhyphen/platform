@@ -1,89 +1,78 @@
 package com.docuhyphen.app.api.resource.audit
 
 import com.docuhyphen.app.api.exception.SubscriptionDenialException
-import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.dto.AuditExportDtoMapper
+import com.docuhyphen.app.api.resource.audit.operations.AuditOrganizationIntegrityResourceOperations
 import com.docuhyphen.app.api.resource.model.ResponseError
+import com.docuhyphen.app.api.service.audit.AuditAccessAuthorizer
 import com.docuhyphen.app.api.service.audit.export.AuditExportAccessException
 import com.docuhyphen.app.api.service.audit.export.AuditExportNotFoundException
 import com.docuhyphen.app.api.service.audit.export.AuditIntegrityService
 import com.docuhyphen.app.api.service.auth.authz.Action
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import io.quarkus.security.ForbiddenException
+import io.quarkus.security.UnauthorizedException
 import jakarta.inject.Inject
-import jakarta.ws.rs.*
-import jakarta.ws.rs.core.MediaType
+import jakarta.ws.rs.WebApplicationException
 import jakarta.ws.rs.core.Response
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/** Given its own class-level path; see AuditOrganizationEventsResource for why this class is not merged with others. */
-@Path("/organizations/{organizationId}/audit-integrity")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 class AuditOrganizationIntegrityResource @Inject constructor(
-    private val authorizationService: AuthorizationService,
-    private val authorizationContextFactory: AuthorizationContextFactory,
+    private val auditAccessAuthorizer: AuditAccessAuthorizer,
     private val auditIntegrityService: AuditIntegrityService,
-)
+) : AuditOrganizationIntegrityResourceOperations
 {
     companion object
     {
         private val logger = LoggerFactory.getLogger(AuditOrganizationIntegrityResource::class.java)
     }
 
-    @GET
-    fun getOrganizationIntegrity(@PathParam("organizationId") organizationId: String): Response =
-        withAuthorizedOrg(organizationId, Action.ORG_READ_AUDIT) { principal, orgId ->
-            val report =
-                auditIntegrityService.checkOrganization(orgId, platformOnly = false, requestedByUserId = principal)
-            Response.ok(AuditExportDtoMapper.toIntegrityDto(report)).build()
-        }
-
-    private fun withAuthorizedOrg(
-        organizationId: String,
-        action: Action,
-        block: (UUID, UUID) -> Response,
-    ): Response
-    {
-        val principal = authorizationContextFactory.currentPrincipal()
-            ?: return Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError("Unauthorized")).build()
-        val context = authorizationContextFactory.currentContext()
-        val orgId = parseUuid(organizationId)
-        val resource = ResourceRef.organization(orgId)
-        val decision = authorizationService.authorize(principal, action, resource, context)
-        if (decision is Decision.Deny)
-        {
-            return Response.status(Response.Status.FORBIDDEN).entity(ResponseError("Insufficient privileges")).build()
-        }
-        return runGuarded { block(principal.id, orgId) }
-    }
-
-    private fun runGuarded(block: () -> Response): Response
+    override fun getOrganizationIntegrity(organizationId: String): Response
     {
         return try
         {
-            block()
+            val access = auditAccessAuthorizer.authorizeOrganization(UUID.fromString(organizationId), Action.ORG_READ_AUDIT)
+            val report = auditIntegrityService.checkOrganization(
+                access.organizationId,
+                platformOnly = false,
+                requestedByUserId = access.actor.principal.id,
+            )
+            Response.ok(AuditExportDtoMapper.toIntegrityDto(report)).build()
         }
-        catch (e: SubscriptionDenialException)
+        catch (exception: Exception)
         {
-            logger.warn("Organization audit-integrity request refused by subscription policy", e)
-            throw e
-        }
-        catch (e: IllegalArgumentException)
-        {
-            Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditExportNotFoundException)
-        {
-            Response.status(Response.Status.NOT_FOUND).entity(ResponseError(e.message)).build()
-        }
-        catch (e: AuditExportAccessException)
-        {
-            Response.status(Response.Status.FORBIDDEN).entity(ResponseError(e.message)).build()
+            when (exception)
+            {
+                is WebApplicationException -> throw exception
+                is SubscriptionDenialException ->
+                {
+                    logger.warn("Organization audit-integrity request refused by subscription policy", exception)
+                    throw exception
+                }
+
+                is UnauthorizedException ->
+                    Response.status(Response.Status.UNAUTHORIZED).entity(ResponseError(exception.message)).build()
+
+                is ForbiddenException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is AuditExportNotFoundException ->
+                    Response.status(Response.Status.NOT_FOUND).entity(ResponseError(exception.message)).build()
+
+                is AuditExportAccessException ->
+                    Response.status(Response.Status.FORBIDDEN).entity(ResponseError(exception.message)).build()
+
+                is IllegalArgumentException ->
+                    Response.status(Response.Status.BAD_REQUEST).entity(ResponseError(exception.message)).build()
+
+                else ->
+                {
+                    logger.error("Error checking organization audit integrity", exception)
+                    Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(ResponseError("Request failed"))
+                        .build()
+                }
+            }
         }
     }
-
-    private fun parseUuid(raw: String): UUID = UUID.fromString(raw)
 }

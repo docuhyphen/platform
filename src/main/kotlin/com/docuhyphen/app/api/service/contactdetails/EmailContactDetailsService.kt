@@ -55,7 +55,6 @@ class EmailContactDetailsService @Inject constructor(
 
         val verificationCode = otpService.generateEmailOtp()
 
-        // Track pending email separately so a cancelled initiation does not block a retry.
         contactDetails.pendingEmail = email
         contactDetails.emailVerificationCode = verificationCode
         contactDetails.isEmailVerified = false

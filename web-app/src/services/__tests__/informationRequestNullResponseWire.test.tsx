@@ -35,7 +35,7 @@ import RecordStandingPanel from "../../app/information-requests/operations/recor
 import RetentionScheduleCard from "../../app/record-preservation/retention-schedule/RetentionScheduleCard.tsx";
 
 vi.mock("../../context/AuthContext.tsx", () => ({
-    useAuth: () => ({currentSession: {activeOrganizationId: undefined}, hasCapability: () => true}),
+    useAuth: () => ({currentSession: {activeOrganizationId: undefined as string | undefined}, hasCapability: () => true}),
 }));
 
 const published = template.latestPublishedVersion;

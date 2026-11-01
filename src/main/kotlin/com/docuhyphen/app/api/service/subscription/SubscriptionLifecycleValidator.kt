@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.service.subscription
 
+import com.docuhyphen.app.api.model.subscription.SubscriptionLifecycleUpdate
 import jakarta.enterprise.context.ApplicationScoped
 
 @ApplicationScoped

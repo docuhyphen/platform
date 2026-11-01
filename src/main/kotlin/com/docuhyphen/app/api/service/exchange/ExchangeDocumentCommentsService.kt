@@ -6,14 +6,14 @@ import com.docuhyphen.app.api.model.auth.authz.Decision
 import com.docuhyphen.app.api.model.entity.Document
 import com.docuhyphen.app.api.model.entity.DocumentAuditAction
 import com.docuhyphen.app.api.model.entity.ExchangeDocumentComment
-import com.docuhyphen.app.api.realtime.RealtimeMessage
-import com.docuhyphen.app.api.realtime.RealtimeMessageType
+import com.docuhyphen.app.api.model.realtime.RealtimeMessage
+import com.docuhyphen.app.api.model.realtime.RealtimeMessageType
 import com.docuhyphen.app.api.repository.exchange.DocumentCommentRepository
 import com.docuhyphen.app.api.repository.exchange.ExchangeRepository
 import com.docuhyphen.app.api.service.auth.authz.Action
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationContextFactory
 import com.docuhyphen.app.api.service.auth.authz.AuthorizationService
-import com.docuhyphen.app.api.service.auth.authz.ResourceRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.service.notification.InAppNotificationService
 import com.docuhyphen.app.api.service.notification.UserNotificationPreference
 import com.docuhyphen.app.api.service.organization.OrganizationMembershipService
@@ -50,17 +50,12 @@ class ExchangeDocumentCommentsService @Inject constructor(
 
         private const val MAX_COMMENT_LENGTH = 500
 
-        // A page number this large cannot correspond to a real document page and indicates
-        // a malformed or abusive request. The value is a defensive upper bound only; the
-        // frontend always sends the page currently being viewed.
         private const val MAX_COMMENT_PAGE_NUMBER = 10_000
 
-        // Simple per-user sliding window: no more than this many comments per window.
         private const val RATE_LIMIT_MAX_COMMENTS = 10
         private const val RATE_LIMIT_WINDOW_MS = 60_000L
     }
 
-    // Tracks recent comment timestamps per user id to throttle rapid posting.
     private val recentCommentTimestamps = ConcurrentHashMap<UUID, ArrayDeque<Long>>()
 
     @Transactional

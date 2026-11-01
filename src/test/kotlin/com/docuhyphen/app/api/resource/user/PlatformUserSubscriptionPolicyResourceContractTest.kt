@@ -1,5 +1,6 @@
 package com.docuhyphen.app.api.resource.user
 
+import com.docuhyphen.app.api.resource.user.operations.PlatformUserSubscriptionPolicyResourceOperations
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.PATCH
 import jakarta.ws.rs.Path
@@ -12,7 +13,7 @@ class PlatformUserSubscriptionPolicyResourceContractTest
     @Test
     fun `user subscription administration uses resource based paths and verbs`()
     {
-        val resource = PlatformUserSubscriptionPolicyResource::class.java
+        val resource = PlatformUserSubscriptionPolicyResourceOperations::class.java
         assertEquals("/platform/users", resource.getAnnotation(Path::class.java).value)
         assertEquals(
             "/subscription-policies",

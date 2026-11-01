@@ -92,7 +92,8 @@ const ExchangeTabsHeader: React.FC<ExchangeTabsHeaderProps> = (props) => {
                 <div id="exchange-document-progress"
                      className={styles.progressSummary}
                      aria-label={`${uploadedCount} of ${totalCount} documents uploaded`}>
-                    <Text size={200}
+                    <Text id={"exchange-tabs-header-text-1"}
+                          size={200}
                           className={styles.progressText}>
                         {uploadedCount} of {totalCount} uploaded
                     </Text>

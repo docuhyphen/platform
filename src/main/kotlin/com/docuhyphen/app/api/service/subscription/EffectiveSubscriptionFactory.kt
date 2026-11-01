@@ -2,27 +2,14 @@ package com.docuhyphen.app.api.service.subscription
 
 import com.docuhyphen.app.api.model.entity.OrganizationSubscriptionPolicy
 import com.docuhyphen.app.api.model.entity.UserSubscriptionPolicy
+import com.docuhyphen.app.api.model.subscription.EffectiveSubscription
 import org.slf4j.LoggerFactory
 import java.util.*
 
-/**
- * Turns a persisted subscription record into the resolved commercial position used by every
- * plan decision.
- *
- * Fixed plan content comes from [PlanCatalog]. Everything tenant-specific - lifecycle status,
- * billing period, purchased seats, and platform-administered feature overrides - comes from the
- * persisted record. A record holding a plan that cannot belong to its owner falls back to that
- * owner's default plan so a corrupted value degrades predictably instead of granting or
- * removing arbitrary features.
- */
 object EffectiveSubscriptionFactory
 {
     private val logger = LoggerFactory.getLogger(EffectiveSubscriptionFactory::class.java)
 
-    /**
-     * @param featureOverrides platform-administered decisions applied on top of the plan
-     * defaults. An entry set to true adds a feature the plan omits; false removes one it grants.
-     */
     fun fromUserPolicy(
         policy: UserSubscriptionPolicy,
         featureOverrides: Map<PlanFeature, Boolean>,
@@ -51,10 +38,6 @@ object EffectiveSubscriptionFactory
         )
     }
 
-    /**
-     * @param featureOverrides platform-administered decisions applied on top of the plan
-     * defaults. An entry set to true adds a feature the plan omits; false removes one it grants.
-     */
     fun fromOrganizationPolicy(
         organizationId: UUID,
         policy: OrganizationSubscriptionPolicy,
@@ -164,6 +147,4 @@ object EffectiveSubscriptionFactory
         return parsed
     }
 }
-
-
 

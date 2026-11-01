@@ -1,53 +1,38 @@
 package com.docuhyphen.app.api.service.application
 
+import com.docuhyphen.app.api.model.application.WebhookDestinationValidationResult
 import jakarta.enterprise.context.ApplicationScoped
 import java.net.InetAddress
 import java.net.URI
 
-/**
- * Validates outbound webhook target URLs against an egress policy that prevents SSRF.
- *
- * Denied destinations:
- * - Loopback: 127.0.0.0/8, ::1
- * - Link-local: 169.254.0.0/16, fe80::/10
- * - Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7
- * - AWS EC2 metadata service: 169.254.169.254
- * - Non-http(s) schemes
- * - Blank or unparseable URLs
- *
- * DNS rebinding is mitigated by resolving the hostname at registration time. Callers
- * should also re-validate before each delivery attempt.
- */
 @ApplicationScoped
 class WebhookDestinationPolicy
 {
-    data class ValidationResult(val allowed: Boolean, val reason: String?)
-
-    fun validate(rawUrl: String): ValidationResult
+    fun validate(rawUrl: String): WebhookDestinationValidationResult
     {
         if (rawUrl.isBlank())
         {
-            return ValidationResult(false, "Target URL is required")
+            return WebhookDestinationValidationResult(false, "Target URL is required")
         }
 
         val uri = runCatching { URI(rawUrl.trim()) }.getOrElse {
-            return ValidationResult(false, "Target URL is not a valid URI")
+            return WebhookDestinationValidationResult(false, "Target URL is not a valid URI")
         }
 
         val scheme = uri.scheme?.lowercase()
         if (scheme != "https" && scheme != "http")
         {
-            return ValidationResult(false, "Target URL must use http or https scheme")
+            return WebhookDestinationValidationResult(false, "Target URL must use http or https scheme")
         }
 
         val host = uri.host
         if (host.isNullOrBlank())
         {
-            return ValidationResult(false, "Target URL must have a host")
+            return WebhookDestinationValidationResult(false, "Target URL must have a host")
         }
 
         val addresses = runCatching { InetAddress.getAllByName(host).toList() }.getOrElse {
-            return ValidationResult(false, "Target URL host could not be resolved: $host")
+            return WebhookDestinationValidationResult(false, "Target URL host could not be resolved: $host")
         }
 
         for (addr in addresses)
@@ -55,11 +40,11 @@ class WebhookDestinationPolicy
             val reason = denyReason(addr)
             if (reason != null)
             {
-                return ValidationResult(false, reason)
+                return WebhookDestinationValidationResult(false, reason)
             }
         }
 
-        return ValidationResult(true, null)
+        return WebhookDestinationValidationResult(true, null)
     }
 
     private fun denyReason(addr: InetAddress): String?

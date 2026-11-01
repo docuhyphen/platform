@@ -27,8 +27,8 @@ import com.docuhyphen.app.api.model.informationrequest.submission.SubmitInformat
 import com.docuhyphen.app.api.model.informationrequest.submission.WithdrawInformationRequestPackageCommand
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockEventRepository
 import com.docuhyphen.app.api.repository.informationrequest.clock.InformationRequestClockRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.exchange.DocumentVersionStoragePostgreSQLResource
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockPolicyService
 import com.docuhyphen.app.api.service.informationrequest.clock.InformationRequestClockRecorder

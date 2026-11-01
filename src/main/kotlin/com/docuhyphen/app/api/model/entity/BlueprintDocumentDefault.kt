@@ -8,12 +8,6 @@ import jakarta.persistence.Table
 import kotlinx.serialization.Serializable
 import java.util.*
 
-/**
- * One document default attached to a [BlueprintDefinition]. Replaces the
- * `exchangeDocuments[]` array formerly embedded in `config_json`. `libraryDocumentId` is a
- * real foreign key to document_library (ON DELETE SET NULL) so a deleted library document
- * no longer leaves a dangling reference inside a JSON blob.
- */
 @Entity
 @Serializable
 @Table(name = "blueprint_document_default")

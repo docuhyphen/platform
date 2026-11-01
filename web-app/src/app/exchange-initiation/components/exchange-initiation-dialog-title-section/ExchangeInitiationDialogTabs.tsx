@@ -67,7 +67,10 @@ const ExchangeInitiationDialogTabs = (
                 </TabList>
             </div>
             {isMobile && selectedTabLabel && (
-                <Text size={400} weight={"semibold"} className={styles.mobileSelectedTabTitle}>
+                <Text id={"exchange-initiation-dialog-tabs-text-1"}
+                      size={400}
+                      weight={"semibold"}
+                      className={styles.mobileSelectedTabTitle}>
                     {selectedTabLabel}
                 </Text>
             )}

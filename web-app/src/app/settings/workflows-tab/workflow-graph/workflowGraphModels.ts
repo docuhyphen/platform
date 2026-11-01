@@ -1,17 +1,8 @@
 import {WorkflowStepType} from "../../../models/models.tsx";
 
-// ── Graph mode ────────────────────────────────────────────────────────────────
-
 export type WorkflowGraphMode = "DEFINITION_PREVIEW" | "INSTANCE_VIEW";
 
-/**
- * Flow direction for the diagram layout: "LR" arranges ranks left to right
- * (used by the workflow builder's wide preview), "TB" arranges them top to
- * bottom (used by the narrower side-by-side Exchange workflow preview).
- */
 export type WorkflowGraphDirection = "LR" | "TB";
-
-// ── Node and edge taxonomy ────────────────────────────────────────────────────
 
 export type WorkflowGraphNodeKind = "START" | "STEP" | "END" | "INVALID_TARGET";
 
@@ -30,8 +21,6 @@ export type WorkflowGraphOutcome =
     | "REJECT"
     | "TRUE"
     | "FALSE";
-
-// ── Runtime states ────────────────────────────────────────────────────────────
 
 export type WorkflowGraphNodeState =
     | "DEFINITION"
@@ -54,8 +43,6 @@ export type WorkflowGraphEdgeState =
     | "INACTIVE"
     | "TERMINAL"
     | "INVALID";
-
-// ── Core graph types ──────────────────────────────────────────────────────────
 
 export interface WorkflowGraphNode
 {
@@ -88,8 +75,6 @@ export interface WorkflowGraph
     warnings: string[];
 }
 
-// ── Layout ────────────────────────────────────────────────────────────────────
-
 export interface WorkflowGraphPosition
 {
     x: number;
@@ -115,23 +100,12 @@ export interface WorkflowGraphLayoutEdge
     target: string;
 }
 
-// ── Shared constant ───────────────────────────────────────────────────────────
-
-/**
- * The handler key that identifies a Webhook delivery ACTION step.
- * Centralised here so adapters and tests never scatter the literal.
- */
 export const WEBHOOK_DELIVER_HANDLER_KEY = "WEBHOOK_DELIVER";
-
-// ── Node sizing constants (fixed dimensions keep layout stable) ───────────────
 
 export const NODE_WIDTH = 180;
 export const NODE_HEIGHT = 88;
 export const START_END_WIDTH = 80;
 export const START_END_HEIGHT = 40;
-// Rank/node separation is generous enough that edges have room to curve well
-// clear of neighbouring node borders before reaching their target, and that
-// parallel edges converging on/diverging from the same node (e.g. multiple
-// Approve/Reject outcomes) don't route through or behind adjacent nodes.
 export const LAYOUT_RANK_SEP = 170;
 export const LAYOUT_NODE_SEP = 90;
+export const EDGE_BEND_OFFSET = 40;

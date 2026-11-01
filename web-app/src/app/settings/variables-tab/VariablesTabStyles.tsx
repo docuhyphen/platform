@@ -32,35 +32,6 @@ export const useVariablesTabStyles = makeStyles({
         flexDirection: 'column',
         gap: tokens.spacingHorizontalL,
     },
-    platformContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacingHorizontalL,
-        padding: `0 ${tokens.spacingHorizontalXS}`,
-    },
-    systemVarTitle: {
-        marginBottom: tokens.spacingVerticalXS,
-    },
-    systemVarSubtitle: {
-        color: tokens.colorNeutralForeground3,
-        display: 'block',
-        marginBottom: tokens.spacingVerticalM,
-    },
-    errorText: {
-        color: tokens.colorPaletteRedForeground1,
-    },
-    copySuccess: {
-        color: tokens.colorPaletteGreenForeground1,
-    },
-    codeCell: {
-        fontFamily: 'monospace',
-        fontSize: '12px',
-    },
-    tokenCell: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: tokens.spacingHorizontalS,
-    },
     toolbar: {
         display: 'flex',
         justifyContent: 'flex-end',

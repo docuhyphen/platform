@@ -67,7 +67,8 @@ const OrganizationPeopleTab = () =>
             id="organization-people"
             className={styles.container}
         >
-            {error && <div className={styles.error}>{error}</div>}
+            {error && <div id={"organization-people-tab-div-1"}
+                           className={styles.error}>{error}</div>}
             <OrganizationPeopleCapacity capacity={capacity}/>
             <OrganizationPeopleToolbar
                 searchQuery={peopleList.searchQuery}
@@ -85,7 +86,10 @@ const OrganizationPeopleTab = () =>
                 className={styles.tableScroll}
             >
                 {loading
-                    ? <div className={styles.loading}><Spinner label="Loading..." size="small"/></div>
+                    ? <div id={"organization-people-tab-div-2"}
+                           className={styles.loading}><Spinner id={"organization-people-tab-spinner-1"}
+                                                               label="Loading..."
+                                                               size="small"/></div>
                     : <OrganizationPeopleTable
                         users={peopleList.visibleUsers}
                         currentUserId={appUser?.id}

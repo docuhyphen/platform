@@ -57,7 +57,6 @@ const TrustedOrganizationRequestDialog = ({open, busy, onDismiss, onSubmit}: Tru
     };
     return (
         <Dialog
-            id={"trusted-organization-request-dialog-root"}
             open={open}
             onOpenChange={(_, data) => !data.open && onDismiss()}
         >
@@ -89,7 +88,7 @@ const TrustedOrganizationRequestDialog = ({open, busy, onDismiss, onSubmit}: Tru
                                 shape={"circular"}
                                 appearance={"secondary"}
                                 disabled={searching || query.trim().length < 3}
-                                onClick={() => void search()}
+                                onClick={() => { void search(); }}
                             >
                                 Search
                             </Button>
@@ -124,7 +123,7 @@ const TrustedOrganizationRequestDialog = ({open, busy, onDismiss, onSubmit}: Tru
                             shape={"circular"}
                             appearance={"primary"}
                             disabled={!selected || busy}
-                            onClick={() => selected && void onSubmit(selected.id, message || undefined)}
+                            onClick={() => { if (selected) void onSubmit(selected.id, message || undefined); }}
                         >
                             Send request
                         </Button>

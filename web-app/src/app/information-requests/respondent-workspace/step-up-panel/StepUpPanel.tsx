@@ -88,7 +88,7 @@ const StepUpPanel = ({requestId, awaiting, accessLinkToken, onVerified, onAccess
                             className={styles.accountAction}
                             icon={accountIcon}
                             disabled={stepUp.busy}
-                            onClick={() => void stepUp.verifyAccount()}>
+                            onClick={() => { void stepUp.verifyAccount(); }}>
                         Verify again
                     </Button>
                 )}

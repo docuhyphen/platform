@@ -1,6 +1,8 @@
 package com.docuhyphen.app.api.service.communication
 
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.model.dto.*
 import com.docuhyphen.app.api.model.entity.Communication
 import com.docuhyphen.app.api.model.entity.CommunicationScope

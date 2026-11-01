@@ -35,7 +35,8 @@ const CommunicationsPagination = ({
                 id={"communications-pagination-actions"}
                 className={styles.actions}
             >
-                <Tooltip content={"First page"} relationship={"description"}>
+                <Tooltip content={"First page"}
+                         relationship={"description"}>
                     <Button
                         id={"communications-pagination-first"}
                         icon={<FirstPageIcon/>}
@@ -45,7 +46,8 @@ const CommunicationsPagination = ({
                         onClick={() => onPageChange(0)}
                     />
                 </Tooltip>
-                <Tooltip content={"Previous page"} relationship={"description"}>
+                <Tooltip content={"Previous page"}
+                         relationship={"description"}>
                     <Button
                         id={"communications-pagination-previous"}
                         icon={<PreviousPageIcon/>}
@@ -61,7 +63,8 @@ const CommunicationsPagination = ({
                 >
                     {currentPage + 1} / {totalPages}
                 </Text>
-                <Tooltip content={"Next page"} relationship={"description"}>
+                <Tooltip content={"Next page"}
+                         relationship={"description"}>
                     <Button
                         id={"communications-pagination-next"}
                         icon={<NextPageIcon/>}
@@ -71,7 +74,8 @@ const CommunicationsPagination = ({
                         onClick={() => onPageChange(currentPage + 1)}
                     />
                 </Tooltip>
-                <Tooltip content={"Last page"} relationship={"description"}>
+                <Tooltip content={"Last page"}
+                         relationship={"description"}>
                     <Button
                         id={"communications-pagination-last"}
                         icon={<LastPageIcon/>}

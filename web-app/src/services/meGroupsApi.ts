@@ -1,7 +1,5 @@
-/**
- * Personal groups API: calls /me/groups endpoints.
- */
 import apiClient from './apiClient';
+import {requestFailureOf} from './requestFailure';
 import {
     AddGroupMembersRequest,
     CreatePersonalGroupRequest,
@@ -18,7 +16,7 @@ const executeRequest = async <T>(fn: () => Promise<{ data: T }>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw error.response?.data || error.message;
+        throw requestFailureOf(error);
     }
 };
 

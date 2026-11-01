@@ -6,19 +6,6 @@ import jakarta.inject.Inject
 import org.slf4j.LoggerFactory
 import java.net.InetAddress
 
-/**
- * Resolves the real client IP address for throttling, session binding, and security telemetry.
- *
- * Forwarded headers (`X-Forwarded-For`, `X-Real-IP`, `Proxy-Client-IP`) are attacker-controlled
- * on any request that does not physically traverse our own load balancer. They are therefore
- * only honoured when the immediate TCP peer is itself a configured trusted proxy. When the peer
- * is untrusted the peer address is used verbatim and every forwarded header is discarded.
- *
- * Within a trusted `X-Forwarded-For` chain the list is walked from right to left, skipping
- * hops that are themselves trusted proxies. The first untrusted entry is the closest address
- * we can attribute to the caller. The left-most entry is never used because anything can be
- * prepended there by the client.
- */
 @ApplicationScoped
 class ClientIpResolver @Inject constructor(
     private val configurationService: ConfigurationService,
@@ -41,7 +28,6 @@ class ClientIpResolver @Inject constructor(
         }
     }
 
-    /** Resolves the client IP for a Vert.x HTTP request (JAX-RS resources). */
     fun resolve(request: io.vertx.core.http.HttpServerRequest): String
     {
         return resolve(
@@ -51,13 +37,6 @@ class ClientIpResolver @Inject constructor(
         )
     }
 
-    /**
-     * Resolves the client IP from raw values.
-     *
-     * @param peerAddress the immediate TCP peer, which cannot be forged by a remote caller.
-     * @param forwardedForHeader the raw `X-Forwarded-For` header, if any.
-     * @param realIpHeader the raw `X-Real-IP` header, if any.
-     */
     fun resolve(peerAddress: String?, forwardedForHeader: String?, realIpHeader: String?): String
     {
         val peer = normalize(peerAddress) ?: UNKNOWN_IP
@@ -76,13 +55,9 @@ class ClientIpResolver @Inject constructor(
 
         normalize(realIpHeader)?.let { return it }
 
-        // Every hop in the chain is a trusted proxy (or the chain is absent). The peer is the
-        // best available attribution, which keeps behaviour deterministic rather than falling
-        // back to a client-supplied value.
         return peer
     }
 
-    /** True when [address] falls inside one of the configured trusted proxy CIDR ranges. */
     fun isTrustedProxy(address: String): Boolean = trustedRanges.any { it.contains(address) }
 
     private fun normalize(raw: String?): String?
@@ -93,7 +68,6 @@ class ClientIpResolver @Inject constructor(
             return null
         }
 
-        // Strip an IPv6 zone index and any "[addr]:port" / "addr:port" wrapper.
         val withoutBrackets = if (value.startsWith("[")) value.substringAfter('[').substringBefore(']') else value
         val hostOnly =
             if (withoutBrackets.count { it == ':' } == 1) withoutBrackets.substringBefore(':') else withoutBrackets
@@ -103,12 +77,6 @@ class ClientIpResolver @Inject constructor(
     }
 }
 
-/**
- * Parses IP literals without ever triggering a DNS lookup.
- *
- * A forged header value such as `X-Forwarded-For: attacker.example.com` must never reach a
- * name resolver, so every candidate is shape-checked before it is handed to [InetAddress].
- */
 internal object IpLiterals
 {
     private val IPV4 = Regex("^((25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)$")
@@ -129,7 +97,6 @@ internal object IpLiterals
     }
 }
 
-/** An IPv4 or IPv6 CIDR block used for trusted proxy matching. */
 internal class CidrRange private constructor(
     private val networkBytes: ByteArray,
     private val prefixLength: Int,
@@ -176,8 +143,4 @@ internal class CidrRange private constructor(
         return (candidateBytes[index].toInt() and mask) == (networkBytes[index].toInt() and mask)
     }
 }
-
-
-
-
 

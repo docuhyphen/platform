@@ -1,6 +1,9 @@
 package com.docuhyphen.app.api.service.audit
 
 import com.docuhyphen.app.api.model.audit.AuditAccessActor
+import com.docuhyphen.app.api.model.audit.AuditEngagementAccess
+import com.docuhyphen.app.api.model.audit.AuditEventDraft
+import com.docuhyphen.app.api.model.audit.AuditOwnerScope
 import com.docuhyphen.app.api.model.audit.AuditProjectionCursor
 import com.docuhyphen.app.api.model.audit.AuditProjectionEvent
 import com.docuhyphen.app.api.model.audit.AuditProjectionPage
@@ -598,7 +601,7 @@ class AuditSearchProjectionService @Inject constructor(
 
     private fun canViewSensitive(
         actor: AuditAccessActor,
-        engagement: AuditEngagementService.EngagementAccess?,
+        engagement: AuditEngagementAccess?,
         platformOnly: Boolean,
     ): Boolean
     {

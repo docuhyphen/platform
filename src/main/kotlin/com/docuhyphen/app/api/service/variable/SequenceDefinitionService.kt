@@ -1,7 +1,10 @@
 package com.docuhyphen.app.api.service.variable
 
 import com.docuhyphen.app.api.interceptor.EnforceAdminAction
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
 import com.docuhyphen.app.api.model.auth.authz.Decision
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.ResourceRef
 import com.docuhyphen.app.api.model.dto.CreateSequenceRequest
 import com.docuhyphen.app.api.model.dto.SequenceDefinitionDto
 import com.docuhyphen.app.api.model.dto.UpdateSequenceRequest
@@ -9,7 +12,7 @@ import com.docuhyphen.app.api.model.dto.toDto
 import com.docuhyphen.app.api.model.entity.SequenceDefinition
 import com.docuhyphen.app.api.model.entity.SequenceResetPeriod
 import com.docuhyphen.app.api.repository.variable.SequenceDefinitionRepository
-import com.docuhyphen.app.api.service.auth.AdminApprovalContext
+import com.docuhyphen.app.api.model.auth.AdminApprovalContext
 import com.docuhyphen.app.api.service.auth.UserRoleService
 import com.docuhyphen.app.api.service.auth.authz.*
 import io.quarkus.security.ForbiddenException
@@ -70,7 +73,7 @@ class SequenceDefinitionService @Inject constructor(
 
         val normalizedKey = request.key.trim().uppercase()
         if (!KEY_REGEX.matches(normalizedKey))
-            throw IllegalArgumentException("Sequence key must be 1–64 uppercase alphanumeric characters or underscores")
+            throw IllegalArgumentException("Sequence key must be 1-64 uppercase alphanumeric characters or underscores")
 
         if (repository.findByOrganizationIdAndKeyAndIsDeletedFalse(activeOrgId, normalizedKey) != null)
             throw IllegalArgumentException("A sequence with key '$normalizedKey' already exists in this organization")
@@ -143,8 +146,6 @@ class SequenceDefinitionService @Inject constructor(
         return repository.update(seq).toDto()
     }
 
-    // ── Access control ────────────────────────────────────────────────────────
-
     private fun checkReadAccess(seq: SequenceDefinition, principal: PrincipalRef, context: AuthorizationContext)
     {
         val decision = authorizationService.authorize(
@@ -162,8 +163,6 @@ class SequenceDefinitionService @Inject constructor(
         if (decision is Decision.Deny)
             throw ForbiddenException("Org admin role required to modify sequence ${seq.id}")
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun currentPrincipal(): PrincipalRef =
         authorizationContextFactory.currentPrincipal()

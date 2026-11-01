@@ -7,7 +7,7 @@ import com.docuhyphen.app.api.model.entity.PrincipalKind
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestDiscrepancyView
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueReconciliation
 import com.docuhyphen.app.api.model.informationrequest.externalsource.InformationRequestImportedValueView
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import kotlinx.serialization.json.Json
 import java.util.*
 

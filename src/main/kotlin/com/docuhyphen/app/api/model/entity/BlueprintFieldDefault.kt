@@ -5,14 +5,6 @@ import jakarta.persistence.*
 import kotlinx.serialization.Serializable
 import java.util.*
 
-/**
- * One default field value attached to a [BlueprintDefinition]. Keyed by the stable
- * [fieldDefinitionId] (not the version-specific contract id) so defaults survive schema
- * re-publishing. [valueJson] holds the canonical JSON form consumed by
- * `SchemaAssignmentService.setValues`; [valueType] is the authoring-time [FieldValueType] retained
- * for validation. Applied through the creation-time seam when an Exchange is started from the
- * blueprint.
- */
 @Entity
 @Serializable
 @Table(name = "blueprint_field_default")

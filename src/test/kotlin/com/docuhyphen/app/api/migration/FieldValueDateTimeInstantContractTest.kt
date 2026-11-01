@@ -18,13 +18,6 @@ import java.util.UUID
 private class DateTimeInstantPostgreSQLContainer(imageName: String) :
     PostgreSQLContainer<DateTimeInstantPostgreSQLContainer>(imageName)
 
-/**
- * A stored date-time answer must be an explicit moment, and the offset it was submitted with must
- * have somewhere to live. The released column is a naive TIMESTAMP with no offset anywhere, so these
- * contract tests prove that an existing answer is carried over as the UTC reading it effectively
- * was, that a database with nothing to carry over gains the same shape, and that the offset column
- * only accepts an offset a reading can really carry.
- */
 class FieldValueDateTimeInstantContractTest
 {
     private val instantMigrationVersion = "78"
@@ -49,8 +42,6 @@ class FieldValueDateTimeInstantContractTest
                     Instant.parse("2026-08-31T08:15:30Z"),
                     storedMoment(connection, fixture.valueId),
                 )
-                // Nothing ever recorded the submitted offset for an existing answer, so it stays
-                // absent rather than being invented.
                 assertNull(storedOffsetMinutes(connection, fixture.valueId))
 
                 assertStoresAMomentWithItsOffset(connection, fixture)
@@ -77,7 +68,6 @@ class FieldValueDateTimeInstantContractTest
         }
     }
 
-    /** The same moment written at two offsets must store as one moment and keep both offsets. */
     private fun assertStoresAMomentWithItsOffset(connection: Connection, fixture: Fixture)
     {
         val moment = Instant.parse("2026-08-31T08:15:30Z")
@@ -276,7 +266,6 @@ class FieldValueDateTimeInstantContractTest
         return assignmentId
     }
 
-    /** Writes the released naive form, which is all the schema can express before the migration. */
     private fun insertNaiveDateTimeValue(connection: Connection, fixture: Fixture, naiveReading: String)
     {
         val now = Timestamp.from(Instant.now())
@@ -300,10 +289,6 @@ class FieldValueDateTimeInstantContractTest
         }
     }
 
-    /**
-     * One value row per assignment and contract is already an invariant, so each moment written here
-     * gets its own assignment against its own resource.
-     */
     private fun insertMoment(
         connection: Connection,
         fixture: Fixture,

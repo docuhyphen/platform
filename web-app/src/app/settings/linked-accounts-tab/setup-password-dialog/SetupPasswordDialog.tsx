@@ -114,7 +114,8 @@ const SetupPasswordDialog = ({open, onClose}: SetupPasswordDialogProps) =>
                                 shape={"circular"}
                                 disabled={saving}
                                 onClick={submit}>
-                                {saving ? <><Spinner size={"tiny"}/> Adding password</> : "Add password"}
+                                {saving ? <><Spinner id={"setup-password-dialog-spinner-1"}
+                                                     size={"tiny"}/> Adding password</> : "Add password"}
                             </Button>
                             <Button
                                 id={"setup-password-cancel-btn"}

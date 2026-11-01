@@ -15,8 +15,8 @@ import com.docuhyphen.app.api.repository.informationrequest.clock.InformationReq
 import com.docuhyphen.app.api.repository.informationrequest.lifecycle.InformationRequestTransitionRepository
 import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRequestNoticeDeliveryAttemptRepository
 import com.docuhyphen.app.api.repository.informationrequest.notice.InformationRequestOutboundNoticeRepository
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.InformationRequestRuntimeTestServices
 import com.docuhyphen.app.api.service.informationrequest.clock.model.ScheduledStandingScenario
 import com.docuhyphen.app.api.service.informationrequest.notice.InformationRequestNoticeDispatcher

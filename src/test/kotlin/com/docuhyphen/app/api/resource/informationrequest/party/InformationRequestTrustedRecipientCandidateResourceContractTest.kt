@@ -5,8 +5,8 @@ import com.docuhyphen.app.api.model.entity.ExchangeRecipientSelectionType
 import com.docuhyphen.app.api.model.informationrequest.RequestAccessContext
 import com.docuhyphen.app.api.model.informationrequest.party.InformationRequestTrustedRecipientCandidate
 import com.docuhyphen.app.api.resource.informationrequest.party.operations.InformationRequestTrustedRecipientCandidateResourceOperations
-import com.docuhyphen.app.api.service.auth.authz.AuthorizationContext
-import com.docuhyphen.app.api.service.auth.authz.PrincipalRef
+import com.docuhyphen.app.api.model.auth.authz.AuthorizationContext
+import com.docuhyphen.app.api.model.auth.authz.PrincipalRef
 import com.docuhyphen.app.api.service.informationrequest.access.InformationRequestAccessContextFactory
 import com.docuhyphen.app.api.service.informationrequest.party.InformationRequestTrustedRecipientCandidateQueryService
 import io.quarkus.security.ForbiddenException

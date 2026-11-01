@@ -12,7 +12,7 @@ import {
     setPlatformWorkflowActive,
     setPlatformWorkflowPublished,
 } from "../../../services/platformWorkflowService.ts";
-import WorkflowDeleteDialog from "../../settings/workflows-tab/WorkflowDeleteDialog.tsx";
+import WorkflowDeleteDialog from "../../settings/workflows-tab/workflow-delete-dialog/WorkflowDeleteDialog.tsx";
 import {AddIcon} from "../../components/IconBundles.tsx";
 import PlatformWorkflowTemplateCard from "./PlatformWorkflowTemplateCard.tsx";
 import {usePlatformContentStyles} from "./PlatformContentStyles.tsx";

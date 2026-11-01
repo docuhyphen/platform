@@ -62,11 +62,6 @@ const ExchangeDocumentSidebar: React.FC<ExchangeDocumentSidebarProps> = (
         }
     }, [canViewAudit, canViewVersions, selectedValue]);
 
-    // On phones we don't have room for an inline 400px-wide aside next to
-    // the document previewer, so we promote the sidebar to a modal-style
-    // OverlayDrawer that slides in over the viewport. Desktop keeps the
-    // existing inline behavior so the previewer + sidebar are visible
-    // side-by-side.
     const DrawerComponent = isMobile ? OverlayDrawer : InlineDrawer;
     const drawerProps = isMobile
         ? {

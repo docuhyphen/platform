@@ -7,7 +7,6 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.inject.Produces
 import jakarta.inject.Inject
 
-/** Selects the active [AuditIdentityVaultMasterKeyProvider] by `app.audit.identity-vault.provider`. */
 @ApplicationScoped
 class AuditIdentityVaultMasterKeyProviderProducer @Inject constructor(
     private val configService: AuditIdentityVaultConfigService,

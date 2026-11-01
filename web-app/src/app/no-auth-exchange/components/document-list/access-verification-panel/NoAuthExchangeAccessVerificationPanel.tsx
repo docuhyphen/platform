@@ -7,7 +7,6 @@ import {useNoAuthExchangeAccessVerificationPanelStyles} from "./NoAuthExchangeAc
 interface NoAuthExchangeAccessVerificationPanelProps
 {
     exchangeId: string;
-    /** Message explaining why verification is needed. Owned here so it is never duplicated. */
     reason: string;
     disabled: boolean;
     onVerified: () => void;
@@ -60,18 +59,23 @@ const NoAuthExchangeAccessVerificationPanel: React.FC<NoAuthExchangeAccessVerifi
     return (
         <section id={"no-auth-exchange-access-verification-panel"}
                  className={styles.verificationPanel}>
-            <Text weight="semibold">Access verification required</Text>
+            <Text id={"no-auth-exchange-access-verification-panel-text-1"}
+                  weight="semibold">Access verification required</Text>
             {displayedMessage && (
                 <MessageBar id={"no-auth-exchange-access-verification-message"}
                             intent={error ? "error" : "warning"}>
-                    <MessageBarBody className={styles.panelMessage}>{displayedMessage}</MessageBarBody>
+                    <MessageBarBody id={"no-auth-exchange-access-verification-panel-message-bar-body-1"}
+                                    className={styles.panelMessage}>{displayedMessage}</MessageBarBody>
                 </MessageBar>
             )}
-            <Text size={200}>
+            <Text id={"no-auth-exchange-access-verification-panel-text-2"}
+                  size={200}>
                 Ask the requester to resend an access code in Manage Access, then enter that code here.
             </Text>
-            <div className={styles.verificationControls}>
-                <Field label="Access code"
+            <div id={"no-auth-exchange-access-verification-panel-div-1"}
+                 className={styles.verificationControls}>
+                <Field id={"no-auth-exchange-access-verification-panel-field-1"}
+                       label="Access code"
                        className={styles.otpInputField}>
                     <Input id={"no-auth-exchange-access-code-input"}
                            value={accessCode}
@@ -85,7 +89,8 @@ const NoAuthExchangeAccessVerificationPanel: React.FC<NoAuthExchangeAccessVerifi
                         className={styles.verifyButton}
                         onClick={onVerify}
                         disabled={verifying || props.disabled}>
-                    {verifying ? <Spinner size="tiny"/> : "Verify code"}
+                    {verifying ? <Spinner id={"no-auth-exchange-access-verification-panel-spinner-1"}
+                                          size="tiny"/> : "Verify code"}
                 </Button>
             </div>
         </section>
