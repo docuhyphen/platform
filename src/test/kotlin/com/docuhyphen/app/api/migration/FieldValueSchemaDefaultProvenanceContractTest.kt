@@ -5,15 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class FieldValuePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<FieldValuePostgreSQLContainer>(imageName)
 
 class FieldValueSchemaDefaultProvenanceContractTest
 {
@@ -23,7 +20,7 @@ class FieldValueSchemaDefaultProvenanceContractTest
     @Test
     fun `schema default provenance is accepted only after the migration and existing rows survive`()
     {
-        val postgres = FieldValuePostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_field_value_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -89,7 +86,7 @@ class FieldValueSchemaDefaultProvenanceContractTest
         val defaultValueId: UUID = UUID.randomUUID()
     }
 
-    private fun flyway(postgres: FieldValuePostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

@@ -4,14 +4,11 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class SchemaTargetPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<SchemaTargetPostgreSQLContainer>(imageName)
 
 class SchemaTargetOpenColumnContractTest
 {
@@ -68,9 +65,9 @@ class SchemaTargetOpenColumnContractTest
         }
     }
 
-    private fun withPostgres(block: (SchemaTargetPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = SchemaTargetPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_schema_target_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -86,7 +83,7 @@ class SchemaTargetOpenColumnContractTest
         }
     }
 
-    private fun flyway(postgres: SchemaTargetPostgreSQLContainer): Flyway =
+    private fun flyway(postgres: PostgreSQLContainer): Flyway =
         Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
             .locations("classpath:db/migration")

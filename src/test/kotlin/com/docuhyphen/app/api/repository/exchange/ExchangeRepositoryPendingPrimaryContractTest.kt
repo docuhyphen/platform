@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -20,12 +20,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import javax.sql.DataSource
 
-private class PendingPrimaryPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<PendingPrimaryPostgreSQLContainer>(imageName)
-
 class ExchangeRepositoryPostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = PendingPrimaryPostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_pending_primary_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -39,7 +36,6 @@ class ExchangeRepositoryPostgreSQLResource : QuarkusTestResourceLifecycleManager
             "quarkus.datasource.password" to postgres.password,
             "file.storage.service" to "local",
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

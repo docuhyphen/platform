@@ -5,7 +5,7 @@ import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.io.File
 import java.sql.Connection
 import java.sql.SQLException
@@ -13,13 +13,10 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-private class CleanSchemaPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<CleanSchemaPostgreSQLContainer>(imageName)
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CleanSchemaMigrationContractTest
 {
-    private val postgres = CleanSchemaPostgreSQLContainer("postgres:16-alpine")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_clean_schema_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.SQLException
 
 class ShareLinkContactProofAttemptsContractTest
@@ -13,7 +13,7 @@ class ShareLinkContactProofAttemptsContractTest
     @Test
     fun `clean schema persists contact proof attempt limits on bootstrap links`()
     {
-        PostgreSQLContainer<Nothing>("postgres:16-alpine").use { postgres ->
+        PostgreSQLContainer("postgres:18-alpine").use { postgres ->
             postgres.start()
             Flyway.configure().dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
                 .locations("classpath:db/migration").load().migrate()
@@ -34,7 +34,7 @@ class ShareLinkContactProofAttemptsContractTest
     @Test
     fun `attempt counter defaults to zero and rejects negative values`()
     {
-        PostgreSQLContainer<Nothing>("postgres:16-alpine").use { postgres ->
+        PostgreSQLContainer("postgres:18-alpine").use { postgres ->
             postgres.start()
             postgres.createConnection("").use { connection ->
                 connection.createStatement().use { statement ->

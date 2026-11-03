@@ -12,17 +12,14 @@ import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-private class DocumentVersionLocatorPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<DocumentVersionLocatorPostgreSQLContainer>(imageName)
-
 class DocumentVersionLocatorPostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = DocumentVersionLocatorPostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_document_version_locator_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -36,7 +33,6 @@ class DocumentVersionLocatorPostgreSQLResource : QuarkusTestResourceLifecycleMan
             "quarkus.datasource.password" to postgres.password,
             "file.storage.service" to "local",
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

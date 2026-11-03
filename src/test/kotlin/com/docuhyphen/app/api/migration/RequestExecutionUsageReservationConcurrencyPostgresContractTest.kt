@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.migration
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -12,15 +12,12 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
-private class RequestExecutionUsageReservationPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<RequestExecutionUsageReservationPostgreSQLContainer>(imageName)
-
 class RequestExecutionUsageReservationConcurrencyPostgresContractTest
 {
     @Test
     fun `concurrent reservations against a two-unit cap admit exactly two`()
     {
-        val postgres = RequestExecutionUsageReservationPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_execution_usage_reservation_concurrency")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -76,7 +73,7 @@ class RequestExecutionUsageReservationConcurrencyPostgresContractTest
     @Test
     fun `releasing a reservation frees capacity for a later reservation to reuse`()
     {
-        val postgres = RequestExecutionUsageReservationPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_execution_usage_reservation_release")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")

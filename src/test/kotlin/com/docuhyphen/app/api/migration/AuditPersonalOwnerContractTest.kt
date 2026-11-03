@@ -6,15 +6,12 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class AuditOwnerPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<AuditOwnerPostgreSQLContainer>(imageName)
 
 class AuditPersonalOwnerContractTest
 {
@@ -113,9 +110,9 @@ class AuditPersonalOwnerContractTest
         }
     }
 
-    private fun withPostgres(block: (AuditOwnerPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = AuditOwnerPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_audit_owner_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -130,7 +127,7 @@ class AuditPersonalOwnerContractTest
         }
     }
 
-    private fun flyway(postgres: AuditOwnerPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

@@ -3,19 +3,16 @@ package com.docuhyphen.app.api.migration
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-internal class SubmissionPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<SubmissionPostgreSQLContainer>(imageName)
-
-internal fun withSubmissionPostgres(block: (SubmissionPostgreSQLContainer) -> Unit)
+internal fun withSubmissionPostgres(block: (PostgreSQLContainer) -> Unit)
 {
-    val postgres = SubmissionPostgreSQLContainer("postgres:16-alpine")
+    val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_submission_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -31,7 +28,7 @@ internal fun withSubmissionPostgres(block: (SubmissionPostgreSQLContainer) -> Un
     }
 }
 
-internal fun submissionFlyway(postgres: SubmissionPostgreSQLContainer, target: String? = null): Flyway
+internal fun submissionFlyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
 {
     val configuration = Flyway.configure()
         .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

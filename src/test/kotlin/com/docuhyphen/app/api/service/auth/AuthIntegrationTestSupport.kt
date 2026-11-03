@@ -9,32 +9,28 @@ import org.mockito.kotlin.mockingDetails
 import org.mockito.kotlin.spy
 import org.mockito.kotlin.whenever
 import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-
-private class AuthPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<AuthPostgreSQLContainer>(imageName)
 
 private class AuthRedisContainer(imageName: String) :
     GenericContainer<AuthRedisContainer>(DockerImageName.parse(imageName))
 
 private const val REDIS_PORT = 6379
 
-private fun authPostgreSQLContainer(): AuthPostgreSQLContainer = AuthPostgreSQLContainer("postgres:17")
+private fun authPostgreSQLContainer(): PostgreSQLContainer = PostgreSQLContainer("postgres:18-alpine")
     .withDatabaseName("docuhyphen_auth_test")
     .withUsername("docuhyphen")
     .withPassword("docuhyphen")
 
-private fun authApplicationProperties(postgres: AuthPostgreSQLContainer): Map<String, String> = mapOf(
+private fun authApplicationProperties(postgres: PostgreSQLContainer): Map<String, String> = mapOf(
     "quarkus.datasource.jdbc.url" to postgres.jdbcUrl,
     "quarkus.datasource.username" to postgres.username,
     "quarkus.datasource.password" to postgres.password,
     "file.storage.service" to "local",
     "app.secrets.rotation.enabled" to "false",
-    "quarkus.kafka.devservices.enabled" to "false",
     "app.auth.signup.disposable-email.enabled" to "false",
 )
 
@@ -57,7 +53,7 @@ class AuthPostgreSQLResource : QuarkusTestResourceLifecycleManager
 class AuthAbuseControlResource : QuarkusTestResourceLifecycleManager
 {
     private val postgres = authPostgreSQLContainer()
-    private val redis = AuthRedisContainer("redis:7-alpine").withExposedPorts(REDIS_PORT)
+    private val redis = AuthRedisContainer("redis:8-alpine").withExposedPorts(REDIS_PORT)
 
     override fun start(): Map<String, String>
     {

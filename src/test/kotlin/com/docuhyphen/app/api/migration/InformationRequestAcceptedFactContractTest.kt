@@ -27,6 +27,7 @@ class InformationRequestAcceptedFactContractTest
                     connection, """
                 SELECT count(*) FROM information_schema.constraint_column_usage
                 WHERE table_name = 'information_request_fact_supersession' AND column_name = 'successor_fact_id'
+                AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conname = constraint_name AND c.contype = 'n')
             """.trimIndent()
                 )
             )

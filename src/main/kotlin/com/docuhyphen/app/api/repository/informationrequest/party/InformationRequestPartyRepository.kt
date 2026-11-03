@@ -13,8 +13,8 @@ class InformationRequestPartyRepository :
     BaseRepository<InformationRequestParty>(InformationRequestParty::class.java)
 {
     fun findByIdForShare(id: UUID): InformationRequestParty? {
-        val party = entityManager.find(InformationRequestParty::class.java, id) ?: return null
-        entityManager.refresh(party, LockModeType.PESSIMISTIC_READ)
+        val party = entityManager.find(InformationRequestParty::class.java, id, LockModeType.PESSIMISTIC_READ) ?: return null
+        entityManager.refresh(party)
         return party
     }
 

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
@@ -14,9 +14,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
-
-private class DateTimeInstantPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<DateTimeInstantPostgreSQLContainer>(imageName)
 
 class FieldValueDateTimeInstantContractTest
 {
@@ -121,9 +118,9 @@ class FieldValueDateTimeInstantContractTest
         val valueId: UUID = UUID.randomUUID()
     }
 
-    private fun withPostgres(block: (DateTimeInstantPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = DateTimeInstantPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_datetime_instant_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -139,7 +136,7 @@ class FieldValueDateTimeInstantContractTest
         }
     }
 
-    private fun flyway(postgres: DateTimeInstantPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

@@ -5,15 +5,12 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class CanonicalProvenancePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<CanonicalProvenancePostgreSQLContainer>(imageName)
 
 class FieldValueCanonicalProvenanceContractTest
 {
@@ -285,9 +282,9 @@ class FieldValueCanonicalProvenanceContractTest
         }
     }
 
-    private fun withPostgres(block: (CanonicalProvenancePostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = CanonicalProvenancePostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_canonical_provenance_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -303,7 +300,7 @@ class FieldValueCanonicalProvenanceContractTest
         }
     }
 
-    private fun flyway(postgres: CanonicalProvenancePostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

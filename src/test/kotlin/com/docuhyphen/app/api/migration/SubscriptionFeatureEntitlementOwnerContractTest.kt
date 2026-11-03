@@ -6,15 +6,12 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class FeatureEntitlementPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<FeatureEntitlementPostgreSQLContainer>(imageName)
 
 class SubscriptionFeatureEntitlementOwnerContractTest
 {
@@ -226,9 +223,9 @@ class SubscriptionFeatureEntitlementOwnerContractTest
         val withdrawnEntitlementId: UUID = UUID.randomUUID()
     }
 
-    private fun withPostgres(block: (FeatureEntitlementPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = FeatureEntitlementPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_feature_entitlement_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -244,7 +241,7 @@ class SubscriptionFeatureEntitlementOwnerContractTest
         }
     }
 
-    private fun flyway(postgres: FeatureEntitlementPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

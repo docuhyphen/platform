@@ -18,8 +18,8 @@ abstract class BaseRepository<T>(private val entityClass: Class<T>)
 
     fun findByIdForUpdate(id: UUID): T?
     {
-        val entity = entityManager.find(entityClass, id) ?: return null
-        entityManager.refresh(entity, LockModeType.PESSIMISTIC_WRITE)
+        val entity = entityManager.find(entityClass, id, LockModeType.PESSIMISTIC_WRITE) ?: return null
+        entityManager.refresh(entity)
         return entity
     }
 

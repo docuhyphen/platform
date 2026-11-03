@@ -7,15 +7,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class RootOccurrencePathPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<RootOccurrencePathPostgreSQLContainer>(imageName)
 
 class InformationRequestRootOccurrencePathContractTest
 {
@@ -307,9 +304,9 @@ class InformationRequestRootOccurrencePathContractTest
         )
     }
 
-    private fun withPostgres(block: (RootOccurrencePathPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = RootOccurrencePathPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_root_occurrence_path_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -325,7 +322,7 @@ class InformationRequestRootOccurrencePathContractTest
         }
     }
 
-    private fun flyway(postgres: RootOccurrencePathPostgreSQLContainer, target: String? = null): Flyway =
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway =
         Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
             .locations("classpath:db/migration")

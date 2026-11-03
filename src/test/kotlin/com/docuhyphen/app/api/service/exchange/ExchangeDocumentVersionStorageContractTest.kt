@@ -20,19 +20,16 @@ import jakarta.inject.Inject
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.io.File
 import java.nio.file.Files
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
 
-private class DocumentVersionStoragePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<DocumentVersionStoragePostgreSQLContainer>(imageName)
-
 class DocumentVersionStoragePostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = DocumentVersionStoragePostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_document_version_storage_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -48,7 +45,6 @@ class DocumentVersionStoragePostgreSQLResource : QuarkusTestResourceLifecycleMan
             "file.storage.service" to "local",
             "document.version.storage.local.root-directory" to root.toString(),
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

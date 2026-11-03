@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
@@ -14,9 +14,6 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-
-private class InformationRequestParentTerminationPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<InformationRequestParentTerminationPostgreSQLContainer>(imageName)
 
 private const val DEADLOCK_SQL_STATE = "40P01"
 
@@ -113,10 +110,10 @@ class InformationRequestParentTerminationConcurrencyPostgresContractTest
 
     private fun withPostgres(
         databaseName: String,
-        body: (InformationRequestParentTerminationPostgreSQLContainer, Fixture) -> Unit,
+        body: (PostgreSQLContainer, Fixture) -> Unit,
     )
     {
-        val postgres = InformationRequestParentTerminationPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName(databaseName)
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -140,7 +137,7 @@ class InformationRequestParentTerminationConcurrencyPostgresContractTest
     private class ParentTerminatedException(val parentStatus: String) : RuntimeException(parentStatus)
 
     private fun runSequence(
-        postgres: InformationRequestParentTerminationPostgreSQLContainer,
+        postgres: PostgreSQLContainer,
         sequence: (Connection) -> Unit,
     ): String =
         postgres.createConnection("").use { connection ->

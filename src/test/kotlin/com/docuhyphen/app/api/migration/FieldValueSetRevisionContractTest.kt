@@ -5,15 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class ValueSetRevisionPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<ValueSetRevisionPostgreSQLContainer>(imageName)
 
 class FieldValueSetRevisionContractTest
 {
@@ -138,9 +135,9 @@ class FieldValueSetRevisionContractTest
         val assignedAt: Timestamp = Timestamp.from(Instant.parse("2026-01-05T10:15:30Z"))
     }
 
-    private fun withPostgres(block: (ValueSetRevisionPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = ValueSetRevisionPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_value_set_revision_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -156,7 +153,7 @@ class FieldValueSetRevisionContractTest
         }
     }
 
-    private fun flyway(postgres: ValueSetRevisionPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

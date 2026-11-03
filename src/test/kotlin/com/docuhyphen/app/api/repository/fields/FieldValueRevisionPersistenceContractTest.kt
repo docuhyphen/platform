@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -22,12 +22,9 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import javax.sql.DataSource
 
-private class FieldValueRevisionPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<FieldValueRevisionPostgreSQLContainer>(imageName)
-
 class FieldValueRevisionPostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = FieldValueRevisionPostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_field_revision_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -41,7 +38,6 @@ class FieldValueRevisionPostgreSQLResource : QuarkusTestResourceLifecycleManager
             "quarkus.datasource.password" to postgres.password,
             "file.storage.service" to "local",
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

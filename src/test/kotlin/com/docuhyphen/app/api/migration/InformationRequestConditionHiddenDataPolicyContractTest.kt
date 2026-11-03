@@ -5,15 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class ConditionPolicyPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<ConditionPolicyPostgreSQLContainer>(imageName)
 
 class InformationRequestConditionHiddenDataPolicyContractTest
 {
@@ -65,15 +62,15 @@ class InformationRequestConditionHiddenDataPolicyContractTest
         }
     }
 
-    private fun withPostgres(block: (ConditionPolicyPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        ConditionPolicyPostgreSQLContainer("postgres:16-alpine").use { postgres ->
+        PostgreSQLContainer("postgres:18-alpine").use { postgres ->
             postgres.start()
             block(postgres)
         }
     }
 
-    private fun flyway(postgres: ConditionPolicyPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

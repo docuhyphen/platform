@@ -3,16 +3,13 @@ package com.docuhyphen.app.api.migration
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CyclicBarrier
-
-private class ResumeConcurrencyPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<ResumeConcurrencyPostgreSQLContainer>(imageName)
 
 class OrganizationTrustResumeConcurrencyContractTest
 {
@@ -27,7 +24,7 @@ class OrganizationTrustResumeConcurrencyContractTest
     @Test
     fun `concurrent resume serializes so reconciliation observes the cleared last suspension exactly once`()
     {
-        val postgres = ResumeConcurrencyPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_resume_concurrency_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -71,7 +68,7 @@ class OrganizationTrustResumeConcurrencyContractTest
     }
 
     private fun resumeThread(
-        postgres: ResumeConcurrencyPostgreSQLContainer,
+        postgres: PostgreSQLContainer,
         suspensionId: UUID,
         barrier: CyclicBarrier,
         observedRemaining: MutableList<Int>,

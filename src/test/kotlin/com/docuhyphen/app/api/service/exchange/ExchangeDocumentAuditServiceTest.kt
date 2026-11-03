@@ -155,5 +155,5 @@ class ExchangeDocumentAuditServiceTest
         verify(auditLedgerEventRepository).findByTargetTypeAndTargetIds(eq("Document"), any())
     }
 
-    private fun <T> eq(value: T): T = org.mockito.kotlin.eq(value)
+    private inline fun <reified T : Any> eq(value: T): T = org.mockito.kotlin.eq(value)
 }

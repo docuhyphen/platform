@@ -31,7 +31,7 @@ class DocumentVersionStorageCleanupService @Inject constructor(
     private val retryAfter: Duration,
 ) {
     fun guard(locator: ObjectStoreDocumentVersionLocator) {
-        check(QuarkusTransaction.isActive()) { "A document version is stored only inside the transaction that records it" }
+        check(QuarkusTransaction.getStatus() != Status.STATUS_NO_TRANSACTION) { "A document version is stored only inside the transaction that records it" }
         val now = clock.instant()
         QuarkusTransaction.requiringNew().run {
             cleanups.insertNow(

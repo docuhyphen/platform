@@ -5,15 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class CapabilityPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<CapabilityPostgreSQLContainer>(imageName)
 
 class InformationRequestTemplateCapabilityContractTest
 {
@@ -477,9 +474,9 @@ class InformationRequestTemplateCapabilityContractTest
         }
     }
 
-    private fun withPostgres(block: (CapabilityPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = CapabilityPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_capability_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -495,7 +492,7 @@ class InformationRequestTemplateCapabilityContractTest
         }
     }
 
-    private fun flyway(postgres: CapabilityPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

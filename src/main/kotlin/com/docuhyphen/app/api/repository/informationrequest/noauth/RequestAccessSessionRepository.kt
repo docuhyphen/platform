@@ -22,7 +22,8 @@ class RequestAccessSessionRepository :
         ).setParameter("shareId", shareId)
             .setParameter("type", com.docuhyphen.app.api.model.entity.ResourceType.INFORMATION_REQUEST)
             .resultList.firstOrNull() ?: return null
-        entityManager.refresh(parent, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        entityManager.lock(parent, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        entityManager.refresh(parent)
         return com.docuhyphen.app.api.model.informationrequest.lifecycle.InformationRequestParentSnapshot(
             parent.status,
             parent.isDeleted,
@@ -62,7 +63,8 @@ class RequestAccessSessionRepository :
         val link = entityManager.find(com.docuhyphen.app.api.model.entity.ShareLink::class.java, session.shareLinkId)
             ?: return null
         lockParentForShare(link.shareId) ?: return null
-        entityManager.refresh(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        entityManager.lock(session, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        entityManager.refresh(session)
         return session
     }
 

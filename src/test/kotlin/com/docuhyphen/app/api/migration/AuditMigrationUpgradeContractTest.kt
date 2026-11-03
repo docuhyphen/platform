@@ -3,7 +3,7 @@ package com.docuhyphen.app.api.migration
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -11,9 +11,6 @@ import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class KotlinPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<KotlinPostgreSQLContainer>(imageName)
 
 class AuditMigrationUpgradeContractTest
 {
@@ -58,7 +55,7 @@ class AuditMigrationUpgradeContractTest
     @Test
     fun `released schema upgrades through audit cleanup on PostgreSQL`()
     {
-        val postgres = KotlinPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_migration_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -159,7 +156,7 @@ class AuditMigrationUpgradeContractTest
         return versions.max().toString()
     }
 
-    private fun flyway(postgres: KotlinPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

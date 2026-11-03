@@ -14,7 +14,7 @@ import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -24,12 +24,9 @@ import javax.sql.DataSource
 
 private const val ABC_SHA_256 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 
-private class RequestEvidencePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<RequestEvidencePostgreSQLContainer>(imageName)
-
 class RequestEvidencePostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = RequestEvidencePostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_request_evidence_persistence_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -43,7 +40,6 @@ class RequestEvidencePostgreSQLResource : QuarkusTestResourceLifecycleManager
             "quarkus.datasource.password" to postgres.password,
             "file.storage.service" to "local",
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

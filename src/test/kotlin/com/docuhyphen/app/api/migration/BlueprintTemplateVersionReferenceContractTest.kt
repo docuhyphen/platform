@@ -4,15 +4,12 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class BlueprintReferencePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<BlueprintReferencePostgreSQLContainer>(imageName)
 
 class BlueprintTemplateVersionReferenceContractTest
 {
@@ -125,9 +122,9 @@ class BlueprintTemplateVersionReferenceContractTest
         }
     }
 
-    private fun withPostgres(block: (BlueprintReferencePostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = BlueprintReferencePostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_blueprint_reference_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -143,7 +140,7 @@ class BlueprintTemplateVersionReferenceContractTest
         }
     }
 
-    private fun flyway(postgres: BlueprintReferencePostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

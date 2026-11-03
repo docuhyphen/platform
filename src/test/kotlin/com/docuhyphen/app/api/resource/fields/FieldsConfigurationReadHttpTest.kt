@@ -109,7 +109,7 @@ class FieldsConfigurationReadHttpTest {
     ) {
         val publishedAt = publishedAgo?.let { "now() - interval '$it'" } ?: "NULL"
         val publishedBy = if (publishedAgo == null) "NULL" else "?"
-        val values = listOfNotNull(versionId, definitionId, versionNumber, status, publishedAgo?.let { authorId })
+        val values = listOfNotNull<Any>(versionId, definitionId, versionNumber, status, publishedAgo?.let { authorId })
         execute(
             connection,
             """

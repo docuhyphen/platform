@@ -183,7 +183,7 @@ $env:WEB_APP_CLOUDFRONT_DISTRIBUTION_ID = "EQY58A3IHZ9UQ"
 Install:
 
 - Git
-- Java 21
+- Java 25
 - Node.js 24 LTS (24.15 or newer; 22.22 or newer also works, odd-numbered releases such as 23 and 25 are not supported) and npm
 - Docker Desktop with Docker Compose v2
 - AWS CLI v2 with support for `aws login`

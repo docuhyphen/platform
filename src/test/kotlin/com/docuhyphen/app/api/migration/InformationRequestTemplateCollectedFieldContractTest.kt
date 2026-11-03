@@ -4,15 +4,12 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class CollectedFieldPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<CollectedFieldPostgreSQLContainer>(imageName)
 
 class InformationRequestTemplateCollectedFieldContractTest
 {
@@ -532,9 +529,9 @@ class InformationRequestTemplateCollectedFieldContractTest
         )
     }
 
-    private fun withPostgres(block: (CollectedFieldPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = CollectedFieldPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_collected_field_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -550,7 +547,7 @@ class InformationRequestTemplateCollectedFieldContractTest
         }
     }
 
-    private fun flyway(postgres: CollectedFieldPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

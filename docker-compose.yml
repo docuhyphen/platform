@@ -40,7 +40,7 @@ services:
     restart: always
 
   postgres:
-    image: postgres:15
+    image: postgres:18
     container_name: docu-hyphen-postgres-db
     environment:
       POSTGRES_DB: docu-hyphen-postgres-db
@@ -49,7 +49,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres18-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d docu-hyphen-postgres-db"]
       interval: 5s
@@ -58,7 +58,7 @@ services:
     restart: always
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: doc-hyphen-redis
     ports:
       - "6379:6379"
@@ -72,5 +72,5 @@ services:
     restart: always
 
 volumes:
-  postgres-data:
+  postgres18-data:
   redis-data:

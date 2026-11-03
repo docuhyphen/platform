@@ -1,15 +1,12 @@
 package com.docuhyphen.app.api.service.informationrequest.oversight
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.nio.file.Files
-
-private class InformationRequestOperationsPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<InformationRequestOperationsPostgreSQLContainer>(imageName)
 
 class InformationRequestOperationsPostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = InformationRequestOperationsPostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_information_request_operations_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -25,7 +22,6 @@ class InformationRequestOperationsPostgreSQLResource : QuarkusTestResourceLifecy
             "file.storage.service" to "local",
             "document.version.storage.local.root-directory" to root.toString(),
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
             "app.domain-event.outbox.dispatch-every" to "off",
             "app.information-request.clock.every" to "off",
             "app.information-request.notice.dispatch-every" to "off",

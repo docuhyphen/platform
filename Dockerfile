@@ -15,7 +15,7 @@
 ## Disable TS type checks for Docker
 #RUN npx tsc --noEmit || echo "Ignoring TS errors for Docker build"
 # Stage 2 - Quarkus runtime
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:25-jre-resolute
 
 # Install LibreOffice
 # --no-install-recommends keeps the layer as small as possible.

@@ -8,15 +8,12 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class DocumentVersionCreatorPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<DocumentVersionCreatorPostgreSQLContainer>(imageName)
 
 class DocumentVersionCreatorPrincipalColumnContractTest
 {
@@ -191,9 +188,9 @@ class DocumentVersionCreatorPrincipalColumnContractTest
         }
     }
 
-    private fun withPostgres(block: (DocumentVersionCreatorPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = DocumentVersionCreatorPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_document_version_creator_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -209,7 +206,7 @@ class DocumentVersionCreatorPrincipalColumnContractTest
         }
     }
 
-    private fun flyway(postgres: DocumentVersionCreatorPostgreSQLContainer, target: String? = null): Flyway =
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway =
         Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
             .locations("classpath:db/migration")

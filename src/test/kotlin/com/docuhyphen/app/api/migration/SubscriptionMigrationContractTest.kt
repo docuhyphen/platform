@@ -8,15 +8,12 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class SubscriptionPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<SubscriptionPostgreSQLContainer>(imageName)
 
 class SubscriptionMigrationContractTest
 {
@@ -26,7 +23,7 @@ class SubscriptionMigrationContractTest
     @Test
     fun `existing accounts and organizations keep working access after the subscription migration`()
     {
-        val postgres = SubscriptionPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_subscription_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -79,7 +76,7 @@ class SubscriptionMigrationContractTest
     @Test
     fun `constraints keep plans on the owner type that can hold them`()
     {
-        val postgres = SubscriptionPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_subscription_constraint_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -129,7 +126,7 @@ class SubscriptionMigrationContractTest
         }
     }
 
-    private fun flyway(postgres: SubscriptionPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

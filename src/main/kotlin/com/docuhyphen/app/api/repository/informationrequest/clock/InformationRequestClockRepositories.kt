@@ -158,8 +158,8 @@ class InformationRequestClockRepository :
 
     fun findForUpdate(clockId: UUID): InformationRequestClock?
     {
-        val clock = entityManager.find(InformationRequestClock::class.java, clockId) ?: return null
-        entityManager.refresh(clock, LockModeType.PESSIMISTIC_WRITE)
+        val clock = entityManager.find(InformationRequestClock::class.java, clockId, LockModeType.PESSIMISTIC_WRITE) ?: return null
+        entityManager.refresh(clock)
         return clock
     }
 }

@@ -5,14 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-private class ExternalParticipantOwnerPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<ExternalParticipantOwnerPostgreSQLContainer>(imageName)
 class ExternalParticipantPersonalOwnerContractTest
 {
     @Test
@@ -69,9 +67,9 @@ class ExternalParticipantPersonalOwnerContractTest
             }
         }
     }
-    private fun withPostgres(block: (ExternalParticipantOwnerPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = ExternalParticipantOwnerPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_external_participant_owner_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -86,7 +84,7 @@ class ExternalParticipantPersonalOwnerContractTest
         }
     }
     private fun flyway(
-        postgres: ExternalParticipantOwnerPostgreSQLContainer,
+        postgres: PostgreSQLContainer,
         target: MigrationVersion = MigrationVersion.LATEST,
     ): Flyway =
         Flyway.configure()

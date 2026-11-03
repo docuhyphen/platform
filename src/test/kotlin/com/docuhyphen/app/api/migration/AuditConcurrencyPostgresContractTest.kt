@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -13,15 +13,12 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
-private class AuditPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<AuditPostgreSQLContainer>(imageName)
-
 class AuditConcurrencyPostgresContractTest
 {
     @Test
     fun `database serialization protects approvals downloads and build leases across connections`()
     {
-        val postgres = AuditPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_audit_concurrency")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -83,7 +80,7 @@ class AuditConcurrencyPostgresContractTest
         }
     }
 
-    private fun insertExport(postgres: AuditPostgreSQLContainer, status: String, downloadLimit: Int): UUID
+    private fun insertExport(postgres: PostgreSQLContainer, status: String, downloadLimit: Int): UUID
     {
         val id = UUID.randomUUID()
         postgres.createConnection("").use { connection ->
@@ -162,7 +159,7 @@ class AuditConcurrencyPostgresContractTest
         }
     }
 
-    private fun readInt(postgres: AuditPostgreSQLContainer, exportId: UUID, column: String): Int =
+    private fun readInt(postgres: PostgreSQLContainer, exportId: UUID, column: String): Int =
         postgres.createConnection("").use { connection ->
             connection.prepareStatement("SELECT $column FROM audit_export WHERE id = ?").use { statement ->
                 statement.setObject(1, exportId)
@@ -170,7 +167,7 @@ class AuditConcurrencyPostgresContractTest
             }
         }
 
-    private fun readString(postgres: AuditPostgreSQLContainer, exportId: UUID, column: String): String? =
+    private fun readString(postgres: PostgreSQLContainer, exportId: UUID, column: String): String? =
         postgres.createConnection("").use { connection ->
             connection.prepareStatement("SELECT $column FROM audit_export WHERE id = ?").use { statement ->
                 statement.setObject(1, exportId)

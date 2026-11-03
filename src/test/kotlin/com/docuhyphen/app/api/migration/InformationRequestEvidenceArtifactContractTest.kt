@@ -4,15 +4,12 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class InformationRequestEvidencePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<InformationRequestEvidencePostgreSQLContainer>(imageName)
 
 class InformationRequestEvidenceArtifactContractTest
 {
@@ -1227,9 +1224,9 @@ class InformationRequestEvidenceArtifactContractTest
         }
     }
 
-    private fun withPostgres(block: (InformationRequestEvidencePostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = InformationRequestEvidencePostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_information_request_evidence_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -1244,7 +1241,7 @@ class InformationRequestEvidenceArtifactContractTest
         }
     }
 
-    private fun flyway(postgres: InformationRequestEvidencePostgreSQLContainer): Flyway =
+    private fun flyway(postgres: PostgreSQLContainer): Flyway =
         Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
             .locations("classpath:db/migration")

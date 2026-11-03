@@ -5,15 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class InformationRequestRuntimePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<InformationRequestRuntimePostgreSQLContainer>(imageName)
 
 class InformationRequestRuntimePersistenceContractTest
 {
@@ -596,9 +593,9 @@ class InformationRequestRuntimePersistenceContractTest
         }
     }
 
-    private fun withPostgres(block: (InformationRequestRuntimePostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = InformationRequestRuntimePostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_information_request_runtime_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -613,7 +610,7 @@ class InformationRequestRuntimePersistenceContractTest
         }
     }
 
-    private fun flyway(postgres: InformationRequestRuntimePostgreSQLContainer): Flyway =
+    private fun flyway(postgres: PostgreSQLContainer): Flyway =
         Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
             .locations("classpath:db/migration")

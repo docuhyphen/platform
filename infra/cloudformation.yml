@@ -290,6 +290,8 @@ Resources:
       DBInstanceIdentifier: !Sub ${AppName}-postgres
       DBInstanceClass: db.t3.small
       Engine: postgres
+      EngineVersion: "18.6"
+      AllowMajorVersionUpgrade: true
       MasterUsername: !Ref DBUsername
       ManageMasterUserPassword: true
       DBName: docuhyphen
@@ -673,7 +675,7 @@ Resources:
 
  # Redis sidecar (replace with ElastiCache when first customer signs up)
         - Name: redis
-          Image: redis:7-alpine
+          Image: redis:8-alpine
           Essential: true
           Cpu: 128
           Memory: 512

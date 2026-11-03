@@ -6,15 +6,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class ShareRolePostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<ShareRolePostgreSQLContainer>(imageName)
 
 class ShareResourceScopedRoleContractTest
 {
@@ -155,9 +152,9 @@ class ShareResourceScopedRoleContractTest
         )
     }
 
-    private fun withPostgres(block: (ShareRolePostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = ShareRolePostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_share_role_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -173,7 +170,7 @@ class ShareResourceScopedRoleContractTest
         }
     }
 
-    private fun flyway(postgres: ShareRolePostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

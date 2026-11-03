@@ -14,18 +14,15 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.sql.DataSource
 
-private class PersonalScopeOwnerPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<PersonalScopeOwnerPostgreSQLContainer>(imageName)
-
 class PersonalScopeOwnerPostgreSQLResource : QuarkusTestResourceLifecycleManager
 {
-    private val postgres = PersonalScopeOwnerPostgreSQLContainer("postgres:17")
+    private val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("docuhyphen_personal_owner_test")
         .withUsername("docuhyphen")
         .withPassword("docuhyphen")
@@ -39,7 +36,6 @@ class PersonalScopeOwnerPostgreSQLResource : QuarkusTestResourceLifecycleManager
             "quarkus.datasource.password" to postgres.password,
             "file.storage.service" to "local",
             "app.secrets.rotation.enabled" to "false",
-            "quarkus.kafka.devservices.enabled" to "false",
         )
     }
 

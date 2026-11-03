@@ -6,15 +6,12 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
-
-private class RootValueSetPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<RootValueSetPostgreSQLContainer>(imageName)
 
 class FieldValueRootValueSetContractTest
 {
@@ -228,9 +225,9 @@ class FieldValueRootValueSetContractTest
         val otherValueId: UUID = UUID.randomUUID()
     }
 
-    private fun withPostgres(block: (RootValueSetPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = RootValueSetPostgreSQLContainer("postgres:17")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_root_value_set_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -246,7 +243,7 @@ class FieldValueRootValueSetContractTest
         }
     }
 
-    private fun flyway(postgres: RootValueSetPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)

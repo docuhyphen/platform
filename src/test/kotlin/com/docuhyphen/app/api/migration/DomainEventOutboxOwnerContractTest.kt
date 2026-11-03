@@ -4,15 +4,12 @@ import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.*
-
-private class DomainEventOutboxPostgreSQLContainer(imageName: String) :
-    PostgreSQLContainer<DomainEventOutboxPostgreSQLContainer>(imageName)
 
 class DomainEventOutboxOwnerContractTest
 {
@@ -89,9 +86,9 @@ class DomainEventOutboxOwnerContractTest
         }
     }
 
-    private fun withPostgres(block: (DomainEventOutboxPostgreSQLContainer) -> Unit)
+    private fun withPostgres(block: (PostgreSQLContainer) -> Unit)
     {
-        val postgres = DomainEventOutboxPostgreSQLContainer("postgres:16-alpine")
+        val postgres = PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("docuhyphen_domain_event_outbox_test")
             .withUsername("docuhyphen")
             .withPassword("docuhyphen")
@@ -106,7 +103,7 @@ class DomainEventOutboxOwnerContractTest
         }
     }
 
-    private fun flyway(postgres: DomainEventOutboxPostgreSQLContainer, target: String? = null): Flyway
+    private fun flyway(postgres: PostgreSQLContainer, target: String? = null): Flyway
     {
         val configuration = Flyway.configure()
             .dataSource(postgres.jdbcUrl, postgres.username, postgres.password)
