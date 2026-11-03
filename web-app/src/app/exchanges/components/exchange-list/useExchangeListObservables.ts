@@ -1,4 +1,4 @@
-import {Dispatch, MutableRefObject, SetStateAction, useEffect} from 'react';
+import {Dispatch, RefObject, SetStateAction, useEffect} from 'react';
 import {ExchangeListEntry} from "../../../models/models.tsx";
 import {
     exchangeDeletionObservable,
@@ -11,9 +11,9 @@ import {isStatusInTab, statusToTab} from "./exchangeListTabFilters.ts";
 
 interface ExchangeListObservableHandlers
 {
-    activeTabRef: MutableRefObject<ExchangeListTab>;
-    inboxRoleRef: MutableRefObject<InboxRole>;
-    selectedItemsRef: MutableRefObject<string[]>;
+    activeTabRef: RefObject<ExchangeListTab>;
+    inboxRoleRef: RefObject<InboxRole>;
+    selectedItemsRef: RefObject<string[]>;
     setExchanges: Dispatch<SetStateAction<ExchangeListEntry[]>>;
     selectExchange: (exchangeId: string | null) => void;
     adjustTabCount: (tab: ExchangeListTab | null, role: InboxRole, delta: number) => void;

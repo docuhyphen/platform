@@ -14,7 +14,7 @@ export interface NoAuthExchangeDecisionOtpInputProps
     errorMessage: string | undefined;
     onDismissError: () => void;
     decisionOtp: string[];
-    otpInputRefs: React.MutableRefObject<Array<HTMLInputElement | null>>;
+    otpInputRefs: React.RefObject<Array<HTMLInputElement | null>>;
     onOtpChange: (index: number, value: string) => void;
     onOtpKeyDown: (index: number, key: string) => void;
     onOtpPaste: (event: React.ClipboardEvent<HTMLInputElement>) => void;

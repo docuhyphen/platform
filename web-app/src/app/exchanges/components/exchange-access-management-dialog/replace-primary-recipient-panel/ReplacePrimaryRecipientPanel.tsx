@@ -28,7 +28,7 @@ const ReplacePrimaryRecipientPanel: React.FC<ReplacePrimaryRecipientPanelProps> 
     const [resolution, setResolution] = useState<ExternalIdentityResolution | undefined>(undefined);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const clearRecipientUser = useCallback(() => undefined, []);
+    const clearRecipientUser = useCallback((): undefined => undefined, []);
 
     const canSubmit = Boolean(resolution?.id) || Boolean(recipientOrgGroup?.id);
 

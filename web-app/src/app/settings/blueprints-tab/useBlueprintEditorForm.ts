@@ -66,7 +66,7 @@ export const useBlueprintEditorForm = (
         if (enforcedScope === 'APP')
             setAvailableVariables(null);
         else
-            getAvailableVariables().then(setAvailableVariables).catch(() => null);
+            getAvailableVariables().then(setAvailableVariables).catch((): null => null);
         setValues(blueprint ? blueprintEditorValuesFrom(blueprint) : emptyBlueprintEditorValues());
         setActiveTab('details');
         setPickerOpen(false);

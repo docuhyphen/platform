@@ -11,6 +11,7 @@ import {
     InformationRequestResponseMode,
     InformationRequestReviewPolicy,
     InformationRequestShareRoleKey,
+    InformationRequestTemplateRequirementDto,
     InformationRequestTemplateStatus,
 } from "../../../models/models.tsx";
 import RecipientPreviewDialog from "./RecipientPreviewDialog.tsx";
@@ -40,7 +41,7 @@ const preview = (partyId: string, prompts: string[]): InformationRequestRecipien
             id: "section-a",
             sectionKey: "confirmations",
             title: "Confirmations",
-            requirements: prompts.map((prompt, index) => ({
+            requirements: prompts.map((prompt, index): InformationRequestTemplateRequirementDto => ({
                 id: `binding-${index}`,
                 templateRequirementId: `requirement-${index}`,
                 requirementKey: `confirmation-${index}`,

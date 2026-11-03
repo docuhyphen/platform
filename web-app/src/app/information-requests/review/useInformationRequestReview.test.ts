@@ -13,6 +13,7 @@ import {
     InformationRequestReviewCommandResultDto,
     InformationRequestReviewDecisionKind,
     InformationRequestReviewDto,
+    InformationRequestReviewItemDto,
     InformationRequestReviewItemStanding,
     InformationRequestReviewKind,
     InformationRequestReviewDelegationCandidateDto,
@@ -66,7 +67,7 @@ const reviewFor = (
         items: [`${reviewId}-item-1`, `${reviewId}-item-2`]
             .map(submissionItemId => ({submissionItemId, standing: InformationRequestReviewItemStanding.PENDING})),
     }],
-    items: [`${reviewId}-item-1`, `${reviewId}-item-2`].map((submissionItemId, index) => ({
+    items: [`${reviewId}-item-1`, `${reviewId}-item-2`].map((submissionItemId, index): InformationRequestReviewItemDto => ({
         submissionItemId,
         requirementId: `requirement-${index}`,
         requirementKey: `recorded-item-${index}`,

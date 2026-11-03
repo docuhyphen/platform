@@ -1,7 +1,7 @@
 ﻿import {Navigate} from "react-router-dom";
 import {useAuth} from "./AuthContext.tsx";
 
-export const OrganizationRegistrationProtectedRoute: React.FC<{ element: JSX.Element }> = ({element}) =>
+export const OrganizationRegistrationProtectedRoute: React.FC<{ element: React.JSX.Element }> = ({element}) =>
 {
     const {token, appUser, appUserPersonOrganization} = useAuth();
 

@@ -82,7 +82,7 @@ const TrustPolicyEditor = ({policy, canManage, busy, onSave}: TrustPolicyEditorP
                         shape={"circular"}
                         appearance={"primary"}
                         disabled={busy}
-                        onClick={() => { void onSave(policy.id, draft).catch(() => undefined); }}
+                        onClick={() => { void onSave(policy.id, draft).catch((): undefined => undefined); }}
                     >
                         Save policy
                     </Button>

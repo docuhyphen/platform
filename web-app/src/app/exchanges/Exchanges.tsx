@@ -4,8 +4,8 @@ import ExchangePreLoader from "./components/exchange-pre-loader/ExchangePreLoade
 import ExchangesSection from "./components/exchanges-section/ExchangesSection.tsx";
 import ExchangesEmptyWorkspace from "./components/exchanges-empty-workspace/ExchangesEmptyWorkspace.tsx";
 import {useExchangesWorkspace} from "./useExchangesWorkspace.ts";
-import "react-pdf/dist/esm/Page/AnnotationLayer.css";
-import "react-pdf/dist/esm/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 
 const Exchanges: React.FC = () =>
 {

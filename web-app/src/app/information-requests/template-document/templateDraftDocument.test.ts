@@ -21,6 +21,9 @@ import {
     InformationRequestReviewTieResolution,
     InformationRequestSubmissionMode,
     InformationRequestSubmissionStageOrdering,
+    InformationRequestTemplateConditionPredicateDto,
+    InformationRequestTemplateGroupDto,
+    InformationRequestTemplateReviewStageDto,
     InformationRequestTemplateStatus,
     InformationRequestTemplateVersionDto,
 } from "../../models/models.tsx";
@@ -339,11 +342,11 @@ const serverSentVersion = (): InformationRequestTemplateVersionDto => {
     return {
         ...version,
         contentHashSha256: null,
-        reviewStages: (version.reviewStages ?? []).map(stage => ({...stage, quorumCount: null})),
-        groups: version.groups.map(group => ({...group, parentGroupKey: null, maxOccurrences: null})),
+        reviewStages: (version.reviewStages ?? []).map((stage): InformationRequestTemplateReviewStageDto => ({...stage, quorumCount: null})),
+        groups: version.groups.map((group): InformationRequestTemplateGroupDto => ({...group, parentGroupKey: null, maxOccurrences: null})),
         conditionRules: version.conditionRules.map(rule => ({
             ...rule,
-            predicates: rule.predicates.map(predicate => ({
+            predicates: rule.predicates.map((predicate): InformationRequestTemplateConditionPredicateDto => ({
                 ...predicate,
                 sourceRequirementKey: null,
                 expectedDisposition: null

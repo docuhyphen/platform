@@ -7,6 +7,7 @@ import {
     FieldDataClassification,
     FieldLifecycleStatus,
     FieldScopeKind,
+    FieldValueDto,
     FieldValueType,
     SchemaAssignmentDto,
     SchemaAssignmentSource,
@@ -68,7 +69,7 @@ const assignmentOf = (bindings: SchemaFieldBindingDto[]): SchemaAssignmentDto =>
     assignmentSource: SchemaAssignmentSource.MANUAL,
     assignedAt: Date.parse('2026-01-01T00:00:00Z'),
     bindings,
-    fields: bindings.map(binding => ({
+    fields: bindings.map((binding): FieldValueDto => ({
         fieldContractId: binding.fieldContractId,
         schemaFieldBindingId: binding.id,
         namespace: binding.namespace,

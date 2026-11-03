@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {FieldOperator, FieldValueType, SchemaDefinitionDto, SchemaVersionDto} from "../../../../models/models.tsx";
+import {FieldOperator, FieldValueType, InformationRequestTemplateGroupDto, SchemaDefinitionDto, SchemaVersionDto} from "../../../../models/models.tsx";
 import {defaultRequirementCondition, requirementChoicesOf} from "./requirementConditionChoices.ts";
 import {requestSchema, template} from "./requirementConditionTestFixtures.ts";
 
@@ -24,7 +24,7 @@ describe("requirementConditionChoices", () => {
         const version = template.latestPublishedVersion;
         const sent = version && {
             ...version,
-            groups: version.groups.map(group => ({
+            groups: version.groups.map((group): InformationRequestTemplateGroupDto => ({
                 ...group,
                 parentGroupKey: group.parentGroupKey ?? null,
                 maxOccurrences: null

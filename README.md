@@ -184,7 +184,7 @@ Install:
 
 - Git
 - Java 21
-- Node.js 20 or newer and npm
+- Node.js 24 LTS (24.15 or newer; 22.22 or newer also works, odd-numbered releases such as 23 and 25 are not supported) and npm
 - Docker Desktop with Docker Compose v2
 - AWS CLI v2 with support for `aws login`
 - LibreOffice on the host if document conversion is tested outside the application container

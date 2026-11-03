@@ -17,6 +17,8 @@ import {
     InformationRequestResponseDisposition,
     InformationRequestResponseMode,
     InformationRequestTemplateDto,
+    InformationRequestTemplateGroupDto,
+    InformationRequestTemplateRequirementDto,
     RecordRetentionScheduleDto,
     RecordRetentionScheduleVersionDto,
     SchemaDefinitionDto,
@@ -46,14 +48,14 @@ const sentTemplate: InformationRequestTemplateDto = {
     draftVersion: null,
     latestPublishedVersion: {
         ...published,
-        groups: published.groups.map(group => ({
+        groups: published.groups.map((group): InformationRequestTemplateGroupDto => ({
             ...group,
             parentGroupKey: group.parentGroupKey ?? null,
             maxOccurrences: null
         })),
         sections: published.sections.map(section => ({
             ...section,
-            requirements: section.requirements.map(requirement => requirement.requirementType === InformationRequestRequirementType.DOCUMENT
+            requirements: section.requirements.map((requirement): InformationRequestTemplateRequirementDto => requirement.requirementType === InformationRequestRequirementType.DOCUMENT
                 ? {
                     ...requirement,
                     responseMode: InformationRequestResponseMode.PROVIDE,

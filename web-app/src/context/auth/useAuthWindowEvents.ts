@@ -1,4 +1,4 @@
-import {MutableRefObject, useEffect} from 'react';
+import {RefObject, useEffect} from 'react';
 import {BroadcastAuthEvent, ClearAuthStateAndRedirect} from "./authContextTypes.ts";
 import {sessionExpiredPath} from "./sessionEndReason.ts";
 
@@ -9,7 +9,7 @@ interface AuthWindowEventsOptions
     clearAuthStateAndRedirect: ClearAuthStateAndRedirect;
     broadcastAuthEvent: BroadcastAuthEvent;
     suppressNextLogoutBroadcast: () => void;
-    sessionEndReasonRef: MutableRefObject<string | null>;
+    sessionEndReasonRef: RefObject<string | null>;
 }
 
 export const useAuthWindowEvents = (options: AuthWindowEventsOptions) =>

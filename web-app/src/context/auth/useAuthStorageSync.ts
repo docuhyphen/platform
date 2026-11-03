@@ -1,11 +1,11 @@
-import {MutableRefObject, useEffect} from 'react';
+import {RefObject, useEffect} from 'react';
 import {AUTH_EVENT_STORAGE_KEY, AUTH_USER_STORAGE_KEY} from "./authStorageKeys.ts";
 import {AuthBroadcastEventPayload, ClearAuthStateAndRedirect} from "./authContextTypes.ts";
 
 interface AuthStorageSyncOptions
 {
     appUserId: string | undefined;
-    tabIdRef: MutableRefObject<string>;
+    tabIdRef: RefObject<string>;
     suppressNextLogoutBroadcast: () => void;
     clearAuthStateAndRedirect: ClearAuthStateAndRedirect;
 }

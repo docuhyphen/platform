@@ -46,7 +46,7 @@ describe("ResponseDispositionChoice", () => {
         const group = screen.getByRole("radiogroup", {name: "Your answer Describe the records kept this period"});
         expect(window.getComputedStyle(group).display).toBe("flex");
         expect(window.getComputedStyle(group).flexWrap).toBe("wrap");
-        expect(window.getComputedStyle(group).minWidth).toBe("0");
+        expect(window.getComputedStyle(group).minWidth).toBe("0px");
         expect(screen.getAllByRole("radio")).toHaveLength(4);
     });
 });

@@ -45,7 +45,7 @@ const ExchangeFieldsTab = ({exchange}: Props) =>
                 setState(current);
                 if (!current.assignment && current.canManageSchema)
                 {
-                    const all = await listSchemas().catch(() => []);
+                    const all = await listSchemas().catch((): SchemaDefinitionDto[] => []);
                     setSchemas(all.filter(s => !!s.latestPublishedVersion
                         && s.status !== FieldLifecycleStatus.RETIRED
                         && s.targetResourceType === EXCHANGE_RESOURCE));

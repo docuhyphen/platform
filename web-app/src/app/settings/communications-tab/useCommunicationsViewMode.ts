@@ -15,7 +15,7 @@ export const useCommunicationsViewMode = () =>
         const updated = {...appUser.settings, communicationsView: mode};
         await updateAppUserSettings(updated, token)
             .then(() => setAppUser({...appUser, settings: updated}))
-            .catch(() => undefined);
+            .catch((): undefined => undefined);
     };
 
     return {viewMode, handleViewModeChange};

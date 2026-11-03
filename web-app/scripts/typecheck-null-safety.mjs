@@ -5,7 +5,7 @@ import {isInformationRequestDiagnostic, parseTypeScriptDiagnostics} from "./type
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const appDirectory = resolve(scriptDirectory, "..");
-const tscPath = resolve(appDirectory, "node_modules", "typescript", "bin", "tsc");
+const tscPath = resolve(appDirectory, "node_modules", "@typescript", "native", "bin", "tsc");
 
 const nullSafetyPathPattern = /(^|\/)(record-preservation|requirement-condition-editor|blueprint-information-request-tab)(\/|$)/i;
 

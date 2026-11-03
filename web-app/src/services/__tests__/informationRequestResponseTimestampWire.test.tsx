@@ -24,6 +24,7 @@ import {
     InformationRequestReviewAssignmentState,
     InformationRequestReviewDecisionKind,
     InformationRequestReviewDto,
+    InformationRequestReviewItemDto,
     InformationRequestReviewItemStanding,
     InformationRequestReviewKind,
     InformationRequestReviewOutcome,
@@ -81,7 +82,7 @@ const review: InformationRequestReviewDto = {
             {submissionItemId: "item-b", standing: InformationRequestReviewItemStanding.DECIDED},
         ],
     }],
-    items: ["item-a", "item-b"].map((submissionItemId, index) => ({
+    items: ["item-a", "item-b"].map((submissionItemId, index): InformationRequestReviewItemDto => ({
         submissionItemId,
         requirementId: `requirement-${index}`,
         requirementKey: index === 0 ? "recorded-summary" : "supporting-note",

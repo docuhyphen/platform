@@ -15,7 +15,7 @@ export const useBlueprintsViewMode = (): [ViewMode, (mode: ViewMode) => Promise<
         const updated = {...appUser.settings, blueprintsView: mode};
         await updateAppUserSettings(updated, token)
             .then(() => setAppUser({...appUser, settings: updated}))
-            .catch(() => undefined);
+            .catch((): undefined => undefined);
     };
 
     return [viewMode, changeViewMode];

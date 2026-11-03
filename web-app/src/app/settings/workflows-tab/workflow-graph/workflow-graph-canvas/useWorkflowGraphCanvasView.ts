@@ -56,7 +56,7 @@ export function useWorkflowGraphCanvasView()
         {
             if (document.fullscreenElement === canvasContainerRef.current)
             {
-                document.exitFullscreen().catch(() => undefined);
+                document.exitFullscreen().catch((): undefined => undefined);
             }
             setIsEnlarged(false);
             scheduleFitView();

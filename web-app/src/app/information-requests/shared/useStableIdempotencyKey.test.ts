@@ -61,8 +61,8 @@ describe("useStableIdempotencyKey", () => {
             }) => createElement(CommandKeysContext.Provider, {value: keys}, children),
         });
 
-        await under(new Map()).result.current("confirm-a", {decision: "ASSENTED"}, command).catch(() => undefined);
-        await under(new Map()).result.current("confirm-a", {decision: "ASSENTED"}, command).catch(() => undefined);
+        await under(new Map()).result.current("confirm-a", {decision: "ASSENTED"}, command).catch((): undefined => undefined);
+        await under(new Map()).result.current("confirm-a", {decision: "ASSENTED"}, command).catch((): undefined => undefined);
 
         const [first, other] = keysOf(command);
         expect(other).not.toBe(first);
@@ -72,7 +72,7 @@ describe("useStableIdempotencyKey", () => {
         const {result} = renderHook(() => useStableIdempotencyKey());
         const command = vi.fn().mockRejectedValue(new Error("The connection was lost"));
         const attempt = (identity: string, body: string) =>
-            result.current(identity, {body}, command).catch(() => undefined);
+            result.current(identity, {body}, command).catch((): undefined => undefined);
 
         await attempt("review-a", "Check the register");
         await attempt("review-a", "Check the second page");

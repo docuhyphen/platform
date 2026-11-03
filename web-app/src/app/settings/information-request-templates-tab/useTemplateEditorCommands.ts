@@ -1,4 +1,4 @@
-import {MutableRefObject, useMemo} from "react";
+import {RefObject, useMemo} from "react";
 import {CreateInformationRequestTemplateRequest, InformationRequestTemplateDto} from "../../models/models.tsx";
 import {
     cloneInformationRequestTemplate,
@@ -13,7 +13,7 @@ import {TemplateEditorCommands} from "./template-editor/templateEditorTypes.ts";
 
 export const useTemplateEditorCommands = (
     templateId: string | undefined,
-    draftETag: MutableRefObject<string | undefined>,
+    draftETag: RefObject<string | undefined>,
     keyed: StableKeyedCommand,
     opened: (template: InformationRequestTemplateDto) => InformationRequestTemplateDto,
 ): TemplateEditorCommands | null =>

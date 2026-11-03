@@ -116,7 +116,7 @@ describe("useInformationRequestTemplateAdministration", () => {
             .mockResolvedValue(withDraft(0));
         const hook = await opened();
 
-        await act(async () => hook.result.current.commands?.retire(2).catch(() => null));
+        await act(async () => hook.result.current.commands?.retire(2).catch((): null => null));
         await act(async () => hook.result.current.commands?.retire(2));
         await act(async () => hook.result.current.commands?.retire(2));
 

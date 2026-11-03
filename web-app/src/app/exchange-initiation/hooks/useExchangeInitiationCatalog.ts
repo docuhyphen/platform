@@ -11,7 +11,7 @@ const useExchangeInitiationCatalog = () =>
 
     const loadCatalog = useCallback(() =>
     {
-        getAvailableVariables().then(setAvailableVariables).catch(() => null);
+        getAvailableVariables().then(setAvailableVariables).catch((): null => null);
         listSchemas()
             .then(all => setEligibleSchemas(filterEligibleExchangeSchemas(all)))
             .catch(() => setEligibleSchemas([]));

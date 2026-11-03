@@ -25,7 +25,7 @@ export const useVariableList = (scope: VariableScope, loadErrorMessage: string) 
 
     const remove = async (v: VariableDefinitionDto) =>
     {
-        await deleteVariable(v.id).catch(() => null);
+        await deleteVariable(v.id).catch((): null => null);
         load();
     };
 

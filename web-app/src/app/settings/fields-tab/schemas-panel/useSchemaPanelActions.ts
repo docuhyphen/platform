@@ -30,7 +30,7 @@ export const useSchemaPanelActions = (onRefresh: () => void): SchemaPanelActions
 
     useEffect(() =>
     {
-        listFieldDefinitions().then(setDefinitions).catch(() => null);
+        listFieldDefinitions().then(setDefinitions).catch((): null => null);
     }, []);
 
     const openCreate = () => { setEditing(undefined); setEditorOpen(true); };
@@ -44,21 +44,21 @@ export const useSchemaPanelActions = (onRefresh: () => void): SchemaPanelActions
 
     const publish = async (schema: SchemaDefinitionDto) =>
     {
-        await publishSchemaDraft(schema.id).catch(() => null);
+        await publishSchemaDraft(schema.id).catch((): null => null);
         onRefresh();
     };
 
     const newVersion = async (schema: SchemaDefinitionDto) =>
     {
-        await createSchemaDraftVersion(schema.id).catch(() => null);
-        const fresh = await getSchema(schema.id).catch(() => undefined);
+        await createSchemaDraftVersion(schema.id).catch((): null => null);
+        const fresh = await getSchema(schema.id).catch((): undefined => undefined);
         if (fresh) { setEditing(fresh); setEditorOpen(true); }
         onRefresh();
     };
 
     const retire = async (schema: SchemaDefinitionDto) =>
     {
-        await retireSchema(schema.id).catch(() => null);
+        await retireSchema(schema.id).catch((): null => null);
         onRefresh();
     };
 

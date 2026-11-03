@@ -111,7 +111,7 @@ const AppSettingsTab = () => {
                             label="Automatically preview documents"
                             checked={settings.autoPreviewDocuments}
                             onChange={(_, data) =>
-                                saveSettings({autoPreviewDocuments: !!data.checked}).catch(() => undefined)}
+                                saveSettings({autoPreviewDocuments: !!data.checked}).catch((): undefined => undefined)}
                             disabled={controlsDisabled}/>
                     <Divider id="notification-preferences-divider"
                              appearance="brand"

@@ -13,7 +13,7 @@ export class DocumentCommentService
         catch (error)
         {
             console.error('Failed to fetch comments:', error);
-            throw new Error('Failed to fetch comments');
+            throw new Error('Failed to fetch comments', {cause: error});
         }
     }
 
@@ -41,7 +41,7 @@ export class DocumentCommentService
         catch (error)
         {
             console.error('Failed to add comment:', error);
-            throw new Error('Failed to add comment');
+            throw new Error('Failed to add comment', {cause: error});
         }
     }
 }

@@ -338,7 +338,7 @@ describe("templateDraftValidation", () =>
             sections: sections(" first ")
         }))).toEqual([]);
         expect(messages(documentWith({
-            sections: sections("").map(section => ({
+            sections: sections("").map((section): TemplateDraftDocument["sections"][number] => ({
                 ...section,
                 submissionStageKey: undefined
             }))

@@ -16,7 +16,7 @@ export const useClockPolicyVersions = (): Map<string, ClockPolicyVersionEntry> =
                         version
                     }] as [string, ClockPolicyVersionEntry]))));
             })
-            .catch(() => undefined);
+            .catch((): undefined => undefined);
         return () => {
             current = false;
         };

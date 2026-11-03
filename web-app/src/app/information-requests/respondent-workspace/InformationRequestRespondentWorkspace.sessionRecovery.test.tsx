@@ -245,7 +245,7 @@ describe("InformationRequestRespondentWorkspace session recovery", () => {
         fireEvent.change(element("information-request-access-code-input"), {target: {value: "123456"}});
         fireEvent.click(element("information-request-verify-code-btn"));
 
-        await waitFor(() => expect(document.getElementById(`${panelId}-kept-1-retry`)).toBeTruthy());
+        await waitFor(() => expect((element(`${panelId}-kept-1-retry`) as HTMLButtonElement).disabled).toBe(false));
         expect(screen.getByText("record.pdf was not sent. It is kept here so you can try again.")).toBeTruthy();
         expect(uploadCalls()).toHaveLength(1);
 

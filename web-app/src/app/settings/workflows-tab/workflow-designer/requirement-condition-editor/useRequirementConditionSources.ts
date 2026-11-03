@@ -71,7 +71,7 @@ export const useRequirementConditionSources = (storedRequirementIds: string[]) =
         const wanted = new Set(storedKey.split(" "));
         const find = async () => {
             for (const template of templates) {
-                const detail = await getInformationRequestTemplate(template.id).catch(() => null);
+                const detail = await getInformationRequestTemplate(template.id).catch((): null => null);
                 if (!active) return;
                 if (holdsAny(detail?.latestPublishedVersion, wanted)) {
                     setHolding(template.id);

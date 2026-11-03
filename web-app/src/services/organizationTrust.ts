@@ -108,7 +108,7 @@ const execute = async <T>(request: () => Promise<{data: T}>): Promise<T> =>
     }
     catch (error: unknown)
     {
-        throw new Error(responseMessage(error));
+        throw new Error(responseMessage(error), {cause: error});
     }
 };
 

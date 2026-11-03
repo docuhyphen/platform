@@ -6,7 +6,7 @@ import {fileURLToPath, pathToFileURL} from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const appDirectory = resolve(scriptDirectory, "..");
 const baselinePath = resolve(appDirectory, "typecheck-app-baseline.json");
-const tscPath = resolve(appDirectory, "node_modules", "typescript", "bin", "tsc");
+const tscPath = resolve(appDirectory, "node_modules", "@typescript", "native", "bin", "tsc");
 
 const diagnosticPattern = /^(?<file>.+?\.(?:ts|tsx))\((?<line>\d+),(?<column>\d+)\): error TS(?<code>\d+): (?<message>.+)$/;
 const informationRequestPathPattern = /(^|\/)(information-requests|information-request-templates-tab)(\/|$)/i;

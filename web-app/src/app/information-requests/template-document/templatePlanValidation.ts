@@ -132,7 +132,7 @@ const crossRoleProblems = (
 ) => {
     if (!REMOVING_POLICIES.has(rule.hiddenDataPolicy)) return;
     const byKey = new Map(requirements.map(requirement => [requirement.requirementKey, requirement]));
-    const sources = sourceKeysOf(rule, collectorsOf(requirements)).flatMap(key => byKey.get(key) ?? []);
+    const sources = sourceKeysOf(rule, collectorsOf(requirements)).flatMap<InformationRequestTemplateRequirementRequest>(key => byKey.get(key) ?? []);
     requirements
         .filter(requirement => requirement.requiredness === InformationRequestRequiredness.CONDITIONAL
             && requirement.conditionalRuleKey === rule.ruleKey)

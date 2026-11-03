@@ -48,7 +48,7 @@ export const useCommunicationEditorForm = ({open, communication, scope, enforced
         }
         else
         {
-            getAvailableVariables().then(setAvailableVariables).catch(() => null);
+            getAvailableVariables().then(setAvailableVariables).catch((): null => null);
         }
         setValues(communicationValuesFrom(communication));
         setActiveTab('details');

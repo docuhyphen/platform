@@ -93,7 +93,7 @@ export const useAuthTokens = () =>
         const refreshAt = Math.max(5, ttlSeconds * 0.8);
         const proactiveTimerId = window.setTimeout(() =>
         {
-            void refreshTokens().catch(() => undefined);
+            void refreshTokens().catch((): undefined => undefined);
         }, refreshAt * 1000);
 
         tokenExpirationIntervalRef.current = window.setInterval(async () =>

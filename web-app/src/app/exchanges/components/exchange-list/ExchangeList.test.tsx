@@ -16,7 +16,7 @@ vi.mock('../../../../utils/useMediaQuery.ts', () => ({
 
 vi.mock('../../../../services/NotificationService', () => ({
     realtimeService: {
-        on: vi.fn(() => () => undefined),
+        on: vi.fn(() => (): undefined => undefined),
     },
 }));
 

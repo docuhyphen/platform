@@ -94,7 +94,7 @@ describe("InformationRequestRespondentWorkspace pending work before submitting o
 
         await waitFor(() => expect(element("information-request-response-save-error").textContent).toBe("The answers could not be saved."));
         expect(document.getElementById(REVIEW)).toBeNull();
-        expect(element(PENDING).textContent).toContain("not been saved");
+        await waitFor(() => expect(element(PENDING).textContent).toContain("not been saved"));
         expect(submitButton().disabled).toBe(true);
         expect(submissionsSent()).toHaveLength(0);
     });

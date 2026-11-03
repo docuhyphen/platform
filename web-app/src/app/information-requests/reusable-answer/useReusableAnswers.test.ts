@@ -71,7 +71,7 @@ describe("useReusableAnswers", () => {
         const hook = await renderAnswers();
         const attempt = (requestId: string, factId: string, requirementId: string, responseETag: string) =>
             act(async () => {
-                await hook.result.current.recertify(requestId, factId, requirementId, responseETag).catch(() => undefined);
+                await hook.result.current.recertify(requestId, factId, requirementId, responseETag).catch((): undefined => undefined);
             });
 
         await attempt("request-a", "fact-a", "requirement-a", "\"responses:1\"");

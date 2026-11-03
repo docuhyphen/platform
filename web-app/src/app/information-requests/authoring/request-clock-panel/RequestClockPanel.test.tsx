@@ -6,6 +6,7 @@ import * as operations from "../../../../services/informationRequestOperationsSe
 import {
     InformationRequestClockDto,
     InformationRequestClockDueEffect,
+    InformationRequestClockPolicyVersionDto,
     InformationRequestClockState,
     InformationRequestClockType,
     InformationRequestClockUrgency,
@@ -85,7 +86,7 @@ describe("RequestClockPanel", () =>
             policyKey: "standard",
             displayName: "Standard response time",
             ownerType: InformationRequestOwnerType.ORGANIZATION,
-            versions: [1, 2].map(versionNumber => ({
+            versions: [1, 2].map((versionNumber): InformationRequestClockPolicyVersionDto => ({
                 id: `policy-version-${versionNumber === 2 ? "a" : "old"}`,
                 versionNumber,
                 clockType: InformationRequestClockType.CALENDAR,

@@ -25,13 +25,13 @@ export const useOrganizationSequences = () =>
 
     const remove = async (seq: SequenceDefinitionDto) =>
     {
-        await deleteSequence(seq.id).catch(() => null);
+        await deleteSequence(seq.id).catch((): null => null);
         load();
     };
 
     const resetCounter = async (seq: SequenceDefinitionDto) =>
     {
-        await resetSequenceCounter(seq.id).catch(() => null);
+        await resetSequenceCounter(seq.id).catch((): null => null);
         load();
     };
 

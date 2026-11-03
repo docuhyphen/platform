@@ -38,14 +38,14 @@ export const occurrenceTree = (
             });
     const root = occurrences
         .filter(occurrence => occurrence.occurrencePath === ROOT_OCCURRENCE_PATH)
-        .map(occurrence => {
+        .map((occurrence): OccurrenceNode => {
             placed.add(occurrence.id);
             return {occurrence, label: "", siblingIds: [occurrence.id], children: []};
         });
     const entries = groups.filter(group => !group.parentGroupKey).flatMap(group => nodesIn(group, null, null));
     const unplaced = occurrences
         .filter(occurrence => !placed.has(occurrence.id))
-        .map(occurrence => ({
+        .map((occurrence): OccurrenceNode => ({
             occurrence,
             label: occurrenceLabel(occurrence.occurrencePath),
             siblingIds: [occurrence.id],

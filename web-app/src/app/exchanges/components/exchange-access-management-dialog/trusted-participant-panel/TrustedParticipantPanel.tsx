@@ -27,7 +27,7 @@ const TrustedParticipantPanel = ({exchangeId, onCancel, onInvited}: TrustedParti
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const canSubmit = Boolean(resolution?.id) || Boolean(group?.id);
-    const clearRecipientUser = useCallback(() => undefined, []);
+    const clearRecipientUser = useCallback((): undefined => undefined, []);
     const invite = async () =>
     {
         if (!canSubmit || submitting) return;

@@ -1,7 +1,7 @@
 import {Navigate} from "react-router-dom";
 import {useAuth} from "./AuthContext.tsx";
 
-const OnboardingProtectedRoute: React.FC<{ element: JSX.Element }> = ({element}) =>
+const OnboardingProtectedRoute: React.FC<{ element: React.JSX.Element }> = ({element}) =>
 {
     const {token, appUser} = useAuth();
 

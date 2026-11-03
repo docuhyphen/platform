@@ -65,7 +65,7 @@ export const usePreviewEnlargement = (scrollCurrentPageIntoView: () => void) =>
             if (isClosingEnlarged) return;
             if (window.document.fullscreenElement)
             {
-                window.document.exitFullscreen().catch(() => undefined);
+                window.document.exitFullscreen().catch((): undefined => undefined);
             }
             setIsClosingEnlarged(true);
             closeAnimationTimeoutRef.current = window.setTimeout(() =>

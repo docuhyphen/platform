@@ -55,7 +55,7 @@ export const useFieldDefinitionsList = (active: boolean): FieldDefinitionsList =
 
     const retire = async (definition: FieldDefinitionDto) =>
     {
-        await retireFieldDefinition(definition.id).catch(() => null);
+        await retireFieldDefinition(definition.id).catch((): null => null);
         load();
     };
 

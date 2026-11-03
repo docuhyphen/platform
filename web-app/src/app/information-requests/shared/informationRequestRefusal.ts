@@ -25,7 +25,7 @@ export const isInformationRequestReadAccessLost = (error: unknown): boolean => {
 };
 
 export const unlessForbidden = <T, >(read: Promise<T>): Promise<T | null> =>
-    read.catch((refusal: unknown) => {
+    read.catch((refusal: unknown): null => {
         if (isInformationRequestForbidden(refusal)) return null;
         throw refusal;
     });

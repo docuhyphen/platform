@@ -167,7 +167,7 @@ An "Exchange" is a first class word and should be used as a noun. For example, i
 | Backend language | Kotlin (Quarkus, Jakarta EE, JPA / Hibernate) |
 | Database | PostgreSQL, schema managed by Flyway migrations |
 | Frontend language | TypeScript |
-| Frontend framework | React 18, Vite |
+| Frontend framework | React 19, Vite |
 | UI component library | Fluent UI v9 (`@fluentui/react-components`) |
 | Serialization (backend) | kotlinx.serialization |
 | Auth | JWT tokens, custom `AuthTokenContext` interceptor |

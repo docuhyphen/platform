@@ -152,7 +152,7 @@ export const useAuthUserData = (options: AuthUserDataOptions) =>
             }
             setAppUser(prev => (prev ? {...prev, avatarUrl: objectUrl} : prev));
         };
-        void loadAvatar().catch(() => undefined);
+        void loadAvatar().catch((): undefined => undefined);
 
         return () =>
         {

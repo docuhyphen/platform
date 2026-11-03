@@ -75,7 +75,7 @@ const groupStageProblems = (document: TemplateDraftDocument, add: TemplateProble
         const family = familyOf(group.groupKey);
         const stages = [...new Set(requirementsOf(document)
             .filter(requirement => family.has(anchorOf(requirement) ?? ""))
-            .flatMap(requirement => stageByRequirement.get(requirement.requirementKey) ?? []))].sort();
+            .flatMap<string>(requirement => stageByRequirement.get(requirement.requirementKey) ?? []))].sort();
         if (stages.length > 1) {
             add(`Group "${group.groupKey}" and its nested groups are answered in stages ${listed(stages)}, so adding or removing one of its occurrences would change more than one stage.`,
                 {panel: "groups", groupIndex});

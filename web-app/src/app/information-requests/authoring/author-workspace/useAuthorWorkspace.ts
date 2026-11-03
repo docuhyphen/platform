@@ -44,8 +44,8 @@ interface LoadedAuthorWorkspace {
 
 const partRead = <T, >(read: Promise<T>, failure: string): Promise<PartRead<T>> =>
     read.then(
-        value => ({value, error: null}),
-        (refusal: unknown) => ({
+        (value): PartRead<T> => ({value, error: null}),
+        (refusal: unknown): PartRead<T> => ({
             value: null,
             error: isInformationRequestForbidden(refusal) ? null : informationRequestRefusalMessage(refusal, failure),
         }),
@@ -174,12 +174,12 @@ export const useAuthorWorkspace = (requestId: string) =>
         nameSelfDecisionMaker: () => appUser?.id
             ? assignParty({roleKey: InformationRequestShareRoleKey.DECISION_MAKER, userId: appUser.id})
             : Promise.resolve(null),
-        issueLink: (party: InformationRequestPartyDto) => forParty(party, async ({workspace: {request}}) => {
+        issueLink: (party: InformationRequestPartyDto) => forParty(party, async ({workspace: {request}}): Promise<null> => {
             show(request.id, party, await runner.run(`link:${party.id}:${party.partyETag}`, key =>
                 authoring.issueInformationRequestAccessLink(request.id, {partyId: party.id}, party.partyETag, key)));
             return null;
         }),
-        resendLink: (party: InformationRequestPartyDto, link: InformationRequestAccessLinkDto) => forLink(link, async ({workspace: {request}}) => {
+        resendLink: (party: InformationRequestPartyDto, link: InformationRequestAccessLinkDto) => forLink(link, async ({workspace: {request}}): Promise<null> => {
             show(request.id, party, await runner.run(`rotate:${link.shareLinkId}:${link.rotationCount}`, key =>
                 authoring.rotateInformationRequestAccessLink(request.id, link.shareLinkId, party.partyETag, key)));
             return null;

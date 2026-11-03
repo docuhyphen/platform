@@ -86,7 +86,7 @@ const useExchangeInitiationBlueprint = (
                 if (appliedBlueprintId.current !== blueprint.id) return;
                 setInternalParticipants(participantUsersOf(participantDefaults, users));
             })
-            .catch(() => undefined);
+            .catch((): undefined => undefined);
     };
 
     const applyPendingVariableTokens = (blueprint: BlueprintDefinitionSummaryDto, config: BlueprintConfig | null) =>

@@ -25,7 +25,7 @@ const WorkflowInstanceDetail = ({instanceId, onDismiss}: Props) =>
         setDetail(null);
         getWorkflowInstanceDetail(instanceId)
             .then(setDetail)
-            .catch(() => undefined)
+            .catch((): undefined => undefined)
             .finally(() => setLoading(false));
     }, [instanceId]);
 
